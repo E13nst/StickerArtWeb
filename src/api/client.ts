@@ -189,15 +189,17 @@ class ApiClient {
   }
 
   // Получение информации о текущем пользователе по Telegram ID
+  // Примечание: API использует telegramId как основной ID
   async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
     try {
-      const response = await this.client.get<UserInfo>(`/users/telegram/${telegramId}`);
+      // API endpoint: /api/users/{id} где id = telegramId
+      const response = await this.client.get<UserInfo>(`/users/${telegramId}`);
       return response.data;
     } catch (error) {
       console.warn('⚠️ API недоступен, используем мок данные для текущего пользователя');
       // Мок данные для текущего пользователя
       return {
-        id: 1,
+        id: telegramId,
         telegramId: telegramId,
         username: 'currentuser',
         firstName: 'Current',

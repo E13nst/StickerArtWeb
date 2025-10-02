@@ -135,6 +135,8 @@ export const MyProfilePage: React.FC = () => {
       // Используем userInfo.id если он уже загружен, иначе telegramId
       const userId = userInfo?.id || telegramId;
       
+      console.log('🔍 Загрузка стикерсетов для userId:', userId, 'telegramId:', telegramId, 'searchQuery:', searchQuery);
+      
       const response = searchQuery 
         ? await apiClient.searchUserStickerSets(userId, searchQuery)
         : await apiClient.getUserStickerSets(userId);
@@ -143,6 +145,7 @@ export const MyProfilePage: React.FC = () => {
       setUserStickerSets(response.content || []);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикерсетов';
+      console.error('❌ Ошибка загрузки стикерсетов:', error);
       setStickerSetsError(errorMessage);
       throw error;
     } finally {
