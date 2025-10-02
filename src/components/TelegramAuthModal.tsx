@@ -64,9 +64,8 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
   };
 
   const handleLoadTestData = () => {
-    // Тестовые данные для разработки
-    const testInitData = 'query_id=test&user=%7B%22id%22%3A123456789%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22username%22%3A%22testuser%22%2C%22language_code%22%3A%22ru%22%7D&auth_date=' + Math.floor(Date.now() / 1000) + '&hash=test_hash';
-    setInitData(testInitData);
+    // Показываем инструкцию по получению initData
+    setError('Для получения initData откройте приложение через Telegram бота или используйте Telegram Web App в браузере');
   };
 
   const handleClearData = () => {
@@ -83,7 +82,7 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
             Авторизация через Telegram
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Для доступа к полному функционалу откройте приложение через Telegram бота
+            Для доступа к полному функционалу откройте приложение через Telegram бота или получите initData из Telegram Web App
           </Typography>
         </Box>
         
@@ -96,7 +95,7 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
 
         <Divider sx={{ my: 2 }}>
           <Typography variant="caption" color="text.secondary">
-            Режим разработки
+            Ручной ввод initData
           </Typography>
         </Divider>
 
@@ -105,8 +104,8 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
             fullWidth
             multiline
             rows={4}
-            label="initData для тестирования"
-            placeholder="Вставьте initData из Telegram Web App..."
+            label="initData из Telegram Web App"
+            placeholder="Вставьте initData из Telegram Web App или откройте приложение через Telegram бота..."
             value={initData}
             onChange={(e) => setInitData(e.target.value)}
             variant="outlined"
@@ -121,7 +120,7 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
             startIcon={<DeveloperModeIcon />}
             onClick={handleLoadTestData}
           >
-            Тестовые данные
+            Как получить initData?
           </Button>
           <Button
             variant="outlined"

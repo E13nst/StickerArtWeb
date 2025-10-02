@@ -11,6 +11,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerGrid } from './StickerGrid';
+import { StickerSetCategories } from './StickerSetCategories';
 
 interface StickerSetDetailProps {
   stickerSet: StickerSetResponse;
@@ -104,6 +105,21 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               }
             </Typography>
           </Box>
+
+          {/* Категории стикерсета */}
+          {stickerSet.categories && stickerSet.categories.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 1 }}>
+                <strong>Категории:</strong>
+              </Typography>
+              <StickerSetCategories 
+                categories={stickerSet.categories}
+                maxVisible={5}
+                size="medium"
+                showLabel={false}
+              />
+            </Box>
+          )}
 
           {/* Кнопки действий */}
           <Box sx={{ 
