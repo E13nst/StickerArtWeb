@@ -78,6 +78,17 @@ class ApiClient {
     console.log('🧹 Заголовки аутентификации удалены');
   }
 
+  // Проверка статуса авторизации
+  async checkAuthStatus(): Promise<AuthResponse> {
+    try {
+      const response = await this.client.get<AuthResponse>('/auth/status');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка проверки статуса авторизации:', error);
+      throw new Error(`Не удалось проверить статус авторизации. Проверьте подключение к серверу и попробуйте снова.`);
+    }
+  }
+
   // Получение списка стикерсетов с пагинацией
   async getStickerSets(page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     try {
