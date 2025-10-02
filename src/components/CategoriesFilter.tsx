@@ -7,7 +7,7 @@ import {
   alpha,
   Skeleton
 } from '@mui/material';
-import { CategoryDto } from '@/types/sticker';
+import { CategoryDto } from '@/types/category';
 
 interface CategoriesFilterProps {
   categories: CategoryDto[];

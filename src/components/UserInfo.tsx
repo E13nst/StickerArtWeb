@@ -39,14 +39,6 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
           <Typography variant="h6" component="p" gutterBottom>
             Привет, <strong>{user.first_name}{user.last_name ? ` ${user.last_name}` : ''}</strong>!
           </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            ID: <strong>{user.id}</strong>
-          </Typography>
-          {user.username && (
-            <Typography variant="body2" color="text.secondary">
-              Username: <strong>@{user.username}</strong>
-            </Typography>
-          )}
         </Box>
       </CardContent>
     </Card>
