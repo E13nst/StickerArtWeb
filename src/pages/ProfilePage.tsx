@@ -12,6 +12,7 @@ import MessageIcon from '@mui/icons-material/Message';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { apiClient } from '@/api/client';
+import { getUserFullName } from '@/utils/userUtils';
 
 // Компоненты
 import { Header } from '@/components/Header';
@@ -178,11 +179,12 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleShareProfile = () => {
+    const userName = userInfo ? getUserFullName(userInfo) : 'Unknown';
     if (tg) {
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(`Профиль пользователя ${userInfo?.firstName || 'Unknown'}`)}`);
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(`Профиль пользователя ${userName}`)}`);
     } else {
       navigator.share?.({
-        title: `Профиль пользователя ${userInfo?.firstName || 'Unknown'}`,
+        title: `Профиль пользователя ${userName}`,
         url: window.location.href
       }).catch(() => {
         // Fallback для браузеров без поддержки Web Share API
@@ -193,10 +195,12 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleMessageUser = () => {
+    const username = userInfo?.telegramUserInfo?.user?.username || userInfo?.username;
+    const telegramId = userInfo?.telegramUserInfo?.user?.id || userInfo?.telegramId;
     if (tg) {
-      tg.openTelegramLink(`https://t.me/${userInfo?.username || userInfo?.telegramId}`);
+      tg.openTelegramLink(`https://t.me/${username || telegramId}`);
     } else {
-      window.open(`https://t.me/${userInfo?.username || userInfo?.telegramId}`, '_blank');
+      window.open(`https://t.me/${username || telegramId}`, '_blank');
     }
   };
 
@@ -332,7 +336,7 @@ export const ProfilePage: React.FC = () => {
                     searchTerm 
                       ? 'По вашему запросу ничего не найдено' 
                       : userInfo 
-                        ? `У пользователя ${userInfo.firstName} пока нет созданных стикерсетов`
+                        ? `У пользователя ${getUserFullName(userInfo)} пока нет созданных стикерсетов`
                         : 'У этого пользователя пока нет стикерсетов'
                   }
                   actionLabel="Создать стикер"

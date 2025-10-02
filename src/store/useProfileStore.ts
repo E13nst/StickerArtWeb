@@ -1,12 +1,29 @@
 import { create } from 'zustand';
 import { StickerSetResponse } from '@/types/sticker';
 
+// Тип для Telegram пользователя
+export interface TelegramUserData {
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+}
+
+// Тип для информации о пользователе из Telegram
+export interface TelegramUserInfo {
+  user: TelegramUserData;
+  status: string;
+}
+
 // Тип для информации о пользователе
 export interface UserInfo {
   id: number;
   telegramId: number;
   username?: string;
-  firstName: string;
+  firstName?: string;
   lastName?: string;
   avatarUrl?: string;
   role: string;
@@ -14,7 +31,7 @@ export interface UserInfo {
   createdAt: string;
   updatedAt?: string;
   profilePhotoFileId?: string; // file_id фото профиля для загрузки через /api/stickers/{fileId}
-  telegramUserInfo?: any; // Дополнительная информация о пользователе из Telegram
+  telegramUserInfo?: TelegramUserInfo; // Дополнительная информация о пользователе из Telegram (приоритетный источник данных)
   profilePhotos?: any; // Коллекция фотографий профиля
 }
 

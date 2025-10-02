@@ -13,8 +13,10 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import ShareIcon from '@mui/icons-material/Share';
 import MessageIcon from '@mui/icons-material/Message';
+import StarIcon from '@mui/icons-material/Star';
 import { UserInfo } from '@/store/useProfileStore';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
+import { getUserFirstName, getUserLastName, getUserUsername, getUserFullName, isUserPremium, getUserTelegramId } from '@/utils/userUtils';
 
 interface UserInfoCardProps {
   userInfo: UserInfo;
@@ -52,10 +54,17 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
     );
   }
 
-  const displayName = `${userInfo.firstName}${userInfo.lastName ? ` ${userInfo.lastName}` : ''}`;
+  // Используем данные из telegramUserInfo (приоритетный источник)
+  const firstName = getUserFirstName(userInfo);
+  const lastName = getUserLastName(userInfo);
+  const displayName = getUserFullName(userInfo);
+  const username = getUserUsername(userInfo);
+  const isPremium = isUserPremium(userInfo);
+  const telegramId = getUserTelegramId(userInfo);
+  
   const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId) || userInfo.avatarUrl;
-  const initials = getInitials(userInfo.firstName, userInfo.lastName);
-  const avatarBgColor = getAvatarColor(userInfo.firstName);
+  const initials = getInitials(firstName, lastName);
+  const avatarBgColor = getAvatarColor(firstName);
 
   return (
     <Card 
@@ -116,16 +125,23 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
             </Typography>
 
             {/* Username */}
-            {userInfo.username && (
+            {username && (
               <Typography 
                 variant="body2" 
                 color="text.secondary"
                 sx={{ 
                   mb: 1,
-                  fontSize: isSmallScreen ? '0.8rem' : '0.9rem'
+                  fontSize: isSmallScreen ? '0.8rem' : '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  justifyContent: isSmallScreen ? 'center' : 'flex-start'
                 }}
               >
-                @{userInfo.username}
+                @{username}
+                {isPremium && (
+                  <StarIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                )}
               </Typography>
             )}
 
@@ -205,7 +221,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
               display: 'block'
             }}
           >
-            Telegram ID: {userInfo.telegramId}
+            Telegram ID: {telegramId}
           </Typography>
         </Box>
       </CardContent>
