@@ -1,20 +1,16 @@
 meta:
-  environment: node
-  toolchain:
-    name: nginx
-    version: latest
+  environment: docker
 
 build:
-  # Установка зависимостей и сборка приложения
-  commands:
-    - npm ci
-    - npm run build
+  # Docker multi-stage build (Node.js → Nginx)
+  dockerfile: Dockerfile
+  context: .
 
 run:
-  # Запуск Nginx с собранными файлами
+  # Порт, на котором Nginx слушает внутри контейнера
   containerPort: 80
   
-  # Переменные окружения для Nginx
+  # Переменные окружения (для подстановки в nginx.conf если нужно)
   environment:
     - BACKEND_URL=${BACKEND_URL}
 
@@ -24,4 +20,5 @@ run:
     interval: 30s
     timeout: 10s
     retries: 3
+    startPeriod: 10s
 
