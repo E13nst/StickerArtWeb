@@ -28,7 +28,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
     if (location.pathname === '/') return 0;
-    if (location.pathname.startsWith('/profile/')) return 3;
+    if (location.pathname.startsWith('/profile')) return 3;
     return activeTab;
   };
 
@@ -48,8 +48,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         console.log('Навигация к маркету (не реализовано)');
         break;
       case 3:
-        // Навигация к профилю (используем demo userId)
-        navigate('/profile/123456789');
+        // Навигация к моему профилю
+        navigate('/profile');
         break;
     }
   };

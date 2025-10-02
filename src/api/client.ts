@@ -188,6 +188,28 @@ class ApiClient {
     }
   }
 
+  // Получение информации о текущем пользователе по Telegram ID
+  async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
+    try {
+      const response = await this.client.get<UserInfo>(`/users/telegram/${telegramId}`);
+      return response.data;
+    } catch (error) {
+      console.warn('⚠️ API недоступен, используем мок данные для текущего пользователя');
+      // Мок данные для текущего пользователя
+      return {
+        id: 1,
+        telegramId: telegramId,
+        username: 'currentuser',
+        firstName: 'Current',
+        lastName: 'User',
+        avatarUrl: 'https://via.placeholder.com/64x64/4CAF50/ffffff?text=CU',
+        role: 'USER',
+        artBalance: 250,
+        createdAt: '2025-09-15T10:30:00Z'
+      };
+    }
+  }
+
   // Получение стикерсетов пользователя по userId
   async getUserStickerSets(userId: number, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     try {

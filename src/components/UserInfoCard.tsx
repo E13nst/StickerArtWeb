@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -14,6 +14,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import ShareIcon from '@mui/icons-material/Share';
 import MessageIcon from '@mui/icons-material/Message';
 import { UserInfo } from '@/store/useProfileStore';
+import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 
 interface UserInfoCardProps {
   userInfo: UserInfo;
@@ -30,6 +31,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const [avatarError, setAvatarError] = useState(false);
 
   if (isLoading) {
     return (
@@ -51,6 +53,9 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   }
 
   const displayName = `${userInfo.firstName}${userInfo.lastName ? ` ${userInfo.lastName}` : ''}`;
+  const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId) || userInfo.avatarUrl;
+  const initials = getInitials(userInfo.firstName, userInfo.lastName);
+  const avatarBgColor = getAvatarColor(userInfo.firstName);
 
   return (
     <Card 
@@ -75,17 +80,21 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
         }}>
           {/* Аватар */}
           <Avatar 
-            src={userInfo.avatarUrl} 
+            src={!avatarError ? avatarUrl : undefined}
+            imgProps={{
+              onError: () => setAvatarError(true),
+              loading: 'lazy'
+            }}
             sx={{ 
               width: isSmallScreen ? 56 : 64, 
               height: isSmallScreen ? 56 : 64,
-              bgcolor: 'primary.main',
+              bgcolor: avatarBgColor,
               fontSize: isSmallScreen ? '1.5rem' : '1.75rem',
               fontWeight: 'bold',
               alignSelf: isSmallScreen ? 'center' : 'flex-start'
             }}
           >
-            {userInfo.firstName.charAt(0)}{userInfo.lastName?.charAt(0) || ''}
+            {initials}
           </Avatar>
 
           {/* Информация о пользователе */}

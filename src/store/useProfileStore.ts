@@ -13,6 +13,9 @@ export interface UserInfo {
   artBalance: number;
   createdAt: string;
   updatedAt?: string;
+  profilePhotoFileId?: string; // file_id фото профиля для загрузки через /api/stickers/{fileId}
+  telegramUserInfo?: any; // Дополнительная информация о пользователе из Telegram
+  profilePhotos?: any; // Коллекция фотографий профиля
 }
 
 interface ProfileState {
