@@ -49,7 +49,7 @@ export const GalleryPage: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Хук для категорий
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   // Загрузка initData из URL параметров при инициализации
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Chip,
@@ -23,7 +23,6 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
   loading = false
 }) => {
   const theme = useTheme();
-  const [isScrolling, setIsScrolling] = useState(false);
 
   const handleCategoryToggle = (categoryKey: string) => {
     const newSelected = selectedCategories.includes(categoryKey)
@@ -31,12 +30,6 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
       : [...selectedCategories, categoryKey];
     
     onCategoriesChange(newSelected);
-  };
-
-  const handleScroll = () => {
-    setIsScrolling(true);
-    clearTimeout(scrollTimeout);
-    const scrollTimeout = setTimeout(() => setIsScrolling(false), 150);
   };
 
   if (loading) {
@@ -99,7 +92,6 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
             zIndex: 1
           }
         }}
-        onScroll={handleScroll}
       >
         {categories.map((category) => {
           const isSelected = selectedCategories.includes(category.key);
