@@ -345,7 +345,13 @@ export const GalleryPage: React.FC = () => {
             {/* Информация о пользователе */}
             <UserInfo user={user} isLoading={isAuthLoading} />
 
-
+            {/* Фильтр категорий */}
+            <CategoriesFilter
+              categories={categories}
+              selectedCategories={selectedCategories}
+              onCategoriesChange={handleCategoriesChange}
+              loading={categoriesLoading}
+            />
 
             {/* Поиск */}
             <SearchBar
