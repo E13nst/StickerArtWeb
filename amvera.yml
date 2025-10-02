@@ -1,0 +1,27 @@
+meta:
+  environment: node
+  toolchain:
+    name: nginx
+    version: latest
+
+build:
+  # Установка зависимостей и сборка приложения
+  commands:
+    - npm ci
+    - npm run build
+
+run:
+  # Запуск Nginx с собранными файлами
+  containerPort: 80
+  
+  # Переменные окружения для Nginx
+  environment:
+    - BACKEND_URL=${BACKEND_URL}
+
+  # Health check
+  healthcheck:
+    path: /health
+    interval: 30s
+    timeout: 10s
+    retries: 3
+
