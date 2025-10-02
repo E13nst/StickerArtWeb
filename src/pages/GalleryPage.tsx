@@ -81,9 +81,12 @@ export const GalleryPage: React.FC = () => {
     }
   }, []);
 
-  // Перезагрузка стикерсетов при изменении категорий
+  // Перезагрузка стикерсетов при изменении категорий (только после первой загрузки)
   useEffect(() => {
-    if (isReady && !searchTerm) {
+    // Пропускаем первый рендер
+    if (!isReady || !stickerSets.length) return;
+    
+    if (!searchTerm) {
       console.log('🔍 Категории изменились, перезагружаем стикерсеты:', selectedCategories);
       fetchStickerSets();
     }
@@ -166,12 +169,6 @@ export const GalleryPage: React.FC = () => {
     setError(null);
 
     try {
-      // Проверяем авторизацию
-      const isAuthenticated = await checkAuth();
-      if (!isAuthenticated && isInTelegramApp) {
-        throw new Error('Пользователь не авторизован');
-      }
-
       // Загружаем стикерсеты с фильтрацией по категориям
       const response = await apiClient.getStickerSetsWithCategories(
         page, 
@@ -290,9 +287,17 @@ export const GalleryPage: React.FC = () => {
 
   // Инициализация при загрузке
   useEffect(() => {
-    if (isReady) {
-      fetchStickerSets();
-    }
+    const initializeApp = async () => {
+      if (!isReady) return;
+      
+      // Сначала проверяем авторизацию
+      await checkAuth();
+      
+      // Затем загружаем стикерсеты
+      await fetchStickerSets();
+    };
+    
+    initializeApp();
   }, [isReady, manualInitData]); // Добавляем manualInitData в зависимости
 
   // Обработка кнопки "Назад" в Telegram
