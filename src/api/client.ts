@@ -126,16 +126,6 @@ class ApiClient {
     await this.client.delete(`/stickersets/${id}`);
   }
 
-  // Проверка статуса аутентификации
-  async checkAuthStatus(): Promise<AuthResponse> {
-    try {
-      const response = await this.client.get<AuthResponse>('/auth/status');
-      return response.data;
-    } catch (error) {
-      console.error('❌ Ошибка проверки статуса аутентификации:', error);
-      throw new Error(`Не удалось проверить статус аутентификации. Проверьте подключение к серверу и попробуйте снова.`);
-    }
-  }
 
   // Получение стикера по file_id
   async getSticker(fileId: string): Promise<Blob> {
