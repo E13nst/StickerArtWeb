@@ -7,7 +7,6 @@ import {
 } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
-import { StickerSetCategories } from './StickerSetCategories';
 
 interface StickerCardProps {
   stickerSet: StickerSetResponse;
