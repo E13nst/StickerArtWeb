@@ -1,13 +1,13 @@
-/* Telegram Web App стили */
+/* Telegram Web App стили с яркой палитрой */
 :root {
   --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #000000;
-  --tg-theme-hint-color: #999999;
-  --tg-theme-button-color: #2481cc;
+  --tg-theme-text-color: #2C3E50;
+  --tg-theme-hint-color: #6C757D;
+  --tg-theme-button-color: #00BCD4; /* Бирюзовый основной */
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f8f9fa;
-  --tg-theme-link-color: #2481cc;
-  --tg-theme-accent-text-color: #2481cc;
+  --tg-theme-secondary-bg-color: #F8F9FA;
+  --tg-theme-link-color: #00BCD4;
+  --tg-theme-accent-text-color: #E91E63; /* Розовый акцент */
 }
 
 * {
