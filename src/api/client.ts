@@ -102,6 +102,17 @@ class ApiClient {
     }
   }
 
+  // Метод для React Query infinite scroll
+  async fetchStickerSets({ pageParam = 0 }: { pageParam?: number }): Promise<StickerSetResponse[]> {
+    try {
+      const response = await this.getStickerSets(pageParam, 20);
+      return response.content || [];
+    } catch (error) {
+      console.error('❌ Ошибка fetchStickerSets:', error);
+      throw error;
+    }
+  }
+
   // Поиск стикерсетов по названию
   async searchStickerSets(query: string, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     try {

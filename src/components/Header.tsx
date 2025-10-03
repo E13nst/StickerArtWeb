@@ -58,9 +58,12 @@ export const Header: React.FC<HeaderProps> = ({
   };
   return (
     <AppBar 
-      position="static" 
-      color="primary"
+      position="sticky" 
       sx={{ 
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
         height: 56,
         minHeight: 56
       }}
@@ -75,10 +78,16 @@ export const Header: React.FC<HeaderProps> = ({
         {showMenu && (
           <IconButton
             edge="start"
-            color="inherit"
             aria-label="menu"
             onClick={onMenuClick}
-            sx={{ mr: 2 }}
+            sx={{ 
+              mr: 2,
+              color: '#6B7280',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 198, 255, 0.1)',
+                color: '#00C6FF'
+              }
+            }}
           >
             <MenuIcon />
           </IconButton>
@@ -90,9 +99,9 @@ export const Header: React.FC<HeaderProps> = ({
             variant="h6" 
             component="h1"
             sx={{ 
-              fontSize: '20px',
-              fontWeight: 'bold',
-              color: 'white'
+              fontSize: '16px',
+              fontWeight: 600,
+              color: '#111827'
             }}
           >
             {title}
@@ -103,9 +112,15 @@ export const Header: React.FC<HeaderProps> = ({
         {showOptions && (
           <IconButton
             edge="end"
-            color="inherit"
             aria-label="options"
             onClick={handleMenuClick}
+            sx={{ 
+              color: '#6B7280',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 198, 255, 0.1)',
+                color: '#00C6FF'
+              }
+            }}
           >
             <MoreVertIcon />
           </IconButton>

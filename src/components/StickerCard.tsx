@@ -4,9 +4,6 @@ import {
   CardContent, 
   Typography, 
   Box, 
-  Chip,
-  useTheme,
-  useMediaQuery
 } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
@@ -23,15 +20,10 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
   onView,
   isInTelegramApp = false
 }) => {
-  const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   // 🚀 20/80 ОПТИМИЗАЦИЯ: детекция медленного интернета
   const isSlowConnection = (navigator as any).connection?.effectiveType?.includes('2g') || false;
   
-  const getStickerCount = useCallback(() => {
-    return stickerSet.telegramStickerSetInfo?.stickers?.length || 0;
-  }, [stickerSet.telegramStickerSetInfo?.stickers?.length]);
 
   const getPreviewStickers = useCallback(() => {
     const stickers = stickerSet.telegramStickerSetInfo?.stickers || [];
@@ -43,34 +35,48 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
   }, [onView, stickerSet.id, stickerSet.name]);
 
   const previewStickers = getPreviewStickers();
-  const stickerCount = getStickerCount();
 
   // Фиксированные настройки для одинакового отображения на всех экранах
   const cardPadding = 1.5; // Фиксированные 12px отступы
-  const titleVariant = 'h6'; // Фиксированный размер заголовка
   
   // Размеры стикеров для галереи карточек
-  const previewSize = 'small'; // Всегда 100x100px в галерее карточек
+  const previewSize = 'large'; // Увеличиваем размер превью для лучшего качества
 
   return (
     <Card 
       onClick={handleCardClick}
       sx={{ 
         height: '100%',
-        minHeight: 220,
+        minHeight: 240, // Увеличиваем с 220 до 240
         width: '100%',
-        maxWidth: 280,
-        minWidth: 180,
+        maxWidth: 200, // Увеличиваем с 180 до 200
+        minWidth: 180, // Увеличиваем с 160 до 180
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between', // Равномерное распределение контента
-        borderRadius: 3,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s ease',
+        justifyContent: 'space-between',
+        borderRadius: 4,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+        transition: 'all 0.25s ease',
         cursor: 'pointer',
+        backgroundColor: '#ffffff',
+        border: '1px solid rgba(0,0,0,0.05)',
         '&:hover': {
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)'
+          transform: 'translateY(-4px)',
+          boxShadow: '0 8px 18px rgba(0,0,0,0.08)',
+          borderColor: 'rgba(0,198,255,0.2)'
+        },
+        // Адаптивность для узких экранов
+        '@media (max-width: 600px)': {
+          minHeight: 220, // Увеличиваем с 200 до 220
+          maxWidth: 180, // Увеличиваем с 160 до 180
+          minWidth: 160 // Увеличиваем с 140 до 160
+        },
+        // Очень узкие экраны
+        '@media (max-width: 400px)': {
+          minHeight: 200, // Увеличиваем с 180 до 200
+          maxWidth: 170, // Увеличиваем с 150 до 170
+          minWidth: 150, // Увеличиваем с 130 до 150
+          padding: '8px'
         }
       }}
     >
@@ -85,53 +91,28 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
           height: '100%'
         }}
       >
-        {/* Верхняя секция: Заголовок */}
-        <Box>
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'flex-start',
-              mb: 1.5,
-              minHeight: 40
-            }}
-          >
-            <Typography 
-              variant={titleVariant} 
-              component="h3"
-              sx={{ 
-                fontSize: '1.1rem',
-                lineHeight: 1.2,
-                flexGrow: 1,
-                mr: 1,
-                fontWeight: 600 // font-weight: 600
-              }}
-            >
-              {stickerSet.title}
-            </Typography>
-            <Chip 
-              label={`${stickerCount}`}
-              size="small"
-              variant="outlined"
-              sx={{ 
-                fontSize: '0.8rem',
-                height: 24,
-                fontWeight: 'bold'
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* Средняя секция: Превью стикеров */}
+        {/* Превью стикеров - сверху */}
         <Box 
           sx={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 1, // 8px между стикерами
+            gap: 1,
             aspectRatio: '1 / 1',
-            minHeight: 180,
-            flexGrow: 1, // Занимает доступное пространство
-            alignSelf: 'center' // Центрирование
+            minHeight: 160, // Увеличиваем с 140 до 160
+            mb: 1.5,
+            borderRadius: 2,
+            overflow: 'hidden',
+            backgroundColor: '#F9FAFB',
+            // Адаптивность для узких экранов
+            '@media (max-width: 600px)': {
+              minHeight: 140, // Увеличиваем с 120 до 140
+              gap: 0.5
+            },
+            // Очень узкие экраны
+            '@media (max-width: 400px)': {
+              minHeight: 120, // Увеличиваем с 100 до 120
+              gap: 0.25
+            }
           }}
         >
           {previewStickers.map((sticker, index) => {
@@ -141,13 +122,17 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
                 sx={{
                   aspectRatio: '1 / 1',
                   overflow: 'hidden',
-                  borderRadius: 1
+                  borderRadius: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'background.paper'
                 }}
               >
                 <StickerPreview 
                   sticker={sticker} 
                   size={previewSize}
-                  showBadge={index === 0} // Бейдж только на первом стикере
+                  showBadge={index === 0}
                   isInTelegramApp={isInTelegramApp}
                 />
               </Box>
@@ -170,7 +155,7 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             >
               <Typography 
                 color="text.secondary"
-                sx={{ fontSize: isSmallScreen ? '1rem' : '1.2rem' }}
+                sx={{ fontSize: '0.8rem' }}
               >
                 ➕
               </Typography>
@@ -178,33 +163,50 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
           ))}
         </Box>
 
-        {/* Категории стикерсета */}
-        {stickerSet.categories && stickerSet.categories.length > 0 && (
-          <Box sx={{ mt: 1, mb: 1 }}>
-            <StickerSetCategories 
-              categories={stickerSet.categories}
-              maxVisible={2}
-              size="small"
-            />
-          </Box>
-        )}
 
-        {/* Нижняя секция: Дата создания (прижата к низу) */}
-        <Box sx={{ mt: 'auto', pt: 1 }}>
-          <Typography 
-            variant="caption" 
-            color="text.secondary" 
-            sx={{ 
+        {/* Название стикерсета */}
+        <Typography 
+          variant="h6" 
+          component="h3"
+          sx={{ 
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            textAlign: 'center',
+            mb: 0.5,
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            color: '#111827',
+            // Мобильные адаптации
+            '@media (max-width: 400px)': {
               fontSize: '0.8rem',
-              color: 'gray',
-              fontWeight: 'medium',
-              display: 'block',
-              textAlign: 'center'
-            }}
-          >
-            {new Date(stickerSet.createdAt).toLocaleDateString()}
-          </Typography>
-        </Box>
+              WebkitLineClamp: 1
+            }
+          }}
+        >
+          {stickerSet.title}
+        </Typography>
+
+        {/* Дата создания */}
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            fontSize: '0.75rem',
+            textAlign: 'center',
+            display: 'block',
+            color: '#6B7280',
+            opacity: 0.8,
+            // Мобильные адаптации
+            '@media (max-width: 400px)': {
+              fontSize: '0.7rem'
+            }
+          }}
+        >
+          {new Date(stickerSet.createdAt).toLocaleDateString()}
+        </Typography>
 
       </CardContent>
     </Card>

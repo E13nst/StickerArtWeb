@@ -61,62 +61,51 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         bottom: 0, 
         left: 0, 
         right: 0,
-        zIndex: 1000
+        zIndex: 1000,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(10px)',
+        borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)'
       }}
-      elevation={8}
+      elevation={0}
     >
       <BottomNavigation
         value={getCurrentTab()}
         onChange={handleNavigation}
         sx={{
           height: 64,
+          backgroundColor: 'transparent',
           '& .MuiBottomNavigationAction-root': {
-            color: 'text.secondary',
+            color: '#6B7280',
+            transition: 'all 0.2s ease',
             '&.Mui-selected': {
-              color: 'primary.main',
+              color: '#00C6FF',
+              transform: 'scale(1.1)',
             },
+            '&:hover': {
+              backgroundColor: 'rgba(0, 198, 255, 0.1)',
+            },
+            // Мобильные адаптации
+            '@media (max-width: 400px)': {
+              minWidth: '60px',
+              '& .MuiSvgIcon-root': {
+                fontSize: '1.4rem'
+              }
+            }
           },
         }}
       >
         <BottomNavigationAction 
           icon={<HomeIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'primary.main',
-              },
-            },
-          }}
         />
         <BottomNavigationAction 
           icon={<CollectionsIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'primary.main',
-              },
-            },
-          }}
         />
         <BottomNavigationAction 
           icon={<ShoppingCartIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'primary.main',
-              },
-            },
-          }}
         />
         <BottomNavigationAction 
           icon={<AccountCircleIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'primary.main',
-              },
-            },
-          }}
         />
       </BottomNavigation>
     </Paper>

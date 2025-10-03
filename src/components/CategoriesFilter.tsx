@@ -59,7 +59,16 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
       <Typography 
         variant="body2" 
         color="text.secondary" 
-        sx={{ mb: 1, px: 2 }}
+        sx={{ 
+          mb: 1, 
+          px: 2,
+          fontSize: '0.8rem',
+          opacity: 0.6, // Приглушаем заголовок
+          // Мобильные адаптации
+          '@media (max-width: 400px)': {
+            fontSize: '0.75rem'
+          }
+        }}
       >
         Категории
       </Typography>
@@ -143,9 +152,20 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
         })}
       </Box>
       
-      {selectedCategories.length > 0 && (
+        {selectedCategories.length > 0 && (
         <Box sx={{ px: 2, mt: 1 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary',
+              fontSize: '0.7rem',
+              opacity: 0.6, // Приглушаем счетчик
+              // Мобильные адаптации
+              '@media (max-width: 400px)': {
+                fontSize: '0.65rem'
+              }
+            }}
+          >
             Выбрано: {selectedCategories.length} категорий
           </Typography>
         </Box>
