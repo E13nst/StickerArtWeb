@@ -1,5 +1,6 @@
 /* Современный минималистичный дизайн уровня Instagram/Telegram */
 :root {
+  --h: 200;                           /* стартовый тон (голубой) */
   --accent: #00C6FF;
   --accent-gradient: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
   --bg: #F9FAFB;
@@ -27,12 +28,27 @@
 }
 
 body {
-  background: var(--bg);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--h) 100% 99%) 0%,
+    hsl(calc(var(--h) + 20) 100% 98%) 40%,
+    hsl(calc(var(--h) + 40) 95% 97%) 100%
+  );
+  background-attachment: fixed;       /* лёгкий параллакс без доп. кода */
+  transition: background 0.2s linear; /* микросмягчение */
   font-family: 'Inter', 'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-primary);
   margin: 0;
   padding: 0;
   line-height: 1.5;
+}
+
+/* Если пользователю плохо от анимаций — фиксируем фон */
+@media (prefers-reduced-motion: reduce) {
+  body { 
+    transition: none;
+    background: var(--bg);
+  }
 }
 
 #root {

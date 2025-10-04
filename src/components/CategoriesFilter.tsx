@@ -2,9 +2,6 @@ import React from 'react';
 import {
   Box,
   Chip,
-  Typography,
-  useTheme,
-  alpha,
   Skeleton
 } from '@mui/material';
 import { CategoryDto } from '@/types/category';
@@ -22,7 +19,6 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
   onCategoriesChange,
   loading = false
 }) => {
-  const theme = useTheme();
 
   const handleCategoryToggle = (categoryKey: string) => {
     const newSelected = selectedCategories.includes(categoryKey)
@@ -55,122 +51,44 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
   }
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography 
-        variant="body2" 
-        color="text.secondary" 
-        sx={{ 
-          mb: 1, 
-          px: 2,
-          fontSize: '0.8rem',
-          opacity: 0.6, // Приглушаем заголовок
-          // Мобильные адаптации
-          '@media (max-width: 400px)': {
-            fontSize: '0.75rem'
-          }
-        }}
-      >
-        Категории
-      </Typography>
-      
-      <Box
-        sx={{
+    <Box sx={{ 
+      mt: 1,
+      mb: 1.25,
           display: 'flex',
           gap: 1,
           overflowX: 'auto',
-          overflowY: 'hidden',
-          pb: 1,
-          px: 2,
-          scrollbarWidth: 'none',
-          '&::-webkit-scrollbar': {
-            display: 'none'
-          },
-          // Плавный скролл
-          scrollBehavior: 'smooth',
-          // Градиентные тени по краям
-          position: 'relative',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: `linear-gradient(to right, ${theme.palette.background.default} 0%, transparent 20px, transparent calc(100% - 20px), ${theme.palette.background.default} 100%)`,
-            pointerEvents: 'none',
-            zIndex: 1
-          }
-        }}
-      >
-        {categories.map((category) => {
-          const isSelected = selectedCategories.includes(category.key);
-          
-          return (
-            <Chip
-              key={category.key}
-              label={category.name}
-              onClick={() => handleCategoryToggle(category.key)}
-              variant={isSelected ? 'filled' : 'outlined'}
-              size="medium"
-              sx={{
-                flexShrink: 0,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease-in-out',
-                transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                boxShadow: isSelected 
-                  ? `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
-                  : 'none',
+      px: 0.5,
+      pb: 0.25,
+      '::-webkit-scrollbar': { display: 'none' }
+    }}>
+      {categories.map((category) => {
+        const isSelected = selectedCategories.includes(category.key);
+        
+        return (
+          <Chip
+            key={category.key}
+            label={category.name}
+            onClick={() => handleCategoryToggle(category.key)}
+            variant="outlined"
+            sx={{
+              flexShrink: 0,
+              height: 30,
+              fontSize: 13,
+              color: isSelected ? '#fff' : 'rgba(15,23,42,0.62)',
+              backgroundColor: isSelected 
+                ? 'linear-gradient(135deg,#00C6FF 0%,#0072FF 100%)'
+                : '#F3F4F6',
+              borderColor: isSelected ? 'transparent' : 'rgba(0,0,0,0.06)',
+              boxShadow: isSelected ? '0 3px 8px rgba(0,114,255,0.20)' : 'none',
+              '&:hover': {
                 backgroundColor: isSelected 
-                  ? theme.palette.primary.main
-                  : theme.palette.background.paper,
-                color: isSelected 
-                  ? theme.palette.primary.contrastText
-                  : theme.palette.text.primary,
-                borderColor: isSelected 
-                  ? theme.palette.primary.main
-                  : theme.palette.divider,
-                '&:hover': {
-                  backgroundColor: isSelected 
-                    ? theme.palette.primary.dark
-                    : alpha(theme.palette.primary.main, 0.1),
-                  transform: 'scale(1.05)',
-                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
-                },
-                '&:active': {
-                  transform: 'scale(0.95)'
-                },
-                // Стили для выбранных категорий
-                ...(isSelected && {
-                  fontWeight: 600,
-                  '& .MuiChip-label': {
-                    fontWeight: 600
-                  }
-                })
-              }}
-            />
-          );
-        })}
-      </Box>
-      
-        {selectedCategories.length > 0 && (
-        <Box sx={{ px: 2, mt: 1 }}>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: 'text.secondary',
-              fontSize: '0.7rem',
-              opacity: 0.6, // Приглушаем счетчик
-              // Мобильные адаптации
-              '@media (max-width: 400px)': {
-                fontSize: '0.65rem'
-              }
+                  ? 'linear-gradient(135deg,#00B8E6 0%,#0066CC 100%)'
+                  : '#E5E7EB',
+              },
             }}
-          >
-            Выбрано: {selectedCategories.length} категорий
-          </Typography>
-        </Box>
-      )}
+          />
+        );
+      })}
     </Box>
   );
 };
-

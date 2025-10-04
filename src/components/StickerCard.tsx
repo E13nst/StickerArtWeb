@@ -46,36 +46,39 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
       onClick={handleCardClick}
       sx={{ 
         height: '100%',
-        minHeight: 240, // Увеличиваем с 220 до 240
+        minHeight: 240,
         width: '100%',
-        maxWidth: 200, // Увеличиваем с 180 до 200
-        minWidth: 180, // Увеличиваем с 160 до 180
+        maxWidth: 200,
+        minWidth: 180,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        borderRadius: 4,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-        transition: 'all 0.25s ease',
+        borderRadius: 2, // Уменьшено с 4 до 2 (≈16px)
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', // Более мягкая тень
+        transition: 'transform .16s ease, box-shadow .16s ease',
         cursor: 'pointer',
         backgroundColor: '#ffffff',
         border: '1px solid rgba(0,0,0,0.05)',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 18px rgba(0,0,0,0.08)',
-          borderColor: 'rgba(0,198,255,0.2)'
+          transform: 'translateY(-2px)', // Уменьшено с -4px до -2px
+          boxShadow: '0 8px 18px rgba(0,0,0,0.10)'
         },
         // Адаптивность для узких экранов
         '@media (max-width: 600px)': {
-          minHeight: 220, // Увеличиваем с 200 до 220
-          maxWidth: 180, // Увеличиваем с 160 до 180
-          minWidth: 160 // Увеличиваем с 140 до 160
+          minHeight: 220,
+          maxWidth: 180,
+          minWidth: 160
         },
         // Очень узкие экраны
         '@media (max-width: 400px)': {
-          minHeight: 200, // Увеличиваем с 180 до 200
-          maxWidth: 170, // Увеличиваем с 150 до 170
-          minWidth: 150, // Увеличиваем с 130 до 150
+          minHeight: 200,
+          maxWidth: 170,
+          minWidth: 150,
           padding: '8px'
+        },
+        // Уменьшаем паддинги на очень узких экранах
+        '@media (max-width: 380px)': {
+          padding: '6px'
         }
       }}
     >
@@ -97,19 +100,18 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 1,
             aspectRatio: '1 / 1',
-            minHeight: 160, // Увеличиваем с 140 до 160
+            minHeight: 160,
             mb: 1.5,
-            borderRadius: 2,
-            overflow: 'hidden',
-            backgroundColor: '#F9FAFB',
+            borderRadius: 1.5, // ≈12px
+            backgroundColor: '#F6F7F9',
             // Адаптивность для узких экранов
             '@media (max-width: 600px)': {
-              minHeight: 140, // Увеличиваем с 120 до 140
+              minHeight: 140,
               gap: 0.5
             },
             // Очень узкие экраны
             '@media (max-width: 400px)': {
-              minHeight: 120, // Увеличиваем с 100 до 120
+              minHeight: 120,
               gap: 0.25
             }
           }}
@@ -121,11 +123,11 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
                 sx={{
                   aspectRatio: '1 / 1',
                   overflow: 'hidden',
-                  borderRadius: 1,
+                  borderRadius: 1, // ≈8px
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'background.paper'
+                  justifyContent: 'center'
                 }}
               >
                 <StickerPreview 

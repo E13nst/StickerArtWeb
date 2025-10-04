@@ -99,11 +99,7 @@ const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({
           height: currentSize.height,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'background.paper',
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider'
+          justifyContent: 'center'
         }}
       >
         <Typography
@@ -127,10 +123,6 @@ const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
         overflow: 'hidden'
       }}
     >

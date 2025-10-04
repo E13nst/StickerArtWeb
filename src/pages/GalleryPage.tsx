@@ -10,8 +10,7 @@ import { StickerSetResponse } from '@/types/sticker';
 
 // Компоненты
 import { Header } from '@/components/Header';
-import { UserInfo } from '@/components/UserInfo';
-import { SearchBar } from '@/components/SearchBar';
+import MinimalSearchBar from '@/components/MinimalSearchBar';
 import { CategoriesFilter } from '@/components/CategoriesFilter';
 import { StickerSetList } from '@/components/StickerSetList';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
@@ -22,8 +21,12 @@ import { BottomNav } from '@/components/BottomNav';
 
 // Хуки
 import { useCategories } from '@/hooks/useCategories';
+import { useScrollHue } from '@/hooks/useScrollHue';
 
 export const GalleryPage: React.FC = () => {
+  // Хук для градиентного фона с изменением оттенка при скролле
+  useScrollHue(190, 255);  // мягкая гамма: голубой → лазурно-фиолетовый
+
   const { tg, user, initData, isReady, isInTelegramApp, checkInitDataExpiry } = useTelegram();
   const {
     isLoading,
@@ -339,16 +342,23 @@ export const GalleryPage: React.FC = () => {
       />
 
       <Container 
-        maxWidth={isInTelegramApp ? "sm" : "xl"} 
+        maxWidth={false} 
         sx={{ 
-          py: isInTelegramApp ? 2 : 4, // Больше отступов на desktop
-          px: isInTelegramApp ? 2 : 4  // Боковые отступы на desktop
+          maxWidth: 520, 
+          mx: 'auto', 
+          px: 1.5, 
+          pb: 10,
+          pt: isInTelegramApp ? 1 : 2
         }}
       >
         {viewMode === 'list' ? (
           <>
-            {/* Информация о пользователе */}
-            <UserInfo user={user} isLoading={isAuthLoading} />
+            {/* Поиск */}
+            <MinimalSearchBar
+              value={searchTerm}
+              onChange={handleSearchChange}
+              disabled={isLoading}
+            />
 
             {/* Фильтр категорий */}
             <CategoriesFilter
@@ -356,13 +366,6 @@ export const GalleryPage: React.FC = () => {
               selectedCategories={selectedCategories}
               onCategoriesChange={handleCategoriesChange}
               loading={categoriesLoading}
-            />
-
-            {/* Поиск */}
-            <SearchBar
-              value={searchTerm}
-              onChange={handleSearchChange}
-              disabled={isLoading}
             />
 
             {/* Контент */}
