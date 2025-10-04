@@ -122,7 +122,6 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
           }}>
             <StickerPreview
               sticker={currentSticker}
-              isAnimated={currentSticker.is_animated}
               onLoad={handleImageLoad}
               onError={handleImageError}
             />

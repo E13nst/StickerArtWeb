@@ -39,10 +39,13 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     visibleStickerSets.forEach(stickerSet => {
       const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 1);
       stickers.forEach(sticker => {
-        if (sticker.url) {
-          imageUrls.push(sticker.url);
-        } else {
-          imageUrls.push(`/api/stickers/${sticker.file_id}`);
+        // Предзагружаем только обычные изображения, не Lottie
+        if (!sticker.is_animated) {
+          if (sticker.url) {
+            imageUrls.push(sticker.url);
+          } else {
+            imageUrls.push(`/api/stickers/${sticker.file_id}`);
+          }
         }
       });
     });
