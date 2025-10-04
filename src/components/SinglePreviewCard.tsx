@@ -30,7 +30,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Получаем максимум 3 случайных стикера для карусели
-  const allStickers = stickerSet.stickers || [];
+  const allStickers = stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || [];
   const shuffledStickers = shuffleArray(allStickers);
   const carouselStickers = shuffledStickers.slice(0, 3);
 
@@ -94,6 +94,15 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
 
   const currentSticker = carouselStickers[currentIndex];
 
+  console.log('🔍 SinglePreviewCard рендер:', {
+    stickerSetId: stickerSet.id,
+    stickerSetTitle: stickerSet.title,
+    allStickersCount: allStickers.length,
+    carouselStickersCount: carouselStickers.length,
+    currentIndex,
+    currentSticker: currentSticker?.file_id
+  });
+
   return (
     <Card
       ref={cardRef}
@@ -112,9 +121,12 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
       <Box className="fx-card-media" sx={{ 
         position: 'relative',
         aspectRatio: '1/1',
-        background: 'transparent'
+        background: 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
-        {currentSticker && (
+        {currentSticker ? (
           <Box sx={{ 
             width: '100%', 
             height: '100%',
@@ -125,6 +137,17 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
               onLoad={handleImageLoad}
               onError={handleImageError}
             />
+          </Box>
+        ) : (
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            fontSize: '2rem'
+          }}>
+            🎨
           </Box>
         )}
         

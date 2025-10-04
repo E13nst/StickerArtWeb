@@ -391,7 +391,7 @@ export const GalleryPage: React.FC = () => {
   }
 
   return (
-    <Box className="space-root fx-safe" sx={{ minHeight: '100vh' }}>
+    <Box className="fx-safe" sx={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
       <Header />
       
       <Container maxWidth={false} sx={{ 
