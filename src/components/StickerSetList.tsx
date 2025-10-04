@@ -1,7 +1,8 @@
-import React, { useMemo, useCallback } from 'react';
-import { Box, Grid } from '@mui/material';
+import React, { useMemo, useCallback, useEffect } from 'react';
+import { Box, Grid, Button } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { SinglePreviewCard } from './SinglePreviewCard';
+import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
 
 interface StickerSetListProps {
   stickerSets: StickerSetResponse[];
@@ -14,20 +15,46 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
   onView,
   isInTelegramApp = false
 }) => {
+  // Поэтапная загрузка: сначала 4, потом по 2
+  const { visibleItems, isLoading, loadNextBatch, hasMore } = useProgressiveLoading(
+    stickerSets.length,
+    { initialBatch: 4, batchSize: 2, delayBetweenBatches: 1500 }
+  );
+
   // Мемоизируем обработчики для предотвращения лишних ре-рендеров
   const handleView = useCallback((id: number, name: string) => {
     onView(id, name);
   }, [onView]);
 
-  // Ограничиваем количество отображаемых элементов для производительности
-  const maxVisibleItems = 20; // Показываем максимум 20 элементов за раз
+  // Получаем видимые стикерпаки
   const visibleStickerSets = useMemo(() => {
-    return stickerSets.slice(0, maxVisibleItems);
-  }, [stickerSets]);
+    return stickerSets.slice(0, visibleItems);
+  }, [stickerSets, visibleItems]);
+
+  // Автоматическая загрузка при скролле
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!hasMore || isLoading) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.offsetHeight;
+
+      // Загружаем следующую порцию когда дошли до 80% страницы
+      if (scrollTop + windowHeight >= docHeight * 0.8) {
+        loadNextBatch();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasMore, isLoading, loadNextBatch]);
 
   console.log('🔍 StickerSetList рендер:', {
     stickerSetsCount: stickerSets.length,
     visibleCount: visibleStickerSets.length,
+    hasMore,
+    isLoading,
     isInTelegramApp
   });
 
@@ -65,8 +92,8 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
         })}
       </Grid>
       
-      {/* Показываем индикатор, если есть скрытые элементы */}
-      {stickerSets.length > maxVisibleItems && (
+      {/* Индикатор загрузки */}
+      {isLoading && (
         <Box sx={{ 
           textAlign: 'center', 
           py: 2,
@@ -74,7 +101,42 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
           fontSize: '0.9rem',
           width: '100%'
         }}>
-          Показано {maxVisibleItems} из {stickerSets.length} наборов
+          Загрузка следующих стикерпаков...
+        </Box>
+      )}
+
+      {/* Кнопка загрузки еще */}
+      {hasMore && !isLoading && (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 2,
+          width: '100%'
+        }}>
+          <Button 
+            variant="outlined" 
+            onClick={loadNextBatch}
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              px: 3,
+              py: 1
+            }}
+          >
+            Показать еще ({stickerSets.length - visibleItems} осталось)
+          </Button>
+        </Box>
+      )}
+
+      {/* Показываем индикатор, если все загружено */}
+      {!hasMore && stickerSets.length > 0 && (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 2,
+          color: 'text.secondary',
+          fontSize: '0.9rem',
+          width: '100%'
+        }}>
+          Показаны все {stickerSets.length} стикерпаков
         </Box>
       )}
     </Box>

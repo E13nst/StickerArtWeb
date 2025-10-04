@@ -19,8 +19,8 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Получаем первые 4 стикера для карусели
-  const stickers = stickerSet.telegramStickerSetInfo?.stickers?.slice(0, 4) || [];
+  // Получаем только первые 3 стикера для карусели
+  const stickers = stickerSet.telegramStickerSetInfo?.stickers?.slice(0, 3) || [];
   
   console.log('🔍 SinglePreviewCard:', {
     stickerSetId: stickerSet.id,
@@ -61,6 +61,18 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   useEffect(() => {
     setIsLoading(true);
   }, [currentIndex]);
+
+  // Автоматически убираем загрузку через 3 секунды как fallback
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        console.log('⏰ Timeout fallback - убираем загрузку');
+        setIsLoading(false);
+      }, 3000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading]);
 
   const handleCardClick = () => {
     onView(stickerSet.id, stickerSet.name);
@@ -116,7 +128,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
             filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))',
             position: 'relative'
           }}>
-            {/* Контейнер для загрузки SVG */}
+            {/* Современный перелив загрузки */}
             {isLoading && (
               <Box sx={{
                 position: 'absolute',
@@ -124,16 +136,15 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(255,255,255,0.8)',
-                zIndex: 1
-              }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Загрузка...
-                </Typography>
-              </Box>
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s infinite',
+                zIndex: 1,
+                '@keyframes shimmer': {
+                  '0%': { backgroundPosition: '-200% 0' },
+                  '100%': { backgroundPosition: '200% 0' }
+                }
+              }} />
             )}
             
             <StickerPreview
