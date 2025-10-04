@@ -17,26 +17,23 @@ const MinimalSearchBar: React.FC<MinimalSearchBarProps> = ({
 }) => {
   return (
     <Box
-      className="fx-glass fx-lite"
+      className="search-minimal"
       sx={{
         display: 'flex',
         alignItems: 'center',
-        height: 48,
-        borderTop: '1px solid rgba(255,255,255,0.25)',
-        borderBottom: '1px solid rgba(255,255,255,0.25)',
-        borderRadius: 1,
+        borderTop: '1px solid rgba(255,255,255,0.18)',
+        borderBottom: '1px solid rgba(255,255,255,0.18)',
+        borderLeft: 'none',
+        borderRight: 'none',
         backgroundColor: 'transparent',
-        backdropFilter: 'blur(8px)',
         transition: 'all 0.2s ease',
         '&:focus-within': {
-          borderTopColor: 'rgba(255,255,255,0.35)',
-          borderBottomColor: 'rgba(255,255,255,0.35)',
-          backgroundColor: 'transparent',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          borderTopColor: 'rgba(255,255,255,0.28)',
+          borderBottomColor: 'rgba(255,255,255,0.28)',
         },
       }}
     >
-      <SearchIcon sx={{ mx: 1.5, fontSize: 20, color: 'rgba(15,23,42,0.45)' }} />
+      <SearchIcon sx={{ mx: 1.5, fontSize: 20, color: 'rgba(255,255,255,0.7)' }} />
       <InputBase
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -46,8 +43,8 @@ const MinimalSearchBar: React.FC<MinimalSearchBarProps> = ({
         sx={{
           flex: 1,
           fontSize: 15,
-          color: '#0F172A',
-          '& ::placeholder': { color: 'rgba(15,23,42,0.45)' },
+          color: '#EAF0F8',
+          '& ::placeholder': { color: 'rgba(255,255,255,0.5)' },
           '& input': {
             padding: '8px 0',
           },

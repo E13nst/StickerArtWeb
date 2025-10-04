@@ -5,7 +5,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import App from './App.tsx'
 import './index.css'
-import './styles/fx.css'
+import './styles/space.css'
 
 // Современная минималистичная тема уровня Instagram/Telegram
 const theme = createTheme({

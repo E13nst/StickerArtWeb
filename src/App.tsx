@@ -7,16 +7,26 @@ import { BuildInfo } from '@/components/BuildInfo';
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <BuildInfo showInConsole={true} showInUI={process.env.NODE_ENV === 'development'} />
-      <Routes>
-        <Route path="/" element={<GalleryPage />} />
-        <Route path="/profile" element={<MyProfilePage />} />
-        <Route path="/profile/:userId" element={<ProfilePage />} />
-        {/* Fallback route */}
-        <Route path="*" element={<GalleryPage />} />
-      </Routes>
-    </Router>
+    <>
+      {/* Космический фон на уровне root */}
+      <div className="space-root">
+        <div className="space-stars">
+          <div className="layer slow"></div>
+          <div className="layer fast"></div>
+        </div>
+      </div>
+      
+      <Router>
+        <BuildInfo showInConsole={true} showInUI={process.env.NODE_ENV === 'development'} />
+        <Routes>
+          <Route path="/" element={<GalleryPage />} />
+          <Route path="/profile" element={<MyProfilePage />} />
+          <Route path="/profile/:userId" element={<ProfilePage />} />
+          {/* Fallback route */}
+          <Route path="*" element={<GalleryPage />} />
+        </Routes>
+      </Router>
+    </>
   );
 };
 

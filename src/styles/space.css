@@ -1,0 +1,92 @@
+/* Космос: один слой под всем приложением */
+:root {
+  --space-bg-1: radial-gradient(1200px 800px at 10% 15%, rgba(98,121,255,.22) 0%, rgba(13,14,34,0) 60%),
+                radial-gradient(900px 600px at 85% 30%, rgba(255,120,198,.18) 0%, rgba(13,14,34,0) 55%),
+                linear-gradient(180deg, #0e1024 0%, #0a0c1a 100%);
+  --star-color-1: rgba(255,255,255,.55);
+  --star-color-2: rgba(160,190,255,.45);
+}
+
+/* контейнер, который добавим на уровень #root */
+.space-root {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+.space-root::before,
+.space-root::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--space-bg-1);
+}
+
+/* два слоя «звёзд», исключительно через трансформации */
+.space-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.space-stars .layer {
+  position: absolute;
+  inset: -25%;
+  will-change: transform;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, var(--star-color-1) 50%, transparent 52%),
+    radial-gradient(1px 1px at 70% 60%, var(--star-color-2) 50%, transparent 52%),
+    radial-gradient(1px 1px at 40% 80%, var(--star-color-1) 50%, transparent 52%),
+    radial-gradient(1px 1px at 85% 20%, var(--star-color-2) 50%, transparent 52%);
+  background-repeat: repeat;
+  background-size: 250px 250px;
+  animation: drift var( --stars-speed, 120s ) linear infinite;
+  opacity: .7;
+}
+.space-stars .layer.slow  { --stars-speed: 140s; transform: translate3d(0,0,0); }
+.space-stars .layer.fast  { --stars-speed: 95s;  transform: translate3d(0,0,0); opacity: .55; }
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-12%, -18%, 0); }
+}
+
+/* Уважение экономии движения и ручного lowperf */
+@media (prefers-reduced-motion: reduce) {
+  .space-stars .layer { animation: none; }
+}
+.lowperf .space-stars .layer { animation: none; }
+.lowperf .fx-glass, .lowperf .fx-lite { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+/* Стеклянные утилиты (облегчённые) */
+.fx-glass {
+  background: color-mix(in oklab, #ffffff 35%, transparent);
+  border: 1px solid rgba(255,255,255,.15);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  box-shadow: 0 8px 24px rgba(18,22,40,.06);
+}
+.fx-lite {
+  background: color-mix(in oklab, #ffffff 25%, transparent);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+/* Мини-поиск (только верх/низ) */
+.search-minimal {
+  height: 42px;
+  border-top: 1px solid rgba(255,255,255,.18);
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  border-left: none; border-right: none;
+  background: transparent;
+  border-radius: 10px;
+}
+
+/* Чипы категорий */
+.filters-row { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
+.chip { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); background: transparent; color:#EAF0F8; }
+.chip--active { background: rgba(130,160,255,.18); border-color: rgba(130,160,255,.36); }
+
+/* Текст карточек */
+.card-title { font: 600 16px/1.25 system-ui; color:#EAF0F8; }
+.card-meta  { font: 400 12px/1.25 system-ui; color:#B8C1D3; }

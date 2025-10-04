@@ -126,7 +126,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
             justifyContent: 'center',
             borderRadius: 1.5, // 12px
             overflow: 'hidden',
-            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))',
+            background: 'transparent', // убираем серую подложку
             position: 'relative'
           }}>
             
@@ -160,9 +160,8 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
       {/* Информация о стикерпаке */}
       <Box className="fx-card-body" sx={{ px: 1.5, pb: 1.5, background: 'transparent' }}>
         <Typography 
-          variant="subtitle2" 
+          className="card-title"
           sx={{ 
-            fontWeight: 600,
             mb: 0.5,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -173,9 +172,8 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
         </Typography>
         
         <Typography 
-          variant="caption" 
+          className="card-meta"
           sx={{ 
-            color: 'text.secondary',
             display: 'block'
           }}
         >

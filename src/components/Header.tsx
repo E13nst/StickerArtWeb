@@ -62,9 +62,8 @@ export const Header: React.FC<HeaderProps> = ({
       className="fx-glass"
       sx={{ 
         backgroundColor: 'transparent',
-        backdropFilter: 'blur(12px)',
         boxShadow: 'none',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.28)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.22)',
         height: 56,
         minHeight: 56,
         borderRadius: 0

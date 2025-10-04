@@ -51,48 +51,30 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
   }
 
   return (
-    <Box sx={{ 
-      display: 'flex',
-      gap: 1,
-      overflowX: 'auto',
-      pb: 0.25,
+    <Box className="filters-row" sx={{ 
       '::-webkit-scrollbar': { display: 'none' },
       scrollbarWidth: 'none',
       msOverflowStyle: 'none'
-    }} className="hide-scrollbar">
+    }}>
       {categories.map((category) => {
         const isSelected = selectedCategories.includes(category.key);
         
         return (
-          <Chip
+          <Box
             key={category.key}
-            label={category.name}
+            className={`chip ${isSelected ? 'chip--active' : ''}`}
             onClick={() => handleCategoryToggle(category.key)}
-            variant="outlined"
-            className={isSelected ? "" : "fx-glass fx-lite"}
             sx={{
               flexShrink: 0,
-              height: 32,
-              fontSize: 13,
-              color: isSelected ? '#fff' : 'rgba(255,255,255,0.9)',
-              backgroundColor: isSelected 
-                ? 'linear-gradient(135deg,#00C6FF 0%,#0072FF 100%)'
-                : 'transparent',
-              borderColor: isSelected ? 'transparent' : 'rgba(255,255,255,0.25)',
-              boxShadow: isSelected ? '0 3px 8px rgba(0,114,255,0.20)' : '0 1px 3px rgba(0,0,0,0.05)',
-              backdropFilter: 'blur(8px)',
+              cursor: 'pointer',
               transition: 'all 0.2s ease',
               '&:hover': {
-                backgroundColor: isSelected 
-                  ? 'linear-gradient(135deg,#00B8E6 0%,#0066CC 100%)'
-                  : 'rgba(255,255,255,0.9)',
-                transform: 'translateY(-1px)',
-                boxShadow: isSelected 
-                  ? '0 4px 12px rgba(0,114,255,0.25)' 
-                  : '0 2px 6px rgba(0,0,0,0.08)',
+                transform: 'scale(1.02)',
               },
             }}
-          />
+          >
+            {category.name}
+          </Box>
         );
       })}
     </Box>
