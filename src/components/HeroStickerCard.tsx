@@ -1,10 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, Box } from '@mui/material';
+import { StickerPreview } from './StickerPreview';
 
 interface HeroStickerCardProps {
   stickers: string[];
   style?: React.CSSProperties;
 }
+
+// Создаем mock стикеры для HeroStickerCard
+const createMockSticker = (url: string, emoji: string, isAnimated: boolean = false) => ({
+  file_id: `hero_${Date.now()}_${Math.random()}`,
+  file_unique_id: `hero_unique_${Date.now()}_${Math.random()}`,
+  type: 'regular' as const,
+  width: 512,
+  height: 512,
+  is_animated: isAnimated,
+  is_video: false,
+  emoji: emoji,
+  url: url
+});
 
 export const HeroStickerCard: React.FC<HeroStickerCardProps> = ({ stickers, style }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -50,18 +64,12 @@ export const HeroStickerCard: React.FC<HeroStickerCardProps> = ({ stickers, styl
         alignItems: 'center', 
         justifyContent: 'center'
       }}>
-        <img
+        <StickerPreview
           key={idx}
-          src={stickers[idx]}
-          loading="lazy"
-          className="sticker-img"
-          style={{ 
-            width: '88%', 
-            height: '88%', 
-            objectFit: 'contain', 
-            transition: 'opacity 0.28s ease'
-          }}
-          alt="Hero sticker preview"
+          sticker={createMockSticker(stickers[idx], '🎨', stickers[idx].includes('lottie'))}
+          size="large"
+          showBadge={false}
+          isInTelegramApp={false}
         />
       </Box>
     </Card>

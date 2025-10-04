@@ -60,10 +60,10 @@ export const mockStickerSets: StickerSetResponse[] = [
           type: 'regular' as const,
           width: 512,
           height: 512,
-          is_animated: false,
+          is_animated: true,
           is_video: false,
           emoji: '🎉',
-          url: 'https://via.placeholder.com/512x512/96CEB4/FFFFFF?text=🎉'
+          url: 'https://lottie.host/4c7c4a8a-8b2a-4c3d-9e1f-2a3b4c5d6e7f/party.json'
         }
       ]
     },
@@ -125,10 +125,10 @@ export const mockStickerSets: StickerSetResponse[] = [
           type: 'regular' as const,
           width: 512,
           height: 512,
-          is_animated: false,
+          is_animated: true,
           is_video: false,
           emoji: '🤗',
-          url: 'https://via.placeholder.com/512x512/F7DC6F/FFFFFF?text=🤗'
+          url: 'https://lottie.host/3b2a1c9d-7e8f-4a5b-9c6d-1e2f3a4b5c6d/hug.json'
         }
       ]
     },
@@ -140,11 +140,46 @@ export const mockUserStickerSets: StickerSetResponse[] = mockStickerSets;
 
 // Тестовые категории
 export const mockCategories: CategoryDto[] = [
-  { key: 'animals', name: 'Животные', description: 'Стикеры с животными' },
-  { key: 'memes', name: 'Мемы', description: 'Мемные стикеры' },
-  { key: 'emotions', name: 'Эмоции', description: 'Эмоциональные стикеры' },
-  { key: 'cute', name: 'Милые', description: 'Милые и кавайные стикеры' },
-  { key: 'animated', name: 'Анимированные', description: 'Анимированные стикеры' }
+  { 
+    id: 1,
+    key: 'animals', 
+    name: 'Животные', 
+    description: 'Стикеры с животными',
+    displayOrder: 1,
+    isActive: true
+  },
+  { 
+    id: 2,
+    key: 'memes', 
+    name: 'Мемы', 
+    description: 'Мемные стикеры',
+    displayOrder: 2,
+    isActive: true
+  },
+  { 
+    id: 3,
+    key: 'emotions', 
+    name: 'Эмоции', 
+    description: 'Эмоциональные стикеры',
+    displayOrder: 3,
+    isActive: true
+  },
+  { 
+    id: 4,
+    key: 'cute', 
+    name: 'Милые', 
+    description: 'Милые и кавайные стикеры',
+    displayOrder: 4,
+    isActive: true
+  },
+  { 
+    id: 5,
+    key: 'animated', 
+    name: 'Анимированные', 
+    description: 'Анимированные стикеры',
+    displayOrder: 5,
+    isActive: true
+  }
 ];
 
 // Тестовый ответ аутентификации

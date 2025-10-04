@@ -86,11 +86,11 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
                 key={sticker.file_id}
                 className="glass-slot"
               >
-                <img
-                  className="sticker-img"
-                  loading="lazy"
-                  src={sticker.url || `/api/stickers/${sticker.file_id}`}
-                  alt={sticker.emoji || 'sticker'}
+                <StickerPreview 
+                  sticker={sticker} 
+                  size={previewSize}
+                  showBadge={index === 0}
+                  isInTelegramApp={isInTelegramApp}
                 />
               </Box>
             );

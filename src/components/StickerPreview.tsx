@@ -123,7 +123,9 @@ const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        // Добавляем drop-shadow для glassmorphism
+        filter: 'drop-shadow(0 0 .75px rgba(0,0,0,.12))'
       }}
     >
       {/* Placeholder */}
