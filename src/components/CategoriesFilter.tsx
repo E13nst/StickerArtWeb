@@ -57,7 +57,7 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
       msOverflowStyle: 'none'
     }}>
       {categories.map((category) => {
-        const isSelected = selectedCategories.includes(category.key);
+        const isSelected = (selectedCategories || []).includes(category.key);
         
         return (
           <Box
