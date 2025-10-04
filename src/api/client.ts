@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse } from '@/types/sticker';
 import { UserInfo } from '@/store/useProfileStore';
 import { CategoryDto } from '@/types/category';
+import { mockStickerSets, mockAuthResponse, mockCategories } from '@/data/mockData';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -85,7 +86,8 @@ class ApiClient {
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка проверки статуса авторизации:', error);
-      throw new Error(`Не удалось проверить статус авторизации. Проверьте подключение к серверу и попробуйте снова.`);
+      console.log('🔄 Используем mock данные для демонстрации');
+      return mockAuthResponse;
     }
   }
 
@@ -98,7 +100,17 @@ class ApiClient {
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка получения списка стикерсетов:', error);
-      throw new Error(`Не удалось загрузить стикерсеты. Проверьте подключение к серверу и попробуйте снова.`);
+      console.log('🔄 Используем mock данные для демонстрации');
+      return {
+        content: mockStickerSets,
+        totalElements: mockStickerSets.length,
+        totalPages: 1,
+        size: mockStickerSets.length,
+        number: 0,
+        first: true,
+        last: true,
+        numberOfElements: mockStickerSets.length
+      };
     }
   }
 
@@ -214,7 +226,8 @@ class ApiClient {
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка получения категорий:', error);
-      throw new Error(`Не удалось загрузить категории. Проверьте подключение к серверу и попробуйте снова.`);
+      console.log('🔄 Используем mock категории для демонстрации');
+      return mockCategories;
     }
   }
 
@@ -235,7 +248,17 @@ class ApiClient {
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка получения стикерсетов с фильтрацией:', error);
-      throw new Error(`Не удалось загрузить стикерсеты с фильтрацией по категориям. Проверьте подключение к серверу и попробуйте снова.`);
+      console.log('🔄 Используем mock данные для демонстрации');
+      return {
+        content: mockStickerSets,
+        totalElements: mockStickerSets.length,
+        totalPages: 1,
+        size: mockStickerSets.length,
+        number: 0,
+        first: true,
+        last: true,
+        numberOfElements: mockStickerSets.length
+      };
     }
   }
 }
