@@ -17,6 +17,10 @@
     <!-- Build verification -->
     <meta name="build-time" content="__BUILD_TIME__" />
     <meta name="build-version" content="__APP_VERSION__" />
+    <meta name="build-hash" content="__COMMIT_HASH__" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     
     <!-- Telegram Web App API -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -36,8 +40,12 @@
       console.log('🏗️ Build Info:', {
         buildTime: document.querySelector('meta[name="build-time"]')?.content || 'unknown',
         version: document.querySelector('meta[name="build-version"]')?.content || 'unknown',
+        commitHash: document.querySelector('meta[name="build-hash"]')?.content || 'unknown',
         timestamp: new Date().toISOString()
       });
+      
+      // Отображаем build info в заголовке страницы для верификации
+      document.title = `Sticker Gallery (${document.querySelector('meta[name="build-version"]')?.content || '1.0.0'})`;
     </script>
   </head>
   <body>

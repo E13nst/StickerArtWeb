@@ -4,14 +4,14 @@ import { StickerSetResponse } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
 
 // Функция для перемешивания массива в случайном порядке
-const shuffleArray = <T>(array: T[]): T[] => {
+function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
-};
+}
 
 interface SinglePreviewCardProps {
   stickerSet: StickerSetResponse;
@@ -25,156 +25,148 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   isInTelegramApp = false
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Получаем стикеры и перемешиваем их в случайном порядке, берем первые 3
-  const allStickers = stickerSet.telegramStickerSetInfo?.stickers || [];
+  // Получаем максимум 3 случайных стикера для карусели
+  const allStickers = stickerSet.stickers || [];
   const shuffledStickers = shuffleArray(allStickers);
-  const stickers = shuffledStickers.slice(0, 3);
-  
-  console.log('🔍 SinglePreviewCard:', {
-    stickerSetId: stickerSet.id,
-    stickerSetTitle: stickerSet.title,
-    stickersCount: stickers.length,
-    currentIndex,
-    currentSticker: stickers[currentIndex]?.file_id
-  });
-  
-  // Intersection Observer для определения видимости карточки
+  const carouselStickers = shuffledStickers.slice(0, 3);
+
+  // IntersectionObserver для активации карусели только при видимости
   useEffect(() => {
+    const card = cardRef.current;
+    if (!card || carouselStickers.length < 2) return;
+
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          // Запускаем карусель с интервалом 2.5 секунд
+          intervalRef.current = setInterval(() => {
+            setCurrentIndex((prevIndex) => 
+              prevIndex === carouselStickers.length - 1 ? 0 : prevIndex + 1
+            );
+          }, 2500);
+        } else {
+          // Останавливаем карусель при скрытии
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        }
       },
-      { threshold: 0.25 }
+      { threshold: 0.3 }
     );
 
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
+    observer.observe(card);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [carouselStickers.length]);
+
+  // Fallback таймер для скрытия загрузки
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // Карусель изображений (только когда карточка видима)
-  useEffect(() => {
-    if (!isVisible || stickers.length <= 1) return;
+  const handleImageLoad = () => {
+    setIsLoading(false);
+  };
 
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % stickers.length);
-    }, 5000); // Смена каждые 5 секунд (замедлили)
-
-    return () => clearInterval(interval);
-  }, [isVisible, stickers.length]);
-
-  // Сбрасываем состояние загрузки при смене изображения
-  useEffect(() => {
-    setIsLoading(true);
-  }, [currentIndex]);
-
-  // Автоматически убираем загрузку через 4 секунды как fallback
-  useEffect(() => {
-    if (isLoading) {
-      const timeout = setTimeout(() => {
-        console.log('⏰ Timeout fallback - убираем загрузку');
-        setIsLoading(false);
-      }, 4000);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoading]);
+  const handleImageError = () => {
+    console.error('❌ Ошибка отображения изображения:', carouselStickers[currentIndex]?.file_id);
+    setIsLoading(false);
+  };
 
   const handleCardClick = () => {
     onView(stickerSet.id, stickerSet.name);
   };
 
-  const handleImageLoad = () => {
-    console.log('✅ Изображение загружено:', stickers[currentIndex]?.file_id);
-    setIsLoading(false);
-  };
-
-  const handleImageError = () => {
-    console.error('❌ Ошибка загрузки изображения:', stickers[currentIndex]?.file_id);
-    setIsLoading(false);
-  };
-
-  const currentSticker = stickers[currentIndex];
+  const currentSticker = carouselStickers[currentIndex];
 
   return (
     <Card
       ref={cardRef}
-      onClick={handleCardClick}
       className="fx-glass fx-lite"
+      onClick={handleCardClick}
       sx={{
-        height: '100%',
-        borderRadius: 2, // 16px
         cursor: 'pointer',
-        backgroundColor: 'transparent', // убираем белый фон MUI
-        transition: 'transform 0.2s ease',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
         '&:hover': {
           transform: 'translateY(-2px)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
         },
-        '&:active': {
-          transform: 'translateY(0)',
-        },
+        backgroundColor: 'transparent'
       }}
     >
-      {/* Большое превью стикера */}
       <Box className="fx-card-media" sx={{ 
-        p: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '200px',
+        position: 'relative',
+        aspectRatio: '1/1',
         background: 'transparent'
       }}>
-        {currentSticker ? (
-          <Box sx={{
-            width: '100%',
-            aspectRatio: '1 / 1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 1.5, // 12px
-            overflow: 'hidden',
-            background: 'transparent', // убираем серую подложку
-            position: 'relative'
+        {currentSticker && (
+          <Box sx={{ 
+            width: '100%', 
+            height: '100%',
+            background: 'transparent'
           }}>
-            
             <StickerPreview
               sticker={currentSticker}
-              size="large"
-              style={{
-                width: '100%',
-                height: '100%'
-              }}
+              isAnimated={currentSticker.is_animated}
               onLoad={handleImageLoad}
               onError={handleImageError}
             />
           </Box>
-        ) : (
-          <Box sx={{
-            width: '100%',
-            aspectRatio: '1 / 1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 1.5,
-            backgroundColor: 'rgba(0,0,0,0.05)',
-            color: 'text.secondary'
-          }}>
-            <Typography variant="body2">Нет превью</Typography>
+        )}
+        
+        {/* Индикатор карусели */}
+        {carouselStickers.length > 1 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              display: 'flex',
+              gap: 0.5,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: 1,
+              px: 1,
+              py: 0.5
+            }}
+          >
+            {carouselStickers.map((_, index) => (
+              <Box
+                key={index}
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: index === currentIndex ? 'white' : 'rgba(255,255,255,0.5)',
+                  transition: 'background-color 0.2s ease'
+                }}
+              />
+            ))}
           </Box>
         )}
       </Box>
 
-      {/* Информация о стикерпаке */}
-      <Box className="fx-card-body" sx={{ px: 1.5, pb: 1.5, background: 'transparent' }}>
+      <Box className="fx-card-body" sx={{ p: 1.5, background: 'transparent' }}>
         <Typography 
           className="card-title"
+          variant="h6" 
           sx={{ 
+            fontSize: '1rem',
+            fontWeight: 600,
             mb: 0.5,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -186,37 +178,17 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
         
         <Typography 
           className="card-meta"
+          variant="body2" 
+          color="text.secondary"
           sx={{ 
-            display: 'block'
+            fontSize: '0.875rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}
         >
-          {new Date(stickerSet.createdAt).toLocaleDateString('ru-RU')}
+          {stickerSet.stickers?.length || 0} стикеров
         </Typography>
-
-        {/* Индикатор карусели */}
-        {stickers.length > 1 && (
-          <Box sx={{
-            display: 'flex',
-            gap: 0.5,
-            mt: 1,
-            justifyContent: 'center'
-          }}>
-            {stickers.map((_, index) => (
-              <Box
-                key={index}
-                sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: index === currentIndex 
-                    ? 'primary.main' 
-                    : 'rgba(0,0,0,0.2)',
-                  transition: 'background-color 0.2s ease'
-                }}
-              />
-            ))}
-          </Box>
-        )}
       </Box>
     </Card>
   );
