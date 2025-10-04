@@ -99,6 +99,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
         height: '100%',
         borderRadius: 2, // 16px
         cursor: 'pointer',
+        backgroundColor: 'transparent', // убираем белый фон MUI
         transition: 'transform 0.2s ease',
         '&:hover': {
           transform: 'translateY(-2px)',

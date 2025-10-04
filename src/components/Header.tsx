@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
       position="sticky" 
       className="fx-glass"
       sx={{ 
-        backgroundColor: 'transparent',
+        backgroundColor: 'transparent !important',
         boxShadow: 'none',
         borderBottom: '1px solid rgba(255, 255, 255, 0.22)',
         height: 56,

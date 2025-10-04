@@ -59,16 +59,16 @@
 .lowperf .space-stars .layer { animation: none; }
 .lowperf .fx-glass, .lowperf .fx-lite { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 
-/* Стеклянные утилиты (облегчённые) */
+/* Стеклянные утилиты (полностью прозрачные) */
 .fx-glass {
-  background: color-mix(in oklab, #ffffff 35%, transparent);
+  background: transparent;
   border: 1px solid rgba(255,255,255,.15);
   backdrop-filter: blur(8px) saturate(120%);
   -webkit-backdrop-filter: blur(8px) saturate(120%);
   box-shadow: 0 8px 24px rgba(18,22,40,.06);
 }
 .fx-lite {
-  background: color-mix(in oklab, #ffffff 25%, transparent);
+  background: transparent;
   border: 1px solid rgba(255,255,255,.12);
 }
 
@@ -88,5 +88,5 @@
 .chip--active { background: rgba(130,160,255,.18); border-color: rgba(130,160,255,.36); }
 
 /* Текст карточек */
-.card-title { font: 600 16px/1.25 system-ui; color:#EAF0F8; }
-.card-meta  { font: 400 12px/1.25 system-ui; color:#B8C1D3; }
+.card-title { font: 600 16px/1.25 system-ui; color:#EAF0F8; text-align: center; }
+.card-meta  { font: 400 12px/1.25 system-ui; color:#B8C1D3; text-align: center; }
