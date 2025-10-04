@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Box, Typography } from '@mui/material';
+import { imageCache } from '@/utils/imageCache';
 
 interface LazyImageProps {
   src: string;
@@ -48,6 +49,25 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  // Загружаем изображение через кеш когда оно попадает в viewport
+  useEffect(() => {
+    if (!isInView || !src) return;
+
+    const loadImage = async () => {
+      try {
+        const img = await imageCache.loadImage(src);
+        if (imgRef.current) {
+          imgRef.current.src = img.src;
+        }
+      } catch (error) {
+        console.error('❌ Ошибка загрузки изображения через кеш:', src, error);
+        handleError();
+      }
+    };
+
+    loadImage();
+  }, [isInView, src]);
+
   const handleLoad = () => {
     setIsLoaded(true);
     onLoad?.();
@@ -95,7 +115,6 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
       {isInView && !hasError && (
         <img
           ref={imgRef}
-          src={src}
           alt={alt}
           style={{
             ...style,

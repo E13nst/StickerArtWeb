@@ -3,6 +3,7 @@ import { Box, Grid, Button } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { SinglePreviewCard } from './SinglePreviewCard';
 import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
+import { imageCache } from '@/utils/imageCache';
 
 interface StickerSetListProps {
   stickerSets: StickerSetResponse[];
@@ -31,6 +32,27 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     return stickerSets.slice(0, visibleItems);
   }, [stickerSets, visibleItems]);
 
+  // Предзагружаем изображения для видимых стикерпаков
+  useEffect(() => {
+    const imageUrls: string[] = [];
+    
+    visibleStickerSets.forEach(stickerSet => {
+      const stickers = stickerSet.telegramStickerSetInfo?.stickers?.slice(0, 3) || [];
+      stickers.forEach(sticker => {
+        if (sticker.url) {
+          imageUrls.push(sticker.url);
+        } else {
+          imageUrls.push(`/api/stickers/${sticker.file_id}`);
+        }
+      });
+    });
+
+    if (imageUrls.length > 0) {
+      console.log('🚀 Предзагружаем изображения:', imageUrls.length);
+      imageCache.preloadImages(imageUrls);
+    }
+  }, [visibleStickerSets]);
+
   // Автоматическая загрузка при скролле
   useEffect(() => {
     const handleScroll = () => {
@@ -55,7 +77,8 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     visibleCount: visibleStickerSets.length,
     hasMore,
     isLoading,
-    isInTelegramApp
+    isInTelegramApp,
+    cacheStats: imageCache.getStats()
   });
 
   return (
