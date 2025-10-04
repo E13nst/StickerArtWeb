@@ -19,6 +19,15 @@
   --tg-theme-secondary-bg-color: #ffffff;
   --tg-theme-link-color: #00C6FF;
   --tg-theme-accent-text-color: #0072FF;
+  
+  /* Telegram Mini App safe areas */
+  --tg-topbar: 0px;
+  --tg-bg-color: #ffffff;
+  --tg-text-color: #000000;
+  --tg-hint-color: #999999;
+  --tg-link-color: #2481cc;
+  --tg-button-color: #2481cc;
+  --tg-button-text-color: #ffffff;
 }
 
 * {
@@ -101,6 +110,33 @@ a, button {
   border-radius: 12px;
   object-fit: contain;
   transition: opacity 0.2s ease;
+}
+
+/* Telegram Mini App sticky elements */
+.tg-sticky {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--tg-topbar));
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--tg-bg-color) 70%, transparent);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Performance optimizations */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 480px;
+}
+
+/* Hide scrollbars for horizontal scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Топбар с blur эффектом */

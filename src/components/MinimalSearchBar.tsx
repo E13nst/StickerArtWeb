@@ -18,40 +18,40 @@ const MinimalSearchBar: React.FC<MinimalSearchBarProps> = ({
   return (
     <Box
       sx={{
-        mt: 1.5,
-        mb: 1,                 // меньше вертикальные отступы
-        px: 0.5,
+        display: 'flex',
+        alignItems: 'center',
+        height: 48, // Slightly taller for better touch target
+        borderTop: '1px solid rgba(15,23,42,0.08)',
+        borderBottom: '1px solid rgba(15,23,42,0.08)',
+        borderRadius: 1,
+        backgroundColor: 'rgba(255,255,255,0.7)',
+        backdropFilter: 'blur(8px)',
+        transition: 'all 0.2s ease',
+        '&:focus-within': {
+          borderTopColor: 'rgba(15,23,42,0.15)',
+          borderBottomColor: 'rgba(15,23,42,0.15)',
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        },
       }}
     >
-      <Box
+      <SearchIcon sx={{ mx: 1.5, fontSize: 20, color: 'rgba(15,23,42,0.45)' }} />
+      <InputBase
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        inputProps={{ 'aria-label': 'search-stickers' }}
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          height: 44,          // компактная высота
-          borderTop: '1px solid rgba(15,23,42,0.10)',
-          borderBottom: '1px solid rgba(15,23,42,0.10)',
-          transition: 'border-color .2s ease',
-          '&:focus-within': {
-            borderTopColor: 'rgba(15,23,42,0.18)',
-            borderBottomColor: 'rgba(15,23,42,0.18)',
+          flex: 1,
+          fontSize: 15,
+          color: '#0F172A',
+          '& ::placeholder': { color: 'rgba(15,23,42,0.45)' },
+          '& input': {
+            padding: '8px 0',
           },
         }}
-      >
-        <SearchIcon sx={{ mx: 1, fontSize: 20, color: 'rgba(15,23,42,0.45)' }} />
-        <InputBase
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          inputProps={{ 'aria-label': 'search-stickers' }}
-          sx={{
-            flex: 1,
-            fontSize: 14.5,
-            color: '#0F172A',
-            '& ::placeholder': { color: 'rgba(15,23,42,0.45)' },
-          }}
-        />
-      </Box>
+      />
     </Box>
   );
 };

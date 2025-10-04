@@ -1,7 +1,8 @@
 import React, { useMemo, useCallback } from 'react';
-import { Box } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerCard } from './StickerCard';
+import { HeroStickerCard } from './HeroStickerCard';
 
 interface StickerSetListProps {
   stickerSets: StickerSetResponse[];
@@ -35,66 +36,45 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     <Box sx={{ 
       pb: isInTelegramApp ? 2 : 10, // Добавляем отступ для Bottom Navigation
       px: isInTelegramApp ? 0 : 2,  // Боковые отступы на desktop
-      display: 'flex',
-      justifyContent: 'center'
     }}>
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 2,
-        maxWidth: 520, // Увеличиваем для новых размеров карточек
-        width: '100%',
-        margin: '0 auto',
-        padding: '0 16px 40px',
-        // Адаптивность для узких экранов
-        '@media (max-width: 600px)': {
-          maxWidth: '100%',
-          gap: 1.5,
-          padding: '0 12px 60px' // Больше места для нижней навигации
-        },
-        // Очень узкие экраны
-        '@media (max-width: 400px)': {
-          gap: 1,
-          padding: '0 12px 60px'
-        }
-      }}>
-        {visibleStickerSets.map((stickerSet) => {
+      <Grid container spacing={1.75} sx={{ alignItems: 'stretch' }}>
+        {visibleStickerSets.map((stickerSet, index) => {
           console.log('🔍 StickerSetList рендер карточки:', {
             stickerSetId: stickerSet.id,
             stickerSetTitle: stickerSet.title,
             isInTelegramApp
           });
           
+          // Hero карточка каждую 6-ю (если есть ≥ 4 превью)
+          const shouldShowHero = (index + 1) % 6 === 0 && stickerSet.stickers && stickerSet.stickers.length >= 4;
+          
           return (
-            <Box
-              key={stickerSet.id}
-              sx={{
-                width: '100%',
-                maxWidth: 200, // Увеличиваем с 180 до 200
-                minWidth: 180, // Увеличиваем с 160 до 180
-                display: 'flex',
-                justifyContent: 'center',
-                // Адаптивность для узких экранов
-                '@media (max-width: 600px)': {
-                  maxWidth: 180, // Увеличиваем с 160 до 180
-                  minWidth: 160 // Увеличиваем с 140 до 160
-                },
-                // Очень узкие экраны
-                '@media (max-width: 400px)': {
-                  maxWidth: 170, // Увеличиваем с 150 до 170
-                  minWidth: 150 // Увеличиваем с 130 до 150
-                }
-              }}
-            >
-              <StickerCard
-                stickerSet={stickerSet}
-                onView={handleView}
-                isInTelegramApp={isInTelegramApp}
-              />
-            </Box>
+            <Grid item xs={6} key={stickerSet.id}>
+              <Box 
+                sx={{ 
+                  height: '100%',
+                  contentVisibility: 'auto',
+                  containIntrinsicSize: '480px'
+                }}
+                className="content-visibility-auto"
+              >
+                {shouldShowHero ? (
+                  <HeroStickerCard 
+                    stickers={stickerSet.stickers.map(s => s.url).slice(0, 4)}
+                    style={{ height: '100%' }}
+                  />
+                ) : (
+                  <StickerCard
+                    stickerSet={stickerSet}
+                    onView={handleView}
+                    isInTelegramApp={isInTelegramApp}
+                  />
+                )}
+              </Box>
+            </Grid>
           );
         })}
-      </Box>
+      </Grid>
       
       {/* Показываем индикатор, если есть скрытые элементы */}
       {stickerSets.length > maxVisibleItems && (

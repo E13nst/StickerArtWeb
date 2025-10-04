@@ -22,10 +22,14 @@ import { BottomNav } from '@/components/BottomNav';
 // Хуки
 import { useCategories } from '@/hooks/useCategories';
 import { useScrollHue } from '@/hooks/useScrollHue';
+import { useTgSafeArea } from '@/telegram/useTgSafeArea';
 
 export const GalleryPage: React.FC = () => {
   // Хук для градиентного фона с изменением оттенка при скролле
   useScrollHue(190, 255);  // мягкая гамма: голубой → лазурно-фиолетовый
+  
+  // Хук для обработки безопасных зон Telegram
+  useTgSafeArea();
 
   const { tg, user, initData, isReady, isInTelegramApp, checkInitDataExpiry } = useTelegram();
   const {
@@ -329,7 +333,7 @@ export const GalleryPage: React.FC = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh', 
-      backgroundColor: 'background.default',
+      backgroundColor: 'transparent',
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav в браузере
     }}>
       {/* Заголовок */}
@@ -344,29 +348,32 @@ export const GalleryPage: React.FC = () => {
       <Container 
         maxWidth={false} 
         sx={{ 
-          maxWidth: 520, 
+          maxWidth: 560, 
           mx: 'auto', 
           px: 1.5, 
-          pb: 10,
-          pt: isInTelegramApp ? 1 : 2
+          pt: 'calc(8px + env(safe-area-inset-top))',
+          pb: 'calc(12px + env(safe-area-inset-bottom))',
+          backgroundColor: 'transparent'
         }}
       >
         {viewMode === 'list' ? (
           <>
-            {/* Поиск */}
-            <MinimalSearchBar
-              value={searchTerm}
-              onChange={handleSearchChange}
-              disabled={isLoading}
-            />
-
-            {/* Фильтр категорий */}
-            <CategoriesFilter
-              categories={categories}
-              selectedCategories={selectedCategories}
-              onCategoriesChange={handleCategoriesChange}
-              loading={categoriesLoading}
-            />
+            {/* Sticky поиск и чипы */}
+            <Box className="tg-sticky" sx={{ px: 1, py: 1, mb: 2 }}>
+              <MinimalSearchBar
+                value={searchTerm}
+                onChange={handleSearchChange}
+                disabled={isLoading}
+              />
+              <Box sx={{ mt: 1 }}>
+                <CategoriesFilter
+                  categories={categories}
+                  selectedCategories={selectedCategories}
+                  onCategoriesChange={handleCategoriesChange}
+                  loading={categoriesLoading}
+                />
+              </Box>
+            </Box>
 
             {/* Контент */}
             {isLoading ? (
