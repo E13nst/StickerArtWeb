@@ -63,10 +63,13 @@ export const Header: React.FC<HeaderProps> = ({
       sx={{ 
         backgroundColor: 'transparent !important',
         boxShadow: 'none',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.22)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
         height: 56,
         minHeight: 56,
-        borderRadius: 0
+        borderRadius: '0 0 16px 16px', // смягченные нижние углы
+        borderTop: 'none',
+        borderLeft: 'none',
+        borderRight: 'none'
       }}
     >
       <Toolbar 

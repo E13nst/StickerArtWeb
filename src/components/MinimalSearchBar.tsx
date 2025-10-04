@@ -21,15 +21,10 @@ const MinimalSearchBar: React.FC<MinimalSearchBarProps> = ({
       sx={{
         display: 'flex',
         alignItems: 'center',
-        borderTop: '1px solid rgba(255,255,255,0.18)',
-        borderBottom: '1px solid rgba(255,255,255,0.18)',
-        borderLeft: 'none',
-        borderRight: 'none',
-        backgroundColor: 'transparent',
         transition: 'all 0.2s ease',
         '&:focus-within': {
-          borderTopColor: 'rgba(255,255,255,0.28)',
-          borderBottomColor: 'rgba(255,255,255,0.28)',
+          borderColor: 'rgba(255,255,255,0.20)',
+          background: 'rgba(255,255,255,0.12)',
         },
       }}
     >
