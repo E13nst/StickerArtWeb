@@ -23,6 +23,9 @@ class ImageCache {
     const promise = new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
       
+      // Настраиваем кеширование браузера
+      img.crossOrigin = 'anonymous'; // Для CORS изображений
+      
       img.onload = () => {
         console.log('✅ Изображение загружено и кешировано:', src);
         
@@ -45,6 +48,7 @@ class ImageCache {
       };
       
       // Устанавливаем src для начала загрузки
+      // Браузер автоматически будет использовать кеш для повторных запросов
       img.src = src;
     });
 

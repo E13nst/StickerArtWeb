@@ -57,7 +57,9 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
       try {
         const img = await imageCache.loadImage(src);
         if (imgRef.current) {
+          // Устанавливаем src напрямую - браузер будет использовать кеш
           imgRef.current.src = img.src;
+          imgRef.current.crossOrigin = 'anonymous';
         }
       } catch (error) {
         console.error('❌ Ошибка загрузки изображения через кеш:', src, error);

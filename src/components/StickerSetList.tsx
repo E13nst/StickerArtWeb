@@ -16,10 +16,10 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
   onView,
   isInTelegramApp = false
 }) => {
-  // Поэтапная загрузка: сначала 4, потом по 2
+  // Поэтапная загрузка: сначала 4, потом по 2 (без задержек)
   const { visibleItems, isLoading, loadNextBatch, hasMore } = useProgressiveLoading(
     stickerSets.length,
-    { initialBatch: 4, batchSize: 2, delayBetweenBatches: 1500 }
+    { initialBatch: 4, batchSize: 2 }
   );
 
   // Мемоизируем обработчики для предотвращения лишних ре-рендеров
