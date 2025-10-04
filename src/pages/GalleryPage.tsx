@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   Container, 
   Box,
@@ -54,6 +54,8 @@ export const GalleryPage: React.FC = () => {
   const [manualInitData, setManualInitData] = useState<string>('');
   const [activeBottomTab, setActiveBottomTab] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showSearch, setShowSearch] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Хук для категорий
   const { categories, loading: categoriesLoading } = useCategories();
@@ -371,6 +373,29 @@ export const GalleryPage: React.FC = () => {
     }
   }, [tg, viewMode]);
 
+  // Отслеживание скролла для показа/скрытия поиска
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Показываем поиск при скролле вверх или если находимся вверху страницы
+      if (currentScrollY < lastScrollY || currentScrollY < 100) {
+        setShowSearch(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Скрываем поиск при скролле вниз, но только если прокрутили достаточно
+        setShowSearch(false);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollY]);
+
   if (!isReady) {
     return <LoadingSpinner message="Инициализация..." />;
   }
@@ -404,7 +429,18 @@ export const GalleryPage: React.FC = () => {
         {viewMode === 'list' ? (
           <>
             {/* Sticky поиск и чипы */}
-            <Box className="tg-sticky" sx={{ px: 1, py: 1, mb: 2 }}>
+            <Box 
+              className="tg-sticky" 
+              sx={{ 
+                px: 1, 
+                py: 0.33, 
+                mb: 0.67,
+                transform: showSearch ? 'translateY(0)' : 'translateY(-100%)',
+                opacity: showSearch ? 1 : 0,
+                transition: 'transform 0.3s ease, opacity 0.3s ease',
+                pointerEvents: showSearch ? 'auto' : 'none'
+              }}
+            >
               <MinimalSearchBar
                 value={searchTerm}
                 onChange={handleSearchChange}

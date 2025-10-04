@@ -152,8 +152,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
               size="large"
               style={{
                 width: '100%',
-                height: '100%',
-                transition: 'opacity 0.3s ease'
+                height: '100%'
               }}
               onLoad={handleImageLoad}
               onError={handleImageError}
