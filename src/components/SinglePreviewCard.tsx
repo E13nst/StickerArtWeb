@@ -64,7 +64,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % stickers.length);
-    }, 3000); // Смена каждые 3 секунды
+    }, 5000); // Смена каждые 5 секунд (замедлили)
 
     return () => clearInterval(interval);
   }, [isVisible, stickers.length]);
@@ -74,13 +74,13 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
     setIsLoading(true);
   }, [currentIndex]);
 
-  // Автоматически убираем загрузку через 3 секунды как fallback
+  // Автоматически убираем загрузку через 4 секунды как fallback
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
         console.log('⏰ Timeout fallback - убираем загрузку');
         setIsLoading(false);
-      }, 3000);
+      }, 4000);
       
       return () => clearTimeout(timeout);
     }
