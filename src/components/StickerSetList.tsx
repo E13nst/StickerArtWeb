@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useEffect } from 'react';
 import { Box, Grid, Button } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
-import { SinglePreviewCard } from './SinglePreviewCard';
+import { StickerCard } from './StickerCard';
 import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
 import { imageCache } from '@/utils/imageCache';
 
@@ -37,7 +37,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     const imageUrls: string[] = [];
     
     visibleStickerSets.forEach(stickerSet => {
-      const stickers = stickerSet.telegramStickerSetInfo?.stickers?.slice(0, 3) || [];
+      const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 3);
       stickers.forEach(sticker => {
         if (sticker.url) {
           imageUrls.push(sticker.url);
@@ -104,7 +104,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
                 }}
                 className="content-visibility-auto"
               >
-                <SinglePreviewCard
+                <StickerCard
                   stickerSet={stickerSet}
                   onView={handleView}
                   isInTelegramApp={isInTelegramApp}

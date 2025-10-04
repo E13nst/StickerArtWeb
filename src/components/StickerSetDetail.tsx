@@ -28,7 +28,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   onLike,
   isInTelegramApp = false
 }) => {
-  const stickerCount = stickerSet.telegramStickerSetInfo?.stickers?.length || 0;
+  // Защита от undefined stickerSet
+  if (!stickerSet) {
+    return <div>Стикерсет не найден</div>;
+  }
+  
+  const stickerCount = stickerSet.telegramStickerSetInfo?.stickers?.length || stickerSet.stickers?.length || 0;
   const createdDate = new Date(stickerSet.createdAt).toLocaleDateString();
 
   const handleShare = () => {
