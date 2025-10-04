@@ -34,38 +34,32 @@ export const HeroStickerCard: React.FC<HeroStickerCardProps> = ({ stickers, styl
   return (
     <Card 
       ref={ref} 
+      className="glass-card content-visibility-auto"
       sx={{ 
-        borderRadius: 2, 
-        boxShadow: '0 6px 20px rgba(0,0,0,0.1)', 
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        transition: 'transform 0.16s ease, box-shadow 0.16s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 10px 24px rgba(0,0,0,0.12)'
-        },
+        borderRadius: 2,
+        boxShadow: 'none',
+        backgroundColor: 'transparent',
+        p: 0,
         ...style
       }}
-      className="content-visibility-auto"
     >
       <Box sx={{ 
         aspectRatio: '1/1', 
         p: 1.5, 
         display: 'flex', 
         alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#F6F7F9',
-        borderRadius: 1.5
+        justifyContent: 'center'
       }}>
         <img
           key={idx}
           src={stickers[idx]}
           loading="lazy"
+          className="sticker-img"
           style={{ 
             width: '88%', 
             height: '88%', 
             objectFit: 'contain', 
-            transition: 'opacity 0.28s ease',
-            borderRadius: '8px'
+            transition: 'opacity 0.28s ease'
           }}
           alt="Hero sticker preview"
         />

@@ -44,18 +44,14 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
   return (
     <Card 
       onClick={handleCardClick}
+      className="glass-card content-visibility-auto"
       sx={{ 
         height: '100%',
-        borderRadius: 2, // ≈ 16px
-        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        transition: 'transform 0.16s ease, box-shadow 0.16s ease',
+        borderRadius: 2, // 16px
+        boxShadow: 'none',
+        backgroundColor: 'transparent',   // фон даёт класс .glass-card
         cursor: 'pointer',
-        backdropFilter: 'blur(8px)',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 10px 24px rgba(0,0,0,0.12)'
-        },
+        p: 0,
         // Адаптивность для узких экранов
         '@media (max-width: 380px)': {
           '& .MuiCardContent-root': {
@@ -63,7 +59,6 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
           }
         }
       }}
-      className="content-visibility-auto"
     >
       <CardContent 
         sx={{ 
@@ -82,10 +77,6 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 1,
-            aspectRatio: '1 / 1',
-            mb: 1.25,
-            borderRadius: 1.5, // ≈12px
-            backgroundColor: '#F6F7F9',
             p: 1.25
           }}
         >
@@ -93,22 +84,13 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             return (
               <Box
                 key={sticker.file_id}
-                sx={{
-                  aspectRatio: '1 / 1',
-                  overflow: 'hidden',
-                  borderRadius: 1, // ≈8px
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#ffffff'
-                }}
+                className="glass-slot"
               >
-                <StickerPreview 
-                  sticker={sticker} 
-                  size={previewSize}
-                  showBadge={index === 0}
-                  isInTelegramApp={isInTelegramApp}
+                <img
+                  className="sticker-img"
+                  loading="lazy"
+                  src={sticker.url || `/api/stickers/${sticker.file_id}`}
+                  alt={sticker.emoji || 'sticker'}
                 />
               </Box>
             );
@@ -117,20 +99,16 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
           {Array.from({ length: Math.max(0, 4 - previewStickers.length) }).map((_, index) => (
             <Box
               key={`empty-${index}`}
+              className="glass-slot"
               sx={{
-                aspectRatio: '1 / 1',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'background.paper',
-                borderRadius: 1,
-                border: '1px dashed',
-                borderColor: 'divider'
+                justifyContent: 'center'
               }}
             >
               <Typography 
                 color="text.secondary"
-                sx={{ fontSize: '0.8rem' }}
+                sx={{ fontSize: '0.8rem', opacity: 0.5 }}
               >
                 ➕
               </Typography>
@@ -139,49 +117,50 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
         </Box>
 
 
-        {/* Название стикерсета */}
-        <Typography 
-          variant="h6" 
-          component="h3"
-          sx={{ 
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            textAlign: 'center',
-            mb: 0.5,
-            lineHeight: 1.3,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            color: '#111827',
-            // Мобильные адаптации
-            '@media (max-width: 400px)': {
-              fontSize: '0.8rem',
-              WebkitLineClamp: 1
-            }
-          }}
-        >
-          {stickerSet.title}
-        </Typography>
+        {/* Название стикерсета и дата */}
+        <Box sx={{ px: 1.25, pt: 0.25, pb: 1.25 }}>
+          <Typography 
+            variant="subtitle2" 
+            component="h3"
+            sx={{ 
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              textAlign: 'center',
+              mb: 0.5,
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              color: '#111827',
+              // Мобильные адаптации
+              '@media (max-width: 400px)': {
+                fontSize: '0.8rem',
+                WebkitLineClamp: 1
+              }
+            }}
+          >
+            {stickerSet.title}
+          </Typography>
 
-        {/* Дата создания */}
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            fontSize: '0.75rem',
-            textAlign: 'center',
-            display: 'block',
-            color: '#6B7280',
-            opacity: 0.8,
-            // Мобильные адаптации
-            '@media (max-width: 400px)': {
-              fontSize: '0.7rem'
-            }
-          }}
-        >
-          {new Date(stickerSet.createdAt).toLocaleDateString()}
-        </Typography>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              fontSize: '0.75rem',
+              textAlign: 'center',
+              display: 'block',
+              color: '#6B7280',
+              opacity: 0.8,
+              // Мобильные адаптации
+              '@media (max-width: 400px)': {
+                fontSize: '0.7rem'
+              }
+            }}
+          >
+            {new Date(stickerSet.createdAt).toLocaleDateString()}
+          </Typography>
+        </Box>
 
       </CardContent>
     </Card>
