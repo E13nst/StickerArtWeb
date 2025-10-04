@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Box, Typography } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
+import { StickerPreview } from './StickerPreview';
 
 interface SinglePreviewCardProps {
   stickerSet: StickerSetResponse;
@@ -15,10 +16,19 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Получаем первые 4 стикера для карусели
   const stickers = stickerSet.telegramStickerSetInfo?.stickers?.slice(0, 4) || [];
+  
+  console.log('🔍 SinglePreviewCard:', {
+    stickerSetId: stickerSet.id,
+    stickerSetTitle: stickerSet.title,
+    stickersCount: stickers.length,
+    currentIndex,
+    currentSticker: stickers[currentIndex]?.file_id
+  });
   
   // Intersection Observer для определения видимости карточки
   useEffect(() => {
@@ -47,8 +57,23 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
     return () => clearInterval(interval);
   }, [isVisible, stickers.length]);
 
+  // Сбрасываем состояние загрузки при смене изображения
+  useEffect(() => {
+    setIsLoading(true);
+  }, [currentIndex]);
+
   const handleCardClick = () => {
     onView(stickerSet.id, stickerSet.name);
+  };
+
+  const handleImageLoad = () => {
+    console.log('✅ Изображение загружено:', stickers[currentIndex]?.file_id);
+    setIsLoading(false);
+  };
+
+  const handleImageError = () => {
+    console.error('❌ Ошибка загрузки изображения:', stickers[currentIndex]?.file_id);
+    setIsLoading(false);
   };
 
   const currentSticker = stickers[currentIndex];
@@ -88,18 +113,39 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
             justifyContent: 'center',
             borderRadius: 1.5, // 12px
             overflow: 'hidden',
-            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))'
+            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.1))',
+            position: 'relative'
           }}>
-            <img
-              src={`/api/stickers/${currentSticker.file_id}`}
-              alt=""
+            {/* Контейнер для загрузки SVG */}
+            {isLoading && (
+              <Box sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(255,255,255,0.8)',
+                zIndex: 1
+              }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Загрузка...
+                </Typography>
+              </Box>
+            )}
+            
+            <StickerPreview
+              sticker={currentSticker}
+              size="large"
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain',
                 transition: 'opacity 0.3s ease'
               }}
-              loading="lazy"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
             />
           </Box>
         ) : (
