@@ -94,12 +94,12 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
     <Card
       ref={cardRef}
       onClick={handleCardClick}
-      className="glass-card"
+      className="fx-glass fx-lite"
       sx={{
         height: '100%',
         borderRadius: 2, // 16px
         cursor: 'pointer',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        transition: 'transform 0.2s ease',
         '&:hover': {
           transform: 'translateY(-2px)',
         },
@@ -109,12 +109,13 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
       }}
     >
       {/* Большое превью стикера */}
-      <Box sx={{ 
+      <Box className="fx-card-media" sx={{ 
         p: 1.5,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '200px'
+        minHeight: '200px',
+        background: 'transparent'
       }}>
         {currentSticker ? (
           <Box sx={{
@@ -157,7 +158,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
       </Box>
 
       {/* Информация о стикерпаке */}
-      <Box sx={{ px: 1.5, pb: 1.5 }}>
+      <Box className="fx-card-body" sx={{ px: 1.5, pb: 1.5, background: 'transparent' }}>
         <Typography 
           variant="subtitle2" 
           sx={{ 

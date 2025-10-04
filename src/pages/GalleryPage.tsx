@@ -401,7 +401,7 @@ export const GalleryPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ 
+    <Box className="fx-cosmic fx-safe" sx={{ 
       minHeight: '100vh', 
       backgroundColor: 'transparent',
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav в браузере

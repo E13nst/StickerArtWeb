@@ -69,15 +69,16 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
             label={category.name}
             onClick={() => handleCategoryToggle(category.key)}
             variant="outlined"
+            className={isSelected ? "" : "fx-glass fx-lite"}
             sx={{
               flexShrink: 0,
               height: 32,
               fontSize: 13,
-              color: isSelected ? '#fff' : 'rgba(15,23,42,0.62)',
+              color: isSelected ? '#fff' : 'rgba(255,255,255,0.9)',
               backgroundColor: isSelected 
                 ? 'linear-gradient(135deg,#00C6FF 0%,#0072FF 100%)'
-                : 'rgba(255,255,255,0.8)',
-              borderColor: isSelected ? 'transparent' : 'rgba(0,0,0,0.06)',
+                : 'transparent',
+              borderColor: isSelected ? 'transparent' : 'rgba(255,255,255,0.25)',
               boxShadow: isSelected ? '0 3px 8px rgba(0,114,255,0.20)' : '0 1px 3px rgba(0,0,0,0.05)',
               backdropFilter: 'blur(8px)',
               transition: 'all 0.2s ease',

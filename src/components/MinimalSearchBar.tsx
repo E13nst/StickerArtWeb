@@ -17,20 +17,21 @@ const MinimalSearchBar: React.FC<MinimalSearchBarProps> = ({
 }) => {
   return (
     <Box
+      className="fx-glass fx-lite"
       sx={{
         display: 'flex',
         alignItems: 'center',
-        height: 48, // Slightly taller for better touch target
-        borderTop: '1px solid rgba(15,23,42,0.08)',
-        borderBottom: '1px solid rgba(15,23,42,0.08)',
+        height: 48,
+        borderTop: '1px solid rgba(255,255,255,0.25)',
+        borderBottom: '1px solid rgba(255,255,255,0.25)',
         borderRadius: 1,
-        backgroundColor: 'rgba(255,255,255,0.7)',
+        backgroundColor: 'transparent',
         backdropFilter: 'blur(8px)',
         transition: 'all 0.2s ease',
         '&:focus-within': {
-          borderTopColor: 'rgba(15,23,42,0.15)',
-          borderBottomColor: 'rgba(15,23,42,0.15)',
-          backgroundColor: 'rgba(255,255,255,0.9)',
+          borderTopColor: 'rgba(255,255,255,0.35)',
+          borderBottomColor: 'rgba(255,255,255,0.35)',
+          backgroundColor: 'transparent',
           boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
         },
       }}

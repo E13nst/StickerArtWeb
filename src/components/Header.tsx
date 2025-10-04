@@ -59,13 +59,15 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <AppBar 
       position="sticky" 
+      className="fx-glass"
       sx={{ 
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        backgroundColor: 'transparent',
         backdropFilter: 'blur(12px)',
-        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.05)',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+        boxShadow: 'none',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.28)',
         height: 56,
-        minHeight: 56
+        minHeight: 56,
+        borderRadius: 0
       }}
     >
       <Toolbar 
