@@ -109,7 +109,6 @@ a, button {
   width: 100%;
   border-radius: 12px;
   object-fit: contain;
-  transition: opacity 0.2s ease;
 }
 
 /* Telegram Mini App sticky elements */
