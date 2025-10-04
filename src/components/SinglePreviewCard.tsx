@@ -3,6 +3,16 @@ import { Card, Box, Typography } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
 
+// Функция для перемешивания массива в случайном порядке
+const shuffleArray = <T>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 interface SinglePreviewCardProps {
   stickerSet: StickerSetResponse;
   onView: (id: number, name: string) => void;
@@ -19,8 +29,10 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Получаем только первые 3 стикера для карусели
-  const stickers = stickerSet.telegramStickerSetInfo?.stickers?.slice(0, 3) || [];
+  // Получаем стикеры и перемешиваем их в случайном порядке, берем первые 3
+  const allStickers = stickerSet.telegramStickerSetInfo?.stickers || [];
+  const shuffledStickers = shuffleArray(allStickers);
+  const stickers = shuffledStickers.slice(0, 3);
   
   console.log('🔍 SinglePreviewCard:', {
     stickerSetId: stickerSet.id,

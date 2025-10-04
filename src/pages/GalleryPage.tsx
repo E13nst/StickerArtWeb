@@ -24,6 +24,16 @@ import { useCategories } from '@/hooks/useCategories';
 import { useScrollHue } from '@/hooks/useScrollHue';
 import { useTgSafeArea } from '@/telegram/useTgSafeArea';
 
+// Функция для перемешивания массива в случайном порядке
+const shuffleArray = <T>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export const GalleryPage: React.FC = () => {
   // Хук для градиентного фона с изменением оттенка при скролле
   useScrollHue(190, 255);  // мягкая гамма: голубой → лазурно-фиолетовый
@@ -199,7 +209,10 @@ export const GalleryPage: React.FC = () => {
         20, 
         selectedCategories.length > 0 ? selectedCategories : undefined
       );
-      setStickerSets(response.content || []);
+      
+      // Перемешиваем стикерпаки в случайном порядке
+      const shuffledStickerSets = shuffleArray(response.content || []);
+      setStickerSets(shuffledStickerSets);
     } catch (error) {
       console.error('❌ Ошибка загрузки стикеров:', error);
       
@@ -236,7 +249,9 @@ export const GalleryPage: React.FC = () => {
 
     try {
       const response = await apiClient.searchStickerSets(query);
-      setStickerSets(response.content || []);
+      // Перемешиваем результаты поиска в случайном порядке
+      const shuffledResults = shuffleArray(response.content || []);
+      setStickerSets(shuffledResults);
     } catch (error) {
       console.error('❌ Ошибка поиска стикеров:', error);
       
@@ -379,9 +394,9 @@ export const GalleryPage: React.FC = () => {
       const currentScrollY = window.scrollY;
       
       // Показываем поиск при скролле вверх или если находимся вверху страницы
-      if (currentScrollY < lastScrollY || currentScrollY < 100) {
+      if (currentScrollY < lastScrollY || currentScrollY < 50) {
         setShowSearch(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+      } else if (currentScrollY > lastScrollY && currentScrollY > 150) {
         // Скрываем поиск при скролле вниз, но только если прокрутили достаточно
         setShowSearch(false);
       }
@@ -389,12 +404,15 @@ export const GalleryPage: React.FC = () => {
       setLastScrollY(currentScrollY);
     };
 
+    // Устанавливаем начальное значение
+    setLastScrollY(window.scrollY);
+    
     window.addEventListener('scroll', handleScroll, { passive: true });
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [lastScrollY]);
+  }, []);
 
   if (!isReady) {
     return <LoadingSpinner message="Инициализация..." />;
@@ -428,13 +446,12 @@ export const GalleryPage: React.FC = () => {
       >
         {viewMode === 'list' ? (
           <>
-            {/* Sticky поиск и чипы */}
+            {/* Sticky поиск */}
             <Box 
               className="tg-sticky" 
               sx={{ 
                 px: 1, 
                 py: 0.33, 
-                mb: 0.67,
                 transform: showSearch ? 'translateY(0)' : 'translateY(-100%)',
                 opacity: showSearch ? 1 : 0,
                 transition: 'transform 0.3s ease, opacity 0.3s ease',
@@ -446,14 +463,27 @@ export const GalleryPage: React.FC = () => {
                 onChange={handleSearchChange}
                 disabled={isLoading}
               />
-              <Box sx={{ mt: 1 }}>
-                <CategoriesFilter
-                  categories={categories}
-                  selectedCategories={selectedCategories}
-                  onCategoriesChange={handleCategoriesChange}
-                  loading={categoriesLoading}
-                />
-              </Box>
+            </Box>
+
+            {/* Категории всегда закреплены */}
+            <Box 
+              sx={{ 
+                px: 1, 
+                py: 0.33, 
+                mb: 0.67,
+                position: 'sticky',
+                top: showSearch ? 'calc(env(safe-area-inset-top) + var(--tg-topbar) + 56px)' : 'calc(env(safe-area-inset-top) + var(--tg-topbar))',
+                zIndex: 9,
+                backdropFilter: 'blur(8px)',
+                background: 'transparent'
+              }}
+            >
+              <CategoriesFilter
+                categories={categories}
+                selectedCategories={selectedCategories}
+                onCategoriesChange={handleCategoriesChange}
+                loading={categoriesLoading}
+              />
             </Box>
 
             {/* Контент */}
