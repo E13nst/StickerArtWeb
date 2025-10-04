@@ -160,9 +160,24 @@ export const GalleryPage: React.FC = () => {
 
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      setAuthError(errorMessage);
       console.error('❌ Ошибка авторизации:', error);
+      
+      // Более детальная обработка ошибок авторизации
+      let errorMessage = 'Ошибка авторизации';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+          errorMessage = 'Сервер недоступен. Проверьте подключение к интернету.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Превышено время ожидания при авторизации.';
+        } else if (error.message.includes('Network Error')) {
+          errorMessage = 'Ошибка сети при авторизации.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setAuthError(errorMessage);
       return false;
     } finally {
       setAuthLoading(false);
@@ -184,9 +199,24 @@ export const GalleryPage: React.FC = () => {
       );
       setStickerSets(response.content || []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикеров';
-      setError(errorMessage);
       console.error('❌ Ошибка загрузки стикеров:', error);
+      
+      // Более детальная обработка ошибок
+      let errorMessage = 'Ошибка загрузки стикеров';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+          errorMessage = 'Сервер недоступен. Проверьте подключение к интернету и попробуйте позже.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Превышено время ожидания. Сервер отвечает слишком долго.';
+        } else if (error.message.includes('Network Error')) {
+          errorMessage = 'Ошибка сети. Проверьте подключение к интернету.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -206,9 +236,24 @@ export const GalleryPage: React.FC = () => {
       const response = await apiClient.searchStickerSets(query);
       setStickerSets(response.content || []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка поиска стикеров';
-      setError(errorMessage);
       console.error('❌ Ошибка поиска стикеров:', error);
+      
+      // Более детальная обработка ошибок поиска
+      let errorMessage = 'Ошибка поиска стикеров';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+          errorMessage = 'Сервер недоступен. Поиск временно недоступен.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Превышено время ожидания при поиске.';
+        } else if (error.message.includes('Network Error')) {
+          errorMessage = 'Ошибка сети при поиске.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -309,7 +354,7 @@ export const GalleryPage: React.FC = () => {
 
   // Обработка кнопки "Назад" в Telegram
   useEffect(() => {
-    if (tg?.BackButton) {
+    if (tg?.BackButton && tg.BackButton.isVisible !== undefined) {
       tg.BackButton.onClick(() => {
         if (viewMode === 'detail') {
           handleBackToList();

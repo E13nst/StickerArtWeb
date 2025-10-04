@@ -141,7 +141,7 @@ const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({
       {/* Обычный стикер с ленивой загрузкой */}
       {!sticker.is_animated && (
         <LazyImage
-          src={`/api/stickers/${sticker.file_id}`}
+          src={sticker.url || `/api/stickers/${sticker.file_id}`}
           alt={sticker.emoji || 'sticker'}
           onLoad={handleImageLoad}
           onError={handleImageError}

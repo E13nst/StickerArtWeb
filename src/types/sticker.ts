@@ -9,6 +9,7 @@ export interface Sticker {
   is_video: boolean;
   emoji?: string;
   set_name?: string;
+  url?: string; // URL для отображения стикера
   premium_animation?: {
     file_id: string;
     file_unique_id: string;
@@ -61,8 +62,12 @@ export interface StickerSetResponse {
   id: number;
   name: string;
   title: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
+  isPublic?: boolean;
+  isAnimated?: boolean;
+  stickerCount?: number;
   telegramStickerSetInfo: TelegramStickerSetInfo;
   categories?: CategoryDto[];
   likesCount?: number;
