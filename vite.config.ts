@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -10,16 +11,22 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     base: '/',
     
+    define: {
+      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+      __COMMIT_HASH__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || process.env.COMMIT_SHA || 'local-dev'),
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0')
+    },
+    
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
     
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: true,
+      sourcemap: mode === 'development',
     },
     
     server: {

@@ -14,8 +14,31 @@
     
     <title>Sticker Gallery</title>
     
+    <!-- Build verification -->
+    <meta name="build-time" content="__BUILD_TIME__" />
+    <meta name="build-version" content="__APP_VERSION__" />
+    
     <!-- Telegram Web App API -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Cache busting and build verification -->
+    <script>
+      // Принудительно сбрасываем кэш при загрузке
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          names.forEach(function(name) {
+            caches.delete(name);
+          });
+        });
+      }
+      
+      // Логируем build info для отладки
+      console.log('🏗️ Build Info:', {
+        buildTime: document.querySelector('meta[name="build-time"]')?.content || 'unknown',
+        version: document.querySelector('meta[name="build-version"]')?.content || 'unknown',
+        timestamp: new Date().toISOString()
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
