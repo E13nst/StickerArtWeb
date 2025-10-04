@@ -219,6 +219,7 @@ export const GalleryPage: React.FC = () => {
   const handleViewStickerSet = (id: number, _name: string) => {
     const stickerSet = stickerSets.find(s => s.id === id);
     if (stickerSet) {
+      // Переходим в детальный просмотр стикерсета
       setSelectedStickerSet(stickerSet);
       setViewMode('detail');
     }

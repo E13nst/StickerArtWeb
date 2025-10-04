@@ -134,6 +134,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
           }}>
             <StickerPreview
               sticker={currentSticker}
+              size="responsive"
               onLoad={handleImageLoad}
               onError={handleImageError}
             />
@@ -189,27 +190,12 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
           sx={{ 
             fontSize: '1rem',
             fontWeight: 600,
-            mb: 0.5,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}
         >
           {stickerSet.title}
-        </Typography>
-        
-        <Typography 
-          className="card-meta"
-          variant="body2" 
-          color="text.secondary"
-          sx={{ 
-            fontSize: '0.875rem',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {stickerSet.stickers?.length || 0} стикеров
         </Typography>
       </Box>
     </Card>
