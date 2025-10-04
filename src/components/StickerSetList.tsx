@@ -1,8 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Box, Grid } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
-import { StickerCard } from './StickerCard';
-import { HeroStickerCard } from './HeroStickerCard';
+import { SinglePreviewCard } from './SinglePreviewCard';
 
 interface StickerSetListProps {
   stickerSets: StickerSetResponse[];
@@ -45,31 +44,21 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
             isInTelegramApp
           });
           
-          // Hero карточка каждую 6-ю (если есть ≥ 4 превью)
-          const shouldShowHero = (index + 1) % 6 === 0 && stickerSet.stickers && stickerSet.stickers.length >= 4;
-          
           return (
             <Grid item xs={6} key={stickerSet.id}>
               <Box 
                 sx={{ 
                   height: '100%',
                   contentVisibility: 'auto',
-                  containIntrinsicSize: '480px'
+                  containIntrinsicSize: '300px'
                 }}
                 className="content-visibility-auto"
               >
-                {shouldShowHero ? (
-                  <HeroStickerCard 
-                    stickers={stickerSet.stickers.map(s => s.url).slice(0, 4)}
-                    style={{ height: '100%' }}
-                  />
-                ) : (
-                  <StickerCard
-                    stickerSet={stickerSet}
-                    onView={handleView}
-                    isInTelegramApp={isInTelegramApp}
-                  />
-                )}
+                <SinglePreviewCard
+                  stickerSet={stickerSet}
+                  onView={handleView}
+                  isInTelegramApp={isInTelegramApp}
+                />
               </Box>
             </Grid>
           );
