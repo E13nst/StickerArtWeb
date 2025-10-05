@@ -5,9 +5,20 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const backendUrl = 'https://stickerartgallery-e13nst.amvera.io';
   
+  // Build metadata для замены в index.html
+  const buildTime = new Date().toISOString()
+  const gitHash = 'unknown' // Будет заменено в CI
+  const appVersion = '1.0.0'
+  
   return {
     plugins: [react()],
-    base: '/',
+    base: '/mini-app-react/',
+    
+    define: {
+      __BUILD_TIME__: JSON.stringify(buildTime),
+      __COMMIT_HASH__: JSON.stringify(gitHash),
+      __APP_VERSION__: JSON.stringify(appVersion)
+    },
     
     resolve: {
       alias: {
