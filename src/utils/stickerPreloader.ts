@@ -1,5 +1,4 @@
 import { StickerSetResponse, Sticker } from '@/types/sticker';
-import { logger } from '@/utils/logger';
 
 // Интерфейс для предопределенного превью
 interface PredefinedPreview {

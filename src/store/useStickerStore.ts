@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { StickerSetResponse, AuthResponse } from '@/types/sticker';
-import { logger } from '@/utils/logger';
 
 interface StickerState {
   // Состояние загрузки
@@ -123,13 +122,11 @@ export const useStickerStore = create<StickerState>((set, get) => ({
   
   // Методы API - временная заглушка, будут реализованы позже
   fetchStickerSets: async (page = 0, size = 20) => {
-    logger.log('🔍 fetchStickerSets вызван:', { page, size });
     // Эта функция будет вызываться из компонентов
     // Логика будет в компонентах для избежания циклических зависимостей
   },
   
   searchStickerSets: async (query: string, page = 0, size = 20) => {
-    logger.log('🔍 searchStickerSets вызван:', { query, page, size });
     // Эта функция будет вызываться из компонентов
     // Логика будет в компонентах для избежания циклических зависимостей
   },

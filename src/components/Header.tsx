@@ -6,17 +6,10 @@ import {
   IconButton, 
   Box,
   Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography as MuiTypography
+  MenuItem
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import BugReportIcon from '@mui/icons-material/BugReport';
 
 interface HeaderProps {
   title?: string;
@@ -24,26 +17,16 @@ interface HeaderProps {
   onOptionsClick?: () => void;
   showMenu?: boolean;
   showOptions?: boolean;
-  initData?: string | null;
-  user?: {
-    id: number;
-    first_name: string;
-    last_name?: string;
-    username?: string;
-  };
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title = "🎨 Галерея стикеров",
   onMenuClick,
-  onOptionsClick: _onOptionsClick,
+  onOptionsClick,
   showMenu = true,
-  showOptions = true,
-  initData,
-  user
+  showOptions = true
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [debugDialogOpen, setDebugDialogOpen] = useState(false);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -51,15 +34,6 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-  };
-
-  const handleShowDebugInfo = () => {
-    setDebugDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleCloseDebugDialog = () => {
-    setDebugDialogOpen(false);
   };
   return (
     <AppBar 
@@ -149,67 +123,10 @@ export const Header: React.FC<HeaderProps> = ({
             horizontal: 'right',
           }}
         >
-          <MenuItem onClick={handleShowDebugInfo}>
-            <BugReportIcon sx={{ mr: 1 }} />
-            Показать initData
+          <MenuItem onClick={onOptionsClick}>
+            Настройки
           </MenuItem>
         </Menu>
-
-        {/* Модальное окно с отладочной информацией */}
-        <Dialog
-          open={debugDialogOpen}
-          onClose={handleCloseDebugDialog}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Отладочная информация</DialogTitle>
-          <DialogContent>
-            <MuiTypography variant="h6" gutterBottom>
-              InitData:
-            </MuiTypography>
-            <Box
-              component="pre"
-              sx={{
-                backgroundColor: 'grey.100',
-                padding: 2,
-                borderRadius: 1,
-                overflow: 'auto',
-                maxHeight: 400,
-                fontSize: '0.8rem',
-                fontFamily: 'monospace'
-              }}
-            >
-              {initData || 'Нет данных'}
-            </Box>
-            
-            {user && (
-              <>
-                <MuiTypography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                  Пользователь:
-                </MuiTypography>
-                <Box
-                  component="pre"
-                  sx={{
-                    backgroundColor: 'grey.100',
-                    padding: 2,
-                    borderRadius: 1,
-                    overflow: 'auto',
-                    maxHeight: 200,
-                    fontSize: '0.8rem',
-                    fontFamily: 'monospace'
-                  }}
-                >
-                  {JSON.stringify(user, null, 2)}
-                </Box>
-              </>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDebugDialog}>
-              Закрыть
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Toolbar>
     </AppBar>
   );

@@ -1,5 +1,4 @@
 import React from 'react';
-import { logger } from '@/utils/logger';
 
 // Система кеширования изображений в памяти
 class ImageCache {

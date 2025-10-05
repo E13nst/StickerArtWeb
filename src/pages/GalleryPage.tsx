@@ -19,7 +19,6 @@ import { BottomNav } from '@/components/BottomNav';
 import { useCategories } from '@/hooks/useCategories';
 import { useScrollHue } from '@/hooks/useScrollHue';
 import { useTgSafeArea } from '@/telegram/useTgSafeArea';
-import { logger } from '@/utils/logger';
 
 // Функция для перемешивания массива в случайном порядке
 function shuffleArray<T>(array: T[]): T[] {
@@ -90,21 +89,21 @@ export const GalleryPage: React.FC = () => {
       const isTestData = currentInitData.includes('query_id=test');
       if (!isTestData) {
         const initDataCheck = checkInitDataExpiry(currentInitData);
-        logger.log('🔍 Проверка initData:', initDataCheck);
+        console.log('Checking initData:', initDataCheck);
         if (!initDataCheck.valid) {
           throw new Error(initDataCheck.reason);
         }
       } else {
-        logger.log('🔍 Тестовые данные - пропускаем проверку срока действия');
+        console.log('Test data - skipping expiry check');
       }
 
       // Устанавливаем заголовки аутентификации
       apiClient.setAuthHeaders(currentInitData);
 
       // Проверяем статус авторизации
-      logger.log('🔍 Отправка запроса на проверку авторизации...');
+      console.log('Checking auth status...');
       const authResponse = await apiClient.checkAuthStatus();
-      logger.log('🔍 Ответ авторизации:', authResponse);
+      console.log('Auth response:', authResponse);
       setAuthStatus(authResponse);
 
       if (!authResponse.authenticated) {
@@ -139,14 +138,14 @@ export const GalleryPage: React.FC = () => {
     setError(null);
 
     try {
-      logger.log('🔍 Загрузка стикерсетов...');
+      console.log('Loading sticker sets...');
       const response = await apiClient.getStickerSetsWithCategories(
         page,
         20,
         (selectedCategories || []).length > 0 ? selectedCategories : undefined
       );
       
-      logger.log('🔍 Получены стикерсеты:', response);
+      console.log('Received sticker sets:', response);
       
       // Перемешиваем стикерсеты в случайном порядке
       const shuffledContent = shuffleArray(response.content || []);
@@ -185,9 +184,9 @@ export const GalleryPage: React.FC = () => {
     setError(null);
 
     try {
-      logger.log('🔍 Поиск стикеров:', query);
+      console.log('Searching stickers:', query);
       const response = await apiClient.searchStickerSets(query);
-      logger.log('🔍 Результаты поиска:', response);
+      console.log('Search results:', response);
       
       // Перемешиваем результаты поиска в случайном порядке
       const shuffledContent = shuffleArray(response.content || []);
@@ -221,12 +220,9 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleViewStickerSet = (id: number, _name: string) => {
-    logger.log('🔍 handleViewStickerSet вызван:', { id, name: _name });
     const stickerSet = stickerSets.find(s => s.id === id);
-    logger.log('🔍 Найден стикерсет:', stickerSet);
     if (stickerSet) {
       // Переходим в детальный просмотр стикерсета
-      logger.log('🔍 Переключаемся в detail режим');
       setSelectedStickerSet(stickerSet);
       setViewMode('detail');
     }
@@ -241,7 +237,7 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleLikeStickerSet = (id: number, title: string) => {
-    logger.log(`Лайк стикерсета: ${title} (ID: ${id})`);
+    console.log(`Like sticker set: ${title} (ID: ${id})`);
   };
 
   const handleBackToList = () => {
@@ -257,11 +253,11 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleMenuClick = () => {
-    logger.log('🔍 Меню нажато');
+    console.log('Menu clicked');
   };
 
   const handleOptionsClick = () => {
-    logger.log('🔍 Опции нажаты');
+    console.log('Options clicked');
   };
 
   const handleBottomNavChange = (newValue: number) => {
@@ -286,7 +282,7 @@ export const GalleryPage: React.FC = () => {
 
   // Логирование состояния для отладки
   useEffect(() => {
-  logger.log('🔍 GalleryPage состояние:', {
+  console.log('GalleryPage state:', {
     stickerSets: stickerSets.length,
     filteredStickerSets: filteredStickerSets.length,
     searchTerm: searchTerm || '',
@@ -307,7 +303,7 @@ export const GalleryPage: React.FC = () => {
     const initializeApp = async () => {
       if (!isReady) return;
 
-      logger.log('🔍 Инициализация приложения...');
+      console.log('Initializing app...');
       
       // Авторизация пользователя
       await authenticateUser(initData);

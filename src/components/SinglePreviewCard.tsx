@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, Box, Typography } from '@mui/material';
 import { StickerSetResponse, Sticker } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
-import { logger } from '@/utils/logger';
 
 interface SinglePreviewCardProps {
   stickerSet: StickerSetResponse;
@@ -85,7 +84,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
 
   const currentSticker = carouselStickers[currentIndex];
 
-  logger.log('🔍 SinglePreviewCard рендер (v2):', {
+  console.log('SinglePreviewCard render:', {
     timestamp: Date.now(),
     stickerSetId: stickerSet.id,
     stickerSetTitle: stickerSet.title,

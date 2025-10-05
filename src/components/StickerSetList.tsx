@@ -4,7 +4,6 @@ import { StickerSetResponse } from '@/types/sticker';
 import { SinglePreviewCard } from './SinglePreviewCard';
 import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
 import { useStickerSetPreviews } from '@/hooks/useStickerSetPreviews';
-import { logger } from '@/utils/logger'; 
 import { imageCache } from '@/utils/imageCache';
 
 interface StickerSetListProps {

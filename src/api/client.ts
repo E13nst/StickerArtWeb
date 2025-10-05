@@ -3,7 +3,6 @@ import { StickerSetListResponse, StickerSetResponse, AuthResponse } from '@/type
 import { UserInfo } from '@/store/useProfileStore';
 import { CategoryDto } from '@/types/category';
 import { mockStickerSets, mockAuthResponse, mockCategories } from '@/data/mockData';
-import { logger } from '@/utils/logger';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -18,66 +17,26 @@ class ApiClient {
       }
     });
 
-    // Добавляем interceptor для логирования
-    this.client.interceptors.request.use(
-      (config) => {
-        logger.log('🌐 API запрос:', config.method?.toUpperCase(), config.url);
-        return config;
-      },
-      (error) => {
-        logger.error('❌ Ошибка запроса:', error);
-        return Promise.reject(error);
-      }
-    );
-
+    // Production-ready interceptors (minimal logging)
     this.client.interceptors.response.use(
-      (response) => {
-        logger.log('✅ API ответ:', response.status, response.config.url);
-        return response;
-      },
+      (response) => response,
       (error) => {
-        logger.error('❌ Ошибка ответа:', error.response?.status, error.response?.data);
+        console.error('API Error:', error.response?.status, error.response?.data);
         return Promise.reject(error);
       }
     );
   }
 
-      // Добавляем заголовки аутентификации
-      setAuthHeaders(initData: string, botName: string = 'StickerGallery') {
-        this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
-        this.client.defaults.headers.common['X-Telegram-Bot-Name'] = botName;
-        logger.log('✅ Заголовки аутентификации установлены:');
-        logger.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
-        logger.log('  X-Telegram-Bot-Name:', botName);
-      }
-
-      // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
-      checkExtensionHeaders() {
-        // ModHeader добавляет заголовки в fetch requests
-        // Проверяем, есть ли заголовки от расширений
-        const extensionInitData = this.client.defaults.headers.common['X-Telegram-Init-Data-Extension'];
-        const extensionBotName = this.client.defaults.headers.common['X-Telegram-Bot-Name-Extension'];
-        
-        if (extensionInitData) {
-          logger.log('🔧 Обнаружены заголовки от Chrome расширения:');
-          logger.log('  X-Telegram-Init-Data-Extension:', extensionInitData);
-          logger.log('  X-Telegram-Bot-Name-Extension:', extensionBotName);
-          
-          // Используем заголовки от расширения
-          this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
-          this.client.defaults.headers.common['X-Telegram-Bot-Name'] = extensionBotName || 'StickerGallery';
-          
-          return true;
-        }
-        
-        return false;
-      }
+  // Устанавливаем заголовки аутентификации
+  setAuthHeaders(initData: string, botName: string = 'StickerGallery') {
+    this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
+    this.client.defaults.headers.common['X-Telegram-Bot-Name'] = botName;
+  }
 
   // Удаляем заголовки аутентификации
   clearAuthHeaders() {
     delete this.client.defaults.headers.common['X-Telegram-Init-Data'];
     delete this.client.defaults.headers.common['X-Telegram-Bot-Name'];
-    logger.log('🧹 Заголовки аутентификации удалены');
   }
 
   // Проверка статуса авторизации
@@ -86,8 +45,7 @@ class ApiClient {
       const response = await this.client.get<AuthResponse>('/auth/status');
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка проверки статуса авторизации:', error);
-      logger.log('🔄 Используем mock данные для демонстрации');
+      console.warn('Auth check failed, using mock data');
       return mockAuthResponse;
     }
   }
@@ -100,8 +58,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка получения списка стикерсетов:', error);
-      logger.log('🔄 Используем mock данные для демонстрации');
+      console.warn('Failed to fetch sticker sets, using mock data');
       return {
         content: mockStickerSets,
         totalElements: mockStickerSets.length,
@@ -117,13 +74,8 @@ class ApiClient {
 
   // Метод для React Query infinite scroll
   async fetchStickerSets({ pageParam = 0 }: { pageParam?: number }): Promise<StickerSetResponse[]> {
-    try {
-      const response = await this.getStickerSets(pageParam, 20);
-      return response.content || [];
-    } catch (error) {
-      logger.error('❌ Ошибка fetchStickerSets:', error);
-      throw error;
-    }
+    const response = await this.getStickerSets(pageParam, 20);
+    return response.content || [];
   }
 
   // Поиск стикерсетов по названию
@@ -134,8 +86,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка поиска стикерсетов:', error);
-      throw new Error(`Не удалось выполнить поиск стикерсетов по запросу "${query}". Проверьте подключение к серверу и попробуйте снова.`);
+      throw new Error(`Search failed for "${query}"`);
     }
   }
 
@@ -172,21 +123,17 @@ class ApiClient {
       const response = await this.client.get<UserInfo>(`/users/${userId}`);
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка получения информации о пользователе:', error);
-      throw new Error(`Не удалось получить информацию о пользователе с ID ${userId}. Проверьте подключение к серверу и попробуйте снова.`);
+      throw new Error(`Failed to fetch user ${userId}`);
     }
   }
 
   // Получение информации о текущем пользователе по Telegram ID
-  // Примечание: API использует telegramId как основной ID
   async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
     try {
-      // API endpoint: /api/users/{id} где id = telegramId
       const response = await this.client.get<UserInfo>(`/users/${telegramId}`);
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка получения информации о пользователе:', error);
-      throw new Error(`Не удалось получить информацию о пользователе с ID ${telegramId}. Проверьте подключение к серверу и попробуйте снова.`);
+      throw new Error(`Failed to fetch user ${telegramId}`);
     }
   }
 
@@ -198,8 +145,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка получения стикерсетов пользователя:', error);
-      throw new Error(`Не удалось загрузить стикерсеты пользователя с ID ${userId}. Проверьте подключение к серверу и попробуйте снова.`);
+      throw new Error(`Failed to fetch user sticker sets for ${userId}`);
     }
   }
 
@@ -211,8 +157,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка поиска стикерсетов пользователя:', error);
-      throw new Error(`Не удалось выполнить поиск стикерсетов пользователя с ID ${userId} по запросу "${query}". Проверьте подключение к серверу и попробуйте снова.`);
+      throw new Error(`Failed to search user sticker sets for ${userId}`);
     }
   }
 
@@ -226,8 +171,7 @@ class ApiClient {
       });
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка получения категорий:', error);
-      logger.log('🔄 Используем mock категории для демонстрации');
+      console.warn('Failed to fetch categories, using mock data');
       return mockCategories;
     }
   }
@@ -248,8 +192,7 @@ class ApiClient {
       const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
       return response.data;
     } catch (error) {
-      logger.error('❌ Ошибка получения стикерсетов с фильтрацией:', error);
-      logger.log('🔄 Используем mock данные для демонстрации');
+      console.warn('Failed to fetch filtered sticker sets, using mock data');
       return {
         content: mockStickerSets,
         totalElements: mockStickerSets.length,

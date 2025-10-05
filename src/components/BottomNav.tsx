@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { logger } from '@/utils/logger';
 import { 
   BottomNavigation, 
   BottomNavigationAction, 
@@ -42,11 +41,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         break;
       case 1:
         // TODO: Навигация к странице стикеров
-        logger.log('Навигация к стикерам (не реализовано)');
         break;
       case 2:
         // TODO: Навигация к маркету
-        logger.log('Навигация к маркету (не реализовано)');
         break;
       case 3:
         // Навигация к моему профилю

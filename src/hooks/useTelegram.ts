@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { TelegramWebApp, TelegramUser } from '@/types/telegram';
-import { logger } from '@/utils/logger';
 
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);

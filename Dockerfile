@@ -1,44 +1,43 @@
-# Multi-stage build для React приложения с Nginx
+# Multi-stage build for React app with Nginx
 
-# Stage 1: Build React приложения
+# Stage 1: Build React app
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Копируем package files
+# Copy package files
 COPY package*.json ./
 
-# Устанавливаем зависимости (включая dev для сборки)
-RUN npm ci --only=production=false --ignore-scripts
+# Install dependencies
+RUN npm ci --ignore-scripts
 
-# Копируем исходники
+# Copy source code
 COPY . .
 
-# Устанавливаем переменные окружения для сборки
+# Set build environment
 ENV NODE_ENV=production
 ENV VITE_BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
 
-# Собираем приложение
+# Build app
 RUN npm run build
 
-# Stage 2: Nginx для раздачи статики
+# Stage 2: Nginx for static files
 FROM nginx:alpine
 
-# Устанавливаем gettext для envsubst
+# Install gettext for envsubst
 RUN apk add --no-cache gettext
 
-# Копируем собранные файлы из builder
+# Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем шаблон конфигурации Nginx
+# Copy nginx config template
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Переменная окружения по умолчанию
+# Set default environment
 ENV BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
 
-# Открываем порт 80
 EXPOSE 80
 
-# Скрипт для подстановки переменных и запуска nginx
-CMD /bin/sh -c "envsubst '\$BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+# Start nginx with environment substitution
+CMD envsubst '$BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
 
