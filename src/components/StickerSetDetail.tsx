@@ -69,40 +69,76 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         </IconButton>
         
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom
+            sx={{ color: 'rgba(255, 255, 255, 0.9)' }}
+          >
             {stickerSet.title}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography 
+            variant="body1" 
+            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          >
             {stickerCount} стикер{stickerCount === 1 ? '' : stickerCount < 5 ? 'а' : 'ов'}
           </Typography>
         </Box>
       </Box>
 
       {/* Информационная карточка */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
+      <Card 
+        className="fx-glass fx-lite"
+        sx={{ 
+          mb: 3,
+          backgroundColor: 'transparent',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: 3
+        }}
+      >
+        <CardContent sx={{ backgroundColor: 'transparent' }}>
           <Box sx={{ 
             display: 'flex', 
             justifyContent: 'space-between',
             alignItems: 'center',
             mb: 2
           }}>
-            <Typography variant="h6" component="h2">
+            <Typography 
+              variant="h6" 
+              component="h2"
+              sx={{ color: 'rgba(255, 255, 255, 0.9)' }}
+            >
               О наборе стикеров
             </Typography>
           </Box>
           
           <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Typography 
+              variant="body2" 
+              gutterBottom
+              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+            >
               <strong>Название:</strong> {stickerSet.name}
             </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Typography 
+              variant="body2" 
+              gutterBottom
+              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+            >
               <strong>Создан:</strong> {createdDate}
             </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Typography 
+              variant="body2" 
+              gutterBottom
+              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+            >
               <strong>Количество стикеров:</strong> {stickerCount}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2"
+              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+            >
               <strong>Тип:</strong> {
                 stickerSet.telegramStickerSetInfo?.is_animated ? 'Анимированные' : 
                 stickerSet.telegramStickerSetInfo?.is_video ? 'Видео' :
@@ -114,7 +150,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           {/* Категории стикерсета */}
           {stickerSet.categories && stickerSet.categories.length > 0 && (
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 1 }}>
+              <Typography 
+                variant="body2" 
+                gutterBottom 
+                sx={{ 
+                  mb: 1,
+                  color: 'rgba(255, 255, 255, 0.8)'
+                }}
+              >
                 <strong>Категории:</strong>
               </Typography>
               <StickerSetCategories 
@@ -171,7 +214,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
       {/* Сетка стикеров */}
       <Box>
-        <Typography variant="h6" component="h2" gutterBottom sx={{ mb: 2 }}>
+        <Typography 
+          variant="h6" 
+          component="h2" 
+          gutterBottom 
+          sx={{ 
+            mb: 2,
+            color: 'rgba(255, 255, 255, 0.9)'
+          }}
+        >
           Стикеры в наборе
         </Typography>
         
@@ -181,13 +232,23 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             isInTelegramApp={isInTelegramApp}
           />
         ) : (
-          <Card>
-            <CardContent>
+          <Card 
+            className="fx-glass fx-lite"
+            sx={{ 
+              backgroundColor: 'transparent',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 3
+            }}
+          >
+            <CardContent sx={{ backgroundColor: 'transparent' }}>
               <Typography 
                 variant="body1" 
-                color="text.secondary" 
                 textAlign="center"
-                sx={{ py: 4 }}
+                sx={{ 
+                  py: 4,
+                  color: 'rgba(255, 255, 255, 0.8)'
+                }}
               >
                 🎨 В этом наборе пока нет стикеров
               </Typography>
