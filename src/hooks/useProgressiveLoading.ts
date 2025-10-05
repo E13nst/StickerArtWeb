@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface ProgressiveLoadingOptions {
   initialBatch?: number;
@@ -17,7 +17,7 @@ export function useProgressiveLoading(
   const [visibleItems, setVisibleItems] = useState(initialBatch);
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadNextBatch = () => {
+  const loadNextBatch = useCallback(() => {
     if (visibleItems >= totalItems) return;
 
     setIsLoading(true);
@@ -25,7 +25,16 @@ export function useProgressiveLoading(
     // Загружаем сразу без задержки
     setVisibleItems(prev => Math.min(prev + batchSize, totalItems));
     setIsLoading(false);
-  };
+  }, [visibleItems, totalItems, batchSize]);
+
+  // Новая функция для загрузки до определенного индекса
+  const loadUpToIndex = useCallback((targetIndex: number) => {
+    if (targetIndex >= totalItems) return;
+    
+    setIsLoading(true);
+    setVisibleItems(Math.min(targetIndex + 1, totalItems));
+    setIsLoading(false);
+  }, [totalItems]);
 
   const reset = () => {
     setVisibleItems(initialBatch);
@@ -36,6 +45,7 @@ export function useProgressiveLoading(
     visibleItems,
     isLoading,
     loadNextBatch,
+    loadUpToIndex,
     reset,
     hasMore: visibleItems < totalItems
   };

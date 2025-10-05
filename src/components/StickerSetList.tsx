@@ -17,7 +17,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
   isInTelegramApp = false
 }) => {
   // Поэтапная загрузка: сначала 6, потом по 2 (без задержек)
-  const { visibleItems, isLoading, loadNextBatch, hasMore } = useProgressiveLoading(
+  const { visibleItems, isLoading, loadNextBatch, loadUpToIndex, hasMore } = useProgressiveLoading(
     stickerSets.length,
     { initialBatch: 6, batchSize: 2 }
   );
@@ -60,7 +60,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     }
   }, [visibleStickerSets]);
 
-  // IntersectionObserver для ленивой загрузки изображений
+  // IntersectionObserver для приоритетной загрузки карточек и изображений
   useEffect(() => {
     if (!observerRef.current) {
       observerRef.current = new IntersectionObserver(
@@ -69,15 +69,20 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
             if (entry.isIntersecting) {
               const cardElement = entry.target as HTMLElement;
               const stickerSetId = parseInt(cardElement.dataset.stickerSetId || '0');
+              const stickerSetIndex = stickerSets.findIndex(s => s.id === stickerSetId);
               const stickerSet = stickerSets.find(s => s.id === stickerSetId);
               
-              if (stickerSet) {
-                // Предзагружаем изображение только когда карточка становится видимой
+              if (stickerSet && stickerSetIndex !== -1) {
+                // Приоритетная загрузка: если карточка видна, загружаем её и все предыдущие
+                console.log(`🎯 Приоритетная загрузка: карточка ${stickerSet.title} (индекс ${stickerSetIndex}) стала видимой`);
+                loadUpToIndex(stickerSetIndex);
+                
+                // Предзагружаем изображение
                 const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 1);
                 stickers.forEach(sticker => {
                   if (!sticker.is_animated) {
                     const imageUrl = sticker.url || `/api/stickers/${sticker.file_id}`;
-                    console.log(`🔄 Ленивая загрузка для карточки ${stickerSet.title}:`, imageUrl);
+                    console.log(`🔄 Загрузка изображения для ${stickerSet.title}:`, imageUrl);
                     imageCache.preloadImages([imageUrl]);
                   }
                 });
@@ -88,14 +93,14 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
             }
           });
         },
-        { rootMargin: '50px' } // Начинаем загрузку за 50px до появления
+        { rootMargin: '100px' } // Увеличиваем зону предзагрузки
       );
     }
 
     return () => {
       observerRef.current?.disconnect();
     };
-  }, [stickerSets]);
+  }, [stickerSets, loadUpToIndex]);
 
   // Автоматическая загрузка при скролле
   useEffect(() => {
@@ -131,10 +136,14 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
       px: isInTelegramApp ? 0 : 2,  // Боковые отступы на desktop
     }}>
       <Grid container spacing={1.75} sx={{ alignItems: 'stretch' }}>
-        {visibleStickerSets.map((stickerSet, index) => {
+        {stickerSets.map((stickerSet, index) => {
+          const isVisible = index < visibleItems;
+          
           console.log('🔍 StickerSetList рендер карточки:', {
             stickerSetId: stickerSet.id,
             stickerSetTitle: stickerSet.title,
+            index,
+            isVisible,
             isInTelegramApp
           });
           
@@ -150,15 +159,20 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
                 sx={{ 
                   height: '100%',
                   contentVisibility: 'auto',
-                  containIntrinsicSize: '300px'
+                  containIntrinsicSize: '300px',
+                  // Скрываем невидимые карточки, но оставляем их в DOM для IntersectionObserver
+                  visibility: isVisible ? 'visible' : 'hidden',
+                  opacity: isVisible ? 1 : 0
                 }}
                 className="content-visibility-auto"
               >
-                <SinglePreviewCard
-                  stickerSet={stickerSet}
-                  onView={handleView}
-                  isInTelegramApp={isInTelegramApp}
-                />
+                {isVisible && (
+                  <SinglePreviewCard
+                    stickerSet={stickerSet}
+                    onView={handleView}
+                    isInTelegramApp={isInTelegramApp}
+                  />
+                )}
               </Box>
             </Grid>
           );
