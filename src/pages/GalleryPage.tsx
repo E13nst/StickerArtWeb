@@ -217,9 +217,12 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleViewStickerSet = (id: number, _name: string) => {
+    console.log('🔍 handleViewStickerSet вызван:', { id, name: _name });
     const stickerSet = stickerSets.find(s => s.id === id);
+    console.log('🔍 Найден стикерсет:', stickerSet);
     if (stickerSet) {
       // Переходим в детальный просмотр стикерсета
+      console.log('🔍 Переключаемся в detail режим');
       setSelectedStickerSet(stickerSet);
       setViewMode('detail');
     }
@@ -285,7 +288,9 @@ export const GalleryPage: React.FC = () => {
     isLoading,
     isAuthLoading,
     error,
-    authError
+    authError,
+    selectedStickerSet: selectedStickerSet?.id,
+    selectedStickerSetTitle: selectedStickerSet?.title
   });
   });
 
