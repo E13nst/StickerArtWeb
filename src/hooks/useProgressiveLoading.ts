@@ -36,6 +36,16 @@ export function useProgressiveLoading(
     setIsLoading(false);
   }, [totalItems]);
 
+  // Функция для загрузки конкретной карточки (не последовательно)
+  const loadSpecificCard = useCallback((targetIndex: number) => {
+    if (targetIndex >= totalItems) return;
+    
+    setIsLoading(true);
+    // Загружаем только эту карточку, не все предыдущие
+    setVisibleItems(prev => Math.max(prev, targetIndex + 1));
+    setIsLoading(false);
+  }, [totalItems]);
+
   const reset = () => {
     setVisibleItems(initialBatch);
     setIsLoading(false);
@@ -46,6 +56,7 @@ export function useProgressiveLoading(
     isLoading,
     loadNextBatch,
     loadUpToIndex,
+    loadSpecificCard,
     reset,
     hasMore: visibleItems < totalItems
   };

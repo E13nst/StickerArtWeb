@@ -21,7 +21,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
   const stickerSetPreviews = useStickerSetPreviews(stickerSets);
   
   // Поэтапная загрузка: сначала 6, потом по 2 (без задержек)
-  const { visibleItems, isLoading, loadNextBatch, loadUpToIndex, hasMore } = useProgressiveLoading(
+  const { visibleItems, isLoading, loadNextBatch, loadUpToIndex, loadSpecificCard, hasMore } = useProgressiveLoading(
     stickerSets.length,
     { initialBatch: 6, batchSize: 2 }
   );
@@ -72,9 +72,9 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
               const stickerSet = stickerSets.find(s => s.id === stickerSetId);
               
               if (stickerSet && stickerSetIndex !== -1) {
-                // Приоритетная загрузка: если карточка видна, загружаем её и все предыдущие
-                console.log(`🎯 Приоритетная загрузка: карточка ${stickerSet.title} (индекс ${stickerSetIndex}) стала видимой`);
-                loadUpToIndex(stickerSetIndex);
+                // Загружаем только конкретную карточку, не все предыдущие
+                console.log(`🎯 Загрузка конкретной карточки: ${stickerSet.title} (индекс ${stickerSetIndex}) стала видимой`);
+                loadSpecificCard(stickerSetIndex);
                 
                 // Предзагружаем изображения из предопределенных стикеров
                 const previewData = stickerSetPreviews.find(p => p.stickerSet.id === stickerSetId);
@@ -106,7 +106,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     return () => {
       observerRef.current?.disconnect();
     };
-  }, [stickerSets, loadUpToIndex]);
+  }, [stickerSets, loadSpecificCard]);
 
   // Автоматическая загрузка при скролле
   useEffect(() => {
