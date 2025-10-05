@@ -87,7 +87,7 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   console.log('🔍 SinglePreviewCard рендер:', {
     stickerSetId: stickerSet.id,
     stickerSetTitle: stickerSet.title,
-    allStickersCount: allStickers.length,
+    previewStickersCount: previewStickers.length,
     carouselStickersCount: carouselStickers.length,
     currentIndex,
     currentSticker: currentSticker?.file_id
