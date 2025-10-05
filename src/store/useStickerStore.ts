@@ -13,6 +13,12 @@ interface StickerState {
   totalPages: number;
   totalElements: number;
   
+  // UI состояние
+  searchTerm: string;
+  selectedCategories: string[];
+  viewMode: 'list' | 'detail';
+  selectedStickerSet: StickerSetResponse | null;
+  
   // Ошибки
   error: string | null;
   authError: string | null;
@@ -29,6 +35,12 @@ interface StickerState {
   
   // Действия для авторизации
   setAuthStatus: (authStatus: AuthResponse) => void;
+  
+  // Действия для UI состояния
+  setSearchTerm: (searchTerm: string) => void;
+  setSelectedCategories: (categories: string[]) => void;
+  setViewMode: (viewMode: 'list' | 'detail') => void;
+  setSelectedStickerSet: (stickerSet: StickerSetResponse | null) => void;
   
   // Действия для ошибок
   setError: (error: string | null) => void;
@@ -54,6 +66,12 @@ export const useStickerStore = create<StickerState>((set, get) => ({
   totalElements: 0,
   error: null,
   authError: null,
+  
+  // UI состояние
+  searchTerm: '',
+  selectedCategories: [],
+  viewMode: 'list',
+  selectedStickerSet: null,
 
   // Действия для загрузки
   setLoading: (loading: boolean) => set({ isLoading: loading }),
@@ -86,6 +104,12 @@ export const useStickerStore = create<StickerState>((set, get) => ({
   
   // Действия для авторизации
   setAuthStatus: (authStatus: AuthResponse) => set({ authStatus }),
+  
+  // Действия для UI состояния
+  setSearchTerm: (searchTerm: string) => set({ searchTerm }),
+  setSelectedCategories: (selectedCategories: string[]) => set({ selectedCategories }),
+  setViewMode: (viewMode: 'list' | 'detail') => set({ viewMode }),
+  setSelectedStickerSet: (selectedStickerSet: StickerSetResponse | null) => set({ selectedStickerSet }),
   
   // Действия для ошибок
   setError: (error: string | null) => set({ error }),
