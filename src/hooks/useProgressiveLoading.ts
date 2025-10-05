@@ -10,7 +10,7 @@ export function useProgressiveLoading(
   options: ProgressiveLoadingOptions = {}
 ) {
   const {
-    initialBatch = 4,
+    initialBatch = 6,
     batchSize = 2
   } = options;
 

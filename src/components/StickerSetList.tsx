@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { Box, Grid, Button } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { SinglePreviewCard } from './SinglePreviewCard';
@@ -16,11 +16,12 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
   onView,
   isInTelegramApp = false
 }) => {
-  // Поэтапная загрузка: сначала 4, потом по 2 (без задержек)
+  // Поэтапная загрузка: сначала 6, потом по 2 (без задержек)
   const { visibleItems, isLoading, loadNextBatch, hasMore } = useProgressiveLoading(
     stickerSets.length,
-    { initialBatch: 4, batchSize: 2 }
+    { initialBatch: 6, batchSize: 2 }
   );
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Мемоизируем обработчики для предотвращения лишних ре-рендеров
   const handleView = useCallback((id: number, name: string) => {
@@ -32,11 +33,14 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     return stickerSets.slice(0, visibleItems);
   }, [stickerSets, visibleItems]);
 
-  // Предзагружаем изображения для видимых стикерпаков
+  // Предзагружаем изображения только для видимых стикерпаков
   useEffect(() => {
     const imageUrls: string[] = [];
     
-    visibleStickerSets.forEach(stickerSet => {
+    // Загружаем только для первых 6 карточек для оптимизации
+    const cardsToPreload = visibleStickerSets.slice(0, 6);
+    
+    cardsToPreload.forEach(stickerSet => {
       const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 1);
       stickers.forEach(sticker => {
         // Предзагружаем только обычные изображения, не Lottie
@@ -51,10 +55,47 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     });
 
     if (imageUrls.length > 0) {
-      console.log('🚀 Предзагружаем изображения:', imageUrls.length);
+      console.log(`🚀 Предзагружаем изображения для ${cardsToPreload.length} карточек:`, imageUrls.length);
       imageCache.preloadImages(imageUrls);
     }
   }, [visibleStickerSets]);
+
+  // IntersectionObserver для ленивой загрузки изображений
+  useEffect(() => {
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const cardElement = entry.target as HTMLElement;
+              const stickerSetId = parseInt(cardElement.dataset.stickerSetId || '0');
+              const stickerSet = stickerSets.find(s => s.id === stickerSetId);
+              
+              if (stickerSet) {
+                // Предзагружаем изображение только когда карточка становится видимой
+                const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 1);
+                stickers.forEach(sticker => {
+                  if (!sticker.is_animated) {
+                    const imageUrl = sticker.url || `/api/stickers/${sticker.file_id}`;
+                    console.log(`🔄 Ленивая загрузка для карточки ${stickerSet.title}:`, imageUrl);
+                    imageCache.preloadImages([imageUrl]);
+                  }
+                });
+                
+                // Отключаем наблюдение после загрузки
+                observerRef.current?.unobserve(cardElement);
+              }
+            }
+          });
+        },
+        { rootMargin: '50px' } // Начинаем загрузку за 50px до появления
+      );
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [stickerSets]);
 
   // Автоматическая загрузка при скролле
   useEffect(() => {
@@ -100,6 +141,12 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
           return (
             <Grid item xs={6} key={stickerSet.id}>
               <Box 
+                data-sticker-set-id={stickerSet.id}
+                ref={(el) => {
+                  if (el && observerRef.current) {
+                    observerRef.current.observe(el);
+                  }
+                }}
                 sx={{ 
                   height: '100%',
                   contentVisibility: 'auto',
