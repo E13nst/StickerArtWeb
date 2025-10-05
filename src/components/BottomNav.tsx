@@ -62,10 +62,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         left: 0, 
         right: 0,
         zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(15, 16, 32, 0.8)',
         backdropFilter: 'blur(10px)',
-        borderTop: '1px solid rgba(0, 0, 0, 0.05)',
-        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)'
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.3)'
       }}
       elevation={0}
     >
@@ -76,14 +76,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           height: 64,
           backgroundColor: 'transparent',
           '& .MuiBottomNavigationAction-root': {
-            color: '#6B7280',
+            color: 'rgba(255, 255, 255, 0.6)',
             transition: 'all 0.2s ease',
             '&.Mui-selected': {
-              color: '#00C6FF',
+              color: 'rgba(130, 160, 255, 1)',
               transform: 'scale(1.1)',
             },
             '&:hover': {
-              backgroundColor: 'rgba(0, 198, 255, 0.1)',
+              backgroundColor: 'rgba(130, 160, 255, 0.1)',
             },
             // Мобильные адаптации
             '@media (max-width: 400px)': {

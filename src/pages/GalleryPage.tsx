@@ -61,11 +61,14 @@ export const GalleryPage: React.FC = () => {
     setSelectedStickerSet
   } = useStickerStore();
 
-  const { categories, isLoading: categoriesLoading } = useCategories();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   // Состояние для управления отображением поиска при скролле
   const [showSearch, setShowSearch] = useState(true);
   const lastScrollY = useRef(0);
+  
+  // Состояние для активной вкладки нижней навигации
+  const [activeBottomTab, setActiveBottomTab] = useState(0);
 
   // Авторизация пользователя
   const authenticateUser = async (currentInitData: string) => {
@@ -260,6 +263,10 @@ export const GalleryPage: React.FC = () => {
     console.log('🔍 Опции нажаты');
   };
 
+  const handleBottomNavChange = (newValue: number) => {
+    setActiveBottomTab(newValue);
+  };
+
   // Обработчик поиска с задержкой
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
@@ -365,8 +372,7 @@ export const GalleryPage: React.FC = () => {
           backgroundColor: 'transparent'
         }}>
           <ErrorDisplay 
-            title="Ошибка авторизации" 
-            message={authError} 
+            error={authError || 'Ошибка авторизации'} 
             onRetry={() => authenticateUser(initData)} 
           />
         </Container>
@@ -387,8 +393,7 @@ export const GalleryPage: React.FC = () => {
           backgroundColor: 'transparent'
         }}>
           <ErrorDisplay 
-            title="Ошибка загрузки" 
-            message={error} 
+            error={error || 'Ошибка загрузки'} 
             onRetry={() => fetchStickerSets()} 
           />
         </Container>
@@ -444,7 +449,7 @@ export const GalleryPage: React.FC = () => {
             categories={categories}
             selectedCategories={selectedCategories}
             onCategoriesChange={handleCategoriesChange}
-            isLoading={categoriesLoading}
+            loading={categoriesLoading}
           />
         </Box>
 
@@ -457,14 +462,13 @@ export const GalleryPage: React.FC = () => {
               <EmptyState 
                 title={(searchTerm || '') ? "Ничего не найдено" : "Стикеры не найдены"}
                 message={(searchTerm || '') ? "Попробуйте изменить поисковый запрос" : "Попробуйте обновить страницу"}
-                onRetry={() => fetchStickerSets()}
+                actionLabel="Обновить"
+                onAction={() => fetchStickerSets()}
               />
             ) : (
               <StickerSetList
                 stickerSets={filteredStickerSets}
                 onView={handleViewStickerSet}
-                onShare={handleShareStickerSet}
-                onLike={handleLikeStickerSet}
                 isInTelegramApp={isInTelegramApp}
               />
             )}
@@ -483,9 +487,9 @@ export const GalleryPage: React.FC = () => {
       </Container>
 
       <BottomNav 
-        onCreateSticker={handleCreateSticker}
-        onMenuClick={handleMenuClick}
-        onOptionsClick={handleOptionsClick}
+        activeTab={activeBottomTab}
+        onChange={handleBottomNavChange}
+        isInTelegramApp={isInTelegramApp}
       />
     </Box>
   );
