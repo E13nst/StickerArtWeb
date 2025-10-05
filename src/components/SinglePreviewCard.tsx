@@ -84,7 +84,8 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
 
   const currentSticker = carouselStickers[currentIndex];
 
-  console.log('🔍 SinglePreviewCard рендер:', {
+  console.log('🔍 SinglePreviewCard рендер (v2):', {
+    timestamp: Date.now(),
     stickerSetId: stickerSet.id,
     stickerSetTitle: stickerSet.title,
     previewStickersCount: previewStickers.length,

@@ -48,6 +48,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: true,
+      force: true, // Принудительная очистка кеша
       proxy: {
         // Проксируем API запросы на бэкенд
         '/api': {
