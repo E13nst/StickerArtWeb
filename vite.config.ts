@@ -43,6 +43,17 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       sourcemap: mode === 'development',
+      minify: mode === 'production' ? 'esbuild' : false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            mui: ['@mui/material', '@mui/icons-material'],
+            router: ['react-router-dom'],
+            state: ['zustand']
+          }
+        }
+      }
     },
     
     server: {

@@ -9,10 +9,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости (включая dev для сборки)
-RUN npm ci
+RUN npm ci --only=production=false --ignore-scripts
 
 # Копируем исходники
 COPY . .
+
+# Устанавливаем переменные окружения для сборки
+ENV NODE_ENV=production
+ENV VITE_BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
 
 # Собираем приложение
 RUN npm run build
