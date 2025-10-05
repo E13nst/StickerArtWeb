@@ -25,7 +25,7 @@ interface TelegramAuthModalProps {
 // Глобальная функция для обработки авторизации от Telegram Login Widget
 declare global {
   interface Window {
-    handleTelegramAuth: (user: any) => void;
+    handleTelegramAuth: (user: TelegramUser) => void;
   }
 }
 

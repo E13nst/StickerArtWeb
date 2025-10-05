@@ -32,7 +32,13 @@ export interface UserInfo {
   updatedAt?: string;
   profilePhotoFileId?: string; // file_id фото профиля для загрузки через /api/stickers/{fileId}
   telegramUserInfo?: TelegramUserInfo; // Дополнительная информация о пользователе из Telegram (приоритетный источник данных)
-  profilePhotos?: any; // Коллекция фотографий профиля
+  profilePhotos?: {
+    photos: Array<{
+      file_id: string;
+      width: number;
+      height: number;
+    }>;
+  }; // Коллекция фотографий профиля
 }
 
 interface ProfileState {

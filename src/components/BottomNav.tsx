@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { logger } from '@/utils/logger';
 import { 
   BottomNavigation, 
   BottomNavigationAction, 
@@ -32,7 +33,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     return activeTab;
   };
 
-  const handleNavigation = (_event: any, newValue: number) => {
+  const handleNavigation = (_event: React.SyntheticEvent, newValue: number) => {
     onChange(newValue);
 
     switch (newValue) {
@@ -41,11 +42,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         break;
       case 1:
         // TODO: Навигация к странице стикеров
-        console.log('Навигация к стикерам (не реализовано)');
+        logger.log('Навигация к стикерам (не реализовано)');
         break;
       case 2:
         // TODO: Навигация к маркету
-        console.log('Навигация к маркету (не реализовано)');
+        logger.log('Навигация к маркету (не реализовано)');
         break;
       case 3:
         // Навигация к моему профилю

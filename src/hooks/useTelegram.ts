@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TelegramWebApp, TelegramUser } from '@/types/telegram';
+import { logger } from '@/utils/logger';
 
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
@@ -32,23 +33,23 @@ export const useTelegram = () => {
       
       setIsReady(true);
       
-      console.log('🔍 Telegram Web App данные:');
-      console.log('tg.initData:', telegram.initData ? `present (${telegram.initData.length} chars)` : 'null');
-      console.log('tg.initDataUnsafe:', telegram.initDataUnsafe);
-      console.log('user:', telegram.initDataUnsafe?.user);
-      console.log('platform:', telegram.platform);
-      console.log('version:', telegram.version);
+      logger.log('🔍 Telegram Web App данные:');
+      logger.log('tg.initData:', telegram.initData ? `present (${telegram.initData.length} chars)` : 'null');
+      logger.log('tg.initDataUnsafe:', telegram.initDataUnsafe);
+      logger.log('user:', telegram.initDataUnsafe?.user);
+      logger.log('platform:', telegram.platform);
+      logger.log('version:', telegram.version);
       
       // Детальная отладка initData
       if (telegram.initData) {
-        console.log('🔍 Детальный разбор initData:');
+        logger.log('🔍 Детальный разбор initData:');
         const params = new URLSearchParams(telegram.initData);
         for (const [key, value] of params.entries()) {
-          console.log(`  ${key}:`, value);
+          logger.log(`  ${key}:`, value);
         }
       }
     } else {
-      console.warn('⚠️ Telegram Web App не доступен');
+      logger.warn('⚠️ Telegram Web App не доступен');
       setIsReady(true);
     }
   }, []);
@@ -68,11 +69,11 @@ export const useTelegram = () => {
       const age = now - authDate;
       const maxAge = 600; // 10 минут
       
-      console.log('🕐 Проверка срока действия initData:');
-      console.log('auth_date:', authDate, `(${new Date(authDate * 1000).toLocaleString()})`);
-      console.log('current time:', now, `(${new Date(now * 1000).toLocaleString()})`);
-      console.log('age:', age, 'секунд');
-      console.log('max age:', maxAge, 'секунд');
+      logger.log('🕐 Проверка срока действия initData:');
+      logger.log('auth_date:', authDate, `(${new Date(authDate * 1000).toLocaleString()})`);
+      logger.log('current time:', now, `(${new Date(now * 1000).toLocaleString()})`);
+      logger.log('age:', age, 'секунд');
+      logger.log('max age:', maxAge, 'секунд');
       
       if (age > maxAge) {
         return { 
@@ -85,7 +86,7 @@ export const useTelegram = () => {
       
       return { valid: true, age: age, maxAge: maxAge };
     } catch (error) {
-      console.error('❌ Ошибка при проверке срока действия initData:', error);
+      logger.error('❌ Ошибка при проверке срока действия initData:', error);
       return { valid: false, reason: `Ошибка парсинга initData: ${error}` };
     }
   };
@@ -93,18 +94,18 @@ export const useTelegram = () => {
   const refreshInitData = () => {
     if (!tg) return false;
     
-    console.log('🔄 Попытка обновления initData...');
+    logger.log('🔄 Попытка обновления initData...');
     
     const newUser = tg.initDataUnsafe?.user;
     const newInitData = tg.initData;
     
     if (newInitData && newInitData !== initData) {
-      console.log('✅ initData обновлен');
+      logger.log('✅ initData обновлен');
       setUser(newUser || null);
       setInitData(newInitData);
       return true;
     } else {
-      console.log('❌ initData не изменился');
+      logger.log('❌ initData не изменился');
       return false;
     }
   };

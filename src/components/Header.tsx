@@ -25,7 +25,12 @@ interface HeaderProps {
   showMenu?: boolean;
   showOptions?: boolean;
   initData?: string | null;
-  user?: any;
+  user?: {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+  };
 }
 
 export const Header: React.FC<HeaderProps> = ({

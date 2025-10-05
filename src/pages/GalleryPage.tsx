@@ -19,6 +19,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { useCategories } from '@/hooks/useCategories';
 import { useScrollHue } from '@/hooks/useScrollHue';
 import { useTgSafeArea } from '@/telegram/useTgSafeArea';
+import { logger } from '@/utils/logger';
 
 // Функция для перемешивания массива в случайном порядке
 function shuffleArray<T>(array: T[]): T[] {
@@ -73,7 +74,7 @@ export const GalleryPage: React.FC = () => {
   // Авторизация пользователя
   const authenticateUser = async (currentInitData: string) => {
     if (!currentInitData || currentInitData === 'undefined') {
-      console.warn('⚠️ InitData отсутствует, пропускаем авторизацию');
+      logger.warn('⚠️ InitData отсутствует, пропускаем авторизацию');
       setAuthStatus({
         authenticated: false,
         message: 'InitData отсутствует'
@@ -89,21 +90,21 @@ export const GalleryPage: React.FC = () => {
       const isTestData = currentInitData.includes('query_id=test');
       if (!isTestData) {
         const initDataCheck = checkInitDataExpiry(currentInitData);
-        console.log('🔍 Проверка initData:', initDataCheck);
+        logger.log('🔍 Проверка initData:', initDataCheck);
         if (!initDataCheck.valid) {
           throw new Error(initDataCheck.reason);
         }
       } else {
-        console.log('🔍 Тестовые данные - пропускаем проверку срока действия');
+        logger.log('🔍 Тестовые данные - пропускаем проверку срока действия');
       }
 
       // Устанавливаем заголовки аутентификации
       apiClient.setAuthHeaders(currentInitData);
 
       // Проверяем статус авторизации
-      console.log('🔍 Отправка запроса на проверку авторизации...');
+      logger.log('🔍 Отправка запроса на проверку авторизации...');
       const authResponse = await apiClient.checkAuthStatus();
-      console.log('🔍 Ответ авторизации:', authResponse);
+      logger.log('🔍 Ответ авторизации:', authResponse);
       setAuthStatus(authResponse);
 
       if (!authResponse.authenticated) {
@@ -138,14 +139,14 @@ export const GalleryPage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🔍 Загрузка стикерсетов...');
+      logger.log('🔍 Загрузка стикерсетов...');
       const response = await apiClient.getStickerSetsWithCategories(
         page,
         20,
         (selectedCategories || []).length > 0 ? selectedCategories : undefined
       );
       
-      console.log('🔍 Получены стикерсеты:', response);
+      logger.log('🔍 Получены стикерсеты:', response);
       
       // Перемешиваем стикерсеты в случайном порядке
       const shuffledContent = shuffleArray(response.content || []);
@@ -184,9 +185,9 @@ export const GalleryPage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🔍 Поиск стикеров:', query);
+      logger.log('🔍 Поиск стикеров:', query);
       const response = await apiClient.searchStickerSets(query);
-      console.log('🔍 Результаты поиска:', response);
+      logger.log('🔍 Результаты поиска:', response);
       
       // Перемешиваем результаты поиска в случайном порядке
       const shuffledContent = shuffleArray(response.content || []);
@@ -220,12 +221,12 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleViewStickerSet = (id: number, _name: string) => {
-    console.log('🔍 handleViewStickerSet вызван:', { id, name: _name });
+    logger.log('🔍 handleViewStickerSet вызван:', { id, name: _name });
     const stickerSet = stickerSets.find(s => s.id === id);
-    console.log('🔍 Найден стикерсет:', stickerSet);
+    logger.log('🔍 Найден стикерсет:', stickerSet);
     if (stickerSet) {
       // Переходим в детальный просмотр стикерсета
-      console.log('🔍 Переключаемся в detail режим');
+      logger.log('🔍 Переключаемся в detail режим');
       setSelectedStickerSet(stickerSet);
       setViewMode('detail');
     }
@@ -240,7 +241,7 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleLikeStickerSet = (id: number, title: string) => {
-    console.log(`Лайк стикерсета: ${title} (ID: ${id})`);
+    logger.log(`Лайк стикерсета: ${title} (ID: ${id})`);
   };
 
   const handleBackToList = () => {
@@ -256,11 +257,11 @@ export const GalleryPage: React.FC = () => {
   };
 
   const handleMenuClick = () => {
-    console.log('🔍 Меню нажато');
+    logger.log('🔍 Меню нажато');
   };
 
   const handleOptionsClick = () => {
-    console.log('🔍 Опции нажаты');
+    logger.log('🔍 Опции нажаты');
   };
 
   const handleBottomNavChange = (newValue: number) => {
@@ -285,7 +286,7 @@ export const GalleryPage: React.FC = () => {
 
   // Логирование состояния для отладки
   useEffect(() => {
-  console.log('🔍 GalleryPage состояние:', {
+  logger.log('🔍 GalleryPage состояние:', {
     stickerSets: stickerSets.length,
     filteredStickerSets: filteredStickerSets.length,
     searchTerm: searchTerm || '',
@@ -306,7 +307,7 @@ export const GalleryPage: React.FC = () => {
     const initializeApp = async () => {
       if (!isReady) return;
 
-      console.log('🔍 Инициализация приложения...');
+      logger.log('🔍 Инициализация приложения...');
       
       // Авторизация пользователя
       await authenticateUser(initData);

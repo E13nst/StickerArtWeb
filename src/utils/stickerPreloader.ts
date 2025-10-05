@@ -1,10 +1,11 @@
-import { StickerSetResponse } from '@/types/sticker';
+import { StickerSetResponse, Sticker } from '@/types/sticker';
+import { logger } from '@/utils/logger';
 
 // Интерфейс для предопределенного превью
 interface PredefinedPreview {
   stickerSetId: number;
   stickerIndex: number;
-  sticker: any;
+  sticker: Sticker;
   priority: number; // 1-высший, 2-средний, 3-низкий
 }
 
@@ -16,7 +17,7 @@ export class StickerPreloader {
 
   // Генерируем порядок стикерпаков и предопределяем превью
   generatePredefinedPreviews(stickerSets: StickerSetResponse[]): PredefinedPreview[] {
-    console.log('🎲 Генерируем предопределенные превью для', stickerSets.length, 'стикерпаков');
+    logger.log('🎲 Генерируем предопределенные превью для', stickerSets.length, 'стикерпаков');
     
     this.predefinedPreviews = [];
     
@@ -45,18 +46,18 @@ export class StickerPreloader {
       });
     });
     
-    console.log('✅ Сгенерировано', this.predefinedPreviews.length, 'предопределенных превью');
+    logger.log('✅ Сгенерировано', this.predefinedPreviews.length, 'предопределенных превью');
     return this.predefinedPreviews;
   }
 
   // Получаем превью для конкретного стикерпака
-  getPreviewsForStickerSet(stickerSetId: number): any[] {
+  getPreviewsForStickerSet(stickerSetId: number): Sticker[] {
     const previews = this.predefinedPreviews
       .filter(p => p.stickerSetId === stickerSetId)
       .sort((a, b) => a.stickerIndex - b.stickerIndex)
       .map(p => p.sticker);
     
-    console.log('📦 Получены превью для стикерпака', stickerSetId, ':', previews.length);
+    logger.log('📦 Получены превью для стикерпака', stickerSetId, ':', previews.length);
     return previews;
   }
 
@@ -69,7 +70,7 @@ export class StickerPreloader {
       3: this.predefinedPreviews.filter(p => p.priority === 3)
     };
 
-    console.log('📥 Начинаем загрузку по приоритету:', {
+    logger.log('📥 Начинаем загрузку по приоритету:', {
       высший: priorityGroups[1].length,
       средний: priorityGroups[2].length,
       низкий: priorityGroups[3].length
@@ -80,13 +81,13 @@ export class StickerPreloader {
       const group = priorityGroups[priority];
       if (group.length === 0) continue;
 
-      console.log(`🚀 Загружаем группу приоритета ${priority} (${group.length} превью)`);
+      logger.log(`🚀 Загружаем группу приоритета ${priority} (${group.length} превью)`);
       
       // Загружаем все превью в группе параллельно
       const loadPromises = group.map(preview => this.loadPreview(preview));
       await Promise.allSettled(loadPromises);
       
-      console.log(`✅ Группа приоритета ${priority} загружена`);
+      logger.log(`✅ Группа приоритета ${priority} загружена`);
     }
   }
 
@@ -132,7 +133,7 @@ export class StickerPreloader {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const lottieData = await response.json();
-        console.log('✅ Lottie загружен:', sticker.file_id);
+        logger.log('✅ Lottie загружен:', sticker.file_id);
         return true;
       } else {
         // Для изображений предзагружаем
@@ -141,18 +142,18 @@ export class StickerPreloader {
         
         return new Promise((resolve) => {
           img.onload = () => {
-            console.log('✅ Изображение загружено:', sticker.file_id);
+            logger.log('✅ Изображение загружено:', sticker.file_id);
             resolve(true);
           };
           img.onerror = () => {
-            console.warn('❌ Ошибка загрузки изображения:', sticker.file_id);
+            logger.warn('❌ Ошибка загрузки изображения:', sticker.file_id);
             resolve(false);
           };
           img.src = url;
         });
       }
     } catch (error) {
-      console.warn('❌ Ошибка загрузки превью:', sticker.file_id, error);
+      logger.warn('❌ Ошибка загрузки превью:', sticker.file_id, error);
       return false;
     }
   }

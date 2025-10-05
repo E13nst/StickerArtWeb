@@ -25,9 +25,9 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
   
 
   const getPreviewStickers = useCallback(() => {
-    const stickers = stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || [];
+    const stickers = stickerSet.telegramStickerSetInfo?.stickers || [];
     return stickers.slice(0, isSlowConnection ? 2 : 4); // Меньше стикеров на медленном интернете
-  }, [stickerSet.telegramStickerSetInfo?.stickers, stickerSet.stickers, isSlowConnection]);
+  }, [stickerSet.telegramStickerSetInfo?.stickers, isSlowConnection]);
 
   const handleCardClick = useCallback(() => {
     onView(stickerSet.id, stickerSet.name);

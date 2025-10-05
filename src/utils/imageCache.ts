@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@/utils/logger';
 
 // Система кеширования изображений в памяти
 class ImageCache {
@@ -9,13 +10,13 @@ class ImageCache {
   async loadImage(src: string): Promise<HTMLImageElement> {
     // Если изображение уже в кеше, возвращаем его
     if (this.cache.has(src)) {
-      console.log('📦 Изображение из кеша:', src);
+      logger.log('📦 Изображение из кеша:', src);
       return this.cache.get(src)!;
     }
 
     // Если изображение уже загружается, ждем его
     if (this.loadingPromises.has(src)) {
-      console.log('⏳ Ждем загрузку изображения:', src);
+      logger.log('⏳ Ждем загрузку изображения:', src);
       return this.loadingPromises.get(src)!;
     }
 
@@ -27,7 +28,7 @@ class ImageCache {
       img.crossOrigin = 'anonymous'; // Для CORS изображений
       
       img.onload = () => {
-        console.log('✅ Изображение загружено и кешировано:', src);
+        logger.log('✅ Изображение загружено и кешировано:', src);
         
         // Добавляем в кеш
         this.addToCache(src, img);
@@ -63,7 +64,7 @@ class ImageCache {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
       this.cache.delete(firstKey);
-      console.log('🗑️ Удалено старое изображение из кеша:', firstKey);
+      logger.log('🗑️ Удалено старое изображение из кеша:', firstKey);
     }
     
     this.cache.set(src, img);
@@ -76,7 +77,7 @@ class ImageCache {
     ).then(results => {
       const errors = results.filter(result => result.status === 'rejected');
       if (errors.length > 0) {
-        console.warn('⚠️ Некоторые изображения не удалось предзагрузить:', errors.length);
+        logger.warn('⚠️ Некоторые изображения не удалось предзагрузить:', errors.length);
       }
       return [];
     });
@@ -86,7 +87,7 @@ class ImageCache {
   clear() {
     this.cache.clear();
     this.loadingPromises.clear();
-    console.log('🧹 Кеш изображений очищен');
+    logger.log('🧹 Кеш изображений очищен');
   }
 
   // Получить статистику кеша

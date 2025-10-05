@@ -4,6 +4,7 @@ import { StickerSetResponse } from '@/types/sticker';
 import { SinglePreviewCard } from './SinglePreviewCard';
 import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
 import { useStickerSetPreviews } from '@/hooks/useStickerSetPreviews';
+import { logger } from '@/utils/logger'; 
 import { imageCache } from '@/utils/imageCache';
 
 interface StickerSetListProps {
@@ -54,7 +55,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     });
 
     if (imageUrls.length > 0) {
-      console.log(`🚀 Предзагружаем изображения для ${visiblePreviews.length} карточек:`, imageUrls.length);
+      logger.log(`🚀 Предзагружаем изображения для ${visiblePreviews.length} карточек:`, imageUrls.length);
       imageCache.preloadImages(imageUrls);
     }
   }, [stickerSetPreviews]);
@@ -73,7 +74,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
               
               if (stickerSet && stickerSetIndex !== -1) {
                 // Загружаем только конкретную карточку, не все предыдущие
-                console.log(`🎯 Загрузка конкретной карточки: ${stickerSet.title} (индекс ${stickerSetIndex}) стала видимой`);
+                logger.log(`🎯 Загрузка конкретной карточки: ${stickerSet.title} (индекс ${stickerSetIndex}) стала видимой`);
                 loadSpecificCard(stickerSetIndex);
                 
                 // Предзагружаем изображения из предопределенных стикеров
@@ -88,7 +89,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
                   });
                   
                   if (imageUrls.length > 0) {
-                    console.log(`🔄 Загрузка ${imageUrls.length} изображений для ${stickerSet.title}`);
+                    logger.log(`🔄 Загрузка ${imageUrls.length} изображений для ${stickerSet.title}`);
                     imageCache.preloadImages(imageUrls);
                   }
                 }
@@ -127,7 +128,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [hasMore, isLoading, loadNextBatch]);
 
-  console.log('🔍 StickerSetList рендер:', {
+  logger.log('🔍 StickerSetList рендер:', {
     stickerSetsCount: stickerSets.length,
     visibleCount: visibleStickerSets.length,
     hasMore,
@@ -145,7 +146,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
         {stickerSetPreviews.map(({ stickerSet, previewStickers }, index) => {
           const isVisible = index < visibleItems;
           
-          console.log('🔍 StickerSetList рендер карточки:', {
+          logger.log('🔍 StickerSetList рендер карточки:', {
             stickerSetId: stickerSet.id,
             stickerSetTitle: stickerSet.title,
             previewStickersCount: previewStickers.length,
@@ -158,7 +159,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
             <Grid item xs={6} key={stickerSet.id}>
               <Box 
                 data-sticker-set-id={stickerSet.id}
-                ref={(el) => {
+                ref={(el: Element | null) => {
                   if (el && observerRef.current) {
                     observerRef.current.observe(el);
                   }
