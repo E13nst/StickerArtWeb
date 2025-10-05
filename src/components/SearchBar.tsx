@@ -32,6 +32,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
+        className="search-enhanced smooth-transition"
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">

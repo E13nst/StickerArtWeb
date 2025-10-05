@@ -44,7 +44,7 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
   return (
     <Card 
       onClick={handleCardClick}
-      className="glass-card content-visibility-auto"
+      className="glass-card sticker-card-enhanced smooth-transition content-visibility-auto"
       sx={{ 
         height: '100%',
         borderRadius: 2, // 16px

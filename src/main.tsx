@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import App from './App.tsx'
 import './index.css'
 import './styles/space.css'
+import './styles/ui-baseline.css'
 
 // Современная минималистичная тема уровня Instagram/Telegram
 const theme = createTheme({

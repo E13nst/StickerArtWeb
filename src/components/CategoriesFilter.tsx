@@ -62,7 +62,7 @@ export const CategoriesFilter: React.FC<CategoriesFilterProps> = ({
         return (
           <Box
             key={category.key}
-            className={`chip ${isSelected ? 'chip--active' : ''}`}
+            className={`chip category-chip smooth-transition ${isSelected ? 'chip--active' : ''}`}
             onClick={() => handleCategoryToggle(category.key)}
             sx={{
               flexShrink: 0,

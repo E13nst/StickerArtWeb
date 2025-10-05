@@ -16,16 +16,18 @@ const App: React.FC = () => {
         </div>
       </div>
       
-      <Router>
-        <BuildInfo showInConsole={true} showInUI={process.env.NODE_ENV === 'development'} />
-        <Routes>
-          <Route path="/" element={<GalleryPage />} />
-          <Route path="/profile" element={<MyProfilePage />} />
-          <Route path="/profile/:userId" element={<ProfilePage />} />
-          {/* Fallback route */}
-          <Route path="*" element={<GalleryPage />} />
-        </Routes>
-      </Router>
+      <div className="light-bg">
+        <Router>
+          <BuildInfo showInConsole={true} showInUI={process.env.NODE_ENV === 'development'} />
+          <Routes>
+            <Route path="/" element={<GalleryPage />} />
+            <Route path="/profile" element={<MyProfilePage />} />
+            <Route path="/profile/:userId" element={<ProfilePage />} />
+            {/* Fallback route */}
+            <Route path="*" element={<GalleryPage />} />
+          </Routes>
+        </Router>
+      </div>
     </>
   );
 };
