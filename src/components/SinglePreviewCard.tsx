@@ -1,26 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Box, Typography } from '@mui/material';
-import { StickerSetResponse } from '@/types/sticker';
+import { StickerSetResponse, Sticker } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
-
-// Функция для перемешивания массива в случайном порядке
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
 
 interface SinglePreviewCardProps {
   stickerSet: StickerSetResponse;
+  previewStickers: Sticker[];
   onView: (id: number, name: string) => void;
   isInTelegramApp?: boolean;
 }
 
 export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   stickerSet,
+  previewStickers,
   onView,
   isInTelegramApp = false
 }) => {
@@ -29,10 +21,8 @@ export const SinglePreviewCard: React.FC<SinglePreviewCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Получаем максимум 3 случайных стикера для карусели
-  const allStickers = stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || [];
-  const shuffledStickers = shuffleArray(allStickers);
-  const carouselStickers = shuffledStickers.slice(0, 3);
+  // Используем предопределенные стикеры для карусели
+  const carouselStickers = previewStickers;
 
   // IntersectionObserver для активации карусели только при видимости
   useEffect(() => {

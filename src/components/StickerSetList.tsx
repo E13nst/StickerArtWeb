@@ -3,6 +3,7 @@ import { Box, Grid, Button } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { SinglePreviewCard } from './SinglePreviewCard';
 import { useProgressiveLoading } from '@/hooks/useProgressiveLoading';
+import { useStickerSetPreviews } from '@/hooks/useStickerSetPreviews';
 import { imageCache } from '@/utils/imageCache';
 
 interface StickerSetListProps {
@@ -16,6 +17,9 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
   onView,
   isInTelegramApp = false
 }) => {
+  // Предопределяем стикеры для каждого стикерпака
+  const stickerSetPreviews = useStickerSetPreviews(stickerSets);
+  
   // Поэтапная загрузка: сначала 6, потом по 2 (без задержек)
   const { visibleItems, isLoading, loadNextBatch, loadUpToIndex, hasMore } = useProgressiveLoading(
     stickerSets.length,
@@ -38,27 +42,22 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
     const imageUrls: string[] = [];
     
     // Загружаем только для первых 6 карточек для оптимизации
-    const cardsToPreload = visibleStickerSets.slice(0, 6);
+    const visiblePreviews = stickerSetPreviews.slice(0, 6);
     
-    cardsToPreload.forEach(stickerSet => {
-      const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 1);
-      stickers.forEach(sticker => {
-        // Предзагружаем только обычные изображения, не Lottie
-        if (!sticker.is_animated) {
-          if (sticker.url) {
-            imageUrls.push(sticker.url);
-          } else {
-            imageUrls.push(`/api/stickers/${sticker.file_id}`);
-          }
-        }
-      });
+    visiblePreviews.forEach(({ previewStickers }) => {
+      // Загружаем только первый стикер из предопределенных
+      const firstSticker = previewStickers[0];
+      if (firstSticker && !firstSticker.is_animated) {
+        const imageUrl = firstSticker.url || `/api/stickers/${firstSticker.file_id}`;
+        imageUrls.push(imageUrl);
+      }
     });
 
     if (imageUrls.length > 0) {
-      console.log(`🚀 Предзагружаем изображения для ${cardsToPreload.length} карточек:`, imageUrls.length);
+      console.log(`🚀 Предзагружаем изображения для ${visiblePreviews.length} карточек:`, imageUrls.length);
       imageCache.preloadImages(imageUrls);
     }
-  }, [visibleStickerSets]);
+  }, [stickerSetPreviews]);
 
   // IntersectionObserver для приоритетной загрузки карточек и изображений
   useEffect(() => {
@@ -77,15 +76,22 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
                 console.log(`🎯 Приоритетная загрузка: карточка ${stickerSet.title} (индекс ${stickerSetIndex}) стала видимой`);
                 loadUpToIndex(stickerSetIndex);
                 
-                // Предзагружаем изображение
-                const stickers = (stickerSet.telegramStickerSetInfo?.stickers || stickerSet.stickers || []).slice(0, 1);
-                stickers.forEach(sticker => {
-                  if (!sticker.is_animated) {
-                    const imageUrl = sticker.url || `/api/stickers/${sticker.file_id}`;
-                    console.log(`🔄 Загрузка изображения для ${stickerSet.title}:`, imageUrl);
-                    imageCache.preloadImages([imageUrl]);
+                // Предзагружаем изображения из предопределенных стикеров
+                const previewData = stickerSetPreviews.find(p => p.stickerSet.id === stickerSetId);
+                if (previewData) {
+                  const imageUrls: string[] = [];
+                  previewData.previewStickers.forEach(sticker => {
+                    if (!sticker.is_animated) {
+                      const imageUrl = sticker.url || `/api/stickers/${sticker.file_id}`;
+                      imageUrls.push(imageUrl);
+                    }
+                  });
+                  
+                  if (imageUrls.length > 0) {
+                    console.log(`🔄 Загрузка ${imageUrls.length} изображений для ${stickerSet.title}`);
+                    imageCache.preloadImages(imageUrls);
                   }
-                });
+                }
                 
                 // Отключаем наблюдение после загрузки
                 observerRef.current?.unobserve(cardElement);
@@ -136,12 +142,13 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
       px: isInTelegramApp ? 0 : 2,  // Боковые отступы на desktop
     }}>
       <Grid container spacing={1.75} sx={{ alignItems: 'stretch' }}>
-        {stickerSets.map((stickerSet, index) => {
+        {stickerSetPreviews.map(({ stickerSet, previewStickers }, index) => {
           const isVisible = index < visibleItems;
           
           console.log('🔍 StickerSetList рендер карточки:', {
             stickerSetId: stickerSet.id,
             stickerSetTitle: stickerSet.title,
+            previewStickersCount: previewStickers.length,
             index,
             isVisible,
             isInTelegramApp
@@ -169,6 +176,7 @@ export const StickerSetList: React.FC<StickerSetListProps> = ({
                 {isVisible && (
                   <SinglePreviewCard
                     stickerSet={stickerSet}
+                    previewStickers={previewStickers}
                     onView={handleView}
                     isInTelegramApp={isInTelegramApp}
                   />
