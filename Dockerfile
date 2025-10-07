@@ -9,32 +9,26 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости (включая dev для сборки)
-RUN npm ci --silent
+RUN npm ci
 
 # Копируем исходники
 COPY . .
 
-# Собираем приложение с оптимизацией
-RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
+# Собираем приложение
+RUN npm run build
 
 # Stage 2: Nginx для раздачи статики
 FROM nginx:alpine
 
-# Устанавливаем gettext для envsubst
-RUN apk add --no-cache gettext
-
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем шаблон конфигурации Nginx
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-
-# Переменная окружения по умолчанию
-ENV BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
+# Копируем конфигурацию Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Открываем порт 80
 EXPOSE 80
 
-# Скрипт для подстановки переменных и запуска nginx
-CMD /bin/sh -c "envsubst '\$BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+# Запускаем nginx
+CMD ["nginx", "-g", "daemon off;"]
 
