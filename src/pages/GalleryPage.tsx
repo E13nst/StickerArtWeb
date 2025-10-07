@@ -46,7 +46,7 @@ export const GalleryPage: React.FC = () => {
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [manualInitData, setManualInitData] = useState<string>('');
   const [activeBottomTab, setActiveBottomTab] = useState(0);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategories] = useState<string[]>([]);
 
   // Хук для категорий
   // const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();

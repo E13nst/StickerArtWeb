@@ -9,13 +9,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости (включая dev для сборки)
-RUN npm ci
+RUN npm ci --silent
 
 # Копируем исходники
 COPY . .
 
-# Собираем приложение
-RUN npm run build
+# Собираем приложение с оптимизацией
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Stage 2: Nginx для раздачи статики
 FROM nginx:alpine
