@@ -1,0 +1,62 @@
+# Amvera Deploy Rules
+
+These rules are **binding** for all AI edits in this repo. The goal is to keep the app building and deploying on **Amvera** while we iterate on UX/UI with **minimal code** and high performance.
+
+## Stack & invariants
+- Frontend: React 18 + TypeScript + Vite + Material-UI + Zustand + Axios + React Router.
+- Node/Nginx deploy on Amvera. Build command: `npm ci && npm run build`. Static output served from `dist/`.
+- **Environment variable** required at build/runtime: `BACKEND_URL` (proxy target for `/api`, `/auth`).
+- Base path: `/` (do not change unless explicitly requested).
+- **Do not** introduce frameworks that change the build shape (e.g., Next.js, CRA) or SSR.
+
+## Files you must NOT modify unless explicitly asked
+- `nginx.conf`
+- `amvera.yml`
+- `Dockerfile`
+- `vite.config.ts`
+- `index.html` (only safe, localized UI tweaks; never rewrite scripts or base).
+- Any CI/CD config provided by Amvera.
+If a change is required, propose a minimal diff and rationale first.
+
+## Networking & API
+- Keep current REST paths and headers unchanged.
+- All new requests must go through the existing API client layer (`src/api/client.ts`) or new, **small** helpers colocated in `src/api/`.
+- Handle errors gracefully; never break unauthenticated "public browsing" mode.
+
+## Performance budget (gallery feed)
+- **Two fixed columns** on all screens for the sticker-set grid (no responsive column count changes), centered layout with consistent gutters.
+- First Contentful Interactive goal: ≤ 2.0s on mid devices.
+- Network concurrency cap for preview loads: ≤ 6 in-flight fetches.
+- Use **AbortController** to cancel offscreen requests.
+- Cache poster/preview responses in memory; dedupe parallel requests (no duplicate HTTP).
+- Prefer a **single large poster** per card with optional lightweight slideshow that starts after the 2nd, 3rd, 4th image are loaded. Until then, loop the first image.
+- Use `loading="lazy"` where possible; avoid heavy SVG/Lottie playback while offscreen.
+- No unbounded timers; stop animations when `prefers-reduced-motion` is set.
+
+## UI/UX defaults
+- Minimalistic, modern look (inspired by Instagram/X), but keep Telegram Mini App top controls unobstructed.
+- Glass (blur) effects must **degrade gracefully** when `backdrop-filter` is unsupported.
+- Search field: slim "top/bottom lines" style; minimal vertical space.
+- **Categories** chips are low-contrast by default, higher contrast only when selected.
+- Card surfaces appear semi-transparent ("glass"); avoid extra inner white panels behind stickers.
+- No heavy box-shadows; prefer subtle layered blur / border.
+
+## Code style & edits
+- Keep changes **surgical**. Edit only the files you list in the request; prefer small diffs.
+- Ask before adding a dependency. If approved, lock versions and verify build.
+- Never commit `dist/`, `node_modules/`, or generated assets.
+- Provide acceptance criteria with each change (build passes, network requests reduced, etc.).
+
+## Build & deploy safety
+- All changes must build with: `npm ci && npm run build` (no warnings promoted to errors).
+- Do not alter `build`, `start`, or Nginx serving logic.
+- Assume Amvera auto-deploys on git push; if a change could affect Docker/Nginx, ask first.
+
+## Testing checklist before proposing a PR
+- `npm run dev` serves on port 3000; proxy works with `VITE_BACKEND_URL` or `BACKEND_URL`.
+- Production build outputs to `dist/`; index.html routes SPA requests.
+- DevTools audit on gallery feed shows: ≤ 6 concurrent preview fetches, no duplicate fetches for the same URL, offscreen fetches are cancelled.
+
+## When uncertain
+- Prefer the **simplest** possible implementation that meets the acceptance criteria.
+- If a rule conflicts with a task, ask for confirmation instead of guessing.
