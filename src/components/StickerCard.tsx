@@ -55,6 +55,7 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
   return (
     <Card 
       onClick={handleCardClick}
+      className="glass-card sticker-card-enhanced smooth-transition content-visibility-auto"
       sx={{ 
         height: '100%',
         minHeight: 220,
@@ -64,13 +65,16 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between', // Равномерное распределение контента
-        borderRadius: 3,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s ease',
+        borderRadius: 2, // 16px
+        boxShadow: 'none',
+        backgroundColor: 'transparent',   // фон даёт класс .glass-card
         cursor: 'pointer',
-        '&:hover': {
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-          transform: 'translateY(-2px)'
+        p: 0,
+        // Адаптивность для узких экранов
+        '@media (max-width: 380px)': {
+          '& .MuiCardContent-root': {
+            padding: '6px'
+          }
         }
       }}
     >
@@ -99,12 +103,24 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             <Typography 
               variant={titleVariant} 
               component="h3"
+              className="card-title"
               sx={{ 
-                fontSize: '1.1rem',
-                lineHeight: 1.2,
-                flexGrow: 1,
-                mr: 1,
-                fontWeight: 600 // font-weight: 600
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                textAlign: 'center',
+                mb: 0.5,
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                color: '#EAF0F8',
+                // Мобильные адаптации
+                '@media (max-width: 400px)': {
+                  fontSize: '0.8rem',
+                  WebkitLineClamp: 1
+                }
               }}
             >
               {stickerSet.title}
@@ -138,11 +154,7 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             return (
               <Box
                 key={sticker.file_id}
-                sx={{
-                  aspectRatio: '1 / 1',
-                  overflow: 'hidden',
-                  borderRadius: 1
-                }}
+                className="glass-slot"
               >
                 <StickerPreview 
                   sticker={sticker} 
@@ -157,20 +169,16 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
           {Array.from({ length: Math.max(0, 4 - previewStickers.length) }).map((_, index) => (
             <Box
               key={`empty-${index}`}
+              className="glass-slot"
               sx={{
-                aspectRatio: '1 / 1',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'background.paper',
-                borderRadius: 1,
-                border: '1px dashed',
-                borderColor: 'divider'
+                justifyContent: 'center'
               }}
             >
               <Typography 
                 color="text.secondary"
-                sx={{ fontSize: isSmallScreen ? '1rem' : '1.2rem' }}
+                sx={{ fontSize: isSmallScreen ? '1rem' : '1.2rem', opacity: 0.5 }}
               >
                 ➕
               </Typography>
@@ -193,13 +201,17 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
         <Box sx={{ mt: 'auto', pt: 1 }}>
           <Typography 
             variant="caption" 
-            color="text.secondary" 
+            className="card-meta"
             sx={{ 
-              fontSize: '0.8rem',
-              color: 'gray',
-              fontWeight: 'medium',
+              fontSize: '0.75rem',
+              textAlign: 'center',
               display: 'block',
-              textAlign: 'center'
+              color: '#B8C1D3',
+              opacity: 0.8,
+              // Мобильные адаптации
+              '@media (max-width: 400px)': {
+                fontSize: '0.7rem'
+              }
             }}
           >
             {new Date(stickerSet.createdAt).toLocaleDateString()}

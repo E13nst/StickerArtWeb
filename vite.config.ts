@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
-    base: '/',
+    base: mode === 'production' ? '/mini-app-react/' : '/',
     
     resolve: {
       alias: {

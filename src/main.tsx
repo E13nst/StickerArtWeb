@@ -4,31 +4,54 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import App from './App.tsx'
 import './index.css'
+import './styles/space.css'
+import './styles/ui-baseline.css'
 
-// Создаем тему Material-UI с поддержкой Telegram Web App
+// Создаем тему Material-UI с поддержкой космической темы
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#2481cc',
+      main: '#6279ff',
     },
     secondary: {
-      main: '#f8f9fa',
+      main: '#ff78c6',
     },
     background: {
-      default: '#ffffff',
-      paper: '#f8f9fa',
+      default: 'transparent',
+      paper: 'rgba(255, 255, 255, 0.1)',
     },
     text: {
-      primary: '#000000',
-      secondary: '#999999',
+      primary: '#EAF0F8',
+      secondary: '#B8C1D3',
     },
   },
   typography: {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 16,
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(6px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          color: '#EAF0F8',
+        },
+      },
+    },
   },
 })
 

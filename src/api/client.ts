@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse } from '@/types/sticker';
 import { UserInfo } from '@/store/useProfileStore';
-import { CategoryDto, CategoriesResponse } from '@/types/category';
+import { CategoryDto } from '@/types/category';
 
 class ApiClient {
   private client: AxiosInstance;

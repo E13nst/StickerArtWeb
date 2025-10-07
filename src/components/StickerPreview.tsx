@@ -9,13 +9,19 @@ interface StickerPreviewProps {
   size?: 'small' | 'medium' | 'large' | 'auto' | 'responsive';
   showBadge?: boolean;
   isInTelegramApp?: boolean;
+  onLoad?: () => void;
+  onError?: () => void;
+  style?: React.CSSProperties;
 }
 
 const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({ 
   sticker, 
   size = 'medium',
   showBadge: _showBadge = true,
-  isInTelegramApp = false
+  isInTelegramApp = false,
+  onLoad,
+  onError,
+  style
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -85,11 +91,13 @@ const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({
   const handleImageError = useCallback(() => {
     console.error('❌ Ошибка загрузки изображения:', `/api/stickers/${sticker.file_id}`);
     setError(true);
-  }, [sticker.file_id]);
+    onError?.();
+  }, [sticker.file_id, onError]);
 
   const handleImageLoad = useCallback(() => {
     setIsLoaded(true);
-  }, []);
+    onLoad?.();
+  }, [onLoad]);
 
   if (error) {
     return (
@@ -127,12 +135,11 @@ const StickerPreviewComponent: React.FC<StickerPreviewProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        // Добавляем drop-shadow для glassmorphism
+        filter: 'drop-shadow(0 0 .75px rgba(0,0,0,.12))'
       }}
+      style={style}
     >
       {/* Placeholder */}
       {!isLoaded && (

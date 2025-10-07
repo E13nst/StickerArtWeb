@@ -1,24 +1,26 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Box } from '@mui/material';
 
 interface LazyImageProps {
   src: string;
   alt: string;
-  style?: React.CSSProperties;
   onLoad?: () => void;
   onError?: () => void;
   placeholder?: React.ReactNode;
   fallback?: React.ReactNode;
+  style?: React.CSSProperties;
+  className?: string;
 }
 
-const LazyImageComponent: React.FC<LazyImageProps> = ({
+export const LazyImage: React.FC<LazyImageProps> = ({
   src,
   alt,
-  style,
   onLoad,
   onError,
   placeholder,
-  fallback
+  fallback,
+  style,
+  className
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -26,6 +28,7 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Intersection Observer для ленивой загрузки
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -37,7 +40,8 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
         });
       },
       {
-        rootMargin: '50px' // Загружаем изображения за 50px до появления в viewport
+        rootMargin: '50px', // Загружаем за 50px до появления в viewport
+        threshold: 0.1
       }
     );
 
@@ -48,86 +52,62 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  const handleLoad = () => {
+  const handleLoad = useCallback(() => {
     setIsLoaded(true);
     onLoad?.();
-  };
+  }, [onLoad]);
 
-  const handleError = () => {
+  const handleError = useCallback(() => {
     setHasError(true);
     onError?.();
-  };
+  }, [onError]);
+
+  // Загружаем изображение только когда оно в viewport
+  useEffect(() => {
+    if (isInView && !isLoaded && !hasError) {
+      const img = new Image();
+      img.onload = handleLoad;
+      img.onerror = handleError;
+      img.src = src;
+    }
+  }, [isInView, isLoaded, hasError, src, handleLoad, handleError]);
 
   return (
     <Box
       ref={containerRef}
+      className={className}
+      style={style}
       sx={{
         position: 'relative',
-        width: '100%',
-        height: '100%',
+        overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden'
+        justifyContent: 'center'
       }}
     >
-      {/* Placeholder пока изображение не загружено */}
-      {!isLoaded && !hasError && (
-        <Box>
-          {placeholder || (
-            <Typography
-              sx={{
-                fontSize: '1.5rem',
-                color: 'text.secondary'
-              }}
-            >
-              🎨
-            </Typography>
-          )}
-        </Box>
-      )}
+      {/* Плейсхолдер пока изображение не загружено */}
+      {!isLoaded && !hasError && placeholder}
 
-      {/* Изображение загружается только когда попадает в viewport */}
+      {/* Изображение */}
       {isInView && !hasError && (
         <img
           ref={imgRef}
           src={src}
           alt={alt}
           style={{
-            ...style,
             width: '100%',
             height: '100%',
             objectFit: 'contain',
-            display: isLoaded ? 'block' : 'none'
+            opacity: isLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease'
           }}
           onLoad={handleLoad}
           onError={handleError}
-          loading="lazy"
         />
       )}
 
-      {/* Fallback при ошибке загрузки */}
-      {hasError && (
-        <Box>
-          {fallback || (
-            <Typography
-              sx={{
-                fontSize: '1.5rem',
-                color: 'text.secondary'
-              }}
-            >
-              ❌
-            </Typography>
-          )}
-        </Box>
-      )}
+      {/* Fallback при ошибке */}
+      {hasError && fallback}
     </Box>
   );
 };
-
-// Мемоизируем компонент для предотвращения лишних ре-рендеров
-export const LazyImage = memo(LazyImageComponent);
