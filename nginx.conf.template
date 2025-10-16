@@ -17,16 +17,6 @@ server {
         add_header Cache-Control "public, immutable";
     }
     
-    # SPA fallback - все запросы отдают index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-        
-        # Заголовки безопасности
-        add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header X-XSS-Protection "1; mode=block" always;
-    }
-    
     # Проксирование API запросов на бэкенд
     location /api {
         proxy_pass ${BACKEND_URL};
@@ -59,6 +49,16 @@ server {
         proxy_ssl_server_name on;
     }
     
+    # SPA роутинг - все остальные запросы отдают index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+        
+        # Заголовки безопасности
+        add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+    }
+    
     # Health check endpoint
     location /health {
         access_log off;
@@ -66,4 +66,3 @@ server {
         add_header Content-Type text/plain;
     }
 }
-
