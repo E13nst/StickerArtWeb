@@ -1,4 +1,5 @@
 # Multi-stage build для React приложения с Nginx
+# syntax=docker/dockerfile:1.4
 
 # Stage 1: Build React приложения
 FROM node:18-alpine AS builder
@@ -8,8 +9,9 @@ WORKDIR /app
 # Копируем package files
 COPY package*.json ./
 
-# Устанавливаем зависимости (включая dev для сборки)
-RUN npm ci
+# Устанавливаем зависимости с кешированием npm
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
 
 # Копируем исходники
 COPY . .

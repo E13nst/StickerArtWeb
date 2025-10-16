@@ -19,7 +19,18 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: true,
+      sourcemap: false, // Отключаем sourcemap для production (ускоряет сборку)
+      minify: 'esbuild', // Используем esbuild (быстрее terser)
+      cssMinify: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Разделяем vendor код для лучшего кеширования
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 1000,
     },
     
     server: {
