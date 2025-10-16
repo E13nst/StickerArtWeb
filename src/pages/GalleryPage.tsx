@@ -12,16 +12,12 @@ import { StickerSetResponse } from '@/types/sticker';
 import { Header } from '@/components/Header';
 import { UserInfo } from '@/components/UserInfo';
 import { SearchBar } from '@/components/SearchBar';
-import { CategoriesFilter } from '@/components/CategoriesFilter';
 import { StickerSetList } from '@/components/StickerSetList';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomNav } from '@/components/BottomNav';
-
-// Хуки
-import { useCategories } from '@/hooks/useCategories';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, checkInitDataExpiry } = useTelegram();
@@ -46,10 +42,6 @@ export const GalleryPage: React.FC = () => {
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [manualInitData, setManualInitData] = useState<string>('');
   const [activeBottomTab, setActiveBottomTab] = useState(0);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-
-  // Хук для категорий
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
 
   // Загрузка initData из URL параметров при инициализации
   useEffect(() => {
@@ -80,14 +72,6 @@ export const GalleryPage: React.FC = () => {
       console.log('❌ initData не найден ни в URL, ни в localStorage, ни в расширениях');
     }
   }, []);
-
-  // Перезагрузка стикерсетов при изменении категорий
-  useEffect(() => {
-    if (isReady && !searchTerm) {
-      console.log('🔍 Категории изменились, перезагружаем стикерсеты:', selectedCategories);
-      fetchStickerSets();
-    }
-  }, [selectedCategories]);
 
   // Проверка авторизации
   const checkAuth = async () => {
@@ -172,12 +156,8 @@ export const GalleryPage: React.FC = () => {
         throw new Error('Пользователь не авторизован');
       }
 
-      // Загружаем стикерсеты с фильтрацией по категориям
-      const response = await apiClient.getStickerSetsWithCategories(
-        page, 
-        20, 
-        selectedCategories.length > 0 ? selectedCategories : undefined
-      );
+      // Загружаем стикерсеты
+      const response = await apiClient.getStickerSets(page);
       setStickerSets(response.content || []);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикеров';
@@ -208,11 +188,6 @@ export const GalleryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Обработчик изменения категорий
-  const handleCategoriesChange = (newCategories: string[]) => {
-    setSelectedCategories(newCategories);
   };
 
   // Обработчики действий

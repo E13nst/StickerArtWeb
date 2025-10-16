@@ -64,13 +64,7 @@ export interface StickerSetResponse {
   createdAt: string;
   updatedAt: string;
   telegramStickerSetInfo: TelegramStickerSetInfo;
-  categories?: CategoryDto[];
-  likesCount?: number;
-  isLikedByCurrentUser?: boolean;
 }
-
-// Импортируем CategoryDto из типов категорий
-import { CategoryDto } from './category';
 
 export interface StickerSetListResponse {
   content: StickerSetResponse[];

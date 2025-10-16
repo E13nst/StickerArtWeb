@@ -10,7 +10,6 @@ import {
 } from '@mui/material';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerPreview } from './StickerPreview';
-import { StickerSetCategories } from './StickerSetCategories';
 
 interface StickerCardProps {
   stickerSet: StickerSetResponse;
@@ -177,17 +176,6 @@ const StickerCardComponent: React.FC<StickerCardProps> = ({
             </Box>
           ))}
         </Box>
-
-        {/* Категории стикерсета */}
-        {stickerSet.categories && stickerSet.categories.length > 0 && (
-          <Box sx={{ mt: 1, mb: 1 }}>
-            <StickerSetCategories 
-              categories={stickerSet.categories}
-              maxVisible={2}
-              size="small"
-            />
-          </Box>
-        )}
 
         {/* Нижняя секция: Дата создания (прижата к низу) */}
         <Box sx={{ mt: 'auto', pt: 1 }}>
