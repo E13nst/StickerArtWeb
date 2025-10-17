@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
       cssMinify: true,
       rollupOptions: {
         input: {
+          main: 'index.html', // Заглушка
           app: 'app.html', // Основное приложение
         },
         output: {
