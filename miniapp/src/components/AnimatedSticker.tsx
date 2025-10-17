@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import Lottie from 'lottie-react';
 
+// Глобальный кеш для Lottie анимаций
+const animationCache = new Map<string, any>();
+
 interface AnimatedStickerProps {
   fileId: string;
   imageUrl: string;
@@ -26,6 +29,16 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         setLoading(true);
         setError(false);
 
+        // Проверяем кеш
+        if (animationCache.has(fileId)) {
+          console.log('🎬 Loaded from cache:', fileId);
+          if (!cancelled) {
+            setAnimationData(animationCache.get(fileId));
+            setLoading(false);
+          }
+          return;
+        }
+
         // Загружаем JSON анимации
         const response = await fetch(imageUrl);
         
@@ -40,6 +53,9 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
           const data = await response.json();
           
           if (!cancelled) {
+            // Сохраняем в кеш
+            animationCache.set(fileId, data);
+            console.log('🎬 Cached animation:', fileId);
             setAnimationData(data);
           }
         } else {

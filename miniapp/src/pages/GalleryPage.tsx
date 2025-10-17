@@ -240,6 +240,8 @@ export const GalleryPage: React.FC = () => {
                     src={getStickerThumbnailUrl(sticker.file_id)}
                     alt={sticker.emoji || ''}
                     className="tg-sticker-detail__img"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';

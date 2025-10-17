@@ -57,6 +57,7 @@ export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
                   className="tg-sticker-card__preview-img"
                   onError={() => handleImageError(sticker.id)}
                   loading="lazy"
+                  decoding="async"
                 />
               )
             ) : (
