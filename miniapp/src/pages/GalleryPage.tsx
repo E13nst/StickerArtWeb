@@ -54,6 +54,7 @@ export const GalleryPage: React.FC = () => {
     const currentInitData = manualInitData || initData;
 
     if (!isInTelegramApp && !manualInitData && !currentInitData) {
+      console.log('✅ Режим без авторизации (dev mode)');
       setAuthStatus({
         authenticated: true,
         role: 'public'
@@ -62,6 +63,7 @@ export const GalleryPage: React.FC = () => {
     }
     
     if (!currentInitData) {
+      console.log('⚠️ initData отсутствует');
       setAuthStatus({
         authenticated: false,
         role: 'anonymous'
@@ -94,6 +96,17 @@ export const GalleryPage: React.FC = () => {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       setAuthError(errorMessage);
       console.error('❌ Ошибка авторизации:', error);
+      
+      // В dev режиме или если API недоступен - продолжаем работу
+      if (isMockMode || !isInTelegramApp) {
+        console.log('🔧 Продолжаем в dev режиме несмотря на ошибку API');
+        setAuthStatus({
+          authenticated: true,
+          role: 'public'
+        });
+        return true;
+      }
+      
       return false;
     } finally {
       setAuthLoading(false);
@@ -107,7 +120,7 @@ export const GalleryPage: React.FC = () => {
 
     try {
       const isAuthenticated = await checkAuth();
-      if (!isAuthenticated && isInTelegramApp) {
+      if (!isAuthenticated && isInTelegramApp && !isMockMode) {
         throw new Error('Пользователь не авторизован');
       }
 
@@ -115,7 +128,15 @@ export const GalleryPage: React.FC = () => {
       setStickerSets(response.content || []);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикеров';
-      setError(errorMessage);
+      
+      // В dev режиме показываем ошибку, но не блокируем интерфейс
+      if (isMockMode || !isInTelegramApp) {
+        console.warn('⚠️ API недоступен, показываем пустое состояние:', errorMessage);
+        setStickerSets([]); // Пустой массив вместо ошибки
+      } else {
+        setError(errorMessage);
+      }
+      
       console.error('❌ Ошибка загрузки стикеров:', error);
     } finally {
       setLoading(false);
