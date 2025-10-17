@@ -23,6 +23,9 @@ export default defineConfig(({ mode }) => {
       minify: 'esbuild', // Используем esbuild (быстрее terser)
       cssMinify: true,
       rollupOptions: {
+        input: {
+          app: 'app.html', // Основное приложение
+        },
         output: {
           manualChunks: {
             // Разделяем vendor код для лучшего кеширования
