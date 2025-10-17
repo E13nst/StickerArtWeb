@@ -224,16 +224,11 @@ export const GalleryPage: React.FC = () => {
       >
         <div className="tg-sticker-detail">
           <div className="tg-sticker-detail__grid">
-            {selectedStickerSet.stickers.map((sticker) => (
-              <div key={sticker.id} className="tg-sticker-detail__item">
-                <img
-                  src={sticker.thumbnailUrl || ''}
-                  alt={sticker.emoji || ''}
-                  className="tg-sticker-detail__img"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+            {selectedStickerSet.telegramStickerSetInfo?.stickers.map((sticker) => (
+              <div key={sticker.file_id} className="tg-sticker-detail__item">
+                <div className="tg-sticker-placeholder">
+                  {sticker.emoji || '🎨'}
+                </div>
               </div>
             ))}
           </div>
@@ -299,13 +294,12 @@ export const GalleryPage: React.FC = () => {
               key={stickerSet.id}
               title={stickerSet.title}
               description={`Создано: ${new Date(stickerSet.createdAt).toLocaleDateString()}`}
-              stickerCount={stickerSet.stickers.length}
-              previewStickers={stickerSet.stickers.slice(0, 4).map(s => ({
-                id: s.id,
-                thumbnailUrl: s.thumbnailUrl,
+              stickerCount={stickerSet.telegramStickerSetInfo?.stickers.length || 0}
+              previewStickers={stickerSet.telegramStickerSetInfo?.stickers.slice(0, 4).map(s => ({
+                id: s.file_id,
                 emoji: s.emoji,
-                isAnimated: s.isAnimated
-              }))}
+                isAnimated: s.is_animated
+              })) || []}
               onClick={() => handleViewStickerSet(stickerSet.id)}
             />
           ))}
