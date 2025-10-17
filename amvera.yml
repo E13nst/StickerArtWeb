@@ -7,5 +7,4 @@ build:
 
 run:
   containerPort: 80
-  environment:
-    - BACKEND_URL=${BACKEND_URL}
+
