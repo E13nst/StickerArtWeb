@@ -6,7 +6,7 @@ import { MyProfilePage } from '@/pages/MyProfilePage';
 
 const App: React.FC = () => {
   return (
-    <Router>
+    <Router basename="/miniapp">
       <Routes>
         <Route path="/" element={<GalleryPage />} />
         <Route path="/profile" element={<MyProfilePage />} />

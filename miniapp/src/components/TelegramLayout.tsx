@@ -34,8 +34,8 @@ export const TelegramLayout: React.FC<TelegramLayoutProps> = ({
 
     // Cleanup
     return () => {
-      if (tg.BackButton && onBackClick) {
-        tg.BackButton.offClick(onBackClick);
+      if (tg.BackButton) {
+        tg.BackButton.hide();
       }
     };
   }, [tg, showBackButton, onBackClick, title]);
