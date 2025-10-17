@@ -12,6 +12,7 @@ import { AnimatedSticker } from '../components/AnimatedSticker';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
+import { DebugPanel } from '../components/DebugPanel';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode, checkInitDataExpiry } = useTelegram();
@@ -218,121 +219,127 @@ export const GalleryPage: React.FC = () => {
   }
 
   if (viewMode === 'detail' && selectedStickerSet) {
-    return (
-      <TelegramLayout
-        title={selectedStickerSet.title}
-        showBackButton={true}
-        onBackClick={handleBackToList}
-      >
-        <div className="tg-sticker-detail">
-          <div className="tg-sticker-detail__grid">
-            {selectedStickerSet.telegramStickerSetInfo?.stickers.map((sticker) => (
-              <div key={sticker.file_id} className="tg-sticker-detail__item">
-                {sticker.is_animated ? (
-                  <AnimatedSticker
-                    fileId={sticker.file_id}
-                    imageUrl={getStickerThumbnailUrl(sticker.file_id)}
-                    emoji={sticker.emoji}
-                    className="tg-sticker-detail__img"
-                  />
-                ) : (
-                  <img
-                    src={getStickerThumbnailUrl(sticker.file_id)}
-                    alt={sticker.emoji || ''}
-                    className="tg-sticker-detail__img"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'tg-sticker-placeholder';
-                        placeholder.textContent = sticker.emoji || '🎨';
-                        parent.appendChild(placeholder);
-                      }
-                    }}
-                  />
-                )}
+      return (
+        <>
+          <TelegramLayout
+            title={selectedStickerSet.title}
+            showBackButton={true}
+            onBackClick={handleBackToList}
+          >
+            <div className="tg-sticker-detail">
+              <div className="tg-sticker-detail__grid">
+                {selectedStickerSet.telegramStickerSetInfo?.stickers.map((sticker) => (
+                  <div key={sticker.file_id} className="tg-sticker-detail__item">
+                    {sticker.is_animated ? (
+                      <AnimatedSticker
+                        fileId={sticker.file_id}
+                        imageUrl={getStickerThumbnailUrl(sticker.file_id)}
+                        emoji={sticker.emoji}
+                        className="tg-sticker-detail__img"
+                      />
+                    ) : (
+                      <img
+                        src={getStickerThumbnailUrl(sticker.file_id)}
+                        alt={sticker.emoji || ''}
+                        className="tg-sticker-detail__img"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'tg-sticker-placeholder';
+                            placeholder.textContent = sticker.emoji || '🎨';
+                            parent.appendChild(placeholder);
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </TelegramLayout>
-    );
-  }
+            </div>
+          </TelegramLayout>
+          <DebugPanel initData={initData} />
+        </>
+      );
+    }
 
   return (
-    <TelegramLayout title="🎨 Галерея стикеров">
-      {/* User Info Badge */}
-      {user && (
-        <div className="tg-user-badge fade-in">
-          <div className="tg-user-badge__avatar">
-            {user.first_name.charAt(0)}
-          </div>
-          <div className="tg-user-badge__info">
-            <div className="tg-user-badge__name">
-              {user.first_name} {user.last_name || ''}
+    <>
+      <TelegramLayout title="🎨 Галерея стикеров">
+        {/* User Info Badge */}
+        {user && (
+          <div className="tg-user-badge fade-in">
+            <div className="tg-user-badge__avatar">
+              {user.first_name.charAt(0)}
             </div>
-            {user.username && (
-              <div className="tg-user-badge__username">@{user.username}</div>
+            <div className="tg-user-badge__info">
+              <div className="tg-user-badge__name">
+                {user.first_name} {user.last_name || ''}
+              </div>
+              {user.username && (
+                <div className="tg-user-badge__username">@{user.username}</div>
+              )}
+            </div>
+            {isMockMode && (
+              <div className="tg-user-badge__mock-badge">DEV</div>
             )}
           </div>
-          {isMockMode && (
-            <div className="tg-user-badge__mock-badge">DEV</div>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* Search Bar */}
-      <div className="tg-search fade-in">
-        <input
-          type="text"
-          className="tg-search__input"
-          placeholder="🔍 Поиск стикеров..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          disabled={isLoading}
-        />
-      </div>
-
-      {/* Content */}
-      {isLoading ? (
-        <LoadingSpinner message="Загрузка стикеров..." />
-      ) : error ? (
-        <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
-      ) : filteredStickerSets.length === 0 ? (
-        <EmptyState
-          title="🎨 Стикеры не найдены"
-          message={searchTerm ? 'По вашему запросу ничего не найдено' : 'У вас пока нет созданных наборов стикеров'}
-          actionLabel="Создать стикер"
-          onAction={() => {
-            if (tg) {
-              tg.openTelegramLink('https://t.me/StickerGalleryBot');
-            }
-          }}
-        />
-      ) : (
-        <div className="fade-in">
-          {filteredStickerSets.map((stickerSet, index) => (
-            <TelegramStickerCard
-              key={stickerSet.id}
-              title={stickerSet.title}
-              description={`Создано: ${new Date(stickerSet.createdAt).toLocaleDateString()}`}
-              stickerCount={stickerSet.telegramStickerSetInfo?.stickers.length || 0}
-              previewStickers={stickerSet.telegramStickerSetInfo?.stickers.slice(0, 4).map(s => ({
-                id: s.file_id,
-                thumbnailUrl: getStickerThumbnailUrl(s.file_id),
-                emoji: s.emoji,
-                isAnimated: s.is_animated
-              })) || []}
-              onClick={() => handleViewStickerSet(stickerSet.id)}
-              priority={index < 3 ? 'high' : 'low'}
-            />
-          ))}
+        {/* Search Bar */}
+        <div className="tg-search fade-in">
+          <input
+            type="text"
+            className="tg-search__input"
+            placeholder="🔍 Поиск стикеров..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            disabled={isLoading}
+          />
         </div>
-      )}
-    </TelegramLayout>
+
+        {/* Content */}
+        {isLoading ? (
+          <LoadingSpinner message="Загрузка стикеров..." />
+        ) : error ? (
+          <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+        ) : filteredStickerSets.length === 0 ? (
+          <EmptyState
+            title="🎨 Стикеры не найдены"
+            message={searchTerm ? 'По вашему запросу ничего не найдено' : 'У вас пока нет созданных наборов стикеров'}
+            actionLabel="Создать стикер"
+            onAction={() => {
+              if (tg) {
+                tg.openTelegramLink('https://t.me/StickerGalleryBot');
+              }
+            }}
+          />
+        ) : (
+          <div className="fade-in" style={{ paddingBottom: '60px' }}>
+            {filteredStickerSets.map((stickerSet, index) => (
+              <TelegramStickerCard
+                key={stickerSet.id}
+                title={stickerSet.title}
+                description={`Создано: ${new Date(stickerSet.createdAt).toLocaleDateString()}`}
+                stickerCount={stickerSet.telegramStickerSetInfo?.stickers.length || 0}
+                previewStickers={stickerSet.telegramStickerSetInfo?.stickers.slice(0, 4).map(s => ({
+                  id: s.file_id,
+                  thumbnailUrl: getStickerThumbnailUrl(s.file_id),
+                  emoji: s.emoji,
+                  isAnimated: s.is_animated
+                })) || []}
+                onClick={() => handleViewStickerSet(stickerSet.id)}
+                priority={index < 3 ? 'high' : 'low'}
+              />
+            ))}
+          </div>
+        )}
+      </TelegramLayout>
+      <DebugPanel initData={initData} />
+    </>
   );
 };

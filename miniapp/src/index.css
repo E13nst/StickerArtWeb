@@ -306,9 +306,108 @@ a {
   transform: scale(0.95);
 }
 
-.tg-sticker-detail__img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: var(--tg-spacing-2);
-}
+    .tg-sticker-detail__img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: var(--tg-spacing-2);
+    }
+
+    /* Debug Panel */
+    .tg-debug-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--tg-theme-secondary-bg-color);
+      border-top: 1px solid var(--tg-theme-hint-color);
+      z-index: 1000;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .tg-debug-panel__toggle {
+      width: 100%;
+      padding: var(--tg-spacing-2) var(--tg-spacing-4);
+      background: var(--tg-theme-secondary-bg-color);
+      border: none;
+      color: var(--tg-theme-hint-color);
+      font-size: var(--tg-font-size-s);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tg-debug-panel__toggle:active {
+      background: var(--tg-theme-bg-color);
+    }
+
+    .tg-debug-panel__content {
+      padding: var(--tg-spacing-4);
+      background: var(--tg-theme-bg-color);
+      max-height: 400px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tg-debug-panel__info {
+      display: flex;
+      gap: var(--tg-spacing-2);
+      margin-bottom: var(--tg-spacing-3);
+      font-size: var(--tg-font-size-s);
+    }
+
+    .tg-debug-panel__label {
+      font-weight: 600;
+      color: var(--tg-theme-hint-color);
+    }
+
+    .tg-debug-panel__value {
+      color: var(--tg-theme-text-color);
+    }
+
+    .tg-debug-panel__data {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--tg-radius-m);
+      padding: var(--tg-spacing-3);
+      margin-bottom: var(--tg-spacing-3);
+      max-height: 150px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tg-debug-panel__data code {
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--tg-theme-text-color);
+      word-break: break-all;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    .tg-debug-panel__copy {
+      width: 100%;
+      margin-bottom: var(--tg-spacing-3);
+    }
+
+    .tg-debug-panel__hint {
+      font-size: var(--tg-font-size-xs);
+      color: var(--tg-theme-hint-color);
+      text-align: center;
+      padding: var(--tg-spacing-2);
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--tg-radius-s);
+    }
+
+    .tg-debug-panel__hint code {
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: var(--tg-font-size-xs);
+      color: var(--tg-theme-link-color);
+      background: var(--tg-theme-bg-color);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
