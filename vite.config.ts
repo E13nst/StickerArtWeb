@@ -9,27 +9,24 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     base: '/miniapp/',
+    root: 'miniapp', // Указываем корень проекта
     
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': path.resolve(__dirname, './miniapp/src'),
       },
     },
     
     build: {
-      outDir: 'dist',
+      outDir: '../dist/miniapp', // Относительно root (miniapp/)
+      emptyOutDir: true, // Очищаем только dist/miniapp
       assetsDir: 'assets',
-      sourcemap: false, // Отключаем sourcemap для production (ускоряет сборку)
-      minify: 'esbuild', // Используем esbuild (быстрее terser)
+      sourcemap: false,
+      minify: 'esbuild',
       cssMinify: true,
       rollupOptions: {
-        input: {
-          main: 'index.html', // Заглушка
-          app: 'app.html', // Основное приложение
-        },
         output: {
           manualChunks: {
-            // Разделяем vendor код для лучшего кеширования
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           },
         },
@@ -41,7 +38,6 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: true,
       proxy: {
-        // Проксируем API запросы на бэкенд
         '/api': {
           target: backendUrl,
           changeOrigin: true,

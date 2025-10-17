@@ -12,9 +12,10 @@ COPY package*.json ./
 RUN npm ci --no-audit
 
 # Копируем исходники
-COPY . .
+COPY miniapp ./miniapp
+COPY index.html vite.config.ts tsconfig.json tsconfig.node.json ./
 
-# Собираем приложение
+# Собираем приложение (включает копирование index.html в dist/)
 RUN npm run build
 
 # Stage 2: Nginx для раздачи статики
@@ -37,4 +38,3 @@ EXPOSE 80
 
 # Скрипт для подстановки переменных и запуска nginx
 CMD /bin/sh -c "envsubst '\$BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
-

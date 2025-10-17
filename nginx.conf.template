@@ -5,13 +5,13 @@ server {
     root /usr/share/nginx/html;
     index index.html;
     
-    # Gzip compression для лучшей производительности
+    # Gzip compression
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript application/json;
     
-    # Проксирование API запросов на бэкенд
+    # API proxy
     location /api {
         proxy_pass ${BACKEND_URL};
         proxy_http_version 1.1;
@@ -21,18 +21,16 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_ssl_server_name on;
         
-        # CORS заголовки
         add_header Access-Control-Allow-Origin * always;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
         add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Telegram-Init-Data, X-Telegram-Bot-Name" always;
         
-        # Обработка preflight запросов
         if ($request_method = 'OPTIONS') {
             return 204;
         }
     }
     
-    # Проксирование auth запросов
+    # Auth proxy
     location /auth {
         proxy_pass ${BACKEND_URL};
         proxy_http_version 1.1;
@@ -43,21 +41,17 @@ server {
         proxy_ssl_server_name on;
     }
     
-    # Точное совпадение для /miniapp/ - отдаем app.html
+    # Telegram Mini App - точное совпадение /miniapp/
     location = /miniapp/ {
-        try_files /app.html =404;
-        
-        # Заголовки безопасности
+        try_files /miniapp/index.html =404;
         add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
     }
     
-    # Все запросы внутри /miniapp/* для SPA роутинга
+    # Telegram Mini App - все файлы и SPA routing
     location /miniapp/ {
-        try_files $uri /app.html;
-        
-        # Заголовки безопасности
+        try_files $uri /miniapp/index.html;
         add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
@@ -69,17 +63,15 @@ server {
         add_header Cache-Control "public, immutable";
     }
     
-    # Главная страница - заглушка
-    location = / {
-        try_files /index.html =404;
-        
-        # Заголовки безопасности
+    # Landing page - корень сайта
+    location / {
+        try_files $uri /index.html;
         add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
     }
     
-    # Health check endpoint
+    # Health check
     location /health {
         access_log off;
         return 200 "healthy\n";
