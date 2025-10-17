@@ -8,6 +8,7 @@ import { getStickerThumbnailUrl } from '../utils/stickerUtils';
 // Новые Telegram-style компоненты
 import { TelegramLayout } from '../components/TelegramLayout';
 import { TelegramStickerCard } from '../components/TelegramStickerCard';
+import { AnimatedSticker } from '../components/AnimatedSticker';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
@@ -227,22 +228,31 @@ export const GalleryPage: React.FC = () => {
           <div className="tg-sticker-detail__grid">
             {selectedStickerSet.telegramStickerSetInfo?.stickers.map((sticker) => (
               <div key={sticker.file_id} className="tg-sticker-detail__item">
-                <img
-                  src={getStickerThumbnailUrl(sticker.file_id)}
-                  alt={sticker.emoji || ''}
-                  className="tg-sticker-detail__img"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent) {
-                      const placeholder = document.createElement('div');
-                      placeholder.className = 'tg-sticker-placeholder';
-                      placeholder.textContent = sticker.emoji || '🎨';
-                      parent.appendChild(placeholder);
-                    }
-                  }}
-                />
+                {sticker.is_animated ? (
+                  <AnimatedSticker
+                    fileId={sticker.file_id}
+                    imageUrl={getStickerThumbnailUrl(sticker.file_id)}
+                    emoji={sticker.emoji}
+                    className="tg-sticker-detail__img"
+                  />
+                ) : (
+                  <img
+                    src={getStickerThumbnailUrl(sticker.file_id)}
+                    alt={sticker.emoji || ''}
+                    className="tg-sticker-detail__img"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'tg-sticker-placeholder';
+                        placeholder.textContent = sticker.emoji || '🎨';
+                        parent.appendChild(placeholder);
+                      }
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>

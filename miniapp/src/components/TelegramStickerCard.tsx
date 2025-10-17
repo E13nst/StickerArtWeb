@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
+import { AnimatedSticker } from './AnimatedSticker';
 
 interface TelegramStickerCardProps {
   title: string;
@@ -42,20 +43,29 @@ export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
         {previewStickers.slice(0, 4).map((sticker, index) => (
           <div key={sticker.id} className="tg-sticker-card__preview-item">
             {!imageErrors.has(sticker.id) && sticker.thumbnailUrl ? (
-              <img
-                src={sticker.thumbnailUrl}
-                alt={sticker.emoji || ''}
-                className="tg-sticker-card__preview-img"
-                onError={() => handleImageError(sticker.id)}
-                loading="lazy"
-              />
+              sticker.isAnimated ? (
+                <AnimatedSticker
+                  fileId={sticker.id}
+                  imageUrl={sticker.thumbnailUrl}
+                  emoji={sticker.emoji}
+                  className="tg-sticker-card__preview-img"
+                />
+              ) : (
+                <img
+                  src={sticker.thumbnailUrl}
+                  alt={sticker.emoji || ''}
+                  className="tg-sticker-card__preview-img"
+                  onError={() => handleImageError(sticker.id)}
+                  loading="lazy"
+                />
+              )
             ) : (
               <div className="tg-sticker-card__preview-placeholder">
                 {sticker.emoji || '🎨'}
               </div>
             )}
             {sticker.isAnimated && (
-              <div className="tg-sticker-card__animated-badge">GIF</div>
+              <div className="tg-sticker-card__animated-badge">TGS</div>
             )}
           </div>
         ))}
