@@ -92,6 +92,9 @@ export interface TelegramWebApp {
   readTextFromClipboard: (callback?: (text: string) => void) => void;
   requestWriteAccess: (callback?: (granted: boolean) => void) => void;
   requestContact: (callback?: (granted: boolean) => void) => void;
+  onEvent: (eventType: string, eventHandler: () => void) => void;
+  offEvent: (eventType: string, eventHandler: () => void) => void;
+  invokeCustomMethod: (method: string, params?: any, callback?: (error: string | null, result?: any) => void) => void;
 }
 
 export interface TelegramUser {
