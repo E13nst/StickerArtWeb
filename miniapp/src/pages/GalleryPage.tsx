@@ -315,7 +315,7 @@ export const GalleryPage: React.FC = () => {
         />
       ) : (
         <div className="fade-in">
-          {filteredStickerSets.map((stickerSet) => (
+          {filteredStickerSets.map((stickerSet, index) => (
             <TelegramStickerCard
               key={stickerSet.id}
               title={stickerSet.title}
@@ -328,6 +328,7 @@ export const GalleryPage: React.FC = () => {
                 isAnimated: s.is_animated
               })) || []}
               onClick={() => handleViewStickerSet(stickerSet.id)}
+              priority={index < 3 ? 'high' : 'low'}
             />
           ))}
         </div>

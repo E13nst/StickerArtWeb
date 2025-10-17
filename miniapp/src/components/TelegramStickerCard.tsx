@@ -13,6 +13,7 @@ interface TelegramStickerCardProps {
     isAnimated?: boolean;
   }>;
   onClick?: () => void;
+  priority?: 'high' | 'low' | 'auto';
 }
 
 export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
@@ -21,6 +22,7 @@ export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
   stickerCount,
   previewStickers,
   onClick,
+  priority = 'auto',
 }) => {
   const { tg } = useTelegram();
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
@@ -56,8 +58,9 @@ export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
                   alt={sticker.emoji || ''}
                   className="tg-sticker-card__preview-img"
                   onError={() => handleImageError(sticker.id)}
-                  loading="lazy"
+                  loading={priority === 'high' ? 'eager' : 'lazy'}
                   decoding="async"
+                  fetchPriority={priority}
                 />
               )
             ) : (
