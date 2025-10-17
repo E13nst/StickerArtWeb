@@ -3,6 +3,7 @@ import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { apiClient } from '../api/client';
 import { StickerSetResponse } from '../types/sticker';
+import { getStickerThumbnailUrl } from '../utils/stickerUtils';
 
 // Новые Telegram-style компоненты
 import { TelegramLayout } from '../components/TelegramLayout';
@@ -226,9 +227,22 @@ export const GalleryPage: React.FC = () => {
           <div className="tg-sticker-detail__grid">
             {selectedStickerSet.telegramStickerSetInfo?.stickers.map((sticker) => (
               <div key={sticker.file_id} className="tg-sticker-detail__item">
-                <div className="tg-sticker-placeholder">
-                  {sticker.emoji || '🎨'}
-                </div>
+                <img
+                  src={getStickerThumbnailUrl(sticker.file_id)}
+                  alt={sticker.emoji || ''}
+                  className="tg-sticker-detail__img"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      const placeholder = document.createElement('div');
+                      placeholder.className = 'tg-sticker-placeholder';
+                      placeholder.textContent = sticker.emoji || '🎨';
+                      parent.appendChild(placeholder);
+                    }
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -297,6 +311,7 @@ export const GalleryPage: React.FC = () => {
               stickerCount={stickerSet.telegramStickerSetInfo?.stickers.length || 0}
               previewStickers={stickerSet.telegramStickerSetInfo?.stickers.slice(0, 4).map(s => ({
                 id: s.file_id,
+                thumbnailUrl: getStickerThumbnailUrl(s.file_id),
                 emoji: s.emoji,
                 isAnimated: s.is_animated
               })) || []}

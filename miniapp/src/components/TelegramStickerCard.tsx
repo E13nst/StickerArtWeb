@@ -116,8 +116,14 @@ const styles = `
 }
 
 .tg-sticker-card__preview-placeholder {
-  font-size: 48px;
-  opacity: 0.5;
+  font-size: 56px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--tg-theme-secondary-bg-color) 0%, var(--tg-theme-bg-color) 100%);
 }
 
 .tg-sticker-card__animated-badge {
