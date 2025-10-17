@@ -106,7 +106,7 @@ const styles = `
   grid-template-columns: 1fr 1fr;
   gap: 1px;
   background: var(--tg-theme-bg-color);
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 1 / 1;
 }
 
 .tg-sticker-card__preview-item {
@@ -116,6 +116,7 @@ const styles = `
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
 }
 
 .tg-sticker-card__preview-img {
