@@ -43,13 +43,19 @@ server {
         proxy_ssl_server_name on;
     }
     
-    # Mini app по пути /miniapp/
-    location /miniapp/ {
-        # Убираем префикс /miniapp/ перед поиском файлов
-        rewrite ^/miniapp/(.*)$ /$1 break;
+    # Точное совпадение для /miniapp/ - отдаем app.html
+    location = /miniapp/ {
+        try_files /app.html =404;
         
-        # Пробуем найти файл, если не найден - отдаем app.html
-        try_files $uri $uri/ /app.html =404;
+        # Заголовки безопасности
+        add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+    }
+    
+    # Все запросы внутри /miniapp/* для SPA роутинга
+    location /miniapp/ {
+        try_files $uri /app.html;
         
         # Заголовки безопасности
         add_header X-Frame-Options "ALLOW-FROM https://web.telegram.org" always;
