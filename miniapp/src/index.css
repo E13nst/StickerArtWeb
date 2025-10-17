@@ -1,219 +1,195 @@
-/* Telegram Web App стили */
-:root {
-  --tg-theme-bg-color: #ffffff;
-  --tg-theme-text-color: #000000;
-  --tg-theme-hint-color: #999999;
-  --tg-theme-button-color: #2481cc;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f8f9fa;
-  --tg-theme-link-color: #2481cc;
-  --tg-theme-accent-text-color: #2481cc;
-}
+/* Telegram Mini App Styles */
+@import '@telegram-apps/telegram-ui/dist/styles.css';
 
 * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+}
+
+:root {
+  /* Telegram цвета будут установлены через useTelegram hook */
+  --tg-spacing-1: 4px;
+  --tg-spacing-2: 8px;
+  --tg-spacing-3: 12px;
+  --tg-spacing-4: 16px;
+  --tg-spacing-5: 20px;
+  --tg-spacing-6: 24px;
+  
+  --tg-radius-s: 8px;
+  --tg-radius-m: 12px;
+  --tg-radius-l: 16px;
+  
+  --tg-font-size-xs: 12px;
+  --tg-font-size-s: 14px;
+  --tg-font-size-m: 16px;
+  --tg-font-size-l: 18px;
+  --tg-font-size-xl: 20px;
+  --tg-font-size-xxl: 24px;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--tg-theme-bg-color);
-  color: var(--tg-theme-text-color);
-  line-height: 1.6;
-  padding: 16px;
+  margin: 0;
+  padding: 0;
+  background-color: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
 }
 
 #root {
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* Стили для превью стикеров */
-.sticker-preview-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.preview-item {
-  position: relative;
-  aspect-ratio: 1;
-  background: var(--tg-theme-secondary-bg-color);
-  border-radius: 6px;
+/* Отключаем скролл на body для Telegram */
+body.tg-viewport-stable {
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.preview-item.empty {
-  background: rgba(var(--tg-theme-hint-color), 0.1);
-  border-style: dashed;
-}
-
-.preview-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: fixed;
   width: 100%;
-  height: 100%;
-  font-size: 24px;
-  color: var(--tg-theme-hint-color);
-  background: var(--tg-theme-secondary-bg-color);
 }
 
-.preview-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
-  border-radius: 6px;
-}
-
-.preview-lottie {
-  width: 100%;
-  height: 100%;
-  display: none;
-  border-radius: 6px;
-  background: transparent;
-}
-
-.preview-image.lazy {
-  opacity: 1;
-}
-
-.preview-lottie.lazy {
-  opacity: 1;
-}
-
-.preview-image:not(.lazy) {
-  opacity: 1;
-}
-
-.preview-lottie:not(.lazy) {
-  opacity: 1;
-}
-
-/* Стили для детального просмотра стикерсета */
-.sticker-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.sticker-grid-item {
-  position: relative;
-  aspect-ratio: 1;
-  background: var(--tg-theme-secondary-bg-color);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.sticker-grid-item:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.sticker-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: 32px;
-  color: var(--tg-theme-hint-color);
-  background: var(--tg-theme-secondary-bg-color);
-}
-
-.sticker-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: none;
-  border-radius: 10px;
-}
-
-.sticker-lottie {
-  width: 100%;
-  height: 100%;
-  display: none;
-  border-radius: 10px;
-  background: transparent;
-}
-
-.sticker-image.lazy {
-  opacity: 1;
-}
-
-.sticker-lottie.lazy {
-  opacity: 1;
-}
-
-.sticker-image:not(.lazy) {
-  opacity: 1;
-}
-
-.sticker-lottie:not(.lazy) {
-  opacity: 1;
-}
-
-.animated-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(255, 165, 0, 0.9);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 4px;
-  border-radius: 4px;
-  pointer-events: none;
-}
-
-/* Адаптивность */
-@media (max-width: 480px) {
+/* Telegram Safe Areas */
+@supports (padding: max(0px)) {
   body {
-    padding: 12px;
-  }
-  
-  .sticker-actions {
-    flex-direction: column;
-  }
-  
-  .btn {
-    width: 100%;
+    padding-top: max(0px, env(safe-area-inset-top));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
 }
 
-@media (max-width: 400px) {
-  .sticker-actions {
-    flex-direction: column;
+/* Убираем стандартные стили для ссылок */
+a {
+  color: var(--tg-theme-link-color, #2481cc);
+  text-decoration: none;
+}
+
+/* Кастомный scrollbar для webkit */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-theme-hint-color, #999999);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tg-theme-text-color, #000000);
+  opacity: 0.5;
+}
+
+/* Telegram-style animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-  
-  .sticker-actions .btn {
-    flex: none;
-    width: 100%;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .sticker-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
   }
-  
-  .preview-placeholder,
-  .animated-badge {
-    font-size: 18px;
+  100% {
+    background-position: 468px 0;
   }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Telegram-style loading skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 25%,
+    var(--tg-theme-bg-color, #ffffff) 50%,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+/* Отключаем стандартные стили Material-UI */
+.MuiPaper-root {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.MuiCard-root {
+  background-color: var(--tg-theme-secondary-bg-color, #f8f9fa) !important;
+  border-radius: var(--tg-radius-l) !important;
+}
+
+/* Telegram-style ripple effect */
+.tg-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.tg-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1));
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.tg-ripple:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* iOS-style smooth scrolling */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Убираем outline для touch устройств */
+@media (hover: none) {
+  button:focus,
+  a:focus,
+  input:focus,
+  textarea:focus {
+    outline: none;
+  }
+}
+
+/* Темная тема */
+.tg-dark-theme {
+  color-scheme: dark;
+}
+
+.tg-light-theme {
+  color-scheme: light;
 }
