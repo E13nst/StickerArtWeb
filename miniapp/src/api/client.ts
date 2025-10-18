@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse } from '@/types/sticker';
-import { UserInfo } from '@/store/useProfileStore';
-import { mockStickerSets, mockAuthResponse } from '@/data/mockData';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta } from '../types/sticker';
+import { UserInfo } from '../store/useProfileStore';
+import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -133,6 +133,27 @@ class ApiClient {
   async getStickerSet(id: number): Promise<StickerSetResponse> {
     const response = await this.client.get<StickerSetResponse>(`/stickersets/${id}`);
     return response.data;
+  }
+
+  // Метаданные набора: автор и лайки
+  async getStickerSetMeta(id: number): Promise<StickerSetMeta> {
+    try {
+      const response = await this.client.get<StickerSetMeta>(`/stickersets/${id}/meta`);
+      return response.data;
+    } catch (error) {
+      console.warn('⚠️ API метаданных недоступен, используем мок значения');
+      return {
+        stickerSetId: id,
+        author: {
+          id: 1,
+          username: 'mockauthor',
+          firstName: 'Mock',
+          lastName: 'Author',
+          avatarUrl: 'https://via.placeholder.com/64x64/1976d2/ffffff?text=MA'
+        },
+        likes: Math.floor(100 + Math.random() * 900)
+      };
+    }
   }
 
   // Удаление стикерсета

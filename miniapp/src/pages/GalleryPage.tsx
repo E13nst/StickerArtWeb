@@ -13,6 +13,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
 import { DebugPanel } from '../components/DebugPanel';
+import { StickerPackModal } from '../components/StickerPackModal';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode, checkInitDataExpiry } = useTelegram();
@@ -31,8 +32,8 @@ export const GalleryPage: React.FC = () => {
 
   // Локальное состояние
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
+  const [isDetailOpen, setDetailOpen] = useState(false);
   const [manualInitData, setManualInitData] = useState<string>('');
 
   // Загрузка initData из URL параметров при инициализации
@@ -177,7 +178,7 @@ export const GalleryPage: React.FC = () => {
     const stickerSet = stickerSets.find(s => s.id === id);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
-      setViewMode('detail');
+      setDetailOpen(true);
     }
   };
 
@@ -187,7 +188,7 @@ export const GalleryPage: React.FC = () => {
       tg.HapticFeedback.impactOccurred('light');
     }
     
-    setViewMode('list');
+    setDetailOpen(false);
     setSelectedStickerSet(null);
   };
 
@@ -218,58 +219,11 @@ export const GalleryPage: React.FC = () => {
     return <LoadingSpinner message="Инициализация..." />;
   }
 
-  if (viewMode === 'detail' && selectedStickerSet) {
-      return (
-        <>
-          <TelegramLayout
-            title={selectedStickerSet.title}
-            showBackButton={true}
-            onBackClick={handleBackToList}
-          >
-            <div className="tg-sticker-detail">
-              <div className="tg-sticker-detail__grid">
-                {selectedStickerSet.telegramStickerSetInfo?.stickers.map((sticker) => (
-                  <div key={sticker.file_id} className="tg-sticker-detail__item">
-                    {sticker.is_animated ? (
-                      <AnimatedSticker
-                        fileId={sticker.file_id}
-                        imageUrl={getStickerThumbnailUrl(sticker.file_id)}
-                        emoji={sticker.emoji}
-                        className="tg-sticker-detail__img"
-                      />
-                    ) : (
-                      <img
-                        src={getStickerThumbnailUrl(sticker.file_id)}
-                        alt={sticker.emoji || ''}
-                        className="tg-sticker-detail__img"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent) {
-                            const placeholder = document.createElement('div');
-                            placeholder.className = 'tg-sticker-placeholder';
-                            placeholder.textContent = sticker.emoji || '🎨';
-                            parent.appendChild(placeholder);
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </TelegramLayout>
-          <DebugPanel initData={initData} />
-        </>
-      );
-    }
+  // Детальная модалка поверх списка
 
   return (
     <>
-      <TelegramLayout title="🎨 Галерея стикеров">
+      <TelegramLayout>
         {/* User Info Badge */}
         {user && (
           <div className="tg-user-badge fade-in">
@@ -340,6 +294,7 @@ export const GalleryPage: React.FC = () => {
         )}
       </TelegramLayout>
       <DebugPanel initData={initData} />
+      <StickerPackModal open={isDetailOpen} stickerSet={selectedStickerSet} onClose={handleBackToList} />
     </>
   );
 };

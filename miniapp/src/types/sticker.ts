@@ -66,6 +66,21 @@ export interface StickerSetResponse {
   telegramStickerSetInfo: TelegramStickerSetInfo;
 }
 
+// Доп. метаданные набора (загружаются отдельно)
+export interface StickerSetAuthorInfo {
+  id: number;
+  username?: string;
+  firstName: string;
+  lastName?: string;
+  avatarUrl?: string;
+}
+
+export interface StickerSetMeta {
+  stickerSetId: number;
+  author: StickerSetAuthorInfo;
+  likes: number;
+}
+
 export interface StickerSetListResponse {
   content: StickerSetResponse[];
   totalElements: number;

@@ -9,13 +9,15 @@ interface AnimatedStickerProps {
   imageUrl: string;
   emoji?: string;
   className?: string;
+  hidePlaceholder?: boolean;
 }
 
 export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   fileId,
   imageUrl,
   emoji,
-  className
+  className,
+  hidePlaceholder
 }) => {
   const [animationData, setAnimationData] = useState<any>(null);
   const [error, setError] = useState(false);
@@ -89,7 +91,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         justifyContent: 'center',
         fontSize: '48px' 
       }}>
-        {emoji || '🎨'}
+        {hidePlaceholder ? null : (emoji || '🎨')}
       </div>
     );
   }
