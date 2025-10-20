@@ -27,6 +27,7 @@ import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomNav } from '@/components/BottomNav';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
+import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 
 export const MyProfilePage: React.FC = () => {
@@ -39,6 +40,8 @@ export const MyProfilePage: React.FC = () => {
     isStickerSetsLoading,
     userInfo,
     userStickerSets,
+    currentPage,
+    totalPages,
     error,
     userError,
     stickerSetsError,
@@ -47,6 +50,7 @@ export const MyProfilePage: React.FC = () => {
     setStickerSetsLoading,
     setUserInfo,
     setUserStickerSets,
+    setPagination,
     setError,
     setUserError,
     setStickerSetsError,
@@ -57,6 +61,7 @@ export const MyProfilePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
 
@@ -74,6 +79,14 @@ export const MyProfilePage: React.FC = () => {
 
     // Сбрасываем состояние и загружаем профиль
     reset();
+
+    // Настраиваем заголовки: initData либо заголовки расширения в dev
+    if (initData) {
+      apiClient.setAuthHeaders(initData);
+    } else {
+      apiClient.checkExtensionHeaders();
+    }
+
     loadMyProfile(currentUserId);
   }, [currentUserId]);
 
@@ -108,18 +121,38 @@ export const MyProfilePage: React.FC = () => {
     }
   };
 
-  // Загрузка информации о текущем пользователе
-  const loadUserInfo = async (telegramId: number) => {
+  // Загрузка информации о текущем пользователе (+ профиль + фото)
+  const loadUserInfo = async (_telegramId: number) => {
     setUserLoading(true);
     setUserError(null);
 
     try {
-      const userInfo = await apiClient.getUserByTelegramId(telegramId);
-      console.log('✅ Информация о пользователе загружена:', userInfo);
-      setUserInfo(userInfo);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки пользователя';
-      setUserError(errorMessage);
+      // 1) базовая инфа /users/me
+      const baseUser = await apiClient.getCurrentUser();
+
+      // 2) профиль /profiles/me (роль и баланс)
+      const profile = await apiClient.getMyProfile();
+
+      // 3) фото профиля /users/{id}/photo (404 -> null)
+      const photo = await apiClient.getUserPhoto(baseUser.id);
+
+      const combined = {
+        ...baseUser,
+        role: profile?.role || baseUser.role,
+        artBalance: typeof profile?.artBalance === 'number' ? profile!.artBalance : baseUser.artBalance,
+        profilePhotoFileId: photo?.profilePhotoFileId,
+        profilePhotos: photo?.profilePhotos
+      };
+
+      console.log('✅ Информация о пользователе загружена:', combined);
+      setUserInfo(combined as any);
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        setUserError('Требуется авторизация');
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки пользователя';
+        setUserError(errorMessage);
+      }
       throw error;
     } finally {
       setUserLoading(false);
@@ -127,7 +160,7 @@ export const MyProfilePage: React.FC = () => {
   };
 
   // Загрузка стикерсетов пользователя
-  const loadUserStickerSets = async (telegramId: number, searchQuery?: string) => {
+  const loadUserStickerSets = async (telegramId: number, searchQuery?: string, page: number = 0, append: boolean = false) => {
     setStickerSetsLoading(true);
     setStickerSetsError(null);
 
@@ -137,38 +170,58 @@ export const MyProfilePage: React.FC = () => {
       
       console.log('🔍 Загрузка стикерсетов для userId:', userId, 'telegramId:', telegramId, 'searchQuery:', searchQuery);
       
-      const response = searchQuery 
-        ? await apiClient.searchUserStickerSets(userId, searchQuery)
-        : await apiClient.getUserStickerSets(userId);
+      // По ТЗ сортировка createdAt DESC
+      const response = await apiClient.getUserStickerSets(userId, page, 20, 'createdAt', 'DESC');
       
-      console.log('✅ Стикерсеты загружены:', response.content?.length || 0);
-      setUserStickerSets(response.content || []);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикерсетов';
-      console.error('❌ Ошибка загрузки стикерсетов:', error);
-      setStickerSetsError(errorMessage);
+      console.log('✅ Стикерсеты загружены:', response.content?.length || 0, 'страница:', response.number, 'из', response.totalPages);
+      if (append) {
+        setUserStickerSets(response.number === 0 ? (response.content || []) : getUniqueAppended(userStickerSets, response.content || []));
+      } else {
+        setUserStickerSets(response.content || []);
+      }
+      // Обновляем пагинацию
+      setPagination(response.number, response.totalPages, response.totalElements);
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        setStickerSetsError('Требуется авторизация');
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикерсетов';
+        console.error('❌ Ошибка загрузки стикерсетов:', error);
+        setStickerSetsError(errorMessage);
+      }
       throw error;
     } finally {
       setStickerSetsLoading(false);
     }
   };
 
+  // Утилита для уникального добавления (без дубликатов)
+  const getUniqueAppended = (existing: any[], incoming: any[]) => {
+    const ids = new Set(existing.map((s) => s.id));
+    const unique = incoming.filter((s) => !ids.has(s.id));
+    return [...existing, ...unique];
+  };
+
   // Обработчики действий
   const handleBack = () => {
-    if (viewMode === 'detail') {
-      setViewMode('list');
-      setSelectedStickerSet(null);
-    } else {
-      navigate('/'); // Возврат на главную
+    if (isModalOpen) {
+      handleCloseModal();
+      return;
     }
+    navigate('/'); // Возврат на главную
   };
 
   const handleViewStickerSet = (id: number, _name: string) => {
     const stickerSet = userStickerSets.find(s => s.id === id);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
-      setViewMode('detail');
+      setIsModalOpen(true);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStickerSet(null);
   };
 
   const handleShareStickerSet = (name: string, _title: string) => {
@@ -283,7 +336,7 @@ export const MyProfilePage: React.FC = () => {
     }}>
       {/* Заголовок */}
       <Header 
-        title={viewMode === 'detail' ? selectedStickerSet?.title || 'Детали' : 'Мой профиль'}
+        title={'Мой профиль'}
         onMenuClick={handleBack}
         showOptions={false}
       />
@@ -349,6 +402,18 @@ export const MyProfilePage: React.FC = () => {
                   onView={handleViewStickerSet}
                   isInTelegramApp={isInTelegramApp}
                 />
+              )}
+
+              {/* Показать ещё */}
+              {filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => currentUserId && loadUserStickerSets(currentUserId, undefined, currentPage + 1, true)}
+                  >
+                    Показать ещё
+                  </Button>
+                </Box>
               )}
             </TabPanel>
 
@@ -426,18 +491,7 @@ export const MyProfilePage: React.FC = () => {
               </Box>
             </TabPanel>
           </>
-        ) : (
-          // Детальный просмотр стикерсета
-          selectedStickerSet && (
-            <StickerSetDetail
-              stickerSet={selectedStickerSet}
-              onBack={() => setViewMode('list')}
-              onShare={handleShareStickerSet}
-              onLike={handleLikeStickerSet}
-              isInTelegramApp={isInTelegramApp}
-            />
-          )
-        )}
+        ) : null}
       </Container>
 
       {/* Нижняя навигация */}
@@ -445,6 +499,13 @@ export const MyProfilePage: React.FC = () => {
         activeTab={activeBottomTab}
         onChange={setActiveBottomTab}
         isInTelegramApp={isInTelegramApp}
+      />
+
+      {/* Модалка деталей стикерсета */}
+      <StickerPackModal
+        open={isModalOpen}
+        stickerSet={selectedStickerSet}
+        onClose={handleCloseModal}
       />
     </Box>
   );

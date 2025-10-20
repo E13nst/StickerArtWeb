@@ -40,13 +40,11 @@ class ApiClient {
     );
   }
 
-      // Добавляем заголовки аутентификации
-      setAuthHeaders(initData: string, botName: string = 'StickerGallery') {
+      // Добавляем заголовки аутентификации (botName не отправляем)
+      setAuthHeaders(initData: string) {
         this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
-        this.client.defaults.headers.common['X-Telegram-Bot-Name'] = botName;
         console.log('✅ Заголовки аутентификации установлены:');
         console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
-        console.log('  X-Telegram-Bot-Name:', botName);
       }
 
       // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
@@ -54,16 +52,13 @@ class ApiClient {
         // ModHeader добавляет заголовки в fetch requests
         // Проверяем, есть ли заголовки от расширений
         const extensionInitData = this.client.defaults.headers.common['X-Telegram-Init-Data-Extension'];
-        const extensionBotName = this.client.defaults.headers.common['X-Telegram-Bot-Name-Extension'];
         
         if (extensionInitData) {
           console.log('🔧 Обнаружены заголовки от Chrome расширения:');
           console.log('  X-Telegram-Init-Data-Extension:', extensionInitData);
-          console.log('  X-Telegram-Bot-Name-Extension:', extensionBotName);
           
           // Используем заголовки от расширения
           this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
-          this.client.defaults.headers.common['X-Telegram-Bot-Name'] = extensionBotName || 'StickerGallery';
           
           return true;
         }
@@ -187,6 +182,86 @@ class ApiClient {
 
   // ============ МЕТОДЫ ДЛЯ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ ============
 
+  // Текущий пользователь (из Telegram): GET /api/users/me
+  async getCurrentUser(): Promise<UserInfo> {
+    try {
+      const response = await this.client.get<any>('/users/me');
+      const data = response.data;
+      // Маппинг в UserInfo (роль/баланс придут отдельно)
+      const mapped: UserInfo = {
+        id: data.id,
+        telegramId: data.id,
+        username: data.username,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        avatarUrl: undefined,
+        role: 'USER',
+        artBalance: 0,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        telegramUserInfo: {
+          user: {
+            id: data.id,
+            is_bot: false,
+            first_name: data.firstName,
+            last_name: data.lastName,
+            username: data.username,
+            language_code: data.languageCode,
+            is_premium: !!data.isPremium
+          },
+          status: 'ok'
+        }
+      };
+      return mapped;
+    } catch (error) {
+      // Фоллбек к мокам при девелопменте вне Telegram
+      return {
+        id: 123456789,
+        telegramId: 123456789,
+        username: 'mockuser',
+        firstName: 'Mock',
+        lastName: 'User',
+        avatarUrl: undefined,
+        role: 'USER',
+        artBalance: 0,
+        createdAt: new Date().toISOString()
+      } as UserInfo;
+    }
+  }
+
+  // Профиль текущего пользователя (роль, баланс): GET /api/profiles/me
+  async getMyProfile(): Promise<{ role: string; artBalance: number; userId: number } | null> {
+    try {
+      const response = await this.client.get<any>('/profiles/me');
+      const data = response.data;
+      return {
+        role: data.role,
+        artBalance: data.artBalance,
+        userId: data.userId
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Фото профиля: GET /api/users/{userId}/photo
+  async getUserPhoto(userId: number): Promise<{ profilePhotoFileId?: string; profilePhotos?: any } | null> {
+    try {
+      const response = await this.client.get<any>(`/users/${userId}/photo`);
+      const data = response.data;
+      return {
+        profilePhotoFileId: data.profilePhotoFileId,
+        profilePhotos: data.profilePhotos
+      };
+    } catch (error: any) {
+      // 404 — нет фото
+      if (error?.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   // Получение информации о пользователе по ID
   async getUserInfo(userId: number): Promise<UserInfo> {
     try {
@@ -234,10 +309,16 @@ class ApiClient {
   }
 
   // Получение стикерсетов пользователя по userId
-  async getUserStickerSets(userId: number, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
+  async getUserStickerSets(
+    userId: number,
+    page: number = 0,
+    size: number = 20,
+    sort: 'createdAt' | 'title' | 'name' = 'createdAt',
+    direction: 'ASC' | 'DESC' = 'DESC'
+  ): Promise<StickerSetListResponse> {
     try {
       const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
-        params: { page, size }
+        params: { page, size, sort, direction }
       });
       return response.data;
     } catch (error) {

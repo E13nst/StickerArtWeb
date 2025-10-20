@@ -11,8 +11,8 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 interface BottomNavProps {
-  activeTab: number;
-  onChange: (newValue: number) => void;
+  activeTab?: number;
+  onChange?: (newValue: number) => void;
   isInTelegramApp?: boolean;
 }
 
@@ -22,30 +22,31 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Показываем нижнюю навигацию везде для лучшего UX
+  const [internalTab, setInternalTab] = React.useState<number>(0);
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
     if (location.pathname === '/') return 0;
     if (location.pathname.startsWith('/profile')) return 3;
-    return activeTab;
+    return typeof activeTab === 'number' ? activeTab : internalTab;
   };
 
   const handleNavigation = (_event: any, newValue: number) => {
-    onChange(newValue);
+    if (onChange) {
+      onChange(newValue);
+    } else {
+      setInternalTab(newValue);
+    }
 
     switch (newValue) {
       case 0:
         navigate('/');
         break;
       case 1:
-        // TODO: Навигация к странице стикеров
-        console.log('Навигация к стикерам (не реализовано)');
+        navigate('/'); // пока те же, можно заменить на /stickers, когда появится
         break;
       case 2:
-        // TODO: Навигация к маркету
-        console.log('Навигация к маркету (не реализовано)');
+        navigate('/'); // placeholder
         break;
       case 3:
         // Навигация к моему профилю

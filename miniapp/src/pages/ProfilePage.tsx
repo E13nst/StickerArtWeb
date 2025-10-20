@@ -22,7 +22,6 @@ import { StickerSetList } from '@/components/StickerSetList';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
-import { BottomNav } from '@/components/BottomNav';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 
@@ -55,7 +54,7 @@ export const ProfilePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
-  const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
+  // BottomNav теперь глобальный в MainLayout
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: стикеры, 2: поделиться
 
   // Валидация userId
@@ -412,12 +411,7 @@ export const ProfilePage: React.FC = () => {
         )}
       </Container>
 
-      {/* Нижняя навигация */}
-      <BottomNav
-        activeTab={activeBottomTab}
-        onChange={setActiveBottomTab}
-        isInTelegramApp={isInTelegramApp}
-      />
+      {/* Нижняя навигация глобальная в MainLayout */}
     </Box>
   );
 };

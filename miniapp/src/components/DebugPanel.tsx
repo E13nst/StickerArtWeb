@@ -53,7 +53,10 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
   }
 
   return (
-    <div className="tg-debug-panel">
+    <div 
+      className="tg-debug-panel"
+      style={{ position: 'fixed', left: 0, right: 0, bottom: 72, zIndex: 900 }}
+    >
       <button 
         className="tg-debug-panel__toggle"
         onClick={handleToggle}

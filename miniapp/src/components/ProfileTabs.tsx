@@ -89,7 +89,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         />
         <Tab
           icon={<PersonIcon />}
-          label="Стикеры"
+          label="ART-Points"
           iconPosition="top"
         />
         <Tab
