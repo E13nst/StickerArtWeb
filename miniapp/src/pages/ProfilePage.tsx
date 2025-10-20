@@ -24,6 +24,7 @@ import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
+import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
 
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -284,6 +285,9 @@ export const ProfilePage: React.FC = () => {
       />
 
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+          <TelegramThemeToggle />
+        </Box>
         {viewMode === 'list' ? (
           <>
             {/* Информация о пользователе */}

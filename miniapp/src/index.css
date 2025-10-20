@@ -132,6 +132,97 @@ a {
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
+/* Gallery skeleton shimmer */
+.gallery-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 25%,
+    var(--tg-theme-bg-color, #ffffff) 50%,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--tg-radius-m);
+}
+
+/* Pack card skeleton */
+.pack-card-skeleton {
+  width: 100%;
+  height: 200px;
+  background: var(--tg-theme-secondary-bg-color);
+  border-radius: var(--tg-radius-m);
+  position: relative;
+  overflow: hidden;
+}
+
+.pack-card-skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Image fade-in transition */
+.image-fade-in {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.image-fade-in.loaded {
+  opacity: 1;
+}
+
+/* Slideshow crossfade */
+.slideshow-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.slideshow-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.slideshow-image.active {
+  opacity: 1;
+}
+
+/* Анимированные стикеры в слайдшоу */
+.slideshow-animated-sticker {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tg-spacing-2);
+}
+
+/* Анимированные стикеры в карточках */
+.pack-card-animated-sticker {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tg-spacing-2);
+}
+
 /* Отключаем стандартные стили Material-UI */
 .MuiPaper-root {
   background-color: transparent !important;

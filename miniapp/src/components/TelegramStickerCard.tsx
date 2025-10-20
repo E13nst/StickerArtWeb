@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { AnimatedSticker } from './AnimatedSticker';
 
@@ -16,7 +16,7 @@ interface TelegramStickerCardProps {
   priority?: 'high' | 'low' | 'auto';
 }
 
-export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
+const TelegramStickerCardComponent: React.FC<TelegramStickerCardProps> = ({
   title,
   description,
   stickerCount,
@@ -27,17 +27,14 @@ export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
   const { tg } = useTelegram();
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
-  const handleClick = () => {
-    // Haptic feedback
-    if (tg?.HapticFeedback) {
-      tg.HapticFeedback.impactOccurred('light');
-    }
+  const handleClick = useCallback(() => {
+    tg?.HapticFeedback?.impactOccurred('light');
     onClick?.();
-  };
+  }, [tg, onClick]);
 
-  const handleImageError = (stickerId: string) => {
+  const handleImageError = useCallback((stickerId: string) => {
     setImageErrors(prev => new Set(prev).add(stickerId));
-  };
+  }, []);
 
   return (
     <div className="tg-sticker-card" onClick={handleClick}>
@@ -89,6 +86,8 @@ export const TelegramStickerCard: React.FC<TelegramStickerCardProps> = ({
     </div>
   );
 };
+
+export const TelegramStickerCard = memo(TelegramStickerCardComponent);
 
 // CSS для карточки
 const styles = `

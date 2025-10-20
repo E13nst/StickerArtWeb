@@ -64,6 +64,13 @@ export interface StickerSetResponse {
   createdAt: string;
   updatedAt: string;
   telegramStickerSetInfo: TelegramStickerSetInfo;
+  // Дополнительные поля для метаданных
+  userId?: number;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+  likes?: number;
 }
 
 // Доп. метаданные набора (загружаются отдельно)

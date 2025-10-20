@@ -29,6 +29,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
+import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -342,6 +343,9 @@ export const MyProfilePage: React.FC = () => {
       />
 
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+          <TelegramThemeToggle />
+        </Box>
         {viewMode === 'list' ? (
           <>
             {/* Информация о пользователе */}

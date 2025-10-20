@@ -25,16 +25,23 @@ export function getStickerImageUrl(fileId: string): string {
   }
   
   // Эндпоинт для получения файла стикера через наш backend
-  return `${BACKEND_URL}/api/stickers/${encodeURIComponent(fileId)}`;
+  // Добавляем параметр для получения файла, а не метаданных
+  return `${BACKEND_URL}/api/stickers/${encodeURIComponent(fileId)}?file=true`;
 }
 
 /**
  * Получить URL миниатюры стикера (для превью в списках)
  * @param fileId - Telegram file_id стикера
+ * @param size - Размер миниатюры (по умолчанию 128x128)
  * @returns URL для загрузки миниатюры
  */
-export function getStickerThumbnailUrl(fileId: string): string {
-  // Используем тот же эндпоинт - backend может сам оптимизировать размер
-  return getStickerImageUrl(fileId);
+export function getStickerThumbnailUrl(fileId: string, size: number = 128): string {
+  if (!fileId) {
+    return '';
+  }
+  
+  // Используем параметр file=true для получения изображения
+  // Добавляем параметр размера для миниатюр
+  return `${BACKEND_URL}/api/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
 }
 

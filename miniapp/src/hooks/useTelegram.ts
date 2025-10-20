@@ -169,8 +169,65 @@ export const useTelegram = () => {
         }
       };
       
-      // Применяем тему
-      applyTheme();
+      // Применяем тему: сначала проверяем локально сохранённую
+      const savedTheme = (() => {
+        try {
+          const raw = localStorage.getItem('stixly_tg_theme');
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      })();
+
+      if (savedTheme?.scheme === 'dark') {
+        const root = document.documentElement;
+        const body = document.body;
+        const params = savedTheme.params || {
+          bg_color: '#18222d',
+          text_color: '#ffffff',
+          hint_color: '#708499',
+          link_color: '#6ab2f2',
+          button_color: '#5288c1',
+          button_text_color: '#ffffff',
+          secondary_bg_color: '#131415',
+        };
+        root.style.setProperty('--tg-theme-bg-color', params.bg_color);
+        root.style.setProperty('--tg-theme-text-color', params.text_color);
+        root.style.setProperty('--tg-theme-hint-color', params.hint_color);
+        root.style.setProperty('--tg-theme-button-color', params.button_color);
+        root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
+        root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
+        root.style.setProperty('--tg-theme-link-color', params.link_color);
+        body.style.backgroundColor = params.bg_color;
+        body.style.color = params.text_color;
+        root.classList.add('tg-dark-theme');
+        root.classList.remove('tg-light-theme');
+      } else if (savedTheme?.scheme === 'light') {
+        const root = document.documentElement;
+        const body = document.body;
+        const params = savedTheme.params || {
+          bg_color: '#ffffff',
+          text_color: '#000000',
+          hint_color: '#999999',
+          link_color: '#2481cc',
+          button_color: '#2481cc',
+          button_text_color: '#ffffff',
+          secondary_bg_color: '#f8f9fa',
+        };
+        root.style.setProperty('--tg-theme-bg-color', params.bg_color);
+        root.style.setProperty('--tg-theme-text-color', params.text_color);
+        root.style.setProperty('--tg-theme-hint-color', params.hint_color);
+        root.style.setProperty('--tg-theme-button-color', params.button_color);
+        root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
+        root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
+        root.style.setProperty('--tg-theme-link-color', params.link_color);
+        body.style.backgroundColor = params.bg_color;
+        body.style.color = params.text_color;
+        root.classList.add('tg-light-theme');
+        root.classList.remove('tg-dark-theme');
+      } else {
+        applyTheme();
+      }
       
       // Подписываемся на изменения темы
       if (typeof telegram.onEvent === 'function') {

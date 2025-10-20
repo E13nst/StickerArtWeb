@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { apiClient } from '../api/client';
@@ -14,6 +14,10 @@ import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
 import { DebugPanel } from '../components/DebugPanel';
 import { StickerPackModal } from '../components/StickerPackModal';
+
+// Новые компоненты галереи
+import { GalleryGrid } from '../components/GalleryGrid';
+import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode, checkInitDataExpiry } = useTelegram();
@@ -35,6 +39,7 @@ export const GalleryPage: React.FC = () => {
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [manualInitData, setManualInitData] = useState<string>('');
+  const [useNewGallery, setUseNewGallery] = useState(true); // Переключатель для нового вида
 
   // Загрузка initData из URL параметров при инициализации
   useEffect(() => {
@@ -54,7 +59,7 @@ export const GalleryPage: React.FC = () => {
   }, []);
 
   // Проверка авторизации
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const currentInitData = manualInitData || initData;
 
     if (!isInTelegramApp && !manualInitData && !currentInitData) {
@@ -115,7 +120,7 @@ export const GalleryPage: React.FC = () => {
     } finally {
       setAuthLoading(false);
     }
-  };
+  }, [manualInitData, initData, isInTelegramApp, isMockMode, checkInitDataExpiry]);
 
   // Загрузка стикерсетов
   const fetchStickerSets = async (page: number = 0) => {
@@ -169,13 +174,13 @@ export const GalleryPage: React.FC = () => {
   };
 
   // Обработчики
-  const handleViewStickerSet = (id: number) => {
+  const handleViewStickerSet = (id: number | string) => {
     // Haptic feedback
     if (tg?.HapticFeedback) {
       tg.HapticFeedback.impactOccurred('medium');
     }
     
-    const stickerSet = stickerSets.find(s => s.id === id);
+    const stickerSet = stickerSets.find(s => s.id.toString() === id.toString());
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setDetailOpen(true);
@@ -204,8 +209,16 @@ export const GalleryPage: React.FC = () => {
   };
 
   // Фильтрация
-  const filteredStickerSets = stickerSets.filter(stickerSet =>
-    stickerSet.title.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStickerSets = useMemo(() => 
+    stickerSets.filter(stickerSet =>
+      stickerSet.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [stickerSets, searchTerm]
+  );
+
+  // Мемоизация адаптированных данных для галереи
+  const galleryPacks = useMemo(() => 
+    adaptStickerSetsToGalleryPacks(filteredStickerSets), 
+    [filteredStickerSets]
   );
 
   // Инициализация
@@ -256,6 +269,45 @@ export const GalleryPage: React.FC = () => {
           />
         </div>
 
+        {/* Переключатель вида галереи */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          marginBottom: '16px',
+          padding: '0 16px'
+        }}>
+          <button
+            onClick={() => setUseNewGallery(true)}
+            style={{
+              padding: '8px 16px',
+              background: useNewGallery ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
+              color: useNewGallery ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+              border: 'none',
+              borderRadius: 'var(--tg-radius-m)',
+              fontSize: 'var(--tg-font-size-s)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🎨 Новая галерея
+          </button>
+          <button
+            onClick={() => setUseNewGallery(false)}
+            style={{
+              padding: '8px 16px',
+              background: !useNewGallery ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
+              color: !useNewGallery ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
+              border: 'none',
+              borderRadius: 'var(--tg-radius-m)',
+              fontSize: 'var(--tg-font-size-s)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📋 Список
+          </button>
+        </div>
+
         {/* Content */}
         {isLoading ? (
           <LoadingSpinner message="Загрузка стикеров..." />
@@ -272,6 +324,14 @@ export const GalleryPage: React.FC = () => {
               }
             }}
           />
+        ) : useNewGallery ? (
+          <div className="fade-in" style={{ height: 'calc(100vh - 200px)' }}>
+            <GalleryGrid
+              packs={galleryPacks}
+              onPackClick={handleViewStickerSet}
+              height={600}
+            />
+          </div>
         ) : (
           <div className="fade-in" style={{ paddingBottom: '60px' }}>
             {filteredStickerSets.map((stickerSet, index) => (
