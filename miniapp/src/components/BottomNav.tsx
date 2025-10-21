@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   BottomNavigation, 
   BottomNavigationAction, 
-  Paper
+  Paper,
+  Typography
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CollectionsIcon from '@mui/icons-material/Collections';
@@ -23,6 +24,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [internalTab, setInternalTab] = React.useState<number>(0);
+  const buildTime = (import.meta as any).env?.VITE_BUILD_TIME as string | undefined;
+  const formattedBuildTime = React.useMemo(() => {
+    if (!buildTime) return '';
+    const date = new Date(buildTime);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString();
+  }, [buildTime]);
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
@@ -66,6 +74,19 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       }}
       elevation={8}
     >
+      {formattedBuildTime && (
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            display: 'block', 
+            textAlign: 'center', 
+            color: 'text.secondary', 
+            py: 0.5 
+          }}
+        >
+          Сборка: {formattedBuildTime}
+        </Typography>
+      )}
       <BottomNavigation
         value={getCurrentTab()}
         onChange={handleNavigation}

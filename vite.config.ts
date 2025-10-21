@@ -7,9 +7,25 @@ export default defineConfig(({ mode }) => {
   const backendUrl = process.env.VITE_BACKEND_URL || 'https://stickerartgallery-e13nst.amvera.io';
   
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'miniapp-trailing-slash',
+        configureServer(server) {
+          server.middlewares.use((req, _res, next) => {
+            if (req.url === '/miniapp') {
+              req.url = '/miniapp/';
+            }
+            next();
+          });
+        },
+      },
+    ],
     base: '/miniapp/',
     root: 'miniapp', // Указываем корень проекта
+    define: {
+      'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),
+    },
     
     resolve: {
       alias: {

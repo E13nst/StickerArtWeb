@@ -63,3 +63,5 @@ export const setSessionSeed = (seed: string): void => {
   sessionStorage.setItem('gallery-seed', seed);
 };
 
+
+

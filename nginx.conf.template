@@ -49,6 +49,11 @@ server {
         add_header X-XSS-Protection "1; mode=block" always;
     }
     
+    # Telegram Mini App - без завершающего слэша → редирект на /
+    location = /miniapp {
+        return 301 /miniapp/;
+    }
+    
     # Telegram Mini App - все файлы и SPA routing
     location /miniapp/ {
         try_files $uri /miniapp/index.html;

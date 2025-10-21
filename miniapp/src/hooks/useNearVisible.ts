@@ -34,3 +34,5 @@ export function useNearVisible(options: UseNearVisibleOptions = {}) {
   return { ref, isNear };
 }
 
+
+
