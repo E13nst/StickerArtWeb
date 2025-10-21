@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
@@ -205,48 +205,50 @@ class ApiClient {
 
   // ============ МЕТОДЫ ДЛЯ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ ============
 
-  // Текущий пользователь (из Telegram): GET /api/users/me
-  async getCurrentUser(): Promise<UserInfo> {
+  // Получение профиля пользователя по userId: GET /api/profiles/{userId}
+  async getProfile(userId: number): Promise<UserInfo> {
     try {
-      const response = await this.client.get<any>('/users/me');
+      const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
       const data = response.data;
-      // Маппинг в UserInfo (роль/баланс придут отдельно)
+      
+      // Маппинг новой структуры ответа в UserInfo
       const mapped: UserInfo = {
-        id: data.id,
-        telegramId: data.id,
-        username: data.username,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        id: data.userId,
+        telegramId: data.userId,
+        username: data.user.username,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
         avatarUrl: undefined,
-        role: 'USER',
-        artBalance: 0,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+        role: data.role,
+        artBalance: data.artBalance,
+        createdAt: data.user.createdAt,
+        updatedAt: data.user.updatedAt,
         telegramUserInfo: {
           user: {
-            id: data.id,
+            id: data.userId,
             is_bot: false,
-            first_name: data.firstName,
-            last_name: data.lastName,
-            username: data.username,
-            language_code: data.languageCode,
-            is_premium: !!data.isPremium
+            first_name: data.user.firstName,
+            last_name: data.user.lastName,
+            username: data.user.username,
+            language_code: data.user.languageCode,
+            is_premium: !!data.user.isPremium
           },
           status: 'ok'
         }
       };
       return mapped;
     } catch (error) {
+      console.warn('⚠️ API недоступен, используем мок данные для профиля');
       // Фоллбек к мокам при девелопменте вне Telegram
       return {
-        id: 123456789,
-        telegramId: 123456789,
+        id: userId,
+        telegramId: userId,
         username: 'mockuser',
         firstName: 'Mock',
         lastName: 'User',
         avatarUrl: undefined,
         role: 'USER',
-        artBalance: 0,
+        artBalance: 100,
         createdAt: new Date().toISOString()
       } as UserInfo;
     }
@@ -285,16 +287,43 @@ class ApiClient {
     }
   }
 
-  // Получение информации о пользователе по ID
+  // Получение информации о пользователе по ID (использует новый API /profiles/{userId})
   async getUserInfo(userId: number): Promise<UserInfo> {
     try {
-      const response = await this.client.get<UserInfo>(`/users/${userId}`);
-      return response.data;
+      const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+      const data = response.data;
+      
+      // Маппинг новой структуры ответа в UserInfo
+      const mapped: UserInfo = {
+        id: data.userId,
+        telegramId: data.userId,
+        username: data.user.username,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        avatarUrl: undefined,
+        role: data.role,
+        artBalance: data.artBalance,
+        createdAt: data.user.createdAt,
+        updatedAt: data.user.updatedAt,
+        telegramUserInfo: {
+          user: {
+            id: data.userId,
+            is_bot: false,
+            first_name: data.user.firstName,
+            last_name: data.user.lastName,
+            username: data.user.username,
+            language_code: data.user.languageCode,
+            is_premium: !!data.user.isPremium
+          },
+          status: 'ok'
+        }
+      };
+      return mapped;
     } catch (error) {
       console.warn('⚠️ API недоступен, используем мок данные для пользователя');
       // Мок данные для пользователя
       return {
-        id: 1,
+        id: userId,
         telegramId: userId,
         username: 'mockuser',
         firstName: 'Mock',
@@ -307,13 +336,39 @@ class ApiClient {
     }
   }
 
-  // Получение информации о текущем пользователе по Telegram ID
-  // Примечание: API использует telegramId как основной ID
+  // Получение информации о текущем пользователе по Telegram ID (использует новый API /profiles/{userId})
   async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
     try {
-      // API endpoint: /api/users/{id} где id = telegramId
-      const response = await this.client.get<UserInfo>(`/users/${telegramId}`);
-      return response.data;
+      // API endpoint: /api/profiles/{userId} где userId = telegramId
+      const response = await this.client.get<ProfileResponse>(`/profiles/${telegramId}`);
+      const data = response.data;
+      
+      // Маппинг новой структуры ответа в UserInfo
+      const mapped: UserInfo = {
+        id: data.userId,
+        telegramId: data.userId,
+        username: data.user.username,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        avatarUrl: undefined,
+        role: data.role,
+        artBalance: data.artBalance,
+        createdAt: data.user.createdAt,
+        updatedAt: data.user.updatedAt,
+        telegramUserInfo: {
+          user: {
+            id: data.userId,
+            is_bot: false,
+            first_name: data.user.firstName,
+            last_name: data.user.lastName,
+            username: data.user.username,
+            language_code: data.user.languageCode,
+            is_premium: !!data.user.isPremium
+          },
+          status: 'ok'
+        }
+      };
+      return mapped;
     } catch (error) {
       console.warn('⚠️ API недоступен, используем мок данные для текущего пользователя');
       // Мок данные для текущего пользователя

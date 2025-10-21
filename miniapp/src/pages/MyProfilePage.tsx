@@ -123,24 +123,19 @@ export const MyProfilePage: React.FC = () => {
   };
 
   // Загрузка информации о текущем пользователе (+ профиль + фото)
-  const loadUserInfo = async (_telegramId: number) => {
+  const loadUserInfo = async (telegramId: number) => {
     setUserLoading(true);
     setUserError(null);
 
     try {
-      // 1) базовая инфа /users/me
-      const baseUser = await apiClient.getCurrentUser();
+      // 1) получаем полный профиль через новый API /profiles/{userId}
+      const userProfile = await apiClient.getProfile(telegramId);
 
-      // 2) профиль /profiles/me (роль и баланс)
-      const profile = await apiClient.getMyProfile();
-
-      // 3) фото профиля /users/{id}/photo (404 -> null)
-      const photo = await apiClient.getUserPhoto(baseUser.id);
+      // 2) фото профиля /users/{id}/photo (404 -> null)
+      const photo = await apiClient.getUserPhoto(userProfile.id);
 
       const combined = {
-        ...baseUser,
-        role: profile?.role || baseUser.role,
-        artBalance: typeof profile?.artBalance === 'number' ? profile!.artBalance : baseUser.artBalance,
+        ...userProfile,
         profilePhotoFileId: photo?.profilePhotoFileId,
         profilePhotos: photo?.profilePhotos
       };

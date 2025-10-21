@@ -110,3 +110,25 @@ export interface AuthResponse {
     last_name?: string;
   };
 }
+
+// Новые типы для API профилей
+export interface ProfileUser {
+  id: number;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  languageCode?: string;
+  isPremium?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfileResponse {
+  id: number;
+  userId: number;
+  role: string;
+  artBalance: number;
+  user: ProfileUser;
+  createdAt: string;
+  updatedAt: string;
+}
