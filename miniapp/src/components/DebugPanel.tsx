@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
+import { getBuildInfo, formatBuildTime } from '../utils/buildInfo';
 
 interface DebugPanelProps {
   initData: string;
@@ -9,6 +10,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
   const { tg } = useTelegram();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const buildInfo = getBuildInfo();
 
   const handleCopy = async () => {
     try {
@@ -61,29 +63,40 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
         className="tg-debug-panel__toggle"
         onClick={handleToggle}
       >
-        🔍 InitData для API {expanded ? '▼' : '▶'}
+        🔍 Debug Info {expanded ? '▼' : '▶'}
       </button>
       
       {expanded && (
         <div className="tg-debug-panel__content">
-          <div className="tg-debug-panel__info">
-            <span className="tg-debug-panel__label">Длина:</span>
-            <span className="tg-debug-panel__value">{initData.length} символов</span>
+          {/* Информация о сборке */}
+          <div className="tg-debug-panel__section">
+            <div className="tg-debug-panel__info">
+              <span className="tg-debug-panel__label">Сборка:</span>
+              <span className="tg-debug-panel__value">{formatBuildTime(buildInfo.buildTime)}</span>
+            </div>
           </div>
-          
-          <div className="tg-debug-panel__data">
-            <code>{initData}</code>
-          </div>
-          
-          <button 
-            className="tg-button tg-button--primary tg-debug-panel__copy"
-            onClick={handleCopy}
-          >
-            {copied ? '✅ Скопировано!' : '📋 Копировать'}
-          </button>
-          
-          <div className="tg-debug-panel__hint">
-            💡 Используйте для заголовка: <code>X-Telegram-Init-Data</code>
+
+          {/* InitData секция */}
+          <div className="tg-debug-panel__section">
+            <div className="tg-debug-panel__info">
+              <span className="tg-debug-panel__label">InitData длина:</span>
+              <span className="tg-debug-panel__value">{initData.length} символов</span>
+            </div>
+            
+            <div className="tg-debug-panel__data">
+              <code>{initData}</code>
+            </div>
+            
+            <button 
+              className="tg-button tg-button--primary tg-debug-panel__copy"
+              onClick={handleCopy}
+            >
+              {copied ? '✅ Скопировано!' : '📋 Копировать InitData'}
+            </button>
+            
+            <div className="tg-debug-panel__hint">
+              💡 Используйте для заголовка: <code>X-Telegram-Init-Data</code>
+            </div>
           </div>
         </div>
       )}

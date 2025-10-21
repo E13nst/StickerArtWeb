@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
+import { useAuth } from '../hooks/useAuth';
+import { useDebounce } from '../hooks/useDebounce';
 import { apiClient } from '../api/client';
 import { StickerSetResponse } from '../types/sticker';
-import { getStickerThumbnailUrl } from '../utils/stickerUtils';
 
 // Новые Telegram-style компоненты
 import { TelegramLayout } from '../components/TelegramLayout';
-import { TelegramStickerCard } from '../components/TelegramStickerCard';
-import { AnimatedSticker } from '../components/AnimatedSticker';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
@@ -20,26 +19,27 @@ import { GalleryGrid } from '../components/GalleryGrid';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 
 export const GalleryPage: React.FC = () => {
-  const { tg, user, initData, isReady, isInTelegramApp, isMockMode, checkInitDataExpiry } = useTelegram();
+  const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
   const {
     isLoading,
-    isAuthLoading,
     stickerSets,
     error,
     setLoading,
-    setAuthLoading,
     setStickerSets,
-    setAuthStatus,
     setError,
-    setAuthError,
   } = useStickerStore();
+  const { checkAuth } = useAuth();
 
-  // Локальное состояние
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
-  const [isDetailOpen, setDetailOpen] = useState(false);
-  const [manualInitData, setManualInitData] = useState<string>('');
-  const [useNewGallery, setUseNewGallery] = useState(true); // Переключатель для нового вида
+  // Оптимизированное локальное состояние
+  const [uiState, setUiState] = useState({
+    searchTerm: '',
+    selectedStickerSet: null as StickerSetResponse | null,
+    isDetailOpen: false,
+    manualInitData: ''
+  });
+
+  // Debounced search term для оптимизации поиска
+  const debouncedSearchTerm = useDebounce(uiState.searchTerm, 500);
 
   // Загрузка initData из URL параметров при инициализации
   useEffect(() => {
@@ -49,86 +49,25 @@ export const GalleryPage: React.FC = () => {
     const extensionInitData = apiClient.checkExtensionHeaders();
     
     if (urlInitData) {
-      setManualInitData(decodeURIComponent(urlInitData));
+      setUiState(prev => ({ ...prev, manualInitData: decodeURIComponent(urlInitData) }));
       localStorage.setItem('telegram_init_data', decodeURIComponent(urlInitData));
     } else if (storedInitData) {
-      setManualInitData(storedInitData);
+      setUiState(prev => ({ ...prev, manualInitData: storedInitData }));
     } else if (extensionInitData) {
       // initData уже установлен
     }
   }, []);
 
-  // Проверка авторизации
-  const checkAuth = useCallback(async () => {
-    const currentInitData = manualInitData || initData;
-
-    if (!isInTelegramApp && !manualInitData && !currentInitData) {
-      console.log('✅ Режим без авторизации (dev mode)');
-      setAuthStatus({
-        authenticated: true,
-        role: 'public'
-      });
-      return true;
-    }
-    
-    if (!currentInitData) {
-      console.log('⚠️ initData отсутствует');
-      setAuthStatus({
-        authenticated: false,
-        role: 'anonymous'
-      });
-      return false;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-
-    try {
-      const isTestData = currentInitData.includes('query_id=test');
-      if (!isTestData) {
-        const initDataCheck = checkInitDataExpiry(currentInitData);
-        if (!initDataCheck.valid) {
-          throw new Error(initDataCheck.reason);
-        }
-      }
-
-      apiClient.setAuthHeaders(currentInitData);
-      const authResponse = await apiClient.checkAuthStatus();
-      setAuthStatus(authResponse);
-
-      if (!authResponse.authenticated) {
-        throw new Error(authResponse.message || 'Ошибка авторизации');
-      }
-
-      return true;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      setAuthError(errorMessage);
-      console.error('❌ Ошибка авторизации:', error);
-      
-      // В dev режиме или если API недоступен - продолжаем работу
-      if (isMockMode || !isInTelegramApp) {
-        console.log('🔧 Продолжаем в dev режиме несмотря на ошибку API');
-        setAuthStatus({
-          authenticated: true,
-          role: 'public'
-        });
-        return true;
-      }
-      
-      return false;
-    } finally {
-      setAuthLoading(false);
-    }
-  }, [manualInitData, initData, isInTelegramApp, isMockMode, checkInitDataExpiry]);
-
-  // Загрузка стикерсетов
-  const fetchStickerSets = async (page: number = 0) => {
+  // Загрузка стикерсетов - исправлена циклическая зависимость
+  const fetchStickerSets = useCallback(async (page: number = 0) => {
     setLoading(true);
     setError(null);
 
     try {
-      const isAuthenticated = await checkAuth();
+      // Проверяем авторизацию напрямую без промежуточных функций
+      const currentInitData = uiState.manualInitData || initData;
+      const isAuthenticated = await checkAuth(currentInitData);
+      
       if (!isAuthenticated && isInTelegramApp && !isMockMode) {
         throw new Error('Пользователь не авторизован');
       }
@@ -150,10 +89,10 @@ export const GalleryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets]);
 
   // Поиск стикерсетов
-  const searchStickerSets = async (query: string) => {
+  const searchStickerSets = useCallback(async (query: string) => {
     if (!query.trim()) {
       fetchStickerSets();
       return;
@@ -171,10 +110,10 @@ export const GalleryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchStickerSets, setLoading, setError, setStickerSets]);
 
-  // Обработчики
-  const handleViewStickerSet = (id: number | string) => {
+  // Мемоизированные обработчики
+  const handleViewStickerSet = useCallback((id: number | string) => {
     // Haptic feedback
     if (tg?.HapticFeedback) {
       tg.HapticFeedback.impactOccurred('medium');
@@ -182,37 +121,50 @@ export const GalleryPage: React.FC = () => {
     
     const stickerSet = stickerSets.find(s => s.id.toString() === id.toString());
     if (stickerSet) {
-      setSelectedStickerSet(stickerSet);
-      setDetailOpen(true);
+      setUiState(prev => ({
+        ...prev,
+        selectedStickerSet: stickerSet,
+        isDetailOpen: true
+      }));
     }
-  };
+  }, [tg, stickerSets]);
 
-  const handleBackToList = () => {
+  const handleBackToList = useCallback(() => {
     // Haptic feedback
     if (tg?.HapticFeedback) {
       tg.HapticFeedback.impactOccurred('light');
     }
     
-    setDetailOpen(false);
-    setSelectedStickerSet(null);
-  };
+    setUiState(prev => ({
+      ...prev,
+      isDetailOpen: false,
+      selectedStickerSet: null
+    }));
+  }, [tg]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newSearchTerm = e.target.value;
-    setSearchTerm(newSearchTerm);
+    setUiState(prev => ({ ...prev, searchTerm: newSearchTerm }));
     
-    const delayedSearch = setTimeout(() => {
-      searchStickerSets(newSearchTerm);
-    }, 500);
+    // Если поиск очищен, загружаем данные заново
+    if (!newSearchTerm.trim()) {
+      fetchStickerSets();
+    }
+  }, [fetchStickerSets]);
 
-    return () => clearTimeout(delayedSearch);
-  };
+  // Эффект для debounced поиска - исправлен бесконечный цикл
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      searchStickerSets(debouncedSearchTerm);
+    }
+    // Убрали вызов fetchStickerSets() при пустом поиске, чтобы избежать лишних запросов
+  }, [debouncedSearchTerm, searchStickerSets]);
 
-  // Фильтрация
+  // Оптимизированная фильтрация с мемоизацией
   const filteredStickerSets = useMemo(() => 
     stickerSets.filter(stickerSet =>
-      stickerSet.title.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [stickerSets, searchTerm]
+      stickerSet.title.toLowerCase().includes(uiState.searchTerm.toLowerCase())
+    ), [stickerSets, uiState.searchTerm]
   );
 
   // Мемоизация адаптированных данных для галереи
@@ -221,12 +173,12 @@ export const GalleryPage: React.FC = () => {
     [filteredStickerSets]
   );
 
-  // Инициализация
+  // Инициализация - исправлен бесконечный цикл
   useEffect(() => {
     if (isReady) {
       fetchStickerSets();
     }
-  }, [isReady, manualInitData]);
+  }, [isReady, uiState.manualInitData]); // Убрали fetchStickerSets из зависимостей
 
   if (!isReady) {
     return <LoadingSpinner message="Инициализация..." />;
@@ -263,50 +215,13 @@ export const GalleryPage: React.FC = () => {
             type="text"
             className="tg-search__input"
             placeholder="🔍 Поиск стикеров..."
-            value={searchTerm}
+            value={uiState.searchTerm}
             onChange={handleSearchChange}
             disabled={isLoading}
           />
         </div>
 
-        {/* Переключатель вида галереи */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '8px', 
-          marginBottom: '16px',
-          padding: '0 16px'
-        }}>
-          <button
-            onClick={() => setUseNewGallery(true)}
-            style={{
-              padding: '8px 16px',
-              background: useNewGallery ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-              color: useNewGallery ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-              border: 'none',
-              borderRadius: 'var(--tg-radius-m)',
-              fontSize: 'var(--tg-font-size-s)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            🎨 Новая галерея
-          </button>
-          <button
-            onClick={() => setUseNewGallery(false)}
-            style={{
-              padding: '8px 16px',
-              background: !useNewGallery ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-              color: !useNewGallery ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-              border: 'none',
-              borderRadius: 'var(--tg-radius-m)',
-              fontSize: 'var(--tg-font-size-s)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            📋 Список
-          </button>
-        </div>
+
 
         {/* Content */}
         {isLoading ? (
@@ -316,7 +231,7 @@ export const GalleryPage: React.FC = () => {
         ) : filteredStickerSets.length === 0 ? (
           <EmptyState
             title="🎨 Стикеры не найдены"
-            message={searchTerm ? 'По вашему запросу ничего не найдено' : 'У вас пока нет созданных наборов стикеров'}
+            message={uiState.searchTerm ? 'По вашему запросу ничего не найдено' : 'У вас пока нет созданных наборов стикеров'}
             actionLabel="Создать стикер"
             onAction={() => {
               if (tg) {
@@ -324,37 +239,17 @@ export const GalleryPage: React.FC = () => {
               }
             }}
           />
-        ) : useNewGallery ? (
-          <div className="fade-in" style={{ height: 'calc(100vh - 200px)' }}>
+        ) : (
+          <div className="fade-in">
             <GalleryGrid
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
-              height={600}
             />
-          </div>
-        ) : (
-          <div className="fade-in" style={{ paddingBottom: '60px' }}>
-            {filteredStickerSets.map((stickerSet, index) => (
-              <TelegramStickerCard
-                key={stickerSet.id}
-                title={stickerSet.title}
-                description={`Создано: ${new Date(stickerSet.createdAt).toLocaleDateString()}`}
-                stickerCount={stickerSet.telegramStickerSetInfo?.stickers.length || 0}
-                previewStickers={stickerSet.telegramStickerSetInfo?.stickers.slice(0, 4).map(s => ({
-                  id: s.file_id,
-                  thumbnailUrl: getStickerThumbnailUrl(s.file_id),
-                  emoji: s.emoji,
-                  isAnimated: s.is_animated
-                })) || []}
-                onClick={() => handleViewStickerSet(stickerSet.id)}
-                priority={index < 3 ? 'high' : 'low'}
-              />
-            ))}
           </div>
         )}
       </TelegramLayout>
       <DebugPanel initData={initData} />
-      <StickerPackModal open={isDetailOpen} stickerSet={selectedStickerSet} onClose={handleBackToList} />
+      <StickerPackModal open={uiState.isDetailOpen} stickerSet={uiState.selectedStickerSet} onClose={handleBackToList} />
     </>
   );
 };

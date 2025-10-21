@@ -1,0 +1,501 @@
+/* Telegram Mini App Styles */
+@import '@telegram-apps/telegram-ui/dist/styles.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Telegram цвета будут установлены через useTelegram hook */
+  --tg-spacing-1: 4px;
+  --tg-spacing-2: 8px;
+  --tg-spacing-3: 12px;
+  --tg-spacing-4: 16px;
+  --tg-spacing-5: 20px;
+  --tg-spacing-6: 24px;
+  
+  --tg-radius-s: 8px;
+  --tg-radius-m: 12px;
+  --tg-radius-l: 16px;
+  
+  --tg-font-size-xs: 12px;
+  --tg-font-size-s: 14px;
+  --tg-font-size-m: 16px;
+  --tg-font-size-l: 18px;
+  --tg-font-size-xl: 20px;
+  --tg-font-size-xxl: 24px;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Отключаем скролл на body для Telegram */
+body.tg-viewport-stable {
+  overflow-y: auto;
+}
+
+/* Telegram Safe Areas */
+@supports (padding: max(0px)) {
+  body {
+    padding-top: max(0px, env(safe-area-inset-top));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Убираем стандартные стили для ссылок */
+a {
+  color: var(--tg-theme-link-color, #2481cc);
+  text-decoration: none;
+}
+
+/* Кастомный scrollbar для webkit */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-theme-hint-color, #999999);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tg-theme-text-color, #000000);
+  opacity: 0.5;
+}
+
+/* Telegram-style animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Telegram-style loading skeleton */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 25%,
+    var(--tg-theme-bg-color, #ffffff) 50%,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+/* Gallery skeleton shimmer */
+.gallery-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 25%,
+    var(--tg-theme-bg-color, #ffffff) 50%,
+    var(--tg-theme-secondary-bg-color, #f0f0f0) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--tg-radius-m);
+}
+
+/* Pack card skeleton */
+.pack-card-skeleton {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--tg-radius-m);
+  position: relative;
+  overflow: hidden;
+}
+
+.pack-card-skeleton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Image fade-in transition */
+.image-fade-in {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.image-fade-in.loaded {
+  opacity: 1;
+}
+
+/* Slideshow crossfade */
+.slideshow-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.slideshow-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.slideshow-image.active {
+  opacity: 1;
+}
+
+/* Анимированные стикеры в слайдшоу */
+.slideshow-animated-sticker {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tg-spacing-2);
+}
+
+/* Анимированные стикеры в карточках */
+.pack-card-animated-sticker {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tg-spacing-2);
+}
+
+/* Отключаем стандартные стили Material-UI */
+.MuiPaper-root {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.MuiCard-root {
+  background-color: var(--tg-theme-secondary-bg-color, #f8f9fa) !important;
+  border-radius: var(--tg-radius-l) !important;
+}
+
+/* Telegram-style ripple effect */
+.tg-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.tg-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1));
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.tg-ripple:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* iOS-style smooth scrolling */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Убираем outline для touch устройств */
+@media (hover: none) {
+  button:focus,
+  a:focus,
+  input:focus,
+  textarea:focus {
+    outline: none;
+  }
+}
+
+/* Темная тема */
+.tg-dark-theme {
+  color-scheme: dark;
+}
+
+.tg-light-theme {
+  color-scheme: light;
+}
+
+/* User Badge */
+.tg-user-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--tg-spacing-3);
+  padding: var(--tg-spacing-4);
+  background: var(--tg-theme-secondary-bg-color);
+  border-radius: var(--tg-radius-l);
+  margin-bottom: var(--tg-spacing-4);
+}
+
+.tg-user-badge__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--tg-font-size-l);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tg-user-badge__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tg-user-badge__name {
+  font-size: var(--tg-font-size-m);
+  font-weight: 600;
+  color: var(--tg-theme-text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-user-badge__username {
+  font-size: var(--tg-font-size-s);
+  color: var(--tg-theme-hint-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-user-badge__mock-badge {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ff9800;
+  font-size: var(--tg-font-size-xs);
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+/* Search Bar */
+.tg-search {
+  margin-bottom: var(--tg-spacing-4);
+}
+
+.tg-search__input {
+  width: 100%;
+  padding: var(--tg-spacing-3) var(--tg-spacing-4);
+  background: var(--tg-theme-secondary-bg-color);
+  border: 1px solid transparent;
+  border-radius: var(--tg-radius-m);
+  font-size: var(--tg-font-size-m);
+  color: var(--tg-theme-text-color);
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  font-family: inherit;
+}
+
+.tg-search__input::placeholder {
+  color: var(--tg-theme-hint-color);
+}
+
+.tg-search__input:focus {
+  border-color: var(--tg-theme-button-color);
+  background: var(--tg-theme-bg-color);
+}
+
+.tg-search__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sticker Detail */
+.tg-sticker-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--tg-spacing-2);
+}
+
+.tg-sticker-detail__item {
+  aspect-ratio: 1;
+  background: var(--tg-theme-secondary-bg-color);
+  border-radius: var(--tg-radius-m);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.tg-sticker-detail__item:active {
+  transform: scale(0.95);
+}
+
+    .tg-sticker-detail__img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: var(--tg-spacing-2);
+    }
+
+    /* Debug Panel */
+    .tg-debug-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--tg-theme-secondary-bg-color);
+      border-top: 1px solid var(--tg-theme-hint-color);
+      z-index: 1000;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .tg-debug-panel__toggle {
+      width: 100%;
+      padding: var(--tg-spacing-2) var(--tg-spacing-4);
+      background: var(--tg-theme-secondary-bg-color);
+      border: none;
+      color: var(--tg-theme-hint-color);
+      font-size: var(--tg-font-size-s);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tg-debug-panel__toggle:active {
+      background: var(--tg-theme-bg-color);
+    }
+
+    .tg-debug-panel__content {
+      padding: var(--tg-spacing-4);
+      background: var(--tg-theme-bg-color);
+      max-height: 400px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tg-debug-panel__info {
+      display: flex;
+      gap: var(--tg-spacing-2);
+      margin-bottom: var(--tg-spacing-3);
+      font-size: var(--tg-font-size-s);
+    }
+
+    .tg-debug-panel__label {
+      font-weight: 600;
+      color: var(--tg-theme-hint-color);
+    }
+
+    .tg-debug-panel__value {
+      color: var(--tg-theme-text-color);
+    }
+
+    .tg-debug-panel__data {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--tg-radius-m);
+      padding: var(--tg-spacing-3);
+      margin-bottom: var(--tg-spacing-3);
+      max-height: 150px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tg-debug-panel__data code {
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--tg-theme-text-color);
+      word-break: break-all;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+
+    .tg-debug-panel__copy {
+      width: 100%;
+      margin-bottom: var(--tg-spacing-3);
+    }
+
+    .tg-debug-panel__hint {
+      font-size: var(--tg-font-size-xs);
+      color: var(--tg-theme-hint-color);
+      text-align: center;
+      padding: var(--tg-spacing-2);
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--tg-radius-s);
+    }
+
+    .tg-debug-panel__hint code {
+      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: var(--tg-font-size-xs);
+      color: var(--tg-theme-link-color);
+      background: var(--tg-theme-bg-color);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }

@@ -16,7 +16,13 @@ export function useNearVisible(options: UseNearVisibleOptions = {}) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsNear(entry.isIntersecting);
+        const newIsNear = entry.isIntersecting;
+        setIsNear(prevIsNear => {
+          if (prevIsNear !== newIsNear) {
+            return newIsNear;
+          }
+          return prevIsNear;
+        });
       },
       {
         rootMargin,
@@ -33,6 +39,7 @@ export function useNearVisible(options: UseNearVisibleOptions = {}) {
 
   return { ref, isNear };
 }
+
 
 
 

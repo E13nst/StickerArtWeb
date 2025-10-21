@@ -13,7 +13,7 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, sticke
   if (!stickerSet) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} fullScreen>
+    <Dialog open={open} onClose={onClose} fullScreen data-testid="sticker-pack-modal">
       <DialogContent sx={{ p: 2 }}>
         <StickerSetDetail
           stickerSet={stickerSet}

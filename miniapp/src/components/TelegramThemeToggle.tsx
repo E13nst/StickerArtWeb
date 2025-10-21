@@ -10,6 +10,9 @@ const lightTheme = {
   button_color: '#2481cc',
   button_text_color: '#ffffff',
   secondary_bg_color: '#f8f9fa',
+  border_color: '#e0e0e0',
+  shadow_color: 'rgba(0, 0, 0, 0.1)',
+  overlay_color: 'rgba(0, 0, 0, 0.7)',
 };
 
 const darkTheme = {
@@ -20,6 +23,9 @@ const darkTheme = {
   button_color: '#5288c1',
   button_text_color: '#ffffff',
   secondary_bg_color: '#131415',
+  border_color: '#2a3441',
+  shadow_color: 'rgba(0, 0, 0, 0.3)',
+  overlay_color: 'rgba(0, 0, 0, 0.8)',
 };
 
 function applyTheme(theme: typeof lightTheme, scheme: 'light' | 'dark') {
@@ -32,6 +38,9 @@ function applyTheme(theme: typeof lightTheme, scheme: 'light' | 'dark') {
   root.style.setProperty('--tg-theme-button-text-color', theme.button_text_color);
   root.style.setProperty('--tg-theme-secondary-bg-color', theme.secondary_bg_color);
   root.style.setProperty('--tg-theme-link-color', theme.link_color);
+  root.style.setProperty('--tg-theme-border-color', theme.border_color);
+  root.style.setProperty('--tg-theme-shadow-color', theme.shadow_color);
+  root.style.setProperty('--tg-theme-overlay-color', theme.overlay_color);
   body.style.backgroundColor = theme.bg_color;
   body.style.color = theme.text_color;
   if (scheme === 'dark') {
@@ -89,9 +98,23 @@ export const TelegramThemeToggle: React.FC = () => {
       variant="outlined"
       size="small"
       onClick={handleToggle}
-      sx={{ textTransform: 'none' }}
+      sx={{ 
+        textTransform: 'none',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        color: 'var(--tg-theme-text-color)',
+        border: '1px solid var(--tg-theme-border-color)',
+        borderRadius: 'var(--tg-radius-m)',
+        '&:hover': {
+          backgroundColor: 'var(--tg-theme-button-color)',
+          color: 'var(--tg-theme-button-text-color)',
+          borderColor: 'var(--tg-theme-button-color)'
+        },
+        '&:active': {
+          transform: 'scale(0.98)'
+        }
+      }}
     >
-      {isDark ? 'Светлая тема' : 'Тёмная тема'}
+      {isDark ? '☀️ Светлая' : '🌙 Тёмная'}
     </Button>
   );
 };

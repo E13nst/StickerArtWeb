@@ -57,9 +57,11 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
     <Box sx={{ 
       width: '100%',
       mb: 2,
-      backgroundColor: 'background.paper',
+      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+      color: 'var(--tg-theme-text-color)',
       borderRadius: 2,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      border: '1px solid var(--tg-theme-border-color)',
+      boxShadow: '0 1px 3px var(--tg-theme-shadow-color)'
     }}>
       <Tabs
         value={activeTab}
@@ -71,12 +73,13 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
             fontSize: isSmallScreen ? '0.8rem' : '0.9rem',
             fontWeight: 'bold',
             textTransform: 'none',
+            color: 'var(--tg-theme-text-color)',
             '&.Mui-selected': {
-              color: 'primary.main',
+              color: 'var(--tg-theme-button-color)',
             },
           },
           '& .MuiTabs-indicator': {
-            backgroundColor: 'primary.main',
+            backgroundColor: 'var(--tg-theme-button-color)',
             height: 3,
             borderRadius: '3px 3px 0 0'
           }

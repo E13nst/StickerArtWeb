@@ -26,13 +26,15 @@ export const useProgressiveLoading = ({
   onImageLoaded,
   onAllImagesLoaded
 }: ProgressiveLoadingOptions) => {
-  const [state, setState] = useState<ProgressiveLoadingState>({
-    loadedImages: [],
-    currentImageIndex: 0,
-    isLoading: false,
-    isFirstImageLoaded: false,
-    hasError: false
-  });
+  // Проверяем, что selectedPosters существует и является массивом
+  const safeSelectedPosters = selectedPosters || [];
+  
+  // Разделенное состояние для лучшей производительности
+  const [loadedImages, setLoadedImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFirstImageLoaded, setIsFirstImageLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const loadingRef = useRef<{
     currentIndex: number;
@@ -44,14 +46,25 @@ export const useProgressiveLoading = ({
     abortController: null
   });
 
-  // Загрузка первого изображения
-  const loadFirstImage = useCallback(async () => {
-    if (selectedPosters.length === 0 || state.isFirstImageLoaded) return;
-
-    const firstPoster = selectedPosters[0];
+  // Оптимизированная загрузка первого изображения
+  const loadFirstImageOptimized = useCallback(async () => {
+    if (safeSelectedPosters.length === 0 || isFirstImageLoaded) return;
+    
+    const firstPoster = safeSelectedPosters[0];
     if (!firstPoster) return;
 
-    setState(prev => ({ ...prev, isLoading: true, hasError: false }));
+    setIsLoading(prev => {
+      if (!prev) {
+        return true;
+      }
+      return prev;
+    });
+    setHasError(prev => {
+      if (prev) {
+        return false;
+      }
+      return prev;
+    });
 
     try {
       const priority = isHighPriority ? LoadPriority.TIER_2_FIRST_IMAGE : LoadPriority.TIER_3_ADDITIONAL;
@@ -63,34 +76,59 @@ export const useProgressiveLoading = ({
         0
       );
 
-      setState(prev => ({
-        ...prev,
-        loadedImages: [imageUrl],
-        isFirstImageLoaded: true,
-        isLoading: false,
-        hasError: false
-      }));
+      setLoadedImages(prev => {
+        // Проверяем, не загружено ли уже это изображение
+        if (prev.includes(imageUrl)) {
+          return prev;
+        }
+        return [imageUrl];
+      });
+      setIsFirstImageLoaded(prev => {
+        if (!prev) {
+          return true;
+        }
+        return prev;
+      });
+      setIsLoading(prev => {
+        if (prev) {
+          return false;
+        }
+        return prev;
+      });
+      setHasError(prev => {
+        if (prev) {
+          return false;
+        }
+        return prev;
+      });
 
       onImageLoaded?.(imageUrl, 0);
       console.log(`🎨 First image loaded for pack ${packId}:`, imageUrl);
     } catch (error) {
       console.warn('Failed to load first image:', error);
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        hasError: true
-      }));
+      setIsLoading(prev => {
+        if (prev) {
+          return false;
+        }
+        return prev;
+      });
+      setHasError(prev => {
+        if (!prev) {
+          return true;
+        }
+        return prev;
+      });
     }
-  }, [packId, selectedPosters, isHighPriority, onImageLoaded, state.isFirstImageLoaded]);
+  }, [packId, safeSelectedPosters, isHighPriority, onImageLoaded, isFirstImageLoaded]);
 
   // Прогрессивная загрузка остальных изображений
   const loadNextImage = useCallback(async () => {
-    if (loadingRef.current.isProcessing || selectedPosters.length <= state.loadedImages.length) {
+    if (loadingRef.current.isProcessing || safeSelectedPosters.length <= loadedImages.length) {
       return;
     }
 
-    const nextIndex = state.loadedImages.length;
-    const nextPoster = selectedPosters[nextIndex];
+    const nextIndex = loadedImages.length;
+    const nextPoster = safeSelectedPosters[nextIndex];
     if (!nextPoster) return;
 
     loadingRef.current.isProcessing = true;
@@ -106,16 +144,19 @@ export const useProgressiveLoading = ({
         nextIndex
       );
 
-      setState(prev => ({
-        ...prev,
-        loadedImages: [...prev.loadedImages, imageUrl]
-      }));
+      setLoadedImages(prev => {
+        // Проверяем, не загружено ли уже это изображение
+        if (prev.includes(imageUrl)) {
+          return prev;
+        }
+        return [...prev, imageUrl];
+      });
 
       onImageLoaded?.(imageUrl, nextIndex);
       console.log(`✅ Additional image ${nextIndex + 1} loaded for pack ${packId}:`, imageUrl);
 
       // Проверить, загружены ли все изображения
-      if (state.loadedImages.length + 1 >= selectedPosters.length) {
+      if (loadedImages.length + 1 >= safeSelectedPosters.length) {
         onAllImagesLoaded?.();
         console.log(`🎉 All images loaded for pack ${packId}`);
       }
@@ -124,42 +165,51 @@ export const useProgressiveLoading = ({
     } finally {
       loadingRef.current.isProcessing = false;
     }
-  }, [packId, selectedPosters, state.loadedImages.length, isHighPriority, onImageLoaded, onAllImagesLoaded]);
+  }, [packId, safeSelectedPosters, loadedImages.length, isHighPriority, onImageLoaded, onAllImagesLoaded]);
 
-  // Автоматическая загрузка следующего изображения
+  // Автоматическая загрузка следующего изображения с оптимизированными задержками
   useEffect(() => {
-    if (!isVisible || !state.isFirstImageLoaded || loadingRef.current.isProcessing) {
+    if (!isVisible || !isFirstImageLoaded || loadingRef.current.isProcessing) {
       return;
     }
 
-    // Задержка перед загрузкой следующего изображения
+    // Проверяем, есть ли еще изображения для загрузки
+    if (loadedImages.length >= safeSelectedPosters.length) {
+      return;
+    }
+
+    // Фиксированные задержки для предсказуемости
     const timer = setTimeout(() => {
       loadNextImage();
-    }, 500 + Math.random() * 1000); // Случайная задержка 0.5-1.5 секунды
+    }, isHighPriority ? 300 : 800);
 
     return () => clearTimeout(timer);
-  }, [isVisible, state.isFirstImageLoaded, state.loadedImages.length, loadNextImage]);
+  }, [isVisible, isFirstImageLoaded, loadedImages.length, loadNextImage, isHighPriority, safeSelectedPosters.length]);
 
   // Запуск загрузки первого изображения
   useEffect(() => {
-    if (isVisible && !state.isFirstImageLoaded && !state.isLoading) {
-      loadFirstImage();
+    if (isVisible && !isFirstImageLoaded && !isLoading && safeSelectedPosters.length > 0) {
+      loadFirstImageOptimized();
     }
-  }, [isVisible, state.isFirstImageLoaded, state.isLoading, loadFirstImage]);
+  }, [isVisible, isFirstImageLoaded, isLoading, loadFirstImageOptimized, safeSelectedPosters.length]);
 
-  // Слайдшоу - переключение между изображениями
+  // Слайдшоу - переключение между изображениями с оптимизацией
   useEffect(() => {
-    if (state.loadedImages.length < 2) return;
+    if (loadedImages.length < 2) return;
 
     const interval = setInterval(() => {
-      setState(prev => ({
-        ...prev,
-        currentImageIndex: (prev.currentImageIndex + 1) % prev.loadedImages.length
-      }));
-    }, 4000 + Math.random() * 2000); // Случайный интервал 4-6 секунд
+      setCurrentImageIndex(prev => {
+        const newIndex = (prev + 1) % loadedImages.length;
+        // Проверяем, действительно ли изменился индекс
+        if (prev !== newIndex) {
+          return newIndex;
+        }
+        return prev;
+      });
+    }, 4000); // Фиксированный интервал для предсказуемости
 
     return () => clearInterval(interval);
-  }, [state.loadedImages.length]);
+  }, [loadedImages.length]);
 
   // Очистка при размонтировании
   useEffect(() => {
@@ -179,12 +229,35 @@ export const useProgressiveLoading = ({
 
   // Сброс состояния
   const reset = useCallback(() => {
-    setState({
-      loadedImages: [],
-      currentImageIndex: 0,
-      isLoading: false,
-      isFirstImageLoaded: false,
-      hasError: false
+    setLoadedImages(prev => {
+      if (prev.length > 0) {
+        return [];
+      }
+      return prev;
+    });
+    setCurrentImageIndex(prev => {
+      if (prev !== 0) {
+        return 0;
+      }
+      return prev;
+    });
+    setIsLoading(prev => {
+      if (prev) {
+        return false;
+      }
+      return prev;
+    });
+    setIsFirstImageLoaded(prev => {
+      if (prev) {
+        return false;
+      }
+      return prev;
+    });
+    setHasError(prev => {
+      if (prev) {
+        return false;
+      }
+      return prev;
     });
     loadingRef.current = {
       currentIndex: 0,
@@ -194,12 +267,17 @@ export const useProgressiveLoading = ({
   }, []);
 
   return {
-    ...state,
+    loadedImages,
+    currentImageIndex,
+    isLoading,
+    isFirstImageLoaded,
+    hasError,
+    shouldShowSlideshow: loadedImages.length > 1,
     loadNextImageManually,
     reset,
-    canLoadMore: state.loadedImages.length < selectedPosters.length,
-    totalImages: selectedPosters.length,
-    progress: selectedPosters.length > 0 ? (state.loadedImages.length / selectedPosters.length) * 100 : 0
+    canLoadMore: loadedImages.length < safeSelectedPosters.length,
+    totalImages: safeSelectedPosters.length,
+    progress: safeSelectedPosters.length > 0 ? (loadedImages.length / safeSelectedPosters.length) * 100 : 0
   };
 };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { TelegramWebApp, TelegramUser } from '../types/telegram';
 import WebApp from '@twa-dev/sdk';
 
@@ -110,6 +110,9 @@ export const useTelegram = () => {
   const [initData, setInitData] = useState<string>('');
   const [isReady, setIsReady] = useState(false);
   const [isMockMode, setIsMockMode] = useState(false);
+  
+  // Слушатель изменений системной темы
+  const systemThemeListenerRef = useRef<((e: MediaQueryListEvent) => void) | null>(null);
 
   useEffect(() => {
     const isDev = import.meta.env.DEV;
@@ -137,6 +140,15 @@ export const useTelegram = () => {
       telegram.ready();
       telegram.expand();
       
+      // Устанавливаем цвета header и bottom bar в соответствии с темой
+      if (telegram.setHeaderColor) {
+        telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+      }
+      
+      if (telegram.setBackgroundColor) {
+        telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+      }
+      
       // Функция применения темы
       const applyTheme = () => {
         if (telegram.themeParams) {
@@ -152,17 +164,42 @@ export const useTelegram = () => {
           root.style.setProperty('--tg-theme-secondary-bg-color', telegram.themeParams.secondary_bg_color || '#f8f9fa');
           root.style.setProperty('--tg-theme-link-color', telegram.themeParams.link_color || '#2481cc');
           
+          // Дополнительные переменные для лучшей поддержки тем
+          const isDark = telegram.colorScheme === 'dark';
+          root.style.setProperty('--tg-theme-border-color', isDark ? '#2a3441' : '#e0e0e0');
+          root.style.setProperty('--tg-theme-shadow-color', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
+          root.style.setProperty('--tg-theme-overlay-color', isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)');
+          
           // Применяем тему к body
           body.style.backgroundColor = telegram.themeParams.bg_color || '#ffffff';
           body.style.color = telegram.themeParams.text_color || '#000000';
           
           // Устанавливаем класс для темной темы
-          if (telegram.colorScheme === 'dark') {
+          if (isDark) {
             root.classList.add('tg-dark-theme');
             root.classList.remove('tg-light-theme');
           } else {
             root.classList.add('tg-light-theme');
             root.classList.remove('tg-dark-theme');
+          }
+          
+          // Сохраняем тему в localStorage
+          try {
+            localStorage.setItem('stixly_tg_theme', JSON.stringify({
+              scheme: telegram.colorScheme,
+              params: telegram.themeParams
+            }));
+          } catch (error) {
+            console.warn('Не удалось сохранить тему в localStorage:', error);
+          }
+          
+          // Обновляем цвета header и bottom bar при изменении темы
+          if (telegram.setHeaderColor) {
+            telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+          }
+          
+          if (telegram.setBackgroundColor) {
+            telegram.setBackgroundColor(telegram.themeParams.bg_color || '#ffffff');
           }
           
           console.log('🎨 Тема применена:', telegram.colorScheme);
@@ -237,6 +274,18 @@ export const useTelegram = () => {
         });
       }
       
+      // Слушаем изменения системной темы
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      systemThemeListenerRef.current = (e: MediaQueryListEvent) => {
+        if (!localStorage.getItem('stixly_tg_theme')) {
+          // Применяем системную тему только если пользователь не выбрал принудительную
+          console.log('🎨 Системная тема изменилась на:', e.matches ? 'dark' : 'light');
+          applyTheme();
+        }
+      };
+      
+      mediaQuery.addEventListener('change', systemThemeListenerRef.current);
+      
       setIsReady(true);
       
       console.log('🔍 Telegram Web App данные:');
@@ -259,6 +308,14 @@ export const useTelegram = () => {
       console.warn('⚠️ Telegram Web App не доступен');
       setIsReady(true);
     }
+    
+    // Cleanup функция
+    return () => {
+      if (systemThemeListenerRef.current) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.removeEventListener('change', systemThemeListenerRef.current);
+      }
+    };
   }, []);
 
   const checkInitDataExpiry = (initDataString: string) => {

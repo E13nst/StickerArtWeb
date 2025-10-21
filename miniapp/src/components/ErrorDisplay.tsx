@@ -20,7 +20,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   };
 
   return (
-    <div className="tg-error">
+    <div className="tg-error" data-testid="error-display">
       <div className="tg-error__icon">⚠️</div>
       <h3 className="tg-error__title">Ошибка</h3>
       <p className="tg-error__message">{error}</p>

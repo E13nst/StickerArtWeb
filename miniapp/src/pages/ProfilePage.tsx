@@ -15,16 +15,17 @@ import { apiClient } from '@/api/client';
 import { getUserFullName } from '@/utils/userUtils';
 
 // Компоненты
-import { Header } from '@/components/Header';
 import { UserInfoCard } from '@/components/UserInfoCard';
 import { SearchBar } from '@/components/SearchBar';
-import { StickerSetList } from '@/components/StickerSetList';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
+import { GalleryGrid } from '@/components/GalleryGrid';
+import { DebugPanel } from '@/components/DebugPanel';
+import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -277,12 +278,6 @@ export const ProfilePage: React.FC = () => {
       backgroundColor: 'background.default',
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
     }}>
-      {/* Заголовок */}
-      <Header 
-        title={viewMode === 'detail' ? selectedStickerSet?.title || 'Детали' : 'Профиль пользователя'}
-        onMenuClick={handleBack}
-        showOptions={false}
-      />
 
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
@@ -346,11 +341,12 @@ export const ProfilePage: React.FC = () => {
                   onAction={handleCreateSticker}
                 />
               ) : (
-                <StickerSetList
-                  stickerSets={filteredStickerSets}
-                  onView={handleViewStickerSet}
-                  isInTelegramApp={isInTelegramApp}
-                />
+                <div className="fade-in">
+                  <GalleryGrid
+                    packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
+                    onPackClick={handleViewStickerSet}
+                  />
+                </div>
               )}
             </TabPanel>
 
@@ -414,6 +410,9 @@ export const ProfilePage: React.FC = () => {
           )
         )}
       </Container>
+
+      {/* Debug панель */}
+      {initData && <DebugPanel initData={initData} />}
 
       {/* Нижняя навигация глобальная в MainLayout */}
     </Box>

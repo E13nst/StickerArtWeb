@@ -21,20 +21,40 @@ export const useGalleryStore = create<GalleryState>()(
       postersByPack: {},
       scrollY: 0,
       
-      setSeed: (seed: string) => set({ seed }),
+      setSeed: (seed: string) => {
+        const currentSeed = get().seed;
+        if (currentSeed !== seed) {
+          set({ seed });
+        }
+      },
       
-      setShuffledPackIds: (shuffledPackIds: string[]) => 
-        set({ shuffledPackIds }),
+      setShuffledPackIds: (shuffledPackIds: string[]) => {
+        const currentShuffledPackIds = get().shuffledPackIds;
+        if (JSON.stringify(currentShuffledPackIds) !== JSON.stringify(shuffledPackIds)) {
+          set({ shuffledPackIds });
+        }
+      },
       
       setPostersByPack: (packId: string, posterIds: string[]) =>
-        set((state) => ({
-          postersByPack: {
-            ...state.postersByPack,
-            [packId]: posterIds
+        set((state) => {
+          const currentPosterIds = state.postersByPack[packId];
+          if (JSON.stringify(currentPosterIds) !== JSON.stringify(posterIds)) {
+            return {
+              postersByPack: {
+                ...state.postersByPack,
+                [packId]: posterIds
+              }
+            };
           }
-        })),
+          return state;
+        }),
       
-      setScrollY: (scrollY: number) => set({ scrollY }),
+      setScrollY: (scrollY: number) => {
+        const currentScrollY = get().scrollY;
+        if (currentScrollY !== scrollY) {
+          set({ scrollY });
+        }
+      },
       
       reset: () => set({
         seed: '',
@@ -62,6 +82,7 @@ export const getSessionSeed = (): string => {
 export const setSessionSeed = (seed: string): void => {
   sessionStorage.setItem('gallery-seed', seed);
 };
+
 
 
 

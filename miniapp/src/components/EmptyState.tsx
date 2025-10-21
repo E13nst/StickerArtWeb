@@ -24,7 +24,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   };
 
   return (
-    <div className="tg-empty">
+    <div className="tg-empty" data-testid="empty-state">
       <div className="tg-empty__content">
         <h3 className="tg-empty__title">{title}</h3>
         <p className="tg-empty__message">{message}</p>

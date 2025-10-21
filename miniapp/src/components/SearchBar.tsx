@@ -62,17 +62,28 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         sx={{
           '& .MuiOutlinedInput-root': {
             borderRadius: 2,
-            backgroundColor: 'background.paper',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            color: 'var(--tg-theme-text-color)',
             '&:hover': {
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'primary.main',
+                borderColor: 'var(--tg-theme-button-color)',
               },
             },
             '&.Mui-focused': {
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'primary.main',
+                borderColor: 'var(--tg-theme-button-color)',
                 borderWidth: 2,
               },
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'var(--tg-theme-border-color)',
+            },
+          },
+          '& .MuiInputBase-input': {
+            color: 'var(--tg-theme-text-color)',
+            '&::placeholder': {
+              color: 'var(--tg-theme-hint-color)',
+              opacity: 1,
             },
           },
         }}

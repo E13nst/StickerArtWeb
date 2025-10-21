@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { PackCard } from './PackCard';
 import { useGalleryStore, getSessionSeed, setSessionSeed } from '../store/useGalleryStore';
 import { useZoneLoading } from '../hooks/useZoneLoading';
@@ -13,13 +13,11 @@ interface Pack {
 interface GalleryGridProps {
   packs: Pack[];
   onPackClick?: (packId: string) => void;
-  height?: number;
 }
 
 export const GalleryGrid: React.FC<GalleryGridProps> = ({ 
   packs, 
-  onPackClick,
-  height = 600 
+  onPackClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -138,7 +136,7 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     };
   }, [setScrollY, cleanup]);
 
-  // Обработчик клика на пак
+  // Мемоизированный обработчик клика на пак
   const handlePackClick = useCallback((packId: string) => {
     // Сохранить текущую позицию скролла
     if (containerRef.current) {
@@ -150,14 +148,23 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     }
   }, [onPackClick, setScrollY]);
 
+  // Мемоизированные ref колбэки для оптимизации производительности
+  const createRefCallback = useCallback((packId: string) => {
+    return (el: HTMLDivElement | null) => {
+      if (el) {
+        observeElement(el, packId);
+      }
+    };
+  }, [observeElement]);
+
   if (!isInitialized || shuffledPackIds.length === 0) {
     return (
       <div style={{ 
-        height, 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        color: 'var(--tg-theme-hint-color)'
+        color: 'var(--tg-theme-hint-color)',
+        padding: '40px 0'
       }}>
         Загрузка...
       </div>
@@ -169,71 +176,37 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     .map(id => packs.find(p => p.id === id))
     .filter(Boolean) as Pack[];
 
-  // Разделить packs на пары для 2-колоночной сетки
-  const packPairs = [];
-  for (let i = 0; i < sortedPacks.length; i += 2) {
-    packPairs.push([
-      sortedPacks[i],
-      sortedPacks[i + 1]
-    ]);
-  }
-
   return (
     <div 
       ref={containerRef}
+      data-testid="gallery-grid"
       style={{ 
-        height, 
-        width: '100%',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        WebkitOverflowScrolling: 'touch'
+        width: '100%'
       }}
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
         gap: '8px',
         padding: '8px'
       }}>
-        {packPairs.map((pair, rowIndex) => {
-          // Определяем приоритет загрузки для первых 6 паков (3 ряда)
-          const isHighPriority = rowIndex < 3;
+        {sortedPacks.map((pack, index) => {
+          // Определяем приоритет загрузки для первых 6 паков
+          const isHighPriority = index < 6;
           
           return (
-            <React.Fragment key={rowIndex}>
-              <div
-                ref={(el) => {
-                  if (el && pair[0]) {
-                    observeElement(el, pair[0].id);
-                  }
-                }}
-                style={{ width: '100%' }}
-              >
-                <PackCard
-                  pack={pair[0]}
-                  isFirstRow={rowIndex === 0}
-                  isHighPriority={isHighPriority}
-                  onClick={handlePackClick}
-                />
-              </div>
-              {pair[1] && (
-                <div
-                  ref={(el) => {
-                    if (el && pair[1]) {
-                      observeElement(el, pair[1].id);
-                    }
-                  }}
-                  style={{ width: '100%' }}
-                >
-                  <PackCard
-                    pack={pair[1]}
-                    isFirstRow={rowIndex === 0}
-                    isHighPriority={isHighPriority}
-                    onClick={handlePackClick}
-                  />
-                </div>
-              )}
-            </React.Fragment>
+            <div
+              key={pack.id}
+              ref={createRefCallback(pack.id)}
+              style={{ width: '100%' }}
+            >
+              <PackCard
+                pack={pack}
+                isFirstRow={index < 2}
+                isHighPriority={isHighPriority}
+                onClick={handlePackClick}
+              />
+            </div>
           );
         })}
       </div>

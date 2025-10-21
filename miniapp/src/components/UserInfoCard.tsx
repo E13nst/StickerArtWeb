@@ -37,14 +37,25 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
 
   if (isLoading) {
     return (
-      <Card sx={{ mb: 2, borderRadius: 3 }}>
+      <Card sx={{ 
+        mb: 2, 
+        borderRadius: 3,
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        color: 'var(--tg-theme-text-color)',
+        border: '1px solid var(--tg-theme-border-color)',
+        boxShadow: '0 2px 8px var(--tg-theme-shadow-color)'
+      }}>
         <CardContent sx={{ p: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ width: 64, height: 64, bgcolor: 'grey.300' }}>
+            <Avatar sx={{ 
+              width: 64, 
+              height: 64, 
+              bgcolor: 'var(--tg-theme-hint-color)' 
+            }}>
               <PersonIcon />
             </Avatar>
             <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
                 Загрузка информации о пользователе...
               </Typography>
             </Box>
@@ -71,10 +82,13 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
       sx={{ 
         mb: 2, 
         borderRadius: 3,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        color: 'var(--tg-theme-text-color)',
+        border: '1px solid var(--tg-theme-border-color)',
+        boxShadow: '0 2px 12px var(--tg-theme-shadow-color)',
         transition: 'box-shadow 0.2s ease',
         '&:hover': {
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 20px var(--tg-theme-shadow-color)',
         }
       }}
     >
@@ -128,19 +142,19 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
             {username && (
               <Typography 
                 variant="body2" 
-                color="text.secondary"
                 sx={{ 
                   mb: 1,
                   fontSize: isSmallScreen ? '0.8rem' : '0.9rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 0.5,
-                  justifyContent: isSmallScreen ? 'center' : 'flex-start'
+                  justifyContent: isSmallScreen ? 'center' : 'flex-start',
+                  color: 'var(--tg-theme-hint-color)'
                 }}
               >
                 @{username}
                 {isPremium && (
-                  <StarIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                  <StarIcon sx={{ fontSize: '1rem', color: 'var(--tg-theme-button-color)' }} />
                 )}
               </Typography>
             )}
@@ -150,10 +164,12 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
               label={userInfo.role}
               size="small"
               variant="outlined"
-              color="primary"
               sx={{ 
                 fontSize: isSmallScreen ? '0.7rem' : '0.75rem',
-                height: isSmallScreen ? 20 : 24
+                height: isSmallScreen ? 20 : 24,
+                color: 'var(--tg-theme-button-color)',
+                borderColor: 'var(--tg-theme-button-color)',
+                backgroundColor: 'transparent'
               }}
             />
           </Box>
@@ -166,7 +182,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
           mt: 2, 
           pt: 2, 
           borderTop: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'var(--tg-theme-border-color)'
         }}>
           <Box sx={{ 
             display: 'flex', 
@@ -210,15 +226,15 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
           mt: 2, 
           pt: 2, 
           borderTop: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'var(--tg-theme-border-color)'
         }}>
           <Typography 
             variant="caption" 
-            color="text.secondary"
             sx={{ 
               fontSize: isSmallScreen ? '0.7rem' : '0.75rem',
               textAlign: 'center',
-              display: 'block'
+              display: 'block',
+              color: 'var(--tg-theme-hint-color)'
             }}
           >
             Telegram ID: {telegramId}

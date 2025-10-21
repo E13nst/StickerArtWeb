@@ -24,13 +24,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [internalTab, setInternalTab] = React.useState<number>(0);
-  const buildTime = (import.meta as any).env?.VITE_BUILD_TIME as string | undefined;
-  const formattedBuildTime = React.useMemo(() => {
-    if (!buildTime) return '';
-    const date = new Date(buildTime);
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleString();
-  }, [buildTime]);
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
@@ -70,32 +63,23 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         bottom: 0, 
         left: 0, 
         right: 0,
-        zIndex: 1000
+        zIndex: 1000,
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        borderTop: '1px solid var(--tg-theme-border-color)',
+        backdropFilter: 'blur(10px)'
       }}
       elevation={8}
     >
-      {formattedBuildTime && (
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            display: 'block', 
-            textAlign: 'center', 
-            color: 'text.secondary', 
-            py: 0.5 
-          }}
-        >
-          Сборка: {formattedBuildTime}
-        </Typography>
-      )}
       <BottomNavigation
         value={getCurrentTab()}
         onChange={handleNavigation}
         sx={{
           height: 64,
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
           '& .MuiBottomNavigationAction-root': {
-            color: 'text.secondary',
+            color: 'var(--tg-theme-hint-color)',
             '&.Mui-selected': {
-              color: 'primary.main',
+              color: 'var(--tg-theme-button-color)',
             },
           },
         }}
@@ -105,7 +89,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           sx={{
             '&.Mui-selected': {
               '& .MuiSvgIcon-root': {
-                color: 'primary.main',
+                color: 'var(--tg-theme-button-color)',
               },
             },
           }}
@@ -115,7 +99,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           sx={{
             '&.Mui-selected': {
               '& .MuiSvgIcon-root': {
-                color: 'primary.main',
+                color: 'var(--tg-theme-button-color)',
               },
             },
           }}
@@ -125,7 +109,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           sx={{
             '&.Mui-selected': {
               '& .MuiSvgIcon-root': {
-                color: 'primary.main',
+                color: 'var(--tg-theme-button-color)',
               },
             },
           }}
@@ -135,7 +119,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           sx={{
             '&.Mui-selected': {
               '& .MuiSvgIcon-root': {
-                color: 'primary.main',
+                color: 'var(--tg-theme-button-color)',
               },
             },
           }}

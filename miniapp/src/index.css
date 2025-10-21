@@ -26,6 +26,21 @@
   --tg-font-size-l: 18px;
   --tg-font-size-xl: 20px;
   --tg-font-size-xxl: 24px;
+
+  /* Расширенные цветовые переменные для тем */
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f8f9fa;
+  --tg-theme-border-color: #e0e0e0;
+  --tg-theme-shadow-color: rgba(0, 0, 0, 0.1);
+  --tg-theme-overlay-color: rgba(0, 0, 0, 0.7);
+  --tg-theme-success-color: #4caf50;
+  --tg-theme-warning-color: #ff9800;
+  --tg-theme-error-color: #f44336;
 }
 
 html, body {
@@ -95,7 +110,7 @@ a {
   opacity: 0.5;
 }
 
-/* Telegram-style animations */
+/* Оптимизированные анимации */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -116,6 +131,22 @@ a {
   }
 }
 
+/* Объединенная анимация для различных состояний */
+@keyframes unifiedAnimation {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(4px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .fade-in {
   animation: fadeIn 0.3s ease-out;
 }
@@ -124,21 +155,22 @@ a {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--tg-theme-secondary-bg-color, #f0f0f0) 25%,
-    var(--tg-theme-bg-color, #ffffff) 50%,
-    var(--tg-theme-secondary-bg-color, #f0f0f0) 75%
+    var(--tg-theme-secondary-bg-color) 25%,
+    var(--tg-theme-bg-color) 50%,
+    var(--tg-theme-secondary-bg-color) 75%
   );
   background-size: 400% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--tg-radius-m);
 }
 
 /* Gallery skeleton shimmer */
 .gallery-skeleton {
   background: linear-gradient(
     90deg,
-    var(--tg-theme-secondary-bg-color, #f0f0f0) 25%,
-    var(--tg-theme-bg-color, #ffffff) 50%,
-    var(--tg-theme-secondary-bg-color, #f0f0f0) 75%
+    var(--tg-theme-secondary-bg-color) 25%,
+    var(--tg-theme-bg-color) 50%,
+    var(--tg-theme-secondary-bg-color) 75%
   );
   background-size: 400% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
@@ -149,10 +181,11 @@ a {
 .pack-card-skeleton {
   width: 100%;
   height: 200px;
-  background: var(--tg-theme-secondary-bg-color);
   border-radius: var(--tg-radius-m);
   position: relative;
   overflow: hidden;
+  background: var(--tg-theme-secondary-bg-color);
+  border: 1px solid var(--tg-theme-border-color);
 }
 
 .pack-card-skeleton::before {
@@ -165,7 +198,7 @@ a {
   background: linear-gradient(
     90deg,
     transparent 25%,
-    rgba(255, 255, 255, 0.1) 50%,
+    var(--tg-theme-shadow-color) 50%,
     transparent 75%
   );
   background-size: 200% 100%;
@@ -223,15 +256,101 @@ a {
   padding: var(--tg-spacing-2);
 }
 
-/* Отключаем стандартные стили Material-UI */
+/* Отключаем стандартные стили Material-UI и применяем Telegram тему */
 .MuiPaper-root {
-  background-color: transparent !important;
-  box-shadow: none !important;
+  background-color: var(--tg-theme-secondary-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+  border: 1px solid var(--tg-theme-border-color) !important;
 }
 
 .MuiCard-root {
-  background-color: var(--tg-theme-secondary-bg-color, #f8f9fa) !important;
+  background-color: var(--tg-theme-secondary-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+  border: 1px solid var(--tg-theme-border-color) !important;
   border-radius: var(--tg-radius-l) !important;
+}
+
+.MuiDialog-paper {
+  background-color: var(--tg-theme-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+  border: 1px solid var(--tg-theme-border-color) !important;
+}
+
+.MuiAppBar-root {
+  background-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
+}
+
+.MuiBottomNavigation-root {
+  background-color: var(--tg-theme-secondary-bg-color) !important;
+}
+
+.MuiBottomNavigationAction-root {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.MuiBottomNavigationAction-root.Mui-selected {
+  color: var(--tg-theme-button-color) !important;
+}
+
+/* Кнопки в профиле */
+.MuiButton-root {
+  color: var(--tg-theme-text-color) !important;
+  border-color: var(--tg-theme-border-color) !important;
+}
+
+.MuiButton-contained {
+  background-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
+}
+
+.MuiButton-outlined {
+  background-color: transparent !important;
+  color: var(--tg-theme-text-color) !important;
+  border-color: var(--tg-theme-border-color) !important;
+}
+
+.MuiButton-outlined:hover {
+  background-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
+  border-color: var(--tg-theme-button-color) !important;
+}
+
+/* Чипы */
+.MuiChip-root {
+  background-color: var(--tg-theme-secondary-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+.MuiChip-outlined {
+  border-color: var(--tg-theme-border-color) !important;
+}
+
+.MuiChip-colorPrimary {
+  background-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
+}
+
+/* Алерты */
+.MuiAlert-root {
+  background-color: var(--tg-theme-secondary-bg-color) !important;
+  color: var(--tg-theme-text-color) !important;
+  border: 1px solid var(--tg-theme-border-color) !important;
+}
+
+.MuiAlert-standardError {
+  background-color: rgba(244, 67, 54, 0.1) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+.MuiAlert-standardWarning {
+  background-color: rgba(255, 152, 0, 0.1) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+.MuiAlert-standardInfo {
+  background-color: rgba(33, 150, 243, 0.1) !important;
+  color: var(--tg-theme-text-color) !important;
 }
 
 /* Telegram-style ripple effect */
@@ -264,7 +383,7 @@ a {
   scroll-behavior: smooth;
 }
 
-/* Убираем outline для touch устройств */
+/* Улучшенная доступность для touch устройств */
 @media (hover: none) {
   button:focus,
   a:focus,
@@ -272,15 +391,125 @@ a {
   textarea:focus {
     outline: none;
   }
+  
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--tg-theme-button-color);
+    outline-offset: 2px;
+  }
 }
 
-/* Темная тема */
+/* Улучшения контраста и доступности */
+.tg-user-badge:focus-visible,
+.tg-search__input:focus-visible,
+.pack-card:focus-visible {
+  outline: 2px solid var(--tg-theme-button-color);
+  outline-offset: 2px;
+  border-radius: var(--tg-radius-m);
+}
+
+/* Высокий контраст для важных элементов */
+.tg-user-badge__name,
+.tg-user-badge__username,
+.tg-search__input {
+  color-scheme: var(--tg-theme-text-color);
+}
+
+/* Улучшенные переходы для плавного переключения тем */
+* {
+  transition: background-color 0.2s ease, 
+              color 0.2s ease, 
+              border-color 0.2s ease, 
+              box-shadow 0.2s ease;
+}
+
+/* Отключаем переходы для элементов, которые не должны анимироваться */
+img, 
+video, 
+canvas, 
+svg, 
+.tg-ripple::after,
+.skeleton,
+.gallery-skeleton,
+.pack-card-skeleton {
+  transition: none;
+}
+
+/* Улучшенная видимость для пользователей с нарушениями зрения */
+@media (prefers-contrast: high) {
+  :root {
+    --tg-theme-border-color: #000000;
+  }
+  
+  .tg-dark-theme {
+    --tg-theme-border-color: #ffffff;
+  }
+}
+
+/* Поддержка уменьшенного движения */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .skeleton,
+  .gallery-skeleton,
+  .pack-card-skeleton {
+    animation: none;
+  }
+}
+
+/* Автоматическое определение темы через prefers-color-scheme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tg-theme-bg-color: #18222d;
+    --tg-theme-text-color: #ffffff;
+    --tg-theme-hint-color: #708499;
+    --tg-theme-link-color: #6ab2f2;
+    --tg-theme-button-color: #5288c1;
+    --tg-theme-button-text-color: #ffffff;
+    --tg-theme-secondary-bg-color: #131415;
+    --tg-theme-border-color: #2a3441;
+    --tg-theme-shadow-color: rgba(0, 0, 0, 0.3);
+    --tg-theme-overlay-color: rgba(0, 0, 0, 0.8);
+    --tg-theme-success-color: #4caf50;
+    --tg-theme-warning-color: #ff9800;
+    --tg-theme-error-color: #f44336;
+  }
+}
+
+/* Принудительная тёмная тема */
 .tg-dark-theme {
   color-scheme: dark;
+  --tg-theme-bg-color: #18222d;
+  --tg-theme-text-color: #ffffff;
+  --tg-theme-hint-color: #708499;
+  --tg-theme-link-color: #6ab2f2;
+  --tg-theme-button-color: #5288c1;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #131415;
+  --tg-theme-border-color: #2a3441;
+  --tg-theme-shadow-color: rgba(0, 0, 0, 0.3);
+  --tg-theme-overlay-color: rgba(0, 0, 0, 0.8);
 }
 
+/* Принудительная светлая тема */
 .tg-light-theme {
   color-scheme: light;
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f8f9fa;
+  --tg-theme-border-color: #e0e0e0;
+  --tg-theme-shadow-color: rgba(0, 0, 0, 0.1);
+  --tg-theme-overlay-color: rgba(0, 0, 0, 0.7);
 }
 
 /* User Badge */
@@ -290,8 +519,11 @@ a {
   gap: var(--tg-spacing-3);
   padding: var(--tg-spacing-4);
   background: var(--tg-theme-secondary-bg-color);
+  border: 1px solid var(--tg-theme-border-color);
   border-radius: var(--tg-radius-l);
   margin-bottom: var(--tg-spacing-4);
+  box-shadow: 0 2px 8px var(--tg-theme-shadow-color);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .tg-user-badge__avatar {
@@ -349,13 +581,14 @@ a {
   width: 100%;
   padding: var(--tg-spacing-3) var(--tg-spacing-4);
   background: var(--tg-theme-secondary-bg-color);
-  border: 1px solid transparent;
+  border: 1px solid var(--tg-theme-border-color);
   border-radius: var(--tg-radius-m);
   font-size: var(--tg-font-size-m);
   color: var(--tg-theme-text-color);
   outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   font-family: inherit;
+  box-shadow: 0 1px 3px var(--tg-theme-shadow-color);
 }
 
 .tg-search__input::placeholder {
@@ -365,6 +598,7 @@ a {
 .tg-search__input:focus {
   border-color: var(--tg-theme-button-color);
   background: var(--tg-theme-bg-color);
+  box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.1), 0 1px 3px var(--tg-theme-shadow-color);
 }
 
 .tg-search__input:disabled {
@@ -409,9 +643,10 @@ a {
       left: 0;
       right: 0;
       background: var(--tg-theme-secondary-bg-color);
-      border-top: 1px solid var(--tg-theme-hint-color);
+      border-top: 1px solid var(--tg-theme-border-color);
       z-index: 1000;
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 -2px 10px var(--tg-theme-shadow-color);
+      backdrop-filter: blur(10px);
     }
 
     .tg-debug-panel__toggle {
@@ -500,3 +735,67 @@ a {
       padding: 2px 6px;
       border-radius: 3px;
     }
+
+    .tg-debug-panel__section {
+      margin-bottom: var(--tg-spacing-4);
+      padding-bottom: var(--tg-spacing-3);
+      border-bottom: 1px solid var(--tg-theme-secondary-bg-color);
+    }
+
+    .tg-debug-panel__section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+/* Адаптивность для очень маленьких экранов */
+@media (max-width: 320px) {
+  :root {
+    --tg-spacing-1: 2px;
+    --tg-spacing-2: 4px;
+    --tg-spacing-3: 8px;
+    --tg-spacing-4: 12px;
+    --tg-spacing-5: 16px;
+    --tg-spacing-6: 20px;
+    
+    --tg-font-size-xs: 10px;
+    --tg-font-size-s: 12px;
+    --tg-font-size-m: 14px;
+    --tg-font-size-l: 16px;
+    --tg-font-size-xl: 18px;
+    --tg-font-size-xxl: 20px;
+  }
+  
+  .tg-user-badge__avatar {
+    width: 40px;
+    height: 40px;
+    font-size: var(--tg-font-size-m);
+  }
+  
+  .tg-search__input {
+    padding: var(--tg-spacing-2) var(--tg-spacing-3);
+    font-size: var(--tg-font-size-s);
+  }
+  
+  .tg-sticker-card__content {
+    padding: var(--tg-spacing-3);
+  }
+  
+  .tg-sticker-card__title {
+    font-size: var(--tg-font-size-m);
+  }
+  
+  .tg-sticker-card__description {
+    font-size: var(--tg-font-size-xs);
+  }
+  
+  /* Оптимизация для галереи на маленьких экранах */
+  .pack-card {
+    min-height: 160px !important;
+    height: 160px !important;
+  }
+  
+  .tg-sticker-card__preview-item {
+    min-width: calc(50% - 0.5px);
+  }
+}

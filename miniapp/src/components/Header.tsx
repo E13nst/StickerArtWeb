@@ -62,7 +62,9 @@ export const Header: React.FC<HeaderProps> = ({
       color="primary"
       sx={{ 
         height: 56,
-        minHeight: 56
+        minHeight: 56,
+        backgroundColor: 'var(--tg-theme-button-color)',
+        color: 'var(--tg-theme-button-text-color)'
       }}
     >
       <Toolbar 
@@ -92,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
             sx={{ 
               fontSize: '20px',
               fontWeight: 'bold',
-              color: 'white'
+              color: 'var(--tg-theme-button-text-color)'
             }}
           >
             {title}
@@ -146,7 +148,9 @@ export const Header: React.FC<HeaderProps> = ({
             <Box
               component="pre"
               sx={{
-                backgroundColor: 'grey.100',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                color: 'var(--tg-theme-text-color)',
+                border: '1px solid var(--tg-theme-border-color)',
                 padding: 2,
                 borderRadius: 1,
                 overflow: 'auto',
@@ -166,7 +170,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <Box
                   component="pre"
                   sx={{
-                    backgroundColor: 'grey.100',
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    color: 'var(--tg-theme-text-color)',
+                    border: '1px solid var(--tg-theme-border-color)',
                     padding: 2,
                     borderRadius: 1,
                     overflow: 'auto',

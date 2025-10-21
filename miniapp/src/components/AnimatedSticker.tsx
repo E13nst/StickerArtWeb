@@ -31,6 +31,16 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         setLoading(true);
         setError(false);
 
+        // Проверяем валидность URL
+        if (!imageUrl || imageUrl === '') {
+          console.log('🎬 Invalid imageUrl, using fallback:', fileId);
+          if (!cancelled) {
+            setError(true);
+            setLoading(false);
+          }
+          return;
+        }
+
         // Проверяем кеш
         if (animationCache.has(fileId)) {
           console.log('🎬 Loaded from cache:', fileId);
@@ -45,7 +55,13 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         const response = await fetch(imageUrl);
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // Если 404 или другая ошибка, сразу переходим к fallback
+          console.log('🎬 Animation not found, using fallback:', fileId);
+          if (!cancelled) {
+            setError(true);
+            setLoading(false);
+          }
+          return;
         }
 
         const contentType = response.headers.get('content-type');
@@ -62,10 +78,13 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
           }
         } else {
           // Если это не JSON (например, webp/png), показываем ошибку
-          throw new Error('Not a JSON animation');
+          console.log('🎬 Not a JSON animation, using fallback:', fileId);
+          if (!cancelled) {
+            setError(true);
+          }
         }
       } catch (err) {
-        console.warn('Failed to load animation:', fileId, err);
+        console.log('🎬 Failed to load animation, using fallback:', fileId, err);
         if (!cancelled) {
           setError(true);
         }
@@ -103,8 +122,20 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         src={imageUrl}
         alt={emoji || ''}
         className={className}
-        onError={() => {
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
+        onError={(e) => {
           // Если и изображение не загрузилось - показываем эмодзи
+          console.log('🎬 Image fallback failed, showing emoji:', fileId);
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const parent = target.parentElement;
+          if (parent) {
+            parent.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 48px;">${emoji || '🎨'}</div>`;
+          }
         }}
       />
     );

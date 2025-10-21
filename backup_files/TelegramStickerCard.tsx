@@ -65,9 +65,6 @@ const TelegramStickerCardComponent: React.FC<TelegramStickerCardProps> = ({
                 {sticker.emoji || '🎨'}
               </div>
             )}
-            {sticker.isAnimated && (
-              <div className="tg-sticker-card__animated-badge">TGS</div>
-            )}
           </div>
         ))}
       </div>

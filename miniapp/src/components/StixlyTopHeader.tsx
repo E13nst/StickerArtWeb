@@ -33,6 +33,155 @@ const RAW_SLIDES: Omit<Slide, "img"> & { img: string }[] = [
   },
 ];
 
+// Специальная кнопка переключения тем для StixlyTopHeader
+const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
+  const [isDark, setIsDark] = React.useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('stixly_tg_theme');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed?.scheme === 'dark';
+      }
+    } catch {}
+    return document.documentElement.classList.contains('tg-dark-theme');
+  });
+
+  const handleToggle = () => {
+    const next = !isDark;
+    setIsDark(next);
+    
+    // Применяем тему
+    const scheme = next ? 'dark' : 'light';
+    const lightTheme = {
+      bg_color: '#ffffff',
+      text_color: '#000000',
+      hint_color: '#999999',
+      link_color: '#2481cc',
+      button_color: '#2481cc',
+      button_text_color: '#ffffff',
+      secondary_bg_color: '#f8f9fa',
+      border_color: '#e0e0e0',
+      shadow_color: 'rgba(0, 0, 0, 0.1)',
+      overlay_color: 'rgba(0, 0, 0, 0.7)',
+    };
+    
+    const darkTheme = {
+      bg_color: '#18222d',
+      text_color: '#ffffff',
+      hint_color: '#708499',
+      link_color: '#6ab2f2',
+      button_color: '#5288c1',
+      button_text_color: '#ffffff',
+      secondary_bg_color: '#131415',
+      border_color: '#2a3441',
+      shadow_color: 'rgba(0, 0, 0, 0.3)',
+      overlay_color: 'rgba(0, 0, 0, 0.8)',
+    };
+    
+    const params = next ? darkTheme : lightTheme;
+    const root = document.documentElement;
+    const body = document.body;
+    
+    root.style.setProperty('--tg-theme-bg-color', params.bg_color);
+    root.style.setProperty('--tg-theme-text-color', params.text_color);
+    root.style.setProperty('--tg-theme-hint-color', params.hint_color);
+    root.style.setProperty('--tg-theme-button-color', params.button_color);
+    root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
+    root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
+    root.style.setProperty('--tg-theme-link-color', params.link_color);
+    root.style.setProperty('--tg-theme-border-color', params.border_color);
+    root.style.setProperty('--tg-theme-shadow-color', params.shadow_color);
+    root.style.setProperty('--tg-theme-overlay-color', params.overlay_color);
+    
+    body.style.backgroundColor = params.bg_color;
+    body.style.color = params.text_color;
+    
+    if (scheme === 'dark') {
+      root.classList.add('tg-dark-theme');
+      root.classList.remove('tg-light-theme');
+    } else {
+      root.classList.add('tg-light-theme');
+      root.classList.remove('tg-dark-theme');
+    }
+    
+    // Сохраняем тему
+    try {
+      localStorage.setItem('stixly_tg_theme', JSON.stringify({ scheme, params }));
+    } catch {}
+  };
+
+  // Определяем цвет границы в зависимости от фона
+  const getBorderColor = () => {
+    if (currentBg.includes('#000000') || currentBg.includes('#111111')) {
+      // Чёрный фон - белая граница
+      return 'rgba(255, 255, 255, 0.8)';
+    } else if (currentBg.includes('#FF6700') || currentBg.includes('#FF944D')) {
+      // Оранжевый фон - белая граница
+      return 'rgba(255, 255, 255, 0.8)';
+    } else if (currentBg.includes('#3B1D73') || currentBg.includes('#2CD9FF')) {
+      // Фиолетово-голубой фон - белая граница
+      return 'rgba(255, 255, 255, 0.8)';
+    }
+    return 'rgba(255, 255, 255, 0.8)';
+  };
+
+  const borderColor = getBorderColor();
+
+  return (
+    <button
+      onClick={handleToggle}
+      style={{
+        position: 'absolute',
+        bottom: '12px',
+        right: '12px',
+        width: '32px',
+        height: '32px',
+        borderRadius: '50%',
+        border: `1px solid ${borderColor}`,
+        background: 'transparent',
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        backdropFilter: 'blur(4px)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+        zIndex: 10,
+        padding: 0,
+        margin: 0,
+        outline: 'none',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 1)';
+        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+        e.currentTarget.style.transform = 'scale(1.05)';
+        e.currentTarget.style.borderWidth = '1px';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = borderColor;
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.borderWidth = '1px';
+      }}
+      aria-label={isDark ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
+    >
+      <span style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        lineHeight: 1,
+        transform: 'translateY(-1px)' // Небольшая корректировка для идеального центрирования
+      }}>
+        {isDark ? '☀️' : '🌙'}
+      </span>
+    </button>
+  );
+};
+
 export default function StixlyTopHeader() {
   const [index, setIndex] = useState(0);
 
@@ -69,7 +218,7 @@ export default function StixlyTopHeader() {
         overflow: "hidden",
         borderBottomLeftRadius: "1.5rem",
         borderBottomRightRadius: "1.5rem",
-        pointerEvents: "none", // не блокируем взаимодействия с контентом
+        pointerEvents: "auto", // разрешаем взаимодействия для кнопки
       }}
     >
       {/* Два слоя для идеального кросс‑фейда без пустоты */}
@@ -187,6 +336,9 @@ export default function StixlyTopHeader() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Кнопка переключения тем */}
+      <StixlyThemeToggle currentBg={current.bg} />
     </div>
   );
 }

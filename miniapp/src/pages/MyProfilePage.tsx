@@ -18,18 +18,18 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { apiClient } from '@/api/client';
 
 // Компоненты
-import { Header } from '@/components/Header';
 import { UserInfoCard } from '@/components/UserInfoCard';
 import { SearchBar } from '@/components/SearchBar';
-import { StickerSetList } from '@/components/StickerSetList';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomNav } from '@/components/BottomNav';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
+import { GalleryGrid } from '@/components/GalleryGrid';
+import { DebugPanel } from '@/components/DebugPanel';
+import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -308,14 +308,18 @@ export const MyProfilePage: React.FC = () => {
   // Основные ошибки
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Header 
-          title="Мой профиль"
-          onMenuClick={handleBack}
-          showOptions={false}
-        />
+      <Box sx={{ 
+        minHeight: '100vh', 
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        color: 'var(--tg-theme-text-color)'
+      }}>
         <Container maxWidth="lg" sx={{ py: 2 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ 
+            mb: 2,
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            color: 'var(--tg-theme-text-color)',
+            border: '1px solid var(--tg-theme-border-color)'
+          }}>
             {error}
           </Alert>
           <EmptyState
@@ -332,20 +336,12 @@ export const MyProfilePage: React.FC = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh', 
-      backgroundColor: 'background.default',
+      backgroundColor: 'var(--tg-theme-bg-color)',
+      color: 'var(--tg-theme-text-color)',
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
     }}>
-      {/* Заголовок */}
-      <Header 
-        title={'Мой профиль'}
-        onMenuClick={handleBack}
-        showOptions={false}
-      />
 
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-          <TelegramThemeToggle />
-        </Box>
         {viewMode === 'list' ? (
           <>
             {/* Информация о пользователе */}
@@ -359,7 +355,12 @@ export const MyProfilePage: React.FC = () => {
 
             {/* Ошибка пользователя */}
             {userError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
+              <Alert severity="error" sx={{ 
+                mb: 2,
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                color: 'var(--tg-theme-text-color)',
+                border: '1px solid var(--tg-theme-border-color)'
+              }}>
                 {userError}
               </Alert>
             )}
@@ -401,11 +402,12 @@ export const MyProfilePage: React.FC = () => {
                   onAction={handleCreateSticker}
                 />
               ) : (
-                <StickerSetList
-                  stickerSets={filteredStickerSets}
-                  onView={handleViewStickerSet}
-                  isInTelegramApp={isInTelegramApp}
-                />
+                <div className="fade-in">
+                  <GalleryGrid
+                    packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
+                    onPackClick={handleViewStickerSet}
+                  />
+                </div>
               )}
 
               {/* Показать ещё */}
@@ -423,15 +425,22 @@ export const MyProfilePage: React.FC = () => {
 
             <TabPanel value={activeProfileTab} index={1}>
               {/* Баланс ART */}
-              <Card sx={{ mb: 2, borderRadius: 3 }}>
+              <Card sx={{ 
+                mb: 2, 
+                borderRadius: 3,
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                color: 'var(--tg-theme-text-color)',
+                border: '1px solid var(--tg-theme-border-color)',
+                boxShadow: '0 2px 8px var(--tg-theme-shadow-color)'
+              }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <AccountBalanceWalletIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                    <AccountBalanceWalletIcon sx={{ fontSize: 40, color: 'var(--tg-theme-button-color)' }} />
                     <Box>
                       <Typography variant="h6" fontWeight="bold">
                         Баланс ART
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
                         Ваши стикер-токены
                       </Typography>
                     </Box>
@@ -450,7 +459,11 @@ export const MyProfilePage: React.FC = () => {
                     />
                   </Box>
 
-                  <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>
+                  <Typography variant="body2" sx={{ 
+                    color: 'var(--tg-theme-hint-color)', 
+                    textAlign: 'center', 
+                    mt: 2 
+                  }}>
                     Создавайте стикеры и зарабатывайте ART токены!
                   </Typography>
                 </CardContent>
@@ -476,7 +489,10 @@ export const MyProfilePage: React.FC = () => {
                 alignItems: 'center',
                 py: 4
               }}>
-                <Typography variant="h6" color="text.secondary" textAlign="center">
+                <Typography variant="h6" sx={{ 
+                  color: 'var(--tg-theme-hint-color)', 
+                  textAlign: 'center' 
+                }}>
                   Поделиться профилем
                 </Typography>
                 
@@ -511,6 +527,9 @@ export const MyProfilePage: React.FC = () => {
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
       />
+
+      {/* Debug панель */}
+      {initData && <DebugPanel initData={initData} />}
     </Box>
   );
 };

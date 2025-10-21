@@ -99,13 +99,13 @@ export const useZoneLoading = ({
       const zone = getElementZone(element);
       updateLoadingPriority(packId, zone);
       
-      // Обновляем текущую зону
-      if (entry.isIntersecting) {
+      // Обновляем текущую зону только если она действительно изменилась
+      if (entry.isIntersecting && currentZone !== zone) {
         setCurrentZone(zone);
         onZoneChange?.(zone);
       }
     });
-  }, [getElementZone, updateLoadingPriority, onZoneChange]);
+  }, [getElementZone, updateLoadingPriority, onZoneChange, currentZone]);
 
   // Инициализация IntersectionObserver
   useEffect(() => {
@@ -172,6 +172,7 @@ export const useZoneLoading = ({
     getZoneStats
   };
 };
+
 
 
 

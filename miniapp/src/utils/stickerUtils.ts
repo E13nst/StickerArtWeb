@@ -45,3 +45,57 @@ export function getStickerThumbnailUrl(fileId: string, size: number = 128): stri
   return `${BACKEND_URL}/api/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
 }
 
+/**
+ * Получить случайные стикеры из набора
+ * @param stickers - Массив стикеров
+ * @param count - Количество стикеров для выбора
+ * @param seed - Опциональный seed для детерминированного выбора
+ * @returns Массив случайно выбранных стикеров
+ */
+export function getRandomStickersFromSet<T>(
+  stickers: T[], 
+  count: number, 
+  seed?: string
+): T[] {
+  if (!stickers || stickers.length === 0) return [];
+  
+  // Фильтруем валидные стикеры (не null/undefined)
+  const validStickers = stickers.filter(sticker => sticker != null);
+  if (validStickers.length === 0) return [];
+  
+  // Если валидных стикеров меньше или равно нужному количеству, возвращаем все
+  if (validStickers.length <= count) {
+    return [...validStickers];
+  }
+  
+  // Создаем копию массива для перемешивания
+  const shuffledStickers = [...validStickers];
+  
+  if (seed) {
+    // Детерминированное перемешивание с seed
+    let state = 0;
+    for (let i = 0; i < seed.length; i++) {
+      state = ((state << 5) - state + seed.charCodeAt(i)) & 0xffffffff;
+    }
+    
+    const seededRandom = () => {
+      state = (state * 1664525 + 1013904223) & 0xffffffff;
+      return state / 0x100000000;
+    };
+    
+    // Fisher-Yates shuffle с seeded random
+    for (let i = shuffledStickers.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRandom() * (i + 1));
+      [shuffledStickers[i], shuffledStickers[j]] = [shuffledStickers[j], shuffledStickers[i]];
+    }
+  } else {
+    // Полностью случайное перемешивание
+    for (let i = shuffledStickers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledStickers[i], shuffledStickers[j]] = [shuffledStickers[j], shuffledStickers[i]];
+    }
+  }
+  
+  return shuffledStickers.slice(0, count);
+}
+
