@@ -13,6 +13,7 @@ import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
 import { DebugPanel } from '../components/DebugPanel';
 import { StickerPackModal } from '../components/StickerPackModal';
+import { SearchBar } from '../components/SearchBar';
 
 // Новые компоненты галереи
 import { SimpleGallery } from '../components/SimpleGallery';
@@ -179,23 +180,24 @@ export const GalleryPage: React.FC = () => {
     }));
   }, [tg]);
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newSearchTerm = e.target.value;
+  const handleSearchChange = useCallback((newSearchTerm: string) => {
     setUiState(prev => ({ ...prev, searchTerm: newSearchTerm }));
-    
-    // Если поиск очищен, загружаем данные заново
-    if (!newSearchTerm.trim()) {
+  }, []);
+
+  const handleSearch = useCallback((searchTerm: string) => {
+    if (searchTerm.trim()) {
+      searchStickerSets(searchTerm);
+    } else {
       fetchStickerSets();
     }
-  }, [fetchStickerSets]);
+  }, [searchStickerSets, fetchStickerSets]);
 
-  // Эффект для debounced поиска - исправлен бесконечный цикл
-  useEffect(() => {
-    if (debouncedSearchTerm) {
-      searchStickerSets(debouncedSearchTerm);
-    }
-    // Убрали вызов fetchStickerSets() при пустом поиске, чтобы избежать лишних запросов
-  }, [debouncedSearchTerm, searchStickerSets]);
+  // Debounced поиск отключен - поиск только по требованию (Enter или клик)
+  // useEffect(() => {
+  //   if (debouncedSearchTerm) {
+  //     searchStickerSets(debouncedSearchTerm);
+  //   }
+  // }, [debouncedSearchTerm, searchStickerSets]);
 
   // Оптимизированная фильтрация с мемоизацией
   const filteredStickerSets = useMemo(() => 
@@ -228,16 +230,13 @@ export const GalleryPage: React.FC = () => {
       <TelegramLayout>
 
         {/* Search Bar */}
-        <div className="tg-search fade-in">
-          <input
-            type="text"
-            className="tg-search__input"
-            placeholder="🔍 Поиск стикеров..."
-            value={uiState.searchTerm}
-            onChange={handleSearchChange}
-            disabled={isLoading}
-          />
-        </div>
+        <SearchBar
+          value={uiState.searchTerm}
+          onChange={handleSearchChange}
+          onSearch={handleSearch}
+          placeholder="Поиск стикеров..."
+          disabled={isLoading}
+        />
 
 
 

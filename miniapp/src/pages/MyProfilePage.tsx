@@ -373,7 +373,7 @@ export const MyProfilePage: React.FC = () => {
               <SearchBar
                 value={searchTerm}
                 onChange={handleSearchChange}
-                placeholder="🔍 Поиск моих стикерсетов..."
+                placeholder="Поиск моих стикерсетов..."
                 disabled={isStickerSetsLoading}
               />
 

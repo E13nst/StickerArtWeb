@@ -10,6 +10,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
+  onSearch?: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -17,11 +18,25 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChange,
-  placeholder = "🔍 Поиск стикеров...",
+  onSearch,
+  placeholder = "Поиск стикеров...",
   disabled = false
 }) => {
   const handleClear = () => {
     onChange('');
+    onSearch?.('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && onSearch) {
+      onSearch(value);
+    }
+  };
+
+  const handleSearchClick = () => {
+    if (onSearch) {
+      onSearch(value);
+    }
   };
 
   return (
@@ -31,11 +46,35 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyPress={handleKeyPress}
         disabled={disabled}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon color={disabled ? "disabled" : "action"} />
+              <Box
+                component="button"
+                onClick={handleSearchClick}
+                sx={{
+                  border: 'none',
+                  background: 'none',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 0,
+                  color: 'var(--tg-theme-hint-color)',
+                  opacity: disabled ? 0.5 : 1
+                }}
+                aria-label="Поиск"
+                disabled={disabled}
+              >
+                <SearchIcon 
+                  color={disabled ? "disabled" : "action"} 
+                  sx={{ 
+                    color: disabled ? 'var(--tg-theme-hint-color)' : 'var(--tg-theme-hint-color)',
+                    opacity: disabled ? 0.5 : 1
+                  }} 
+                />
+              </Box>
             </InputAdornment>
           ),
           endAdornment: value ? (
@@ -50,11 +89,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   padding: 0,
-                  color: 'action.active'
+                  color: 'var(--tg-theme-hint-color)'
                 }}
                 aria-label="Очистить поиск"
               >
-                <ClearIcon fontSize="small" />
+                <ClearIcon fontSize="small" sx={{ color: 'var(--tg-theme-hint-color)' }} />
               </Box>
             </InputAdornment>
           ) : null,
@@ -85,6 +124,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               color: 'var(--tg-theme-hint-color)',
               opacity: 1,
             },
+          },
+          '& .MuiInputBase-input::placeholder': {
+            color: 'var(--tg-theme-hint-color)',
+            opacity: 1,
           },
         }}
       />

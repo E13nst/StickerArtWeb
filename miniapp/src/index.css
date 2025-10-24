@@ -35,6 +35,7 @@
 
   /* Расширенные цветовые переменные для тем */
   --tg-theme-bg-color: #ffffff;
+  --tg-theme-bg-color-rgb: 255, 255, 255;
   --tg-theme-text-color: #000000;
   --tg-theme-hint-color: #999999;
   --tg-theme-link-color: #2481cc;
@@ -155,6 +156,26 @@ a {
 
 .fade-in {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Улучшенная анимация для tg-search с fade-in */
+@keyframes searchFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-5px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tg-search.fade-in {
+  animation: searchFadeIn 0.6s ease-out;
 }
 
 /* Telegram-style loading skeleton */
@@ -503,6 +524,7 @@ svg,
   --tg-theme-overlay-color: rgba(0, 0, 0, 0.8);
 }
 
+
 /* Принудительная светлая тема */
 .tg-light-theme {
   color-scheme: light;
@@ -516,6 +538,61 @@ svg,
   --tg-theme-border-color: #e0e0e0;
   --tg-theme-shadow-color: rgba(0, 0, 0, 0.1);
   --tg-theme-overlay-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Стили для иконки поиска - адаптивные под тему */
+.MuiSvgIcon-root.MuiSvgIcon-colorAction.MuiSvgIcon-fontSizeMedium {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.tg-dark-theme .MuiSvgIcon-root.MuiSvgIcon-colorAction.MuiSvgIcon-fontSizeMedium {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.tg-light-theme .MuiSvgIcon-root.MuiSvgIcon-colorAction.MuiSvgIcon-fontSizeMedium {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+/* Общие стили для всех MuiSvgIcon с цветом action */
+.MuiSvgIcon-root.MuiSvgIcon-colorAction {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.tg-dark-theme .MuiSvgIcon-root.MuiSvgIcon-colorAction {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.tg-light-theme .MuiSvgIcon-root.MuiSvgIcon-colorAction {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+/* Стили для всех иконок Material-UI - адаптивные под тему */
+.MuiSvgIcon-root {
+  color: var(--tg-theme-text-color) !important;
+}
+
+.tg-dark-theme .MuiSvgIcon-root {
+  color: var(--tg-theme-text-color) !important;
+}
+
+.tg-light-theme .MuiSvgIcon-root {
+  color: var(--tg-theme-text-color) !important;
+}
+
+/* Специальные стили для иконок в disabled состоянии */
+.MuiSvgIcon-root.MuiSvgIcon-colorDisabled {
+  color: var(--tg-theme-hint-color) !important;
+  opacity: 0.5 !important;
+}
+
+.tg-dark-theme .MuiSvgIcon-root.MuiSvgIcon-colorDisabled {
+  color: var(--tg-theme-hint-color) !important;
+  opacity: 0.5 !important;
+}
+
+.tg-light-theme .MuiSvgIcon-root.MuiSvgIcon-colorDisabled {
+  color: var(--tg-theme-hint-color) !important;
+  opacity: 0.5 !important;
 }
 
 /* User Badge */
@@ -580,21 +657,34 @@ svg,
 
 /* Search Bar */
 .tg-search {
-  margin-bottom: var(--tg-spacing-4);
+  position: relative;
+  z-index: 10;
 }
 
+/* Принудительные стили для поисковой строки */
+input.tg-search__input,
+.tg-search input,
+.tg-search .tg-search__input {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
 .tg-search__input {
-  width: 100%;
-  padding: var(--tg-spacing-3) var(--tg-spacing-4);
-  background: var(--tg-theme-secondary-bg-color);
-  border: 1px solid var(--tg-theme-border-color);
-  border-radius: var(--tg-radius-m);
-  font-size: var(--tg-font-size-m);
-  color: var(--tg-theme-text-color);
-  outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-  font-family: inherit;
-  box-shadow: 0 1px 3px var(--tg-theme-shadow-color);
+  width: 100% !important;
+  padding: var(--tg-spacing-3) var(--tg-spacing-4) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  border-radius: var(--tg-radius-m) !important;
+  font-size: var(--tg-font-size-m) !important;
+  color: var(--tg-theme-text-color) !important;
+  outline: none !important;
+  transition: background 0.3s ease !important;
+  font-family: inherit !important;
+  position: relative !important;
+  z-index: 5 !important;
+  box-shadow: none !important;
 }
 
 .tg-search__input::placeholder {
@@ -602,15 +692,76 @@ svg,
 }
 
 .tg-search__input:focus {
-  border-color: var(--tg-theme-button-color);
-  background: var(--tg-theme-bg-color);
-  box-shadow: 0 0 0 3px rgba(36, 129, 204, 0.1), 0 1px 3px var(--tg-theme-shadow-color);
+  background: rgba(36, 129, 204, 0.1) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Адаптивные стили для поисковой строки в темной теме */
+.tg-dark-theme .tg-search__input {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+.tg-dark-theme .tg-search__input::placeholder {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.tg-dark-theme .tg-search__input:focus {
+  background: rgba(82, 136, 193, 0.1) !important;
+}
+
+.tg-light-theme .tg-search__input {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--tg-theme-text-color) !important;
+}
+
+.tg-light-theme .tg-search__input::placeholder {
+  color: var(--tg-theme-hint-color) !important;
+}
+
+.tg-light-theme .tg-search__input:focus {
+  background: rgba(36, 129, 204, 0.1) !important;
 }
 
 .tg-search__input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Адаптация для темной темы Telegram */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tg-theme-bg-color-rgb: 0, 0, 0;
+  }
+  
+  .tg-search__input {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+  }
+  
+  .tg-search__input:focus {
+    background: rgba(36, 129, 204, 0.2) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+}
+
+/* Адаптация для светлой темы Telegram */
+@media (prefers-color-scheme: light) {
+  .tg-search__input {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
+  }
+  
+  .tg-search__input:focus {
+    background: rgba(36, 129, 204, 0.1) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
 
 /* Sticker Detail */
 .tg-sticker-detail__grid {

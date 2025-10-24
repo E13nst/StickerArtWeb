@@ -30,7 +30,7 @@ import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { tg, isInTelegramApp } = useTelegram();
+  const { tg, isInTelegramApp, initData } = useTelegram();
 
   const {
     isLoading,
@@ -208,15 +208,16 @@ export const ProfilePage: React.FC = () => {
   // Обработка поиска
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
-    
+  };
+
+  const handleSearch = (searchTerm: string) => {
     if (!userIdNumber) return;
-
-    // Дебаунс поиска
-    const delayedSearch = setTimeout(() => {
-      loadUserStickerSets(userIdNumber, newSearchTerm);
-    }, 500);
-
-    return () => clearTimeout(delayedSearch);
+    
+    if (searchTerm.trim()) {
+      loadUserStickerSets(userIdNumber, searchTerm);
+    } else {
+      loadUserStickerSets(userIdNumber);
+    }
   };
 
   // Фильтрация стикерсетов (локальная + серверная)
@@ -251,14 +252,18 @@ export const ProfilePage: React.FC = () => {
   // Основные ошибки
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Header 
-          title="Профиль пользователя"
-          onMenuClick={handleBack}
-          showOptions={false}
-        />
+      <Box sx={{ 
+        minHeight: '100vh', 
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        color: 'var(--tg-theme-text-color)'
+      }}>
         <Container maxWidth="lg" sx={{ py: 2 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ 
+            mb: 2,
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            color: 'var(--tg-theme-text-color)',
+            border: '1px solid var(--tg-theme-border-color)'
+          }}>
             {error}
           </Alert>
           <EmptyState
@@ -275,7 +280,8 @@ export const ProfilePage: React.FC = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh', 
-      backgroundColor: 'background.default',
+      backgroundColor: 'var(--tg-theme-bg-color)',
+      color: 'var(--tg-theme-text-color)',
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
     }}>
 
@@ -315,7 +321,8 @@ export const ProfilePage: React.FC = () => {
               <SearchBar
                 value={searchTerm}
                 onChange={handleSearchChange}
-                placeholder="🔍 Поиск стикерсетов пользователя..."
+                onSearch={handleSearch}
+                placeholder="Поиск стикерсетов пользователя..."
                 disabled={isStickerSetsLoading}
               />
 
