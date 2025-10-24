@@ -270,7 +270,14 @@ export const GalleryPage: React.FC = () => {
         )}
       </TelegramLayout>
       <DebugPanel initData={initData} />
-      <StickerPackModal open={uiState.isDetailOpen} stickerSet={uiState.selectedStickerSet} onClose={handleBackToList} />
+      <StickerPackModal 
+        open={uiState.isDetailOpen} 
+        stickerSet={uiState.selectedStickerSet} 
+        onClose={handleBackToList}
+        onLike={(id, title) => {
+          console.log(`Лайк для стикерсета ${id}: ${title}`);
+        }}
+      />
     </>
   );
 };

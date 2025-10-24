@@ -14,6 +14,7 @@ import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerThumbnail } from './StickerThumbnail';
+import { useLikesStore } from '@/store/useLikesStore';
 
 // Простое кеширование метаданных для мгновенного отображения при повторном открытии
 const metaCache = new Map<number, StickerSetMeta>();
@@ -47,11 +48,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       likes: 0
     };
   });
-  const [likes, setLikes] = useState<number>(meta?.likes || 0);
-  const [liked, setLiked] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+  // Используем глобальный store для лайков
+  const { getLikeState, toggleLike, setLike } = useLikesStore();
+  const likeState = getLikeState(stickerSet.id.toString());
+  const liked = likeState.isLiked;
+  const likes = likeState.likesCount;
 
   // Загружаем полную информацию о стикерсете с сервера
   useEffect(() => {
@@ -133,17 +138,22 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     });
   };
 
-  // Загружаем метаданные
+  // Загружаем метаданные и синхронизируем с глобальным store
   useEffect(() => {
     let mounted = true;
     apiClient.getStickerSetMeta(stickerSet.id).then((m) => {
       if (!mounted) return;
       metaCache.set(stickerSet.id, m);
       setMeta(m);
-      setLikes(m.likes || 0);
+      
+      // Синхронизируем с глобальным store, если там еще нет данных
+      const currentLikeState = getLikeState(stickerSet.id.toString());
+      if (currentLikeState.likesCount === 0 && m.likes > 0) {
+        setLike(stickerSet.id.toString(), false, m.likes); // Устанавливаем правильное количество лайков
+      }
     }).catch(() => {});
     return () => { mounted = false; };
-  }, [stickerSet.id]);
+  }, [stickerSet.id, getLikeState, setLike]);
 
   // Используем полные данные или fallback к данным из пропсов
   const stickers = fullStickerSet?.telegramStickerSetInfo?.stickers || stickerSet.telegramStickerSetInfo?.stickers || [];
@@ -164,8 +174,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   const handleLikeClick = () => {
     const willLike = !liked;
-    setLiked(willLike);
-    setLikes((v) => v + (willLike ? 1 : -1));
+    toggleLike(stickerSet.id.toString());
     setLikeAnim(true);
     window.setTimeout(() => setLikeAnim(false), 220);
     if (onLike && willLike) onLike(stickerSet.id, stickerSet.title);

@@ -48,3 +48,4 @@ export const StickerProgressIndicator: React.FC<StickerProgressIndicatorProps> =
     </div>
   );
 };
+

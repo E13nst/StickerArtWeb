@@ -521,6 +521,9 @@ export const MyProfilePage: React.FC = () => {
         open={isModalOpen}
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
+        onLike={(id, title) => {
+          console.log(`Лайк для стикерсета ${id}: ${title}`);
+        }}
       />
 
       {/* Debug панель */}

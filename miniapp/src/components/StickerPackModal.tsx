@@ -7,9 +7,10 @@ interface StickerPackModalProps {
   open: boolean;
   stickerSet: StickerSetResponse | null;
   onClose: () => void;
+  onLike?: (id: number, title: string) => void;
 }
 
-export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, stickerSet, onClose }) => {
+export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, stickerSet, onClose, onLike }) => {
   if (!stickerSet) return null;
 
   return (
@@ -19,6 +20,7 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, sticke
           stickerSet={stickerSet}
           onBack={onClose}
           onShare={() => {}}
+          onLike={onLike}
           isInTelegramApp={true}
         />
       </DialogContent>
