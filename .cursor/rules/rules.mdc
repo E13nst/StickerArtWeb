@@ -63,7 +63,53 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - Если есть сомнения, актуализируй один точный уточняющий вопрос и продолжай выполнение.
 
 - Для локаьлной работы используй C:\Users\Notebook\StickerArtWeb-1\Makefile
-- **НЕ коммитим** `dist/`, `node_modules/`, `assets/`
+- **НЕ коммитим** `dist/`, `node_modules/`, `assets/`, `test-results/`, `playwright-report/`
 - **Всегда собирается** на сервере при деплое
 - **Nginx** автоматически проксирует API на бэкенд
+
+### API Integration
+- **Base URL**: `https://stickerartgallery-e13nst.amvera.io`
+- **Аутентификация**: всегда используй `X-Telegram-Init-Data` заголовок с `window.Telegram.WebApp.initData`
+- **Документация**: см. `.cursor/api-reference.md` для полного списка endpoints
+- **Кэширование**: стикеры кэшируются в Redis на 7 дней
+- **Локализация**: поддерживаем `ru` и `en` (по умолчанию `en`)
+
+### React Patterns
+- **Компоненты**: функциональные компоненты с хуками
+- **Мемоизация**: используй `useMemo`, `useCallback`, `memo()` для оптимизации
+- **State**: Zustand stores для глобального состояния
+- **Lazy Loading**: обязательно для изображений (intersection observer)
+- **Progressive Loading**: для стикеров используй `useProgressiveLoading` hook
+
+### Performance
+- **Первые 6 паков**: `isHighPriority: true`
+- **Viewport margin**: `rootMargin: '800px'` для preloading
+- **Image loading**: `loading="lazy"` для non-priority
+- **Debounce**: для поиска и expensive operations
+
+### Telegram Web App
+- **Инициализация**: всегда вызывай `WebApp.ready()` после загрузки
+- **Темизация**: используй `var(--tg-theme-*)` CSS переменные
+- **Platform**: учитывай mobile/desktop различия
+
+### Testing
+- **E2E**: Playwright тесты в `miniapp/tests/`
+- **Browsers**: тестируем на Chromium, Firefox, WebKit
+- **Accessibility**: обязательны ARIA-атрибуты, keyboard navigation, high contrast
+- **Селекторы**: используй `data-testid` для стабильности тестов
+
+### TypeScript
+- **Интерфейсы**: всегда определяй типы для props и API responses
+- **Избегай `any`**: используй `unknown` или конкретные типы
+- **Type Guards**: для runtime проверок
+
+### Git Workflow
+- **Main branch**: `main`
+- **Commit messages**: понятные, конкретные (см. историю)
+- **НЕ коммитим**: тесты, репорты, билды, node_modules
+
+### Reference Files
+- API документация: `.cursor/api-reference.md`
+- Правила проекта: `.cursor/project-rules.md`
+- Swagger UI: `https://stickerartgallery-e13nst.amvera.io/v3/api-docs`
 ---

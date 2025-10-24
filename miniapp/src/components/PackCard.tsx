@@ -1,24 +1,18 @@
-import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
+import React, { useCallback, memo, useState } from 'react';
 import { useNearVisible } from '../hooks/useNearVisible';
-import { useProgressiveLoading } from '../hooks/useProgressiveLoading';
-import { useGalleryStore } from '../store/useGalleryStore';
+import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
-import { getTrulyRandomEmojisFromPack } from '../utils/emojiUtils';
+import { LikeButton } from './LikeButton';
+import { useLikesStore } from '../store/useLikesStore';
 
 interface Pack {
   id: string;
   title: string;
-  posters: Array<{ 
-    fileId: string; 
-    url: string; 
-    isAnimated?: boolean;
-    emoji?: string;
-  }>;
-  allStickers?: Array<{ 
-    fileId: string; 
-    url: string; 
-    isAnimated?: boolean;
-    emoji?: string;
+  previewStickers: Array<{
+    fileId: string;
+    url: string;
+    isAnimated: boolean;
+    emoji: string;
   }>;
 }
 
@@ -27,131 +21,28 @@ interface PackCardProps {
   isFirstRow?: boolean;
   isHighPriority?: boolean; // Для первых 6 паков на экране
   onClick?: (packId: string) => void;
+  onLikeAnimation?: (packId: string) => void;
 }
 
 const PackCardComponent: React.FC<PackCardProps> = ({ 
   pack, 
   isFirstRow = false,
   isHighPriority = false,
-  onClick 
+  onClick,
+  onLikeAnimation
 }) => {
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
-  const [isDocumentHidden, setIsDocumentHidden] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [randomEmojis, setRandomEmojis] = useState<string[]>([]);
-  
-  const { setPostersByPack, postersByPack } = useGalleryStore();
-  
-  // Мемоизированный выбор постеров - теперь просто возвращаем все постеры
-  // так как случайный выбор уже сделан в galleryAdapter
-  const selectedPosters = useMemo(() => {
-    if (pack.posters.length === 0) return [];
-    
-    console.log('🎨 Pack', pack.id, 'showing', pack.posters.length, 'posters');
-    return pack.posters;
-  }, [pack.id, pack.posters]);
+  const [isHovered, setIsHovered] = useState(false);
+  const { getLikeState, toggleLike } = useLikesStore();
 
-  // Обновляем случайные эмодзи при изменении данных пака
-  // Используем все стикеры пака для выбора эмодзи, а не только превью
-  useEffect(() => {
-    const stickersForEmoji = pack.allStickers && pack.allStickers.length > 0 
-      ? pack.allStickers 
-      : pack.posters;
-    
-    const newEmojis = getTrulyRandomEmojisFromPack(stickersForEmoji, 3);
-    setRandomEmojis(newEmojis);
-  }, [pack.allStickers, pack.posters]);
-
-  // Используем прогрессивную загрузку
-  const {
-    loadedImages,
-    currentImageIndex,
-    isFirstImageLoaded,
-    hasError,
-    shouldShowSlideshow
-  } = useProgressiveLoading({
-    packId: pack.id,
-    selectedPosters: selectedPosters || [],
-    isHighPriority,
-    isVisible: isNear && !isDocumentHidden
+  // Используем хук для управления ротацией стикеров
+  const { currentIndex: currentStickerIndex } = useStickerRotation({
+    stickersCount: pack.previewStickers.length,
+    autoRotateInterval: 3000, // 3 секунды
+    hoverRotateInterval: 800,
+    isHovered,
+    isVisible: isNear
   });
-
-  // Мемоизированный рендеринг изображений - показываем сразу после загрузки
-  const renderedImages = useMemo(() => {
-    return loadedImages.map((imageUrl, index) => {
-      const poster = selectedPosters[index];
-      // Показываем слайдшоу только если загружено больше одного изображения
-      const isActive = shouldShowSlideshow ? index === currentImageIndex : index === 0;
-      
-      return (
-        <div
-          key={`${pack.id}-${poster?.fileId || index}`}
-          className={`slideshow-image ${isActive ? 'active' : ''}`}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            opacity: isActive ? 1 : 0,
-            transition: shouldShowSlideshow ? 'opacity 0.5s ease-in-out' : 'none'
-          }}
-        >
-          {poster?.isAnimated && poster.fileId && imageUrl ? (
-            <AnimatedSticker
-              fileId={poster.fileId}
-              imageUrl={imageUrl}
-              emoji={poster.emoji}
-              className="pack-card-animated-sticker"
-            />
-          ) : (
-            <img
-              src={imageUrl}
-              alt={poster?.emoji || 'Sticker'}
-              className="pack-card-image"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-              loading={isHighPriority ? 'eager' : 'lazy'}
-              decoding="async"
-            />
-          )}
-        </div>
-      );
-    });
-  }, [loadedImages, selectedPosters, shouldShowSlideshow, currentImageIndex, pack.id, isHighPriority]);
-
-  // Отслеживаем видимость документа
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsDocumentHidden(document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  // Проверяем настройки анимации
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  // Сохраняем выбранные постеры в store
-  useEffect(() => {
-    if (selectedPosters.length > 0) {
-      setPostersByPack(pack.id, selectedPosters.map(p => p.fileId));
-    }
-  }, [pack.id, selectedPosters, setPostersByPack]);
 
   // Мемоизированный обработчик клика
   const handleClick = useCallback(() => {
@@ -160,12 +51,19 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     }
   }, [onClick, pack.id]);
 
+  // Текущий стикер для отображения
+  const currentSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
+  
+  // Состояние лайка
+  const likeState = getLikeState(pack.id);
 
   return (
     <div
       ref={ref as React.RefObject<HTMLDivElement>}
       className="pack-card"
       onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         minHeight: '200px',
         height: '200px',
@@ -180,63 +78,74 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         touchAction: 'manipulation',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease'
       }}
-      onMouseEnter={(e) => {
-        if (window.matchMedia('(hover: hover)').matches) {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 4px 16px var(--tg-theme-shadow-color)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (window.matchMedia('(hover: hover)').matches) {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 2px 8px var(--tg-theme-shadow-color)';
-        }
-      }}
     >
-      {!isFirstImageLoaded ? (
-        <div className="pack-card-skeleton" />
-      ) : hasError ? (
-        <div 
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '48px',
-            color: 'var(--tg-theme-hint-color)',
-            flexDirection: 'column',
-            gap: '8px'
-          }}
-        >
-          <div>{selectedPosters[0]?.emoji || '🎨'}</div>
-          <div style={{ fontSize: '12px', opacity: 0.7 }}>Error loading...</div>
-        </div>
-      ) : (
-        <div className="slideshow-container" style={{ width: '100%', height: '100%', position: 'relative' }}>
-          {renderedImages}
-          {/* Показываем индикатор загрузки дополнительных изображений */}
-          {loadedImages.length < selectedPosters.length && (
-            <div style={{
-              position: 'absolute',
-              top: '8px',
-              right: '8px',
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              background: 'var(--tg-theme-overlay-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
-              color: 'white',
-              backdropFilter: 'blur(4px)'
-            }}>
-              {loadedImages.length}/{selectedPosters.length}
+      {/* Сменяющиеся превью стикеров */}
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {pack.previewStickers.map((sticker, index) => {
+          const isActive = index === currentStickerIndex;
+          const isNext = index === (currentStickerIndex + 1) % pack.previewStickers.length;
+          
+          return (
+            <div
+              key={`${pack.id}-${sticker.fileId}-${index}`}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: isActive ? 1 : 0,
+                transform: isActive ? 'scale(1)' : 'scale(0.95)',
+                transition: 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out',
+                zIndex: isActive ? 2 : 1
+              }}
+            >
+              {sticker.fileId ? (
+                sticker.isAnimated ? (
+                  <AnimatedSticker
+                    fileId={sticker.fileId}
+                    imageUrl={sticker.url}
+                    emoji={sticker.emoji}
+                    className="pack-card-animated-sticker"
+                  />
+                ) : (
+                  <img
+                    src={sticker.url}
+                    alt={sticker.emoji}
+                    className="pack-card-image"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                    loading={isHighPriority ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                )
+              ) : (
+                <div 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '48px',
+                    color: 'var(--tg-theme-hint-color)'
+                  }}
+                >
+                  {sticker.emoji}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          );
+        })}
+      </div>
       
       {/* Заголовок пака */}
       <div
@@ -253,48 +162,31 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           textAlign: 'center',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          zIndex: 3
         }}
       >
         {pack.title}
       </div>
 
-      {/* Случайные эмодзи */}
-      {randomEmojis.length > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '8px',
-            left: '8px',
-            display: 'flex',
-            gap: '4px',
-            flexWrap: 'wrap',
-            maxWidth: 'calc(100% - 16px)'
-          }}
-        >
-          {randomEmojis.map((emoji, index) => (
-            <span
-              key={`${emoji}-${index}-${pack.id}`}
-              style={{
-                fontSize: '16px',
-                lineHeight: 1,
-                background: 'var(--tg-theme-overlay-color)',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backdropFilter: 'blur(4px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-              title={`Эмодзи из стикерпака: ${emoji}`}
-            >
-              {emoji}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Лайк и его статус */}
+      <LikeButton
+        packId={pack.id}
+        initialLiked={likeState.isLiked}
+        initialLikesCount={likeState.likesCount}
+        size="medium"
+        onLike={(packId, isLiked) => {
+          toggleLike(packId);
+          console.log(`Лайк для пака ${packId}: ${isLiked ? 'добавлен' : 'убран'}`);
+          
+          // Запускаем анимацию лайка
+          if (isLiked && onLikeAnimation) {
+            onLikeAnimation(packId);
+          }
+          
+          // Здесь будет API вызов для сохранения лайка
+        }}
+      />
     </div>
   );
 };

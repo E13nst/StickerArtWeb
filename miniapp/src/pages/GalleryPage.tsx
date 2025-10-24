@@ -15,7 +15,7 @@ import { DebugPanel } from '../components/DebugPanel';
 import { StickerPackModal } from '../components/StickerPackModal';
 
 // Новые компоненты галереи
-import { GalleryGrid } from '../components/GalleryGrid';
+import { SimpleGallery } from '../components/SimpleGallery';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 
 export const GalleryPage: React.FC = () => {
@@ -24,9 +24,14 @@ export const GalleryPage: React.FC = () => {
     isLoading,
     stickerSets,
     error,
+    currentPage,
+    totalPages,
+    totalElements,
     setLoading,
     setStickerSets,
+    addStickerSets,
     setError,
+    setPagination,
   } = useStickerStore();
   const { checkAuth } = useAuth();
 
@@ -35,7 +40,8 @@ export const GalleryPage: React.FC = () => {
     searchTerm: '',
     selectedStickerSet: null as StickerSetResponse | null,
     isDetailOpen: false,
-    manualInitData: ''
+    manualInitData: '',
+    isLoadingMore: false
   });
 
   // Debounced search term для оптимизации поиска
@@ -59,8 +65,12 @@ export const GalleryPage: React.FC = () => {
   }, []);
 
   // Загрузка стикерсетов - исправлена циклическая зависимость
-  const fetchStickerSets = useCallback(async (page: number = 0) => {
-    setLoading(true);
+  const fetchStickerSets = useCallback(async (page: number = 0, isLoadMore: boolean = false) => {
+    if (isLoadMore) {
+      setUiState(prev => ({ ...prev, isLoadingMore: true }));
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -73,23 +83,50 @@ export const GalleryPage: React.FC = () => {
       }
 
       const response = await apiClient.getStickerSets(page);
-      setStickerSets(response.content || []);
+      
+      if (isLoadMore) {
+        // Добавляем новые стикерсеты к существующим
+        addStickerSets(response.content || []);
+      } else {
+        // Заменяем все стикерсеты
+        setStickerSets(response.content || []);
+      }
+      
+      // Обновляем информацию о пагинации
+      setPagination(
+        response.number || page,
+        response.totalPages || 0,
+        response.totalElements || 0
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикеров';
       
       // В dev режиме показываем ошибку, но не блокируем интерфейс
       if (isMockMode || !isInTelegramApp) {
         console.warn('⚠️ API недоступен, показываем пустое состояние:', errorMessage);
-        setStickerSets([]); // Пустой массив вместо ошибки
+        if (!isLoadMore) {
+          setStickerSets([]); // Пустой массив вместо ошибки
+        }
       } else {
         setError(errorMessage);
       }
       
       console.error('❌ Ошибка загрузки стикеров:', error);
     } finally {
-      setLoading(false);
+      if (isLoadMore) {
+        setUiState(prev => ({ ...prev, isLoadingMore: false }));
+      } else {
+        setLoading(false);
+      }
     }
-  }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets]);
+  }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination]);
+
+  // Загрузка следующей страницы
+  const loadMoreStickerSets = useCallback(() => {
+    if (currentPage < totalPages - 1 && !uiState.isLoadingMore) {
+      fetchStickerSets(currentPage + 1, true);
+    }
+  }, [currentPage, totalPages, uiState.isLoadingMore, fetchStickerSets]);
 
   // Поиск стикерсетов
   const searchStickerSets = useCallback(async (query: string) => {
@@ -189,25 +226,6 @@ export const GalleryPage: React.FC = () => {
   return (
     <>
       <TelegramLayout>
-        {/* User Info Badge */}
-        {user && (
-          <div className="tg-user-badge fade-in">
-            <div className="tg-user-badge__avatar">
-              {user.first_name.charAt(0)}
-            </div>
-            <div className="tg-user-badge__info">
-              <div className="tg-user-badge__name">
-                {user.first_name} {user.last_name || ''}
-              </div>
-              {user.username && (
-                <div className="tg-user-badge__username">@{user.username}</div>
-              )}
-            </div>
-            {isMockMode && (
-              <div className="tg-user-badge__mock-badge">DEV</div>
-            )}
-          </div>
-        )}
 
         {/* Search Bar */}
         <div className="tg-search fade-in">
@@ -241,9 +259,13 @@ export const GalleryPage: React.FC = () => {
           />
         ) : (
           <div className="fade-in">
-            <GalleryGrid
+            <SimpleGallery
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
+              hasNextPage={currentPage < totalPages - 1}
+              isLoadingMore={uiState.isLoadingMore}
+              onLoadMore={loadMoreStickerSets}
+              enablePreloading={true}
             />
           </div>
         )}

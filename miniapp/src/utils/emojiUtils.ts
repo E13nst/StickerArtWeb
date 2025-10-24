@@ -11,8 +11,7 @@ export interface EmojiInfo {
 export function getUniqueEmojisFromPack(posters: Array<{ emoji?: string }>): string[] {
   const emojis = posters
     .map(poster => poster.emoji)
-    .filter((emoji): emoji is string => Boolean(emoji) && emoji.trim() !== '') // Фильтруем пустые и null эмодзи
-    .filter((emoji, index, array) => array.indexOf(emoji) === index); // Убираем дубликаты
+    .filter((emoji): emoji is string => Boolean(emoji) && emoji.trim() !== ''); // Фильтруем пустые и null эмодзи 
   
   return emojis;
 }

@@ -96,7 +96,7 @@ export const useStickerStore = create<StickerState>((set, get) => ({
   setPagination: (page: number, totalPages: number, totalElements: number) => 
     set({ currentPage: page, totalPages, totalElements }),
   
-  // Методы API - временная заглушка, будут реализованы позже
+  // Методы API - реализованы для пагинации
   fetchStickerSets: async (page = 0, size = 20) => {
     console.log('🔍 fetchStickerSets вызван:', { page, size });
     // Эта функция будет вызываться из компонентов

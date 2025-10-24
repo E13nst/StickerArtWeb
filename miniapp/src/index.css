@@ -1,6 +1,12 @@
 /* Telegram Mini App Styles */
 @import '@telegram-apps/telegram-ui/dist/styles.css';
 
+/* Анимация для спиннера */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

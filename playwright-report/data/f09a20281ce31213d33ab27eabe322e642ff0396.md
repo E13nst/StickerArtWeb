@@ -1,0 +1,172 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e8]:
+      - img "Stixly" [ref=e9]
+      - paragraph [ref=e10]: Find, create & smile with stickers
+    - button "Переключить на тёмную тему" [ref=e11] [cursor=pointer]:
+      - generic [ref=e12]: 🌙
+  - generic [ref=e13]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: D
+        - generic [ref=e18]:
+          - generic [ref=e19]: Dev User
+          - generic [ref=e20]: "@devuser"
+        - generic [ref=e21]: DEV
+      - textbox "🔍 Поиск стикеров..." [ref=e23]
+      - generic [ref=e26]:
+        - generic [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]:
+            - generic [ref=e31]: 👍
+            - generic [ref=e33]: 🥳
+            - generic [ref=e34]: 2/4
+          - generic [ref=e35]: Christmas Tiger
+          - generic [ref=e36]:
+            - 'generic "Эмодзи из стикерпака: 🤫" [ref=e37]': 🤫
+            - 'generic "Эмодзи из стикерпака: 😈" [ref=e38]': 😈
+            - 'generic "Эмодзи из стикерпака: 😘" [ref=e39]': 😘
+        - generic [ref=e41] [cursor=pointer]:
+          - generic [ref=e42]:
+            - generic [ref=e44]: 👨‍🍳
+            - generic [ref=e46]: 😭
+            - generic [ref=e47]: 2/3
+          - generic [ref=e48]: Robin
+          - generic [ref=e49]:
+            - 'generic "Эмодзи из стикерпака: 😴" [ref=e50]': 😴
+            - 'generic "Эмодзи из стикерпака: 😂" [ref=e51]': 😂
+            - 'generic "Эмодзи из стикерпака: 👨‍🍳" [ref=e52]': 👨‍🍳
+        - generic [ref=e54] [cursor=pointer]:
+          - generic [ref=e55]:
+            - generic [ref=e57]: 😡
+            - generic [ref=e59]: 😩
+            - generic [ref=e60]: 2/4
+          - generic [ref=e61]: Christmas Elf
+          - generic [ref=e62]:
+            - 'generic "Эмодзи из стикерпака: 👋" [ref=e63]': 👋
+            - 'generic "Эмодзи из стикерпака: 😘" [ref=e64]': 😘
+            - 'generic "Эмодзи из стикерпака: 👩‍❤️‍💋‍👨" [ref=e65]': 👩‍❤️‍💋‍👨
+        - generic [ref=e67] [cursor=pointer]:
+          - generic [ref=e68]:
+            - generic [ref=e70]: 😱
+            - generic [ref=e72]: 🤩
+            - generic [ref=e73]: 2/4
+          - generic [ref=e74]: Ice Man
+          - generic [ref=e75]:
+            - 'generic "Эмодзи из стикерпака: 😭" [ref=e76]': 😭
+            - 'generic "Эмодзи из стикерпака: 🤩" [ref=e77]': 🤩
+            - 'generic "Эмодзи из стикерпака: 😏" [ref=e78]': 😏
+        - generic [ref=e80] [cursor=pointer]:
+          - generic [ref=e81]:
+            - generic [ref=e83]: 😨
+            - generic [ref=e85]: 😎
+            - generic [ref=e86]: 2/3
+          - generic [ref=e87]: Santa
+          - generic [ref=e88]:
+            - 'generic "Эмодзи из стикерпака: 😎" [ref=e89]': 😎
+            - 'generic "Эмодзи из стикерпака: 😘" [ref=e90]': 😘
+            - 'generic "Эмодзи из стикерпака: 👋" [ref=e91]': 👋
+        - generic [ref=e93] [cursor=pointer]:
+          - generic [ref=e94]:
+            - generic [ref=e96]: 👍
+            - generic [ref=e98]: 😑
+            - generic [ref=e99]: 2/4
+          - generic [ref=e100]: Ricky
+          - generic [ref=e101]:
+            - 'generic "Эмодзи из стикерпака: 😘" [ref=e102]': 😘
+            - 'generic "Эмодзи из стикерпака: 😨" [ref=e103]': 😨
+            - 'generic "Эмодзи из стикерпака: 😡" [ref=e104]': 😡
+        - generic [ref=e106] [cursor=pointer]:
+          - generic [ref=e107]:
+            - generic [ref=e109]: 💪
+            - generic [ref=e110]: 1/4
+          - generic [ref=e111]: Penguinissimo
+          - generic [ref=e112]:
+            - 'generic "Эмодзи из стикерпака: 🖕" [ref=e113]': 🖕
+            - 'generic "Эмодзи из стикерпака: 😨" [ref=e114]': 😨
+            - 'generic "Эмодзи из стикерпака: 👍" [ref=e115]': 👍
+        - generic [ref=e117] [cursor=pointer]:
+          - generic [ref=e118]:
+            - generic [ref=e120]: 🕺
+            - generic [ref=e121]: 1/3
+          - generic [ref=e122]: Сhristmas Dogs
+          - generic [ref=e123]:
+            - 'generic "Эмодзи из стикерпака: 👋" [ref=e124]': 👋
+            - 'generic "Эмодзи из стикерпака: 🎁" [ref=e125]': 🎁
+            - 'generic "Эмодзи из стикерпака: 😡" [ref=e126]': 😡
+        - generic [ref=e128] [cursor=pointer]:
+          - generic [ref=e129]:
+            - generic [ref=e131]: 😱
+            - generic [ref=e132]: 1/3
+          - generic [ref=e133]: New Year Tiger
+          - generic [ref=e134]:
+            - 'generic "Эмодзи из стикерпака: 😊" [ref=e135]': 😊
+            - 'generic "Эмодзи из стикерпака: 😘" [ref=e136]': 😘
+            - 'generic "Эмодзи из стикерпака: 🤔" [ref=e137]': 🤔
+        - generic [ref=e139] [cursor=pointer]:
+          - generic [ref=e140]:
+            - generic [ref=e142]: 🎅
+            - generic [ref=e143]: 1/4
+          - generic [ref=e144]: Super Star
+          - generic [ref=e145]:
+            - 'generic "Эмодзи из стикерпака: 🚶‍♂️" [ref=e146]': 🚶‍♂️
+            - 'generic "Эмодзи из стикерпака: 🎉" [ref=e147]': 🎉
+            - 'generic "Эмодзи из стикерпака: 😳" [ref=e148]': 😳
+        - generic [ref=e150] [cursor=pointer]:
+          - generic [ref=e151]:
+            - generic [ref=e153]: 🍀
+            - generic [ref=e154]: 1/4
+          - generic [ref=e155]: Disgruntled Toad
+          - generic [ref=e156]:
+            - 'generic "Эмодзи из стикерпака: 🤨" [ref=e157]': 🤨
+            - 'generic "Эмодзи из стикерпака: 🍀" [ref=e158]': 🍀
+            - 'generic "Эмодзи из стикерпака: 🤪" [ref=e159]': 🤪
+        - generic [ref=e161] [cursor=pointer]:
+          - generic [ref=e162]:
+            - generic [ref=e164]: 👋
+            - generic [ref=e165]: 1/4
+          - generic [ref=e166]: Yeti on Holidays
+          - generic [ref=e167]:
+            - 'generic "Эмодзи из стикерпака: 😱" [ref=e168]': 😱
+            - 'generic "Эмодзи из стикерпака: 🥳" [ref=e169]': 🥳
+            - 'generic "Эмодзи из стикерпака: 🛁" [ref=e170]': 🛁
+        - generic [ref=e172] [cursor=pointer]:
+          - generic [ref=e173]:
+            - generic [ref=e175]: 💇‍♂️
+            - generic [ref=e176]: 1/3
+          - generic [ref=e177]: Jolly Santa
+          - generic [ref=e178]:
+            - 'generic "Эмодзи из стикерпака: 👍" [ref=e179]': 👍
+            - 'generic "Эмодзи из стикерпака: 🤓" [ref=e180]': 🤓
+            - 'generic "Эмодзи из стикерпака: 😂" [ref=e181]': 😂
+        - generic [ref=e183] [cursor=pointer]:
+          - generic [ref=e184]:
+            - generic [ref=e186]: 😡
+            - generic [ref=e187]: 1/4
+          - generic [ref=e188]: Arctic Fox
+          - generic [ref=e189]:
+            - 'generic "Эмодзи из стикерпака: 😴" [ref=e190]': 😴
+            - 'generic "Эмодзи из стикерпака: 🎅" [ref=e191]': 🎅
+            - 'generic "Эмодзи из стикерпака: 🧐" [ref=e192]': 🧐
+        - generic [ref=e194] [cursor=pointer]:
+          - generic [ref=e195]:
+            - generic [ref=e197]: 😨
+            - generic [ref=e198]: 1/4
+          - generic [ref=e199]: Snowball Boy
+          - generic [ref=e200]:
+            - 'generic "Эмодзи из стикерпака: 🌈" [ref=e201]': 🌈
+            - 'generic "Эмодзи из стикерпака: 🎁" [ref=e202]': 🎁
+            - 'generic "Эмодзи из стикерпака: 👌" [ref=e203]': 👌
+    - button "🔍 Debug Info ▶" [ref=e205] [cursor=pointer]
+  - generic [ref=e207]:
+    - button [ref=e208] [cursor=pointer]:
+      - img [ref=e209]
+    - button [ref=e211] [cursor=pointer]:
+      - img [ref=e212]
+    - button [ref=e214] [cursor=pointer]:
+      - img [ref=e215]
+    - button [ref=e217] [cursor=pointer]:
+      - img [ref=e218]
+```

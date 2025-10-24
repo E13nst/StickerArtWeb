@@ -1,13 +1,15 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { PackCard } from './PackCard';
-import { useGalleryStore, getSessionSeed, setSessionSeed } from '../store/useGalleryStore';
-import { useZoneLoading } from '../hooks/useZoneLoading';
-import { seededShuffle } from '../utils/galleryUtils';
 
 interface Pack {
   id: string;
   title: string;
-  posters: Array<{ fileId: string; url: string }>;
+  previewStickers: Array<{
+    fileId: string;
+    url: string;
+    isAnimated: boolean;
+    emoji: string;
+  }>;
 }
 
 interface GalleryGridProps {
@@ -15,149 +17,39 @@ interface GalleryGridProps {
   onPackClick?: (packId: string) => void;
 }
 
+// Простой Fisher-Yates shuffle
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 export const GalleryGrid: React.FC<GalleryGridProps> = ({ 
   packs, 
   onPackClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const prevPackIdsRef = useRef<string>('');
-  
-  const {
-    seed,
-    shuffledPackIds,
-    scrollY,
-    setSeed,
-    setShuffledPackIds,
-    setScrollY
-  } = useGalleryStore();
+  const [shuffledPacks, setShuffledPacks] = useState<Pack[]>([]);
 
-  // Зональное управление загрузкой
-  const { observeElement, unobserveElement, cleanup, getZoneStats } = useZoneLoading({
-    containerRef,
-    onZoneChange: (zone) => {
-      console.log(`🎯 Zone changed to: ${zone}`);
-    },
-    onPriorityChange: (packId, priority) => {
-      console.log(`⚡ Priority updated for pack ${packId}: ${priority}`);
-    }
-  });
-
-  // Инициализация при первом запуске
-  useEffect(() => {
-    if (isInitialized || packs.length === 0) return;
-
-    // Получить или создать seed
-    let currentSeed = seed;
-    if (!currentSeed) {
-      const sessionSeed = getSessionSeed();
-      if (sessionSeed) {
-        currentSeed = sessionSeed;
-        setSeed(currentSeed);
-      } else {
-        currentSeed = Math.random().toString(36).substring(2);
-        setSeed(currentSeed);
-        setSessionSeed(currentSeed);
-      }
-    }
-
-    // Перемешать packs если еще не сделано
-    if (shuffledPackIds.length === 0) {
-      const packIds = packs.map(p => p.id);
-      const shuffled = seededShuffle(currentSeed, packIds);
-      setShuffledPackIds(shuffled);
-    }
-
-    setIsInitialized(true);
-  }, [packs, seed, shuffledPackIds.length, setSeed, setShuffledPackIds, isInitialized]);
-
-  // Сброс при изменении packs (новые данные)
+  // Простое перемешивание паков при изменении данных
   useEffect(() => {
     if (packs.length > 0) {
-      // Проверяем, действительно ли изменились данные
-      const currentPackIds = packs.map(p => p.id).sort().join(',');
-      
-      // Сбрасываем только если данные действительно изменились
-      if (currentPackIds !== prevPackIdsRef.current) {
-        // Обновляем ссылку на предыдущие ID
-        prevPackIdsRef.current = currentPackIds;
-        
-        // Создаем новый seed для новых данных
-        const newSeed = Math.random().toString(36).substring(2);
-        setSeed(newSeed);
-        setSessionSeed(newSeed);
-        
-        // Перемешиваем заново
-        const packIds = packs.map(p => p.id);
-        const shuffled = seededShuffle(newSeed, packIds);
-        setShuffledPackIds(shuffled);
-      }
+      const shuffled = shuffleArray(packs);
+      setShuffledPacks(shuffled);
     }
-  }, [packs, setSeed, setShuffledPackIds]);
-
-  // Восстановление позиции скролла
-  useEffect(() => {
-    if (isInitialized && containerRef.current && scrollY > 0) {
-      // Небольшая задержка для корректного восстановления
-      setTimeout(() => {
-        if (containerRef.current) {
-          containerRef.current.scrollTop = scrollY;
-        }
-      }, 100);
-    }
-  }, [isInitialized, scrollY]);
-
-  // Сохранение позиции скролла при размонтировании
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (containerRef.current) {
-        setScrollY(containerRef.current.scrollTop);
-      }
-    };
-
-    const handleScroll = () => {
-      if (containerRef.current) {
-        setScrollY(containerRef.current.scrollTop);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-    }
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (container) {
-        container.removeEventListener('scroll', handleScroll);
-      }
-      cleanup(); // Очистка зонального управления
-    };
-  }, [setScrollY, cleanup]);
+  }, [packs]);
 
   // Мемоизированный обработчик клика на пак
   const handlePackClick = useCallback((packId: string) => {
-    // Сохранить текущую позицию скролла
-    if (containerRef.current) {
-      setScrollY(containerRef.current.scrollTop);
-    }
-    
     if (onPackClick) {
       onPackClick(packId);
     }
-  }, [onPackClick, setScrollY]);
+  }, [onPackClick]);
 
-  // Мемоизированные ref колбэки для оптимизации производительности
-  const createRefCallback = useCallback((packId: string) => {
-    return (el: HTMLDivElement | null) => {
-      if (el) {
-        observeElement(el, packId);
-      }
-    };
-  }, [observeElement]);
-
-  if (!isInitialized || shuffledPackIds.length === 0) {
+  if (shuffledPacks.length === 0) {
     return (
       <div style={{ 
         display: 'flex', 
@@ -170,11 +62,6 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
       </div>
     );
   }
-
-  // Получить отсортированные packs
-  const sortedPacks = shuffledPackIds
-    .map(id => packs.find(p => p.id === id))
-    .filter(Boolean) as Pack[];
 
   return (
     <div 
@@ -190,14 +77,13 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
         gap: '8px',
         padding: '8px'
       }}>
-        {sortedPacks.map((pack, index) => {
+        {shuffledPacks.map((pack, index) => {
           // Определяем приоритет загрузки для первых 6 паков
           const isHighPriority = index < 6;
           
           return (
             <div
               key={pack.id}
-              ref={createRefCallback(pack.id)}
               style={{ width: '100%' }}
             >
               <PackCard

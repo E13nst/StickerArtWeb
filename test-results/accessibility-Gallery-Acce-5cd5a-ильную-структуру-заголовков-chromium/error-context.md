@@ -1,0 +1,49 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e8]:
+      - paragraph [ref=e10]: Your Universe of stickers
+      - img "Stixly" [ref=e11]
+    - button "Переключить на тёмную тему" [ref=e12] [cursor=pointer]:
+      - generic [ref=e13]: 🌙
+  - generic [ref=e14]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: D
+        - generic [ref=e19]:
+          - generic [ref=e20]: Dev User
+          - generic [ref=e21]: "@devuser"
+        - generic [ref=e22]: DEV
+      - textbox "🔍 Поиск стикеров..." [ref=e24]
+      - generic [ref=e27]:
+        - generic [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]:
+            - generic [ref=e32]: 🎉
+            - generic [ref=e34]: 🎊
+          - generic [ref=e35]: Анимированные стикеры
+          - generic [ref=e36]:
+            - 'generic "Эмодзи из стикерпака: 🎉" [ref=e37]': 🎉
+            - 'generic "Эмодзи из стикерпака: 🎊" [ref=e38]': 🎊
+        - generic [ref=e40] [cursor=pointer]:
+          - generic [ref=e41]:
+            - img "😀" [ref=e43]
+            - img "😂" [ref=e45]
+            - img "🤣" [ref=e47]
+          - generic [ref=e48]: Тестовые стикеры
+          - generic [ref=e49]:
+            - 'generic "Эмодзи из стикерпака: 😀" [ref=e50]': 😀
+            - 'generic "Эмодзи из стикерпака: 😂" [ref=e51]': 😂
+            - 'generic "Эмодзи из стикерпака: 🤣" [ref=e52]': 🤣
+    - button "🔍 Debug Info ▶" [ref=e54] [cursor=pointer]
+  - generic [ref=e56]:
+    - button [ref=e57] [cursor=pointer]:
+      - img [ref=e58]
+    - button [ref=e60] [cursor=pointer]:
+      - img [ref=e61]
+    - button [ref=e63] [cursor=pointer]:
+      - img [ref=e64]
+    - button [ref=e66] [cursor=pointer]:
+      - img [ref=e67]
+```
