@@ -123,6 +123,18 @@ class ApiClient {
     return this.client.defaults.timeout || 0;
   }
 
+  // Генерация ключа кеша для запроса
+  getCacheKey(url: string, params?: any): string {
+    if (!params || Object.keys(params).length === 0) {
+      return url;
+    }
+    const queryString = Object.entries(params)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}=${value}`)
+      .join('&');
+    return `${url}?${queryString}`;
+  }
+
   // Удаляем заголовки аутентификации
   clearAuthHeaders() {
     delete this.client.defaults.headers.common['X-Telegram-Init-Data'];
