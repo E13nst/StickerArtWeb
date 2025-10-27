@@ -48,3 +48,5 @@ export const createPlaceholder = (emoji: string, size: number = 200): string => 
   return canvas.toDataURL();
 };
 
+
+

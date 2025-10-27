@@ -27,6 +27,9 @@ RUN apk add --no-cache gettext
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+# Копируем файлы мониторинга
+COPY monitoring/metrics.txt /usr/share/nginx/html/monitoring/metrics.txt
+
 # Копируем шаблон конфигурации Nginx
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 

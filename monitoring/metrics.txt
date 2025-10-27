@@ -1,0 +1,31 @@
+# Prometheus metrics endpoint for StickerArt application
+
+# HELP stickerart_http_requests_total Total number of HTTP requests
+# TYPE stickerart_http_requests_total counter
+stickerart_http_requests_total{method="GET",endpoint="/",status="200"} 0
+stickerart_http_requests_total{method="GET",endpoint="/miniapp/",status="200"} 0
+stickerart_http_requests_total{method="GET",endpoint="/api/stickers",status="200"} 0
+stickerart_http_requests_total{method="GET",endpoint="/api/stickers",status="404"} 0
+
+# HELP stickerart_active_users Current number of active users
+# TYPE stickerart_active_users gauge
+stickerart_active_users 0
+
+# HELP stickerart_stickers_total Total number of stickers in gallery
+# TYPE stickerart_stickers_total gauge
+stickerart_stickers_total 0
+
+# HELP stickerart_response_time_seconds Response time in seconds
+# TYPE stickerart_response_time_seconds histogram
+stickerart_response_time_seconds_bucket{le="0.1"} 0
+stickerart_response_time_seconds_bucket{le="0.5"} 0
+stickerart_response_time_seconds_bucket{le="1.0"} 0
+stickerart_response_time_seconds_bucket{le="2.0"} 0
+stickerart_response_time_seconds_bucket{le="5.0"} 0
+stickerart_response_time_seconds_bucket{le="+Inf"} 0
+stickerart_response_time_seconds_sum 0
+stickerart_response_time_seconds_count 0
+
+# HELP stickerart_uptime_seconds Application uptime in seconds
+# TYPE stickerart_uptime_seconds counter
+stickerart_uptime_seconds 0
