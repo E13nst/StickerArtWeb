@@ -12,6 +12,13 @@ export const useAuth = () => {
   const { setAuthLoading, setAuthStatus, setAuthError } = useStickerStore();
 
   const checkAuth = useCallback(async (initData: string) => {
+    console.log('🔐 Начало проверки авторизации:', {
+      initData: initData ? 'present' : 'missing',
+      initDataLength: initData?.length || 0,
+      isInTelegramApp,
+      isMockMode
+    });
+
     if (!isInTelegramApp && !initData) {
       console.log('✅ Режим без авторизации (dev mode)');
       setAuthStatus({
@@ -35,26 +42,48 @@ export const useAuth = () => {
 
     try {
       const isTestData = initData.includes('query_id=test');
+      console.log('🔐 Проверка initData:', {
+        isTestData,
+        initDataPreview: initData.substring(0, 100) + '...'
+      });
+
       if (!isTestData) {
         const initDataCheck = checkInitDataExpiry(initData);
+        console.log('🔐 Проверка срока действия initData:', initDataCheck);
         if (!initDataCheck.valid) {
           throw new Error(initDataCheck.reason);
         }
       }
 
+      console.log('🔐 Установка заголовков авторизации...');
       apiClient.setAuthHeaders(initData);
+      
+      console.log('🔐 Отправка запроса проверки авторизации...');
       const authResponse = await apiClient.checkAuthStatus();
+      
+      console.log('🔐 Получен ответ авторизации:', authResponse);
       setAuthStatus(authResponse);
 
       if (!authResponse.authenticated) {
-        throw new Error(authResponse.message || 'Ошибка авторизации');
+        const errorMsg = authResponse.message || 'Ошибка авторизации';
+        console.error('❌ Авторизация не удалась:', errorMsg);
+        throw new Error(errorMsg);
       }
 
+      console.log('✅ Авторизация успешна');
       return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      console.error('❌ Ошибка авторизации:', {
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+        initData: initData ? 'present' : 'missing',
+        isInTelegramApp,
+        isMockMode
+      });
+      
       setAuthError(errorMessage);
-      console.error('❌ Ошибка авторизации:', error);
       
       // В dev режиме или если API недоступен - продолжаем работу
       if (isMockMode || !isInTelegramApp) {

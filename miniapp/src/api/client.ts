@@ -20,6 +20,20 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         console.log('🌐 API запрос:', config.method?.toUpperCase(), config.url);
+        
+        // Детальное логирование для авторизации
+        if (config.url?.includes('/auth/')) {
+          console.log('🔐 Auth запрос детали:', {
+            url: config.url,
+            headers: {
+              'X-Telegram-Init-Data': config.headers['X-Telegram-Init-Data'] ? 'present' : 'missing',
+              'Content-Type': config.headers['Content-Type'],
+              'Accept': config.headers['Accept']
+            },
+            timeout: config.timeout
+          });
+        }
+        
         return config;
       },
       (error) => {
@@ -31,10 +45,38 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => {
         console.log('✅ API ответ:', response.status, response.config.url);
+        
+        // Детальное логирование для авторизации
+        if (response.config.url?.includes('/auth/')) {
+          console.log('🔐 Auth ответ детали:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: response.data,
+            headers: response.headers
+          });
+        }
+        
         return response;
       },
       (error) => {
         console.error('❌ Ошибка ответа:', error.response?.status, error.response?.data);
+        
+        // Детальное логирование ошибок авторизации
+        if (error.config?.url?.includes('/auth/')) {
+          console.error('🔐 Auth ошибка детали:', {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            message: error.message,
+            code: error.code,
+            config: {
+              url: error.config.url,
+              method: error.config.method,
+              headers: error.config.headers
+            }
+          });
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -64,6 +106,21 @@ class ApiClient {
         }
         
         return false;
+      }
+
+      // Получение текущих заголовков
+      getHeaders(): Record<string, string> {
+        return this.client.defaults.headers.common as Record<string, string>;
+      }
+
+      // Получение базового URL
+      getBaseURL(): string {
+        return this.client.defaults.baseURL || '';
+      }
+
+      // Получение таймаута
+      getTimeout(): number {
+        return this.client.defaults.timeout || 0;
       }
 
   // Удаляем заголовки аутентификации
@@ -182,10 +239,20 @@ class ApiClient {
   // Проверка статуса аутентификации
   async checkAuthStatus(): Promise<AuthResponse> {
     try {
+      console.log('🔐 Проверка статуса авторизации...');
       const response = await this.client.get<AuthResponse>('/auth/status');
+      console.log('✅ Статус авторизации получен:', response.data);
       return response.data;
     } catch (error) {
       console.warn('⚠️ API недоступен, используем мок данные для аутентификации');
+      console.error('🔐 Ошибка проверки авторизации:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        response: error.response ? {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        } : null
+      });
       return mockAuthResponse;
     }
   }
@@ -227,10 +294,10 @@ class ApiClient {
           user: {
             id: data.userId,
             is_bot: false,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            username: data.user.username,
-            language_code: data.user.languageCode,
+            first_name: data.user.firstName || '',
+            last_name: data.user.lastName || '',
+            username: data.user.username || '',
+            language_code: data.user.languageCode || '',
             is_premium: !!data.user.isPremium
           },
           status: 'ok'
@@ -309,10 +376,10 @@ class ApiClient {
           user: {
             id: data.userId,
             is_bot: false,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            username: data.user.username,
-            language_code: data.user.languageCode,
+            first_name: data.user.firstName || '',
+            last_name: data.user.lastName || '',
+            username: data.user.username || '',
+            language_code: data.user.languageCode || '',
             is_premium: !!data.user.isPremium
           },
           status: 'ok'
@@ -359,10 +426,10 @@ class ApiClient {
           user: {
             id: data.userId,
             is_bot: false,
-            first_name: data.user.firstName,
-            last_name: data.user.lastName,
-            username: data.user.username,
-            language_code: data.user.languageCode,
+            first_name: data.user.firstName || '',
+            last_name: data.user.lastName || '',
+            username: data.user.username || '',
+            language_code: data.user.languageCode || '',
             is_premium: !!data.user.isPremium
           },
           status: 'ok'
