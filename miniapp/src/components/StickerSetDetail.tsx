@@ -42,7 +42,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   const [meta, setMeta] = useState<StickerSetMeta | null>(() => {
     const cached = metaCache.get(stickerSet.id);
-    return cached || {
+    // Если есть кэш, убираем из него поле likes
+    if (cached) {
+      return { ...cached, likes: 0 };
+    }
+    return {
       stickerSetId: stickerSet.id,
       author: { id: 0, firstName: 'Автор', lastName: '', username: undefined, avatarUrl: undefined },
       likes: 0
@@ -58,6 +62,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const liked = likeState.isLiked;
   const likes = likeState.likesCount;
 
+  // Не инициализируем лайки из пропсов - только из API данных
+
   // Загружаем полную информацию о стикерсете с сервера
   useEffect(() => {
     let mounted = true;
@@ -71,6 +77,16 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         const fullData = await apiClient.getStickerSet(stickerSet.id);
         if (mounted) {
           setFullStickerSet(fullData);
+          
+          // Инициализируем лайки только если API предоставляет данные
+          // И только если в store еще нет данных для этого стикерсета
+          if (fullData.likes !== undefined && fullData.likes >= 0) {
+            const currentState = getLikeState(stickerSet.id.toString());
+            // Обновляем только если в store нет данных (likesCount === 0)
+            if (currentState.likesCount === 0) {
+              setLike(stickerSet.id.toString(), false, fullData.likes);
+            }
+          }
           
           // Предзагружаем миниатюры асинхронно
           preloadThumbnails(fullData.telegramStickerSetInfo?.stickers || []);
@@ -96,7 +112,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
     loadFullStickerSet();
     return () => { mounted = false; };
-  }, [stickerSet.id]);
+  }, [stickerSet.id, getLikeState, setLike]);
 
   // Функция предзагрузки миниатюр
   const preloadThumbnails = (stickers: any[]) => {
@@ -138,22 +154,21 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     });
   };
 
-  // Загружаем метаданные и синхронизируем с глобальным store
+  // Загружаем метаданные БЕЗ синхронизации лайков
   useEffect(() => {
     let mounted = true;
     apiClient.getStickerSetMeta(stickerSet.id).then((m) => {
       if (!mounted) return;
-      metaCache.set(stickerSet.id, m);
-      setMeta(m);
+      // Кэшируем метаданные, но БЕЗ поля likes
+      const metaWithoutLikes = { ...m, likes: 0 };
+      metaCache.set(stickerSet.id, metaWithoutLikes);
+      setMeta(metaWithoutLikes);
       
-      // Синхронизируем с глобальным store, если там еще нет данных
-      const currentLikeState = getLikeState(stickerSet.id.toString());
-      if (currentLikeState.likesCount === 0 && m.likes > 0) {
-        setLike(stickerSet.id.toString(), false, m.likes); // Устанавливаем правильное количество лайков
-      }
+      // НЕ синхронизируем лайки из метаданных
+      // Лайки берутся только из API запроса getStickerSet
     }).catch(() => {});
     return () => { mounted = false; };
-  }, [stickerSet.id, getLikeState, setLike]);
+  }, [stickerSet.id]);
 
   // Используем полные данные или fallback к данным из пропсов
   const stickers = fullStickerSet?.telegramStickerSetInfo?.stickers || stickerSet.telegramStickerSetInfo?.stickers || [];
@@ -193,8 +208,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   // Показываем индикатор загрузки если данные еще загружаются
   if (loading) {
     return (
-      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="h6" color="text.secondary">
+      <Box sx={{ 
+        height: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        padding: 'var(--tg-spacing-4)'
+      }}>
+        <Typography 
+          variant="h6" 
+          color="text.secondary"
+          sx={{ fontSize: 'var(--tg-font-size-l)' }}
+        >
           Загрузка стикерсета...
         </Typography>
       </Box>
@@ -204,11 +229,32 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   // Показываем ошибку если не удалось загрузить
   if (error && !fullStickerSet) {
     return (
-      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-        <Typography variant="h6" color="error">
+      <Box sx={{ 
+        height: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        gap: 'var(--tg-spacing-4)',
+        padding: 'var(--tg-spacing-4)'
+      }}>
+        <Typography 
+          variant="h6" 
+          color="error"
+          sx={{ fontSize: 'var(--tg-font-size-l)' }}
+        >
           {error}
         </Typography>
-        <IconButton onClick={onBack} sx={{ backgroundColor: 'primary.main', color: 'white' }}>
+        <IconButton 
+          onClick={onBack} 
+          sx={{ 
+            backgroundColor: 'primary.main', 
+            color: 'white',
+            borderRadius: 'var(--tg-radius-m)',
+            width: 48,
+            height: 48
+          }}
+        >
           <CloseIcon />
         </IconButton>
       </Box>
@@ -216,7 +262,28 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   }
 
   return (
-    <Box sx={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+    <Box sx={{ 
+      height: '100vh', 
+      overflow: 'hidden', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      gap: 'var(--tg-spacing-3)',
+      padding: 'var(--tg-spacing-4)',
+      backgroundColor: 'transparent', // Делаем фон полностью прозрачным
+      animation: 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+      '@keyframes modalContentSlideIn': {
+        '0%': {
+          opacity: 0,
+          transform: 'scale(0.95) translateY(20px)',
+        },
+        '100%': {
+          opacity: 1,
+          transform: 'scale(1) translateY(0)',
+        },
+      },
+    }}>
       {/* Основной квадратный превью блок */}
       {stickerCount > 0 && (
         <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -227,7 +294,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             width: 'min(82vw, 44vh)',
             maxWidth: 480,
             aspectRatio: '1 / 1',
-            borderRadius: 3,
+            borderRadius: 'var(--tg-radius-l)',
             border: '1px solid',
             borderColor: 'rgba(255,255,255,0.2)',
             backgroundColor: 'rgba(0,0,0,0.6)',
@@ -237,7 +304,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            mt: 1
+            marginTop: 'var(--tg-spacing-3)'
           }}>
             <AnimatedSticker
               key={`sticker-${activeIndex}`}
@@ -251,10 +318,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               onClick={onBack}
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
+                top: 'var(--tg-spacing-3)',
+                right: 'var(--tg-spacing-3)',
                 backgroundColor: 'rgba(0,0,0,0.5)',
                 color: 'white',
+                borderRadius: 'var(--tg-radius-s)',
+                width: 40,
+                height: 40,
                 '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
               }}
             >
@@ -271,12 +341,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           sx={{
             width: 'min(92vw, 720px)',
             display: 'flex',
-            gap: 1,
+            gap: 'var(--tg-spacing-3)',
             overflowX: 'auto',
             overflowY: 'hidden',
             scrollBehavior: 'smooth',
-            px: 1,
-            py: 1,
+            paddingX: 'var(--tg-spacing-3)',
+            paddingY: 'var(--tg-spacing-3)',
             maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             scrollbarWidth: 'none',
@@ -291,9 +361,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               justifyContent: 'center',
               width: '100%',
               height: 128,
-              color: 'text.secondary'
+              color: 'text.secondary',
+              padding: 'var(--tg-spacing-3)'
             }}>
-              <Typography variant="body2">Нет стикеров для отображения</Typography>
+              <Typography 
+                variant="body2"
+                sx={{ fontSize: 'var(--tg-font-size-s)' }}
+              >
+                Нет стикеров для отображения
+              </Typography>
             </Box>
           ) : (
             stickers.map((s, idx) => {
@@ -315,7 +391,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     height: 128,
                     minWidth: 128,
                     minHeight: 128,
-                    borderRadius: 2,
+                    borderRadius: 'var(--tg-radius-m)',
                     border: '1px solid',
                     borderColor: idx === activeIndex ? 'primary.main' : 'rgba(255,255,255,0.2)',
                     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -339,10 +415,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   {s.emoji && (
                     <Box sx={{
                       position: 'absolute',
-                      bottom: 6,
-                      left: 6,
+                      bottom: 'var(--tg-spacing-2)',
+                      left: 'var(--tg-spacing-2)',
                       color: 'white',
-                      fontSize: 20,
+                      fontSize: 'var(--tg-font-size-xl)',
                       textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
                     }}>
                       {s.emoji}
@@ -358,33 +434,39 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       {/* Информация о наборе: внизу, без аватара, крупное имя набора и кликабельный автор */}
       <Card sx={{ 
         width: 'min(92vw, 720px)', 
-        mt: 1, 
+        marginTop: 'var(--tg-spacing-3)', 
         zIndex: 9999, // Очень высокий z-index
         position: 'relative',
-        backgroundColor: 'rgba(0, 0, 0, 0.9)', // Очень темный фон
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Более прозрачный фон
         border: '2px solid rgba(255, 255, 255, 0.3)', // Белая рамка
+        borderRadius: 'var(--tg-radius-l)',
+        backdropFilter: 'blur(8px)', // Добавляем blur для лучшей читаемости
+        WebkitBackdropFilter: 'blur(8px)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8)' // Сильная тень
       }}>
-        <CardContent>
+        <CardContent sx={{ padding: 'var(--tg-spacing-4)' }}>
           <Typography variant="h5" sx={{ 
             textAlign: 'center', 
             fontWeight: 700,
             color: 'white',
-            textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+            fontSize: 'var(--tg-font-size-xxl)',
+            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+            marginBottom: 'var(--tg-spacing-2)'
           }}>
             {stickerSet.title}
           </Typography>
           {meta && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--tg-spacing-2)' }}>
               <Typography variant="body2" sx={{ 
                 color: 'rgba(255, 255, 255, 0.8)',
+                fontSize: 'var(--tg-font-size-s)',
                 textShadow: '0 1px 2px rgba(0,0,0,0.8)'
               }}>
                 Автор: {meta.author.firstName} {meta.author.lastName || ''}
               </Typography>
             </Box>
           )}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mt: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>
             <IconButton
               aria-label="like"
               onClick={handleLikeClick}
@@ -393,7 +475,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 height: 48,
                 backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.2)',
                 color: liked ? 'error.main' : 'white',
-                borderRadius: '50%',
+                borderRadius: 'var(--tg-radius-l)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
                 transform: likeAnim ? 'scale(1.2)' : 'scale(1.0)',
@@ -410,6 +492,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               textAlign: 'center',
               color: 'white',
               fontWeight: 600,
+              fontSize: 'var(--tg-font-size-m)',
               textShadow: '0 1px 2px rgba(0,0,0,0.8)'
             }}>
               {likes}
@@ -422,7 +505,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 height: 44,
                 backgroundColor: 'rgba(255, 255, 255, 0.2)',
                 color: 'white',
-                borderRadius: '50%',
+                borderRadius: 'var(--tg-radius-l)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
                 '&:hover': { 
@@ -436,12 +519,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             </IconButton>
           </Box>
           {meta && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--tg-spacing-2)' }}>
               <a 
                 href={`/miniapp/profile/${meta.author.id}`} 
                 style={{ 
                   textDecoration: 'none', 
                   fontWeight: 600,
+                  fontSize: 'var(--tg-font-size-s)',
                   color: '#4fc3f7',
                   textShadow: '0 1px 2px rgba(0,0,0,0.8)'
                 }}

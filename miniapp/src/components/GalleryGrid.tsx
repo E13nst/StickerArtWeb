@@ -73,9 +73,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: '8px',
-        padding: '8px'
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '6px', // уменьшено для максимального использования пространства
+        padding: '6px' // минимальные отступы по золотым пропорциям
       }}>
         {shuffledPacks.map((pack, index) => {
           // Определяем приоритет загрузки для первых 6 паков

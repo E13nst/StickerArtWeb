@@ -213,7 +213,7 @@ export default function StixlyTopHeader() {
       style={{
         position: "relative",
         width: "100%",
-        height: "160px",
+        height: "119px", // 14.6% золотой пропорции для минимальных элементов
         zIndex: 1,
         overflow: "hidden",
         borderBottomLeftRadius: "1.5rem",
@@ -253,9 +253,9 @@ export default function StixlyTopHeader() {
               flexDirection: isMascot ? "row" : "column",
               color: "#fff",
               textAlign: "center",
-              paddingLeft: "16px",
-              paddingRight: "16px",
-              paddingTop: "18px", // подняли контент выше
+              paddingLeft: "8px", // минимальные отступы по золотым пропорциям
+              paddingRight: "8px",
+              paddingTop: "12px", // оптимизировано для меньшей высоты
             }}
           >
             {isMascot ? (
@@ -288,7 +288,7 @@ export default function StixlyTopHeader() {
                   alt="Stixly"
                   style={{
                     flex: "0 0 auto",
-                    width: "240px",
+                    width: "180px", // уменьшено для соответствия новой высоте
                     height: "auto",
                     filter: "drop-shadow(0 0 10px rgba(255,255,255,0.28))",
                   }}
@@ -302,7 +302,7 @@ export default function StixlyTopHeader() {
                   src={current.img}
                   alt="Stixly"
                   style={{
-                    width: "180px",
+                    width: "140px", // уменьшено для соответствия новой высоте
                     height: "auto",
                     marginBottom: "4px",
                     filter: "drop-shadow(0 0 10px rgba(255,255,255,0.28))",

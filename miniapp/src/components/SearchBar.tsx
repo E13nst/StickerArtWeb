@@ -40,7 +40,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box sx={{ mb: 1.5 }}> {/* уменьшено с mb: 2 до mb: 1.5 для экономии пространства */}
       <TextField
         fullWidth
         placeholder={placeholder}
@@ -71,7 +71,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   color={disabled ? "disabled" : "action"} 
                   sx={{ 
                     color: disabled ? 'var(--tg-theme-hint-color)' : 'var(--tg-theme-hint-color)',
-                    opacity: disabled ? 0.5 : 1
+                    opacity: disabled ? 0.5 : 1,
+                    fontSize: '20px' // уменьшенный размер иконки для компактности
                   }} 
                 />
               </Box>
@@ -93,16 +94,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 }}
                 aria-label="Очистить поиск"
               >
-                <ClearIcon fontSize="small" sx={{ color: 'var(--tg-theme-hint-color)' }} />
+                <ClearIcon fontSize="small" sx={{ color: 'var(--tg-theme-hint-color)', fontSize: '18px' }} />
               </Box>
             </InputAdornment>
           ) : null,
         }}
         sx={{
           '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
+            borderRadius: 1.5, // уменьшено с 2 до 1.5 для более компактного вида
             backgroundColor: 'var(--tg-theme-secondary-bg-color)',
             color: 'var(--tg-theme-text-color)',
+            height: '44px', // фиксированная высота по золотой пропорции (23.6%)
+            fontSize: '14px', // уменьшенный размер шрифта для компактности
             '&:hover': {
               '& .MuiOutlinedInput-notchedOutline': {
                 borderColor: 'var(--tg-theme-button-color)',

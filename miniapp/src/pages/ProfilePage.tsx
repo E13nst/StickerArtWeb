@@ -11,6 +11,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import MessageIcon from '@mui/icons-material/Message';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
+import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 import { getUserFullName } from '@/utils/userUtils';
 
@@ -51,6 +52,7 @@ export const ProfilePage: React.FC = () => {
     setStickerSetsError,
     reset
   } = useProfileStore();
+  const { initializeLikes } = useLikesStore();
 
   // Локальное состояние
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,6 +132,11 @@ export const ProfilePage: React.FC = () => {
         : await apiClient.getUserStickerSets(id);
       
       setUserStickerSets(response.content || []);
+      
+      // Инициализируем лайки из загруженных данных
+      if (response.content && response.content.length > 0) {
+        initializeLikes(response.content);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикерсетов';
       setStickerSetsError(errorMessage);
@@ -285,7 +292,7 @@ export const ProfilePage: React.FC = () => {
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
     }}>
 
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 2 }}>
+      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 1.5 }}> {/* уменьшено для экономии пространства */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
           <TelegramThemeToggle />
         </Box>

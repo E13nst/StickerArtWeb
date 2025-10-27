@@ -10,8 +10,8 @@ interface UseStickerRotationProps {
 
 export const useStickerRotation = ({
   stickersCount,
-  autoRotateInterval = 3000, // Изменено на 3 секунды
-  hoverRotateInterval = 800,
+  autoRotateInterval = 2333, // 2333 ≈ 3000/φ (золотое сечение)
+  hoverRotateInterval = 618, // Число Фибоначчи
   isHovered = false,
   isVisible = true
 }: UseStickerRotationProps) => {

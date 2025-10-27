@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
+import { useLikesStore } from '../store/useLikesStore';
 import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { apiClient } from '../api/client';
@@ -35,6 +36,7 @@ export const GalleryPage: React.FC = () => {
     setPagination,
   } = useStickerStore();
   const { checkAuth } = useAuth();
+  const { initializeLikes } = useLikesStore();
 
   // Оптимизированное локальное состояние
   const [uiState, setUiState] = useState({
@@ -93,6 +95,11 @@ export const GalleryPage: React.FC = () => {
         setStickerSets(response.content || []);
       }
       
+      // Инициализируем лайки из API данных
+      if (response.content && response.content.length > 0) {
+        initializeLikes(response.content);
+      }
+      
       // Обновляем информацию о пагинации
       setPagination(
         response.number || page,
@@ -120,7 +127,7 @@ export const GalleryPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination]);
+  }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
 
   // Загрузка следующей страницы
   const loadMoreStickerSets = useCallback(() => {
@@ -142,13 +149,18 @@ export const GalleryPage: React.FC = () => {
     try {
       const response = await apiClient.searchStickerSets(query);
       setStickerSets(response.content || []);
+      
+      // Инициализируем лайки из результатов поиска
+      if (response.content && response.content.length > 0) {
+        initializeLikes(response.content);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка поиска стикеров';
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [fetchStickerSets, setLoading, setError, setStickerSets]);
+  }, [fetchStickerSets, setLoading, setError, setStickerSets, initializeLikes]);
 
   // Мемоизированные обработчики
   const handleViewStickerSet = useCallback((id: number | string) => {

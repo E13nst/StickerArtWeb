@@ -34,7 +34,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ py: 2 }}>
+        <Box sx={{ py: 1.5 }}> {/* уменьшено для компактности */}
           {children}
         </Box>
       )}
@@ -56,10 +56,10 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   return (
     <Box sx={{ 
       width: '100%',
-      mb: 2,
+      mb: 1.5, // уменьшено для экономии пространства
       backgroundColor: 'var(--tg-theme-secondary-bg-color)',
       color: 'var(--tg-theme-text-color)',
-      borderRadius: 2,
+      borderRadius: 1.5, // уменьшено для компактности
       border: '1px solid var(--tg-theme-border-color)',
       boxShadow: '0 1px 3px var(--tg-theme-shadow-color)'
     }}>
@@ -69,8 +69,8 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         variant={isSmallScreen ? 'fullWidth' : 'standard'}
         sx={{
           '& .MuiTab-root': {
-            minHeight: isSmallScreen ? 48 : 56,
-            fontSize: isSmallScreen ? '0.8rem' : '0.9rem',
+            minHeight: isSmallScreen ? 40 : 44, // уменьшено для компактности
+            fontSize: isSmallScreen ? '0.75rem' : '0.8rem', // уменьшено для компактности
             fontWeight: 'bold',
             textTransform: 'none',
             color: 'var(--tg-theme-text-color)',
@@ -80,8 +80,8 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           },
           '& .MuiTabs-indicator': {
             backgroundColor: 'var(--tg-theme-button-color)',
-            height: 3,
-            borderRadius: '3px 3px 0 0'
+            height: 2, // уменьшено для компактности
+            borderRadius: '2px 2px 0 0' // уменьшено для компактности
           }
         }}
       >

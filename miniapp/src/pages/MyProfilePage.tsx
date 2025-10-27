@@ -15,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
+import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 
 // Компоненты
@@ -57,6 +58,7 @@ export const MyProfilePage: React.FC = () => {
     setStickerSetsError,
     reset
   } = useProfileStore();
+  const { initializeLikes } = useLikesStore();
 
   // Локальное состояние
   const [searchTerm, setSearchTerm] = useState('');
@@ -175,6 +177,12 @@ export const MyProfilePage: React.FC = () => {
       } else {
         setUserStickerSets(response.content || []);
       }
+      
+      // Инициализируем лайки из загруженных данных
+      if (response.content && response.content.length > 0) {
+        initializeLikes(response.content);
+      }
+      
       // Обновляем пагинацию
       setPagination(response.number, response.totalPages, response.totalElements);
     } catch (error: any) {
@@ -336,7 +344,7 @@ export const MyProfilePage: React.FC = () => {
       paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
     }}>
 
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 2 }}>
+      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 1.5 }}> {/* уменьшено для экономии пространства */}
         {viewMode === 'list' ? (
           <>
             {/* Информация о пользователе */}

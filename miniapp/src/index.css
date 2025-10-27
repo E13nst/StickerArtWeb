@@ -15,12 +15,12 @@
 
 :root {
   /* Telegram цвета будут установлены через useTelegram hook */
-  --tg-spacing-1: 4px;
-  --tg-spacing-2: 8px;
-  --tg-spacing-3: 12px;
-  --tg-spacing-4: 16px;
-  --tg-spacing-5: 20px;
-  --tg-spacing-6: 24px;
+  --tg-spacing-1: 3px; /* минимальные отступы по золотым пропорциям */
+  --tg-spacing-2: 6px;
+  --tg-spacing-3: 9px;
+  --tg-spacing-4: 12px;
+  --tg-spacing-5: 15px;
+  --tg-spacing-6: 18px;
   
   --tg-radius-s: 8px;
   --tg-radius-m: 12px;
@@ -207,7 +207,7 @@ a {
 /* Pack card skeleton */
 .pack-card-skeleton {
   width: 100%;
-  height: 200px;
+  aspect-ratio: 1 / 1.618; /* Золотое сечение */
   border-radius: var(--tg-radius-m);
   position: relative;
   overflow: hidden;
@@ -297,10 +297,104 @@ a {
   border-radius: var(--tg-radius-l) !important;
 }
 
+/* Модальные окна с адаптивным затемнением */
 .MuiDialog-paper {
-  background-color: var(--tg-theme-bg-color) !important;
+  background-color: transparent !important;
   color: var(--tg-theme-text-color) !important;
-  border: 1px solid var(--tg-theme-border-color) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Принудительно делаем DialogContent прозрачным */
+.MuiDialogContent-root {
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Специфичные стили для модального окна стикеров */
+[data-testid="sticker-pack-modal"] .MuiDialog-paper {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+/* Дополнительные правила для принудительной прозрачности */
+.MuiDialog-root [data-testid="sticker-pack-modal"] .MuiDialog-paper {
+  background-color: transparent !important;
+}
+
+.MuiDialog-root [data-testid="sticker-pack-modal"] .MuiDialogContent-root {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+/* Глобальные правила для всех DialogContent */
+.MuiDialogContent-root {
+  background-color: transparent !important;
+}
+
+/* Специфичные правила для модального окна стикеров */
+div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Анимации для модальных окон */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+}
+
+/* Улучшенные стили для модальных окон */
+.MuiDialog-root {
+  animation: modalSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.MuiDialog-root.closing {
+  animation: modalSlideOut 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Адаптивное затемнение для разных тем */
+.modal-backdrop-light {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.modal-backdrop-dark {
+  background-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Оптимизация производительности для анимаций */
+.modal-backdrop-light,
+.modal-backdrop-dark {
+  will-change: opacity, backdrop-filter;
+  transform: translateZ(0); /* Принудительное использование GPU */
 }
 
 .MuiAppBar-root {
@@ -673,11 +767,11 @@ input.tg-search__input,
 
 .tg-search__input {
   width: 100% !important;
-  padding: var(--tg-spacing-3) var(--tg-spacing-4) !important;
+  padding: var(--tg-spacing-2) var(--tg-spacing-3) !important; /* уменьшено для компактности */
   background: rgba(255, 255, 255, 0.1) !important;
   border: none !important;
-  border-radius: var(--tg-radius-m) !important;
-  font-size: var(--tg-font-size-m) !important;
+  border-radius: var(--tg-radius-s) !important; /* уменьшено с m до s */
+  font-size: var(--tg-font-size-s) !important; /* уменьшенный размер шрифта */
   color: var(--tg-theme-text-color) !important;
   outline: none !important;
   transition: background 0.3s ease !important;
@@ -685,6 +779,7 @@ input.tg-search__input,
   position: relative !important;
   z-index: 5 !important;
   box-shadow: none !important;
+  height: 44px !important; /* фиксированная высота по золотой пропорции */
 }
 
 .tg-search__input::placeholder {
@@ -908,12 +1003,12 @@ input.tg-search__input,
 /* Адаптивность для очень маленьких экранов */
 @media (max-width: 320px) {
   :root {
-    --tg-spacing-1: 2px;
+    --tg-spacing-1: 2px; /* еще более минимальные отступы для маленьких экранов */
     --tg-spacing-2: 4px;
-    --tg-spacing-3: 8px;
-    --tg-spacing-4: 12px;
-    --tg-spacing-5: 16px;
-    --tg-spacing-6: 20px;
+    --tg-spacing-3: 6px;
+    --tg-spacing-4: 8px;
+    --tg-spacing-5: 10px;
+    --tg-spacing-6: 12px;
     
     --tg-font-size-xs: 10px;
     --tg-font-size-s: 12px;
@@ -930,8 +1025,9 @@ input.tg-search__input,
   }
   
   .tg-search__input {
-    padding: var(--tg-spacing-2) var(--tg-spacing-3);
-    font-size: var(--tg-font-size-s);
+    padding: var(--tg-spacing-1) var(--tg-spacing-2); /* еще более компактные отступы */
+    font-size: var(--tg-font-size-xs); /* еще меньший размер шрифта */
+    height: 40px !important; /* еще более компактная высота */
   }
   
   .tg-sticker-card__content {
@@ -948,8 +1044,7 @@ input.tg-search__input,
   
   /* Оптимизация для галереи на маленьких экранах */
   .pack-card {
-    min-height: 160px !important;
-    height: 160px !important;
+    aspect-ratio: 1 / 1.4 !important; /* Немного менее вытянутые на маленьких экранах */
   }
   
   .tg-sticker-card__preview-item {

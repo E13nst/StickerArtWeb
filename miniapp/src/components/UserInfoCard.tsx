@@ -38,8 +38,8 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   if (isLoading) {
     return (
       <Card sx={{ 
-        mb: 2, 
-        borderRadius: 3,
+        mb: 1.5, // уменьшено с mb: 2 для экономии пространства
+        borderRadius: 2, // уменьшено с 3 для компактности
         backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         color: 'var(--tg-theme-text-color)',
         border: '1px solid var(--tg-theme-border-color)',
@@ -80,15 +80,15 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   return (
     <Card 
       sx={{ 
-        mb: 2, 
-        borderRadius: 3,
+        mb: 1.5, // уменьшено с mb: 2 для экономии пространства
+        borderRadius: 2, // уменьшено с 3 для компактности
         backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         color: 'var(--tg-theme-text-color)',
         border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: '0 2px 12px var(--tg-theme-shadow-color)',
+        boxShadow: '0 2px 8px var(--tg-theme-shadow-color)', // уменьшено для компактности
         transition: 'box-shadow 0.2s ease',
         '&:hover': {
-          boxShadow: '0 4px 20px var(--tg-theme-shadow-color)',
+          boxShadow: '0 4px 16px var(--tg-theme-shadow-color)', // уменьшено для компактности
         }
       }}
     >
@@ -98,8 +98,8 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
           display: 'flex', 
           alignItems: isSmallScreen ? 'flex-start' : 'center',
           flexDirection: isSmallScreen ? 'column' : 'row',
-          gap: 2,
-          mb: 3
+          gap: 1.5, // уменьшено для компактности
+          mb: 2 // уменьшено для компактности
         }}>
           {/* Аватар */}
           <Avatar 
@@ -109,10 +109,10 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
               loading: 'lazy'
             }}
             sx={{ 
-              width: isSmallScreen ? 56 : 64, 
-              height: isSmallScreen ? 56 : 64,
+              width: isSmallScreen ? 48 : 56, // уменьшено для компактности
+              height: isSmallScreen ? 48 : 56,
               bgcolor: avatarBgColor,
-              fontSize: isSmallScreen ? '1.5rem' : '1.75rem',
+              fontSize: isSmallScreen ? '1.25rem' : '1.5rem', // уменьшено пропорционально
               fontWeight: 'bold',
               alignSelf: isSmallScreen ? 'center' : 'flex-start'
             }}
@@ -131,8 +131,8 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
               component="h2"
               sx={{ 
                 fontWeight: 'bold',
-                mb: 0.5,
-                fontSize: isSmallScreen ? '1.1rem' : '1.5rem'
+                mb: 0.25, // уменьшено для компактности
+                fontSize: isSmallScreen ? '1rem' : '1.25rem' // уменьшено для компактности
               }}
             >
               {displayName}

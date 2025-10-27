@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GalleryPage } from '@/pages/GalleryPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { MyProfilePage } from '@/pages/MyProfilePage';
 import MainLayout from '@/layouts/MainLayout';
+import { useLikesStore } from '@/store/useLikesStore';
 
 const App: React.FC = () => {
+  const { clearStorage } = useLikesStore();
+
+  // Принудительная очистка старых данных при первом запуске приложения
+  useEffect(() => {
+    const storageVersion = localStorage.getItem('likes-storage-version');
+    const currentVersion = '2'; // Версия STORAGE_VERSION из useLikesStore
+    
+    // Очищаем storage если версия изменилась
+    if (storageVersion !== currentVersion) {
+      clearStorage();
+      localStorage.setItem('likes-storage-version', currentVersion);
+      console.log('🧹 Очищены старые данные о лайках из localStorage (версия обновлена)');
+    }
+  }, [clearStorage]);
+
   return (
     <Router basename="/miniapp">
       <MainLayout>

@@ -36,7 +36,6 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
 }) => {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
-  const [animatedItems, setAnimatedItems] = useState<Set<string>>(new Set());
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
   
   // Умное кэширование
@@ -153,31 +152,6 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     [packs, visibleCount, hasNextPage]
   );
 
-  // Intersection Observer для анимации при появлении в viewport
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const itemId = entry.target.getAttribute('data-item-id');
-            if (itemId) {
-              setAnimatedItems(prev => new Set([...prev, itemId]));
-            }
-          }
-        });
-      },
-      {
-        rootMargin: '50px', // Начинаем анимацию за 50px до появления
-        threshold: 0.1
-      }
-    );
-
-    // Наблюдаем за всеми карточками
-    const cards = document.querySelectorAll('[data-item-id]');
-    cards.forEach(card => observer.observe(card));
-
-    return () => observer.disconnect();
-  }, [visiblePacks]);
 
   // Обработчик клика
   const handlePackClick = useCallback((packId: string) => {
@@ -279,23 +253,14 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           </>
         )}
 
-        {/* Реальные карточки с динамической анимацией */}
+        {/* Реальные карточки */}
         {!showSkeleton && visiblePacks.map((pack, index) => {
-          const isAnimated = animatedItems.has(pack.id);
-          const isFirstLoad = index < 6; // Первые 6 карточек анимируются сразу
           const isLikeAnimating = likeAnimations.has(pack.id);
           
           return (
             <div
               key={pack.id}
-              data-item-id={pack.id}
               style={{
-                opacity: isAnimated || isFirstLoad ? 1 : 0,
-                transform: isAnimated || isFirstLoad 
-                  ? 'translateY(0) scale(1)' 
-                  : 'translateY(30px) scale(0.9)',
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                willChange: 'opacity, transform',
                 position: 'relative'
               }}
             >
@@ -422,7 +387,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   );
 };
 
-// CSS анимации для skeleton loading и плавных переходов
+// CSS анимации только для skeleton loading и лайков
 const skeletonStyles = `
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -432,17 +397,6 @@ const skeletonStyles = `
 @keyframes pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 0.6; }
-}
-
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 /* Анимации для лайков */
@@ -511,13 +465,6 @@ const skeletonStyles = `
 @keyframes particle-7 {
   0% { transform: translate(0, 0) scale(1); opacity: 1; }
   100% { transform: translate(40px, 0) scale(0); opacity: 0; }
-}
-
-/* Оптимизация для производительности */
-[data-item-id] {
-  backface-visibility: hidden;
-  perspective: 1000px;
-  transform-style: preserve-3d;
 }
 `;
 

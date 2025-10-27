@@ -2,7 +2,7 @@ import React, { useCallback, memo, useState } from 'react';
 import { useNearVisible } from '../hooks/useNearVisible';
 import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
-import { LikeButton } from './LikeButton';
+import { LikeCount } from './LikeCount';
 import { useLikesStore } from '../store/useLikesStore';
 
 interface Pack {
@@ -21,25 +21,23 @@ interface PackCardProps {
   isFirstRow?: boolean;
   isHighPriority?: boolean; // Для первых 6 паков на экране
   onClick?: (packId: string) => void;
-  onLikeAnimation?: (packId: string) => void;
 }
 
 const PackCardComponent: React.FC<PackCardProps> = ({ 
   pack, 
   isFirstRow = false,
   isHighPriority = false,
-  onClick,
-  onLikeAnimation
+  onClick
 }) => {
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
   const [isHovered, setIsHovered] = useState(false);
-  const { getLikeState, toggleLike } = useLikesStore();
+  const { getLikeState } = useLikesStore();
 
   // Используем хук для управления ротацией стикеров
   const { currentIndex: currentStickerIndex } = useStickerRotation({
     stickersCount: pack.previewStickers.length,
-    autoRotateInterval: 3000, // 3 секунды
-    hoverRotateInterval: 800,
+    autoRotateInterval: 2333, // 2333 ≈ 3000/φ (золотое сечение)
+    hoverRotateInterval: 618, // Число Фибоначчи
     isHovered,
     isVisible: isNear
   });
@@ -65,18 +63,17 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        minHeight: '200px',
-        height: '200px',
         width: '100%',
-        borderRadius: '12px',
+        aspectRatio: '1 / 1.618', // Золотое сечение (φ = 1.618)
+        borderRadius: '13px', // Число Фибоначчи
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
         backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: '0 2px 8px var(--tg-theme-shadow-color)',
+        boxShadow: '0 3px 13px var(--tg-theme-shadow-color)', // 3 и 13 - числа Фибоначчи
         touchAction: 'manipulation',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+        transition: 'transform 0.233s ease, box-shadow 0.233s ease' // 0.233 ≈ 1/φ
       }}
     >
       {/* Сменяющиеся превью стикеров */}
@@ -101,7 +98,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 height: '100%',
                 opacity: isActive ? 1 : 0,
                 transform: isActive ? 'scale(1)' : 'scale(0.95)',
-                transition: 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out',
+                transition: 'opacity 0.618s ease-in-out, transform 0.618s ease-in-out', // Золотое сечение
                 zIndex: isActive ? 2 : 1
               }}
             >
@@ -156,36 +153,26 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           right: 0,
           background: `linear-gradient(transparent, var(--tg-theme-overlay-color))`,
           color: 'white',
-          padding: '12px 8px 8px',
-          fontSize: '14px',
+          padding: '13px 8px 8px', // 13 - число Фибоначчи
+          fontSize: '13px', // Число Фибоначчи
           fontWeight: '500',
           textAlign: 'center',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          zIndex: 3
+          zIndex: 3,
+          lineHeight: '1.618' // Золотое сечение для межстрочного интервала
         }}
       >
         {pack.title}
       </div>
 
       {/* Лайк и его статус */}
-      <LikeButton
+      <LikeCount
         packId={pack.id}
-        initialLiked={likeState.isLiked}
-        initialLikesCount={likeState.likesCount}
+        likesCount={likeState.likesCount}
+        isLiked={likeState.isLiked}
         size="medium"
-        onLike={(packId, isLiked) => {
-          toggleLike(packId);
-          console.log(`Лайк для пака ${packId}: ${isLiked ? 'добавлен' : 'убран'}`);
-          
-          // Запускаем анимацию лайка
-          if (isLiked && onLikeAnimation) {
-            onLikeAnimation(packId);
-          }
-          
-          // Здесь будет API вызов для сохранения лайка
-        }}
       />
     </div>
   );
