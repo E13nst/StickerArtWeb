@@ -82,46 +82,46 @@ class ApiClient {
     );
   }
 
-      // Добавляем заголовки аутентификации (botName не отправляем)
-      setAuthHeaders(initData: string) {
-        this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
-        console.log('✅ Заголовки аутентификации установлены:');
-        console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
-      }
+  // Добавляем заголовки аутентификации (botName не отправляем)
+  setAuthHeaders(initData: string) {
+    this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
+    console.log('✅ Заголовки аутентификации установлены:');
+    console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
+  }
 
-      // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
-      checkExtensionHeaders() {
-        // ModHeader добавляет заголовки в fetch requests
-        // Проверяем, есть ли заголовки от расширений
-        const extensionInitData = this.client.defaults.headers.common['X-Telegram-Init-Data-Extension'];
-        
-        if (extensionInitData) {
-          console.log('🔧 Обнаружены заголовки от Chrome расширения:');
-          console.log('  X-Telegram-Init-Data-Extension:', extensionInitData);
-          
-          // Используем заголовки от расширения
-          this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
-          
-          return true;
-        }
-        
-        return false;
-      }
+  // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
+  checkExtensionHeaders() {
+    // ModHeader добавляет заголовки в fetch requests
+    // Проверяем, есть ли заголовки от расширений
+    const extensionInitData = this.client.defaults.headers.common['X-Telegram-Init-Data-Extension'];
+    
+    if (extensionInitData) {
+      console.log('🔧 Обнаружены заголовки от Chrome расширения:');
+      console.log('  X-Telegram-Init-Data-Extension:', extensionInitData);
+      
+      // Используем заголовки от расширения
+      this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
+      
+      return true;
+    }
+    
+    return false;
+  }
 
-      // Получение текущих заголовков
-      getHeaders(): Record<string, string> {
-        return this.client.defaults.headers.common as Record<string, string>;
-      }
+  // Получение текущих заголовков
+  getHeaders(): Record<string, string> {
+    return this.client.defaults.headers.common as Record<string, string>;
+  }
 
-      // Получение базового URL
-      getBaseURL(): string {
-        return this.client.defaults.baseURL || '';
-      }
+  // Получение базового URL
+  getBaseURL(): string {
+    return this.client.defaults.baseURL || '';
+  }
 
-      // Получение таймаута
-      getTimeout(): number {
-        return this.client.defaults.timeout || 0;
-      }
+  // Получение таймаута
+  getTimeout(): number {
+    return this.client.defaults.timeout || 0;
+  }
 
   // Удаляем заголовки аутентификации
   clearAuthHeaders() {
