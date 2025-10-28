@@ -174,23 +174,37 @@ amvera restart sticker-art-e13nst
 amvera exec sticker-art-e13nst -- env | grep BACKEND_URL
 ```
 
-### Проблема: `/data` не создается
+### Проблема: `/data` не создается или ошибка `mkdir() "/data/nginx/cache" failed (2: No such file or directory)`
 
-**Причина**: Неправильный Dockerfile
+**Причина**: Директории создаются при сборке образа, а не при старте контейнера
 
-**Проверка**:
-```bash
-# Посмотри что в контейнере
-amvera exec sticker-art-e13nst -- ls -la /
+**Решение**: Используем entrypoint script
 
-# Должна быть директория /data
-```
-
-**Решение**: Проверь что в Dockerfile есть:
+В `Dockerfile`:
 ```dockerfile
-RUN mkdir -p /data/nginx/cache /data/nginx/temp /data/logs
+# Копируем entrypoint
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 VOLUME ["/data"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 ```
+
+В `docker-entrypoint.sh`:
+```bash
+#!/bin/sh
+# Создаем директории при СТАРТЕ контейнера
+mkdir -p /data/nginx/cache/temp /data/nginx/temp /data/logs
+chown -R nginx:nginx /data
+chmod -R 755 /data
+
+# Запускаем nginx
+exec nginx -g 'daemon off;'
+```
+
+**Почему это важно?**
+- ❌ `RUN mkdir` в Dockerfile - создает при **сборке** образа (volume еще не примонтирован)
+- ✅ `mkdir` в entrypoint - создает при **старте** контейнера (volume уже примонтирован)
 
 ### Проблема: Логи не пишутся в `/data/logs`
 
