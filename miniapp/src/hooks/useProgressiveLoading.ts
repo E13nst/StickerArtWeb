@@ -46,128 +46,123 @@ export const useProgressiveLoading = ({
     abortController: null
   });
 
-  // Оптимизированная загрузка первого изображения
-  const loadFirstImageOptimized = useCallback(async () => {
+  // Batch-загрузка первых изображений параллельно
+  const loadFirstBatchOptimized = useCallback(async () => {
     if (safeSelectedPosters.length === 0 || isFirstImageLoaded) return;
-    
-    const firstPoster = safeSelectedPosters[0];
-    if (!firstPoster) return;
 
-    setIsLoading(prev => {
-      if (!prev) {
-        return true;
-      }
-      return prev;
-    });
-    setHasError(prev => {
-      if (prev) {
-        return false;
-      }
-      return prev;
-    });
+    setIsLoading(true);
+    setHasError(false);
 
     try {
-      const priority = isHighPriority ? LoadPriority.TIER_2_FIRST_IMAGE : LoadPriority.TIER_3_ADDITIONAL;
-      const imageUrl = await imageLoader.loadImage(
-        firstPoster.fileId,
-        firstPoster.url,
-        priority,
-        packId,
-        0
+      // Загружаем первые 3-6 изображений параллельно в зависимости от приоритета
+      const batchSize = isHighPriority ? 6 : 3;
+      const batch = safeSelectedPosters.slice(0, Math.min(batchSize, safeSelectedPosters.length));
+      
+      console.log(`🚀 Loading ${batch.length} images in parallel for pack ${packId}`);
+
+      // Параллельная загрузка всех изображений в батче
+      const promises = batch.map((poster, index) => 
+        imageLoader.loadImage(
+          poster.fileId,
+          poster.url,
+          isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE,
+          packId,
+          index
+        ).catch(err => {
+          console.warn(`Failed to load image ${index} for pack ${packId}:`, err);
+          return null;
+        })
       );
 
-      setLoadedImages(prev => {
-        // Проверяем, не загружено ли уже это изображение
-        if (prev.includes(imageUrl)) {
-          return prev;
-        }
-        return [imageUrl];
-      });
-      setIsFirstImageLoaded(prev => {
-        if (!prev) {
-          return true;
-        }
-        return prev;
-      });
-      setIsLoading(prev => {
-        if (prev) {
-          return false;
-        }
-        return prev;
-      });
-      setHasError(prev => {
-        if (prev) {
-          return false;
-        }
-        return prev;
-      });
+      const results = await Promise.allSettled(promises);
+      const loadedUrls = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
 
-      onImageLoaded?.(imageUrl, 0);
-      console.log(`🎨 First image loaded for pack ${packId}:`, imageUrl);
+      if (loadedUrls.length > 0) {
+        setLoadedImages(loadedUrls);
+        setIsFirstImageLoaded(true);
+        
+        loadedUrls.forEach((url, index) => {
+          onImageLoaded?.(url, index);
+        });
+
+        console.log(`✅ Loaded ${loadedUrls.length}/${batch.length} images for pack ${packId}`);
+      } else {
+        setHasError(true);
+      }
     } catch (error) {
-      console.warn('Failed to load first image:', error);
-      setIsLoading(prev => {
-        if (prev) {
-          return false;
-        }
-        return prev;
-      });
-      setHasError(prev => {
-        if (!prev) {
-          return true;
-        }
-        return prev;
-      });
+      console.warn('Failed to load first batch:', error);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
     }
   }, [packId, safeSelectedPosters, isHighPriority, onImageLoaded, isFirstImageLoaded]);
 
-  // Прогрессивная загрузка остальных изображений
-  const loadNextImage = useCallback(async () => {
-    if (loadingRef.current.isProcessing || safeSelectedPosters.length <= loadedImages.length) {
+  // Загрузка остальных изображений батчами
+  const loadRemainingImages = useCallback(async () => {
+    if (loadingRef.current.isProcessing || !isFirstImageLoaded) {
       return;
     }
 
-    const nextIndex = loadedImages.length;
-    const nextPoster = safeSelectedPosters[nextIndex];
-    if (!nextPoster) return;
+    const remainingCount = safeSelectedPosters.length - loadedImages.length;
+    if (remainingCount <= 0) {
+      return;
+    }
 
     loadingRef.current.isProcessing = true;
-    loadingRef.current.currentIndex = nextIndex;
 
     try {
-      const priority = isHighPriority ? LoadPriority.TIER_3_ADDITIONAL : LoadPriority.TIER_4_BACKGROUND;
-      const imageUrl = await imageLoader.loadImage(
-        nextPoster.fileId,
-        nextPoster.url,
-        priority,
-        packId,
-        nextIndex
-      );
+      // Загружаем оставшиеся изображения батчами по 3
+      const batchSize = 3;
+      const startIndex = loadedImages.length;
+      const batch = safeSelectedPosters.slice(startIndex, startIndex + batchSize);
 
-      setLoadedImages(prev => {
-        // Проверяем, не загружено ли уже это изображение
-        if (prev.includes(imageUrl)) {
-          return prev;
-        }
-        return [...prev, imageUrl];
+      console.log(`🔄 Loading batch of ${batch.length} images for pack ${packId} (${startIndex}-${startIndex + batch.length})`);
+
+      const promises = batch.map((poster, i) => {
+        const index = startIndex + i;
+        return imageLoader.loadImage(
+          poster.fileId,
+          poster.url,
+          isHighPriority ? LoadPriority.TIER_3_ADDITIONAL : LoadPriority.TIER_4_BACKGROUND,
+          packId,
+          index
+        ).catch(err => {
+          console.warn(`Failed to load image ${index} for pack ${packId}:`, err);
+          return null;
+        });
       });
 
-      onImageLoaded?.(imageUrl, nextIndex);
-      console.log(`✅ Additional image ${nextIndex + 1} loaded for pack ${packId}:`, imageUrl);
+      const results = await Promise.allSettled(promises);
+      const loadedUrls = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+
+      if (loadedUrls.length > 0) {
+        setLoadedImages(prev => [...prev, ...loadedUrls]);
+
+        loadedUrls.forEach((url, i) => {
+          onImageLoaded?.(url, startIndex + i);
+        });
+
+        console.log(`✅ Loaded batch: ${loadedUrls.length}/${batch.length} images for pack ${packId}`);
+      }
 
       // Проверить, загружены ли все изображения
-      if (loadedImages.length + 1 >= safeSelectedPosters.length) {
+      const totalLoaded = loadedImages.length + loadedUrls.length;
+      if (totalLoaded >= safeSelectedPosters.length) {
         onAllImagesLoaded?.();
         console.log(`🎉 All images loaded for pack ${packId}`);
       }
     } catch (error) {
-      console.warn(`Failed to load image ${nextIndex + 1}:`, error);
+      console.warn('Failed to load remaining images:', error);
     } finally {
       loadingRef.current.isProcessing = false;
     }
-  }, [packId, safeSelectedPosters, loadedImages.length, isHighPriority, onImageLoaded, onAllImagesLoaded]);
+  }, [packId, safeSelectedPosters, loadedImages.length, isHighPriority, isFirstImageLoaded, onImageLoaded, onAllImagesLoaded]);
 
-  // Автоматическая загрузка следующего изображения с оптимизированными задержками
+  // Автоматическая загрузка остальных изображений батчами с минимальной задержкой
   useEffect(() => {
     if (!isVisible || !isFirstImageLoaded || loadingRef.current.isProcessing) {
       return;
@@ -178,20 +173,20 @@ export const useProgressiveLoading = ({
       return;
     }
 
-    // Фиксированные задержки для предсказуемости
+    // Минимальная задержка для плавности UI (можно убрать совсем)
     const timer = setTimeout(() => {
-      loadNextImage();
-    }, isHighPriority ? 300 : 800);
+      loadRemainingImages();
+    }, isHighPriority ? 100 : 200);
 
     return () => clearTimeout(timer);
-  }, [isVisible, isFirstImageLoaded, loadedImages.length, loadNextImage, isHighPriority, safeSelectedPosters.length]);
+  }, [isVisible, isFirstImageLoaded, loadedImages.length, loadRemainingImages, isHighPriority, safeSelectedPosters.length]);
 
-  // Запуск загрузки первого изображения
+  // Запуск загрузки первого батча изображений
   useEffect(() => {
     if (isVisible && !isFirstImageLoaded && !isLoading && safeSelectedPosters.length > 0) {
-      loadFirstImageOptimized();
+      loadFirstBatchOptimized();
     }
-  }, [isVisible, isFirstImageLoaded, isLoading, loadFirstImageOptimized, safeSelectedPosters.length]);
+  }, [isVisible, isFirstImageLoaded, isLoading, loadFirstBatchOptimized, safeSelectedPosters.length]);
 
   // Слайдшоу - переключение между изображениями с оптимизацией
   useEffect(() => {
@@ -220,12 +215,12 @@ export const useProgressiveLoading = ({
     };
   }, []);
 
-  // Ручная загрузка следующего изображения
+  // Ручная загрузка следующего батча изображений
   const loadNextImageManually = useCallback(() => {
     if (!loadingRef.current.isProcessing) {
-      loadNextImage();
+      loadRemainingImages();
     }
-  }, [loadNextImage]);
+  }, [loadRemainingImages]);
 
   // Сброс состояния
   const reset = useCallback(() => {

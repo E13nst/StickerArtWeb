@@ -116,12 +116,27 @@ class ImageLoader {
       throw new Error(`Invalid image URL: ${url}`);
     }
     
-    console.log(`✅ Loading image for ${fileId}:`, url);
+    console.log(`🔄 Prefetching image for ${fileId}:`, url);
     
-    // Сохранить URL в кеш
-    imageCache.set(fileId, url, 0.1);
-    
-    return url;
+    // Реальная загрузка изображения через браузер
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        console.log(`✅ Image loaded for ${fileId}`);
+        // Сохранить URL в кеш после успешной загрузки
+        imageCache.set(fileId, url, 0.1);
+        resolve(url);
+      };
+      
+      img.onerror = () => {
+        console.warn(`❌ Failed to load image for ${fileId}`);
+        reject(new Error(`Failed to load image: ${url}`));
+      };
+      
+      // Запускаем загрузку
+      img.src = url;
+    });
   }
 
   async reloadImage(
