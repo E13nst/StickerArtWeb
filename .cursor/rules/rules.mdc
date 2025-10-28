@@ -113,3 +113,42 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - Правила проекта: `.cursor/project-rules.md`
 - Swagger UI: `https://stickerartgallery-e13nst.amvera.io/v3/api-docs`
 ---
+
+### Amvera CLI — правила использования (без сохранения кредов)
+
+- **Документация**: см. `Amvera CLI` — `https://docs.amvera.ru/general/cli.html`
+- **Установка** (macOS/Linux):
+  - `curl -sSL https://raw.githubusercontent.com/amvera-cloud/cli/master/amvera-install.sh | bash -s -- v1.0.5`
+  - Проверка: `amvera -v`
+
+- **Аутентификация (без сохранения пароля на диск)**:
+  - Не храним логин/пароль в репозитории и общих файлах.
+  - Предпочтительно использовать одноразовые переменные окружения в сессии:
+    - `read -p "Login: " AMVERA_LOGIN && read -s -p "Password: " AMVERA_PASSWORD && echo && printf "%s\n%s" "$AMVERA_LOGIN" "$AMVERA_PASSWORD" | amvera login`
+    - После работы: `unset AMVERA_LOGIN AMVERA_PASSWORD`.
+  - Допустимо локально использовать `.env.local` (он уже в .gitignore), но для безопасности предпочтительнее временные переменные сессии.
+  - CLI требует повторного log in после ~24 ч простоя — вводим заново при необходимости.
+
+- **Базовые команды проекта**:
+  - Список проектов: `amvera get projects`
+  - Описание проекта: `amvera describe project <slug>`
+  - Логи:
+    - build: `amvera logs build <slug>`
+    - run (доступы/проксирование): `amvera logs run <slug>`
+  - Жизненный цикл:
+    - рестарт: `amvera restart <slug>`
+    - старт/стоп: `amvera start <slug>` / `amvera stop <slug>`
+    - пересборка: `amvera rebuild <slug>`
+
+- **Переменные окружения (секреты не сохранять в коде)**:
+  - Просмотр: `amvera get env <slug>`
+  - Добавить/обновить: `amvera env add <slug> KEY VALUE` / `amvera env update <slug> KEY VALUE`
+  - Для секретов используем ввод из stdin/переменных сессии, избегаем истории shell:
+    - `read -s -p "SECRET: " VALUE && echo && amvera env add <slug> SECRET "$VALUE" && unset VALUE`
+
+- **Безопасность и политика**:
+  - Никогда не коммитим креды/токены. Запрещено хранить их в `README`, скриптах и исходниках.
+  - Для локальных нужд используем `.env.local` (игнорируется git) либо одноразовые переменные сессии.
+  - Проверяем, что `dist/`, `node_modules/`, тест‑артефакты и `.env*` исключены из git (см. `.gitignore`).
+
+Ссылки: `Amvera CLI` — `https://docs.amvera.ru/general/cli.html`
