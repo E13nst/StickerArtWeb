@@ -1,9 +1,28 @@
+# Кэш для API запросов в /data (персистентное хранилище Amvera)
+proxy_cache_path /data/nginx/cache 
+    levels=1:2 
+    keys_zone=api_cache:10m 
+    max_size=500m 
+    inactive=60m 
+    use_temp_path=off;
+
+# Временные файлы в /data
+client_body_temp_path /data/nginx/temp/client_body;
+proxy_temp_path /data/nginx/temp/proxy;
+fastcgi_temp_path /data/nginx/temp/fastcgi;
+uwsgi_temp_path /data/nginx/temp/uwsgi;
+scgi_temp_path /data/nginx/temp/scgi;
+
 server {
     listen 80;
     server_name _;
     
     root /usr/share/nginx/html;
     index index.html;
+    
+    # Логи в персистентное хранилище
+    access_log /data/logs/access.log;
+    error_log /data/logs/error.log warn;
     
     # Gzip compression
     gzip on;
@@ -20,6 +39,16 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_ssl_server_name on;
+        
+        # Кэширование GET запросов для стикерсетов (не кэшируем auth и POST/PUT/DELETE)
+        proxy_cache api_cache;
+        proxy_cache_methods GET;
+        proxy_cache_key "$scheme$request_method$host$request_uri";
+        proxy_cache_valid 200 10m;  # Успешные ответы кэшируем 10 минут
+        proxy_cache_valid 404 1m;   # 404 кэшируем 1 минуту
+        proxy_cache_bypass $http_cache_control;  # Учитываем Cache-Control от клиента
+        proxy_no_cache $http_pragma $http_authorization;  # Не кэшируем с авторизацией
+        add_header X-Cache-Status $upstream_cache_status;  # Добавляем статус кэша в headers
         
         add_header Access-Control-Allow-Origin * always;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
