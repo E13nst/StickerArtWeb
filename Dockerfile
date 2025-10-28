@@ -5,6 +5,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Cache busting argument (можно передать при сборке для форсирования rebuild)
+ARG CACHEBUST=1
+
 # Копируем package files
 COPY package*.json ./
 
@@ -15,11 +18,21 @@ RUN npm ci --no-audit
 COPY miniapp ./miniapp
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json ./
 
+# Выводим информацию о сборке для отладки
+RUN echo "=== BUILD INFO ===" && \
+    echo "CACHEBUST: ${CACHEBUST}" && \
+    echo "NODE_VERSION: $(node --version)" && \
+    echo "NPM_VERSION: $(npm --version)" && \
+    date
+
 # Собираем приложение
-# 1. Проверяем TypeScript
-# 2. Vite собирает в dist/miniapp/ (согласно vite.config.ts: outDir: '../dist/miniapp')
-# 3. Копируем корневой index.html в dist/ для редиректа
-RUN npx tsc && npx vite build && \
+# 1. Очищаем предыдущие сборки (если есть)
+# 2. Проверяем TypeScript
+# 3. Vite собирает в dist/miniapp/ (согласно vite.config.ts: outDir: '../dist/miniapp')
+# 4. Копируем корневой index.html в dist/ для редиректа
+RUN rm -rf dist && \
+    npx tsc && \
+    npx vite build && \
     mkdir -p dist && \
     cp index.html dist/
 
