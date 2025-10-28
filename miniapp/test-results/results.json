@@ -1,0 +1,240 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Notebook\\StickerArtWeb-1\\miniapp\\playwright.config.ts",
+    "rootDir": "C:/Users/Notebook/StickerArtWeb-1/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 1,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/Notebook/StickerArtWeb-1/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Notebook/StickerArtWeb-1/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 0
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": {
+      "command": "cd .. && npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "gallery.spec.ts",
+      "file": "gallery.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Sticker Gallery",
+          "file": "gallery.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "количество карточек стикерсетов соответствует размеру API запроса",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 0,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1915817,
+                      "error": {
+                        "message": "Error: page.waitForSelector: Target page, context or browser has been closed",
+                        "stack": "Error: page.waitForSelector: Target page, context or browser has been closed\n    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts:43:16",
+                        "location": {
+                          "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts",
+                          "column": 16,
+                          "line": 43
+                        },
+                        "snippet": "  41 |     await page.waitForSelector('[data-testid=\"pack-card\"]', { timeout: 10000 });\n  42 |     \n> 43 |     // Получаем количество карточек на странице\n     |                ^\n  44 |     const packCards = await page.locator('[data-testid=\"pack-card\"]').all();\n  45 |     const cardsCount = packCards.length;\n  46 |     "
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts",
+                            "column": 16,
+                            "line": 43
+                          },
+                          "message": "Error: page.waitForSelector: Target page, context or browser has been closed\n\n  41 |     await page.waitForSelector('[data-testid=\"pack-card\"]', { timeout: 10000 });\n  42 |     \n> 43 |     // Получаем количество карточек на странице\n     |                ^\n  44 |     const packCards = await page.locator('[data-testid=\"pack-card\"]').all();\n  45 |     const cardsCount = packCards.length;\n  46 |     \n    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts:43:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-28T09:57:15.718Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts",
+                        "column": 16,
+                        "line": 43
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "0087bd98ece4956907e4-5cd0fb9db966e60b5c76",
+              "file": "gallery.spec.ts",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "API запрос использует правильные параметры по умолчанию",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 0,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0087bd98ece4956907e4-07236727753fb03230c2",
+              "file": "gallery.spec.ts",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "пагинация работает корректно",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 0,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0087bd98ece4956907e4-6c8234eefc51067bbf6e",
+              "file": "gallery.spec.ts",
+              "line": 148,
+              "column": 3
+            },
+            {
+              "title": "API ответ соответствует формату PageResponseStickerSetDto",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 0,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0087bd98ece4956907e4-95b125021ed6689855c4",
+              "file": "gallery.spec.ts",
+              "line": 177,
+              "column": 3
+            },
+            {
+              "title": "поиск фильтрует карточки корректно",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 0,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0087bd98ece4956907e4-8b5d9410807609824fc0",
+              "file": "gallery.spec.ts",
+              "line": 236,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "message": "Testing stopped early after 1 maximum allowed failures."
+    }
+  ],
+  "stats": {
+    "startTime": "2025-10-28T09:57:13.842Z",
+    "duration": 1920742.428,
+    "expected": 0,
+    "skipped": 4,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

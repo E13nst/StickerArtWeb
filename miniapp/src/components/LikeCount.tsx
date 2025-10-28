@@ -79,6 +79,7 @@ export const LikeCount: React.FC<LikeCountProps> = ({
 
   return (
     <div
+      data-testid="like-button"
       style={{
         position: 'absolute',
         top: '1px',

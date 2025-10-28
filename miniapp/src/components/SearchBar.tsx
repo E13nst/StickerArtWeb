@@ -48,6 +48,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onChange={(e) => onChange(e.target.value)}
         onKeyPress={handleKeyPress}
         disabled={disabled}
+        inputProps={{ 'data-testid': 'search-input' }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">

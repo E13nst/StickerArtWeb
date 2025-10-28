@@ -126,9 +126,14 @@ export const useTelegram = () => {
       console.log('🔧 DEV MODE: Используется mock Telegram окружение');
       telegram = createMockTelegramEnv();
       setIsMockMode(true);
-    } else {
+    } else if (hasTelegramWebApp) {
       // Используем @twa-dev/SDK (production или real Telegram)
       telegram = WebApp as unknown as TelegramWebApp;
+    } else {
+      // В production без Telegram WebApp - используем mock
+      console.log('🔧 PRODUCTION MODE: Telegram WebApp недоступен, используем mock');
+      telegram = createMockTelegramEnv();
+      setIsMockMode(true);
     }
     
     if (telegram) {

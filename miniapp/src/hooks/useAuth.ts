@@ -20,7 +20,7 @@ export const useAuth = () => {
     });
 
     if (!isInTelegramApp && !initData) {
-      console.log('✅ Режим без авторизации (dev mode)');
+      console.log('✅ Режим без авторизации (dev mode или production без Telegram)');
       setAuthStatus({
         authenticated: true,
         role: 'public'

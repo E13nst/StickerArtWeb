@@ -64,6 +64,10 @@ export const GalleryPage: React.FC = () => {
       setUiState(prev => ({ ...prev, manualInitData: storedInitData }));
     } else if (extensionInitData) {
       // initData уже установлен
+    } else {
+      // В production без initData - используем пустую строку
+      console.log('🔧 PRODUCTION MODE: initData не найден, используем пустую строку');
+      setUiState(prev => ({ ...prev, manualInitData: '' }));
     }
   }, []);
 
@@ -79,10 +83,16 @@ export const GalleryPage: React.FC = () => {
     try {
       // Проверяем авторизацию напрямую без промежуточных функций
       const currentInitData = uiState.manualInitData || initData;
-      const isAuthenticated = await checkAuth(currentInitData);
       
-      if (!isAuthenticated && isInTelegramApp && !isMockMode) {
-        throw new Error('Пользователь не авторизован');
+      // В production без initData - пропускаем авторизацию
+      if (!currentInitData && !isInTelegramApp) {
+        console.log('🔧 PRODUCTION MODE: Пропускаем авторизацию, загружаем данные напрямую');
+      } else {
+        const isAuthenticated = await checkAuth(currentInitData);
+        
+        if (!isAuthenticated && isInTelegramApp && !isMockMode) {
+          throw new Error('Пользователь не авторизован');
+        }
       }
 
       const response = await apiClient.getStickerSets(page);

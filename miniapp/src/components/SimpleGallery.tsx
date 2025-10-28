@@ -198,6 +198,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         maxHeight: '80vh',
         overflow: 'auto'
       }}
+      data-testid="gallery-container"
     >
 
 
@@ -330,7 +331,6 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
             isFirstRow={index < 2}
             isHighPriority={index < 6}
             onClick={handlePackClick}
-                onLikeAnimation={handleLikeAnimation}
           />
             </div>
           );

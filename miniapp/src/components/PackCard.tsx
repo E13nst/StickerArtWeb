@@ -59,6 +59,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     <div
       ref={ref as React.RefObject<HTMLDivElement>}
       className="pack-card"
+      data-testid="pack-card"
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -90,6 +91,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           return (
             <div
               key={`${pack.id}-${sticker.fileId}-${index}`}
+              data-testid="sticker-preview"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -146,6 +148,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       
       {/* Заголовок пака */}
       <div
+        data-testid="pack-title"
         style={{
           position: 'absolute',
           bottom: 0,

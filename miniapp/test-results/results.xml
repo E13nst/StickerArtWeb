@@ -1,0 +1,37 @@
+<testsuites id="" name="" tests="5" failures="1" skipped="4" errors="0" time="1920.742428">
+<testsuite name="gallery.spec.ts" timestamp="2025-10-28T09:57:13.925Z" hostname="chromium" tests="5" failures="1" skipped="4" time="1915.817" errors="0">
+<testcase name="Sticker Gallery › количество карточек стикерсетов соответствует размеру API запроса" classname="gallery.spec.ts" time="1915.817">
+<failure message="gallery.spec.ts:12:3 количество карточек стикерсетов соответствует размеру API запроса" type="FAILURE">
+<![CDATA[  [chromium] › gallery.spec.ts:12:3 › Sticker Gallery › количество карточек стикерсетов соответствует размеру API запроса 
+
+    Error: page.waitForSelector: Target page, context or browser has been closed
+
+      41 |     await page.waitForSelector('[data-testid="pack-card"]', { timeout: 10000 });
+      42 |     
+    > 43 |     // Получаем количество карточек на странице
+         |                ^
+      44 |     const packCards = await page.locator('[data-testid="pack-card"]').all();
+      45 |     const cardsCount = packCards.length;
+      46 |     
+        at C:\Users\Notebook\StickerArtWeb-1\tests\gallery.spec.ts:43:16
+]]>
+</failure>
+</testcase>
+<testcase name="Sticker Gallery › API запрос использует правильные параметры по умолчанию" classname="gallery.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sticker Gallery › пагинация работает корректно" classname="gallery.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sticker Gallery › API ответ соответствует формату PageResponseStickerSetDto" classname="gallery.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Sticker Gallery › поиск фильтрует карточки корректно" classname="gallery.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>
