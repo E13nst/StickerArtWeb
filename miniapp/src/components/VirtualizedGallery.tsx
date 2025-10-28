@@ -18,6 +18,10 @@ interface VirtualizedGalleryProps {
   itemHeight?: number;
   containerHeight?: number;
   overscan?: number; // Сколько элементов рендерить за пределами видимой области
+  // Пагинация
+  hasNextPage?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
@@ -25,11 +29,15 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   onPackClick,
   itemHeight = 200,
   containerHeight = 600,
-  overscan = 6
+  overscan = 6,
+  hasNextPage = false,
+  isLoadingMore = false,
+  onLoadMore
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerWidth, setContainerWidth] = useState(400);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Обновление ширины контейнера
   useEffect(() => {
@@ -66,6 +74,25 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
   };
+
+  // Пагинация: sentinel внутри scroll-контейнера
+  useEffect(() => {
+    const root = containerRef.current;
+    const sentinel = sentinelRef.current;
+    if (!root || !sentinel || !hasNextPage || isLoadingMore) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasNextPage && !isLoadingMore && onLoadMore) {
+          onLoadMore();
+        }
+      },
+      { root, rootMargin: '120px', threshold: 0.1 }
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [hasNextPage, isLoadingMore, onLoadMore]);
 
   // Рендерим только видимые элементы
   const visiblePacks = packs.slice(visibleRange.startIndex, visibleRange.endIndex);
@@ -110,26 +137,12 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
             />
           ))}
         </div>
+        {hasNextPage && (
+          <div ref={sentinelRef} style={{ position: 'absolute', bottom: 0, height: 1, width: '100%' }} />
+        )}
       </div>
 
-      {/* Индикатор виртуализации (для отладки) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          left: '10px',
-          background: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          zIndex: 1000
-        }}>
-          Видимых: {visiblePacks.length} из {packs.length}
-          <br />
-          Позиция: {visibleRange.startIndex}-{visibleRange.endIndex}
-        </div>
-      )}
+      {/* Индикатор отключен в прод-сборке */}
     </div>
   );
 };

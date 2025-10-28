@@ -184,7 +184,10 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           onPackClick={onPackClick}
           itemHeight={200}
           containerHeight={600}
-          overscan={5}
+          overscan={6}
+          hasNextPage={hasNextPage}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={onLoadMore}
         />
       </div>
     );
