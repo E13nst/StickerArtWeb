@@ -25,7 +25,7 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   onPackClick,
   itemHeight = 200,
   containerHeight = 600,
-  overscan = 3
+  overscan = 6
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -94,7 +94,6 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
             top: offsetY,
             left: 0,
             right: 0,
-            transform: `translateY(${offsetY}px)`,
             display: 'grid',
             gridTemplateColumns: `repeat(${visibleRange.itemsPerRow}, 1fr)`,
             gap: '8px',
