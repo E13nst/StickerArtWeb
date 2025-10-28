@@ -73,8 +73,8 @@ RUN mkdir -p /data/cache/nginx/stickers && \
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем шаблон конфигурации Nginx
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Копируем конфиг Nginx (шаблон для envsubst)
+COPY nginx.conf /etc/nginx/conf.d/app.conf.tpl
 
 # Копируем init-скрипт для проверки /data и инициализации кэша
 COPY docker-entrypoint.sh /docker-entrypoint.sh

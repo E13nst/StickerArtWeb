@@ -114,10 +114,10 @@ amvera restart sticker-art-e13nst
 
 ## 🔄 Обновление конфигурации
 
-### После изменения `nginx.conf.template`:
+### После изменения `nginx.conf`:
 
 ```bash
-git add nginx.conf.template
+git add nginx.conf
 git commit -m "fix: update nginx cache settings"
 git push origin main
 
@@ -199,7 +199,7 @@ curl -I https://sticker-art-e13nst.amvera.io/api/stickersets
 
 ### Увеличение размера кэша:
 
-Если нужно больше места для кэша, отредактируй `nginx.conf.template`:
+Если нужно больше места для кэша, отредактируй `nginx.conf`:
 
 ```nginx
 proxy_cache_path /data/nginx/cache 
@@ -209,7 +209,7 @@ proxy_cache_path /data/nginx/cache
 
 Затем:
 ```bash
-git add nginx.conf.template
+git add nginx.conf
 git commit -m "chore: increase cache size"
 git push
 ```

@@ -2,13 +2,13 @@
  * Утилиты для работы со стикерами
  */
 
-// Получаем BACKEND_URL из переменных окружения или используем значение по умолчанию
+// Получаем BACKEND_URL из переменных окружения или используем пустую строку (относительный /api)
 const getBackendUrl = (): string => {
   try {
     // @ts-ignore
-    return import.meta.env.VITE_BACKEND_URL || 'https://stickerartgallery-e13nst.amvera.io';
+    return import.meta.env.VITE_BACKEND_URL || '';
   } catch {
-    return 'https://stickerartgallery-e13nst.amvera.io';
+    return '';
   }
 };
 
@@ -26,7 +26,8 @@ export function getStickerImageUrl(fileId: string): string {
   
   // Эндпоинт для получения файла стикера через наш backend
   // Добавляем параметр для получения файла, а не метаданных
-  return `${BACKEND_URL}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true`;
+  const base = BACKEND_URL ? BACKEND_URL.replace(/\/$/, '') : '';
+  return `${base}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true`;
 }
 
 /**
@@ -42,7 +43,8 @@ export function getStickerThumbnailUrl(fileId: string, size: number = 128): stri
   
   // Используем параметр file=true для получения изображения
   // Добавляем параметр размера для миниатюр
-  return `${BACKEND_URL}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
+  const base = BACKEND_URL ? BACKEND_URL.replace(/\/$/, '') : '';
+  return `${base}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
 }
 
 /**

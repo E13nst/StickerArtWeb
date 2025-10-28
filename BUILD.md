@@ -60,7 +60,7 @@ RUN npx tsc && npx vite build && mkdir -p dist && cp index.html dist/
 ### Stage 2: Nginx
 ```dockerfile
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx.conf /etc/nginx/conf.d/app.conf.tpl
 ```
 
 **Nginx структура**:

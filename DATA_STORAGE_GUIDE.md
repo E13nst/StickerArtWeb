@@ -217,7 +217,7 @@ proxy_cache_path /data/cache/nginx/stickers
 ### 1. Коммит изменений:
 
 ```bash
-git add Dockerfile docker-entrypoint.sh nginx.conf.template nginx.conf
+git add Dockerfile docker-entrypoint.sh nginx.conf
 git commit -m "feat: use /data persistent storage for nginx cache"
 git push origin main
 ```
