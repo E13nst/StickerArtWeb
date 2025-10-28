@@ -46,6 +46,33 @@ export const useProgressiveLoading = ({
     abortController: null
   });
 
+  // Определяем оптимальный размер батча на основе устройства и сети
+  const getOptimalBatchSize = useCallback(() => {
+    // Проверяем тип соединения (Network Information API)
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    
+    if (connection) {
+      const effectiveType = connection.effectiveType; // '4g', '3g', '2g', 'slow-2g'
+      const downlink = connection.downlink; // Мбит/с
+      
+      // Медленное соединение (2G, 3G, или < 1 Мбит/с)
+      if (effectiveType === 'slow-2g' || effectiveType === '2g' || downlink < 1) {
+        return isHighPriority ? 3 : 2;
+      }
+      
+      // 3G или средняя скорость (1-5 Мбит/с)
+      if (effectiveType === '3g' || downlink < 5) {
+        return isHighPriority ? 6 : 3;
+      }
+      
+      // 4G или быстрое соединение (> 5 Мбит/с)
+      return isHighPriority ? 10 : 5;
+    }
+    
+    // Fallback: по умолчанию средние значения
+    return isHighPriority ? 8 : 4;
+  }, [isHighPriority]);
+
   // Batch-загрузка первых изображений параллельно
   const loadFirstBatchOptimized = useCallback(async () => {
     if (safeSelectedPosters.length === 0 || isFirstImageLoaded) return;
@@ -54,11 +81,11 @@ export const useProgressiveLoading = ({
     setHasError(false);
 
     try {
-      // Загружаем первые 3-6 изображений параллельно в зависимости от приоритета
-      const batchSize = isHighPriority ? 6 : 3;
+      // Адаптивный размер батча
+      const batchSize = getOptimalBatchSize();
       const batch = safeSelectedPosters.slice(0, Math.min(batchSize, safeSelectedPosters.length));
       
-      console.log(`🚀 Loading ${batch.length} images in parallel for pack ${packId}`);
+      console.log(`🚀 Loading ${batch.length} images in parallel for pack ${packId} (adaptive batch size)`);
 
       // Параллельная загрузка всех изображений в батче
       const promises = batch.map((poster, index) => 
@@ -97,7 +124,7 @@ export const useProgressiveLoading = ({
     } finally {
       setIsLoading(false);
     }
-  }, [packId, safeSelectedPosters, isHighPriority, onImageLoaded, isFirstImageLoaded]);
+  }, [packId, safeSelectedPosters, isHighPriority, onImageLoaded, isFirstImageLoaded, getOptimalBatchSize]);
 
   // Загрузка остальных изображений батчами
   const loadRemainingImages = useCallback(async () => {
@@ -113,8 +140,8 @@ export const useProgressiveLoading = ({
     loadingRef.current.isProcessing = true;
 
     try {
-      // Загружаем оставшиеся изображения батчами по 3
-      const batchSize = 3;
+      // Адаптивный размер батча для остальных изображений (меньше чем для первого батча)
+      const batchSize = Math.max(3, Math.floor(getOptimalBatchSize() / 2));
       const startIndex = loadedImages.length;
       const batch = safeSelectedPosters.slice(startIndex, startIndex + batchSize);
 
@@ -160,7 +187,7 @@ export const useProgressiveLoading = ({
     } finally {
       loadingRef.current.isProcessing = false;
     }
-  }, [packId, safeSelectedPosters, loadedImages.length, isHighPriority, isFirstImageLoaded, onImageLoaded, onAllImagesLoaded]);
+  }, [packId, safeSelectedPosters, loadedImages.length, isHighPriority, isFirstImageLoaded, onImageLoaded, onAllImagesLoaded, getOptimalBatchSize]);
 
   // Автоматическая загрузка остальных изображений батчами с минимальной задержкой
   useEffect(() => {
