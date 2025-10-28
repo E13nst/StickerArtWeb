@@ -50,10 +50,14 @@ server {
         
         # Агрессивное кэширование
         proxy_cache sticker_cache;
+    proxy_cache_methods GET HEAD; # кэшируем GET/HEAD
         proxy_cache_valid 200 30d;
         proxy_cache_valid 404 1m;
         proxy_cache_key "$scheme$request_method$host$request_uri";
         proxy_cache_bypass $http_upgrade;
+    # Игнорируем заголовки апстрима, мешающие кэшированию
+    proxy_ignore_headers Cache-Control Expires Set-Cookie;
+    proxy_hide_header Set-Cookie;
         proxy_cache_lock on;
         proxy_cache_lock_timeout 5s;
         proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
