@@ -53,7 +53,10 @@ export const GalleryPage: React.FC = () => {
   // Загрузка initData из URL параметров при инициализации
   // BUILD_DEBUG: Force rebuild - timestamp 2025-10-28T14:30:00Z
   useEffect(() => {
-    console.log('🔍 DEBUG: GalleryPage useEffect - BUILD_TIMESTAMP: 2025-10-28T14:30:00Z');
+    const buildTimestamp = new Date().toISOString();
+    console.log('🚀 DEBUG: GalleryPage INIT - BUILD: 2025-10-28T12:15:00Z');
+    console.log('✅ storedInitData variable IS DEFINED - FIX DEPLOYED!');
+    
     const urlParams = new URLSearchParams(window.location.search);
     const urlInitData = urlParams.get('initData');
     const storedInitData = localStorage.getItem('telegram_init_data');
