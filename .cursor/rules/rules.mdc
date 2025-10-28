@@ -78,6 +78,16 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - **Кэширование**: стикеры кэшируются в Redis на 7 дней
 - **Локализация**: поддерживаем `ru` и `en` (по умолчанию `en`)
 
+### Local Development (запуск)
+- **Предусловия**: Node 18+, npm ci
+- **ENV**: создайте `.env.local` (не коммитится):
+  - `VITE_BACKEND_URL=https://stickerartgallery-e13nst.amvera.io` (или ваш локальный/стейдж URL)
+- **Старт dev-сервера**:
+  - `npm run dev` (или `VITE_BACKEND_URL=... npm run dev`)
+  - Откройте: `http://localhost:3000/miniapp/`
+- **Проксирование API**: dev‑сервер проксирует `/api` на `VITE_BACKEND_URL` (см. `vite.config.ts`)
+- **Проверка кэша Nginx локально**: не применяется; кэш работает в Docker/Nginx на проде. Для проверки используйте фронт‑домен и заголовок `X-Cache-Status`.
+
 ### React Patterns
 - **Компоненты**: функциональные компоненты с хуками
 - **Мемоизация**: используй `useMemo`, `useCallback`, `memo()` для оптимизации
