@@ -26,7 +26,7 @@ export function getStickerImageUrl(fileId: string): string {
   
   // Эндпоинт для получения файла стикера через наш backend
   // Добавляем параметр для получения файла, а не метаданных
-  return `${BACKEND_URL}/api/stickers/${encodeURIComponent(fileId)}?file=true`;
+  return `${BACKEND_URL}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true`;
 }
 
 /**
@@ -42,7 +42,7 @@ export function getStickerThumbnailUrl(fileId: string, size: number = 128): stri
   
   // Используем параметр file=true для получения изображения
   // Добавляем параметр размера для миниатюр
-  return `${BACKEND_URL}/api/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
+  return `${BACKEND_URL}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
 }
 
 /**

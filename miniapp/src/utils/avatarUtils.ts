@@ -11,7 +11,7 @@ export const getAvatarUrl = (fileId: string | undefined): string | undefined => 
   if (!fileId || fileId.trim() === '') {
     return undefined;
   }
-  return `/api/stickers/${fileId}`;
+  return `/api/proxy/stickers/${fileId}`;
 };
 
 /**

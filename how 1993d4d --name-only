@@ -1,0 +1,57 @@
+[33mcommit 1993d4dc2af936331b4ecb580ab0f59657d5a19a[m
+Author: wind.slw <wind.slw@gmail.com>
+Date:   Mon Oct 27 17:06:17 2025 +0300
+
+    fix ApiClient methods formatting
+
+[1mdiff --git a/miniapp/src/api/client.ts b/miniapp/src/api/client.ts[m
+[1mindex 84ea0bb..41b3d00 100644[m
+[1m--- a/miniapp/src/api/client.ts[m
+[1m+++ b/miniapp/src/api/client.ts[m
+[36m@@ -82,46 +82,46 @@[m [mclass ApiClient {[m
+    );[m
+  }[m
+
+  // Добавляем заголовки аутентификации (botName не отправляем)
+  setAuthHeaders(initData: string) {
+    this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
+    console.log('✅ Заголовки аутентификации установлены:');
+    console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
+  }
+
+  // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
+  checkExtensionHeaders() {
+    // ModHeader добавляет заголовки в fetch requests
+    // Проверяем, есть ли заголовки от расширений
+    const extensionInitData = this.client.defaults.headers.common['X-Telegram-Init-Data-Extension'];
+    
+    if (extensionInitData) {
+      console.log('🔧 Обнаружены заголовки от Chrome расширения:');
+      console.log('  X-Telegram-Init-Data-Extension:', extensionInitData);
+      
+      // Используем заголовки от расширения
+      this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Получение текущих заголовков
+  getHeaders(): Record<string, string> {
+    return this.client.defaults.headers.common as Record<string, string>;
+  }
+
+  // Получение базового URL
+  getBaseURL(): string {
+    return this.client.defaults.baseURL || '';
+  }
+
+  // Получение таймаута
+  getTimeout(): number {
+    return this.client.defaults.timeout || 0;
+  }
+
+  // Удаляем заголовки аутентификации[m
+  clearAuthHeaders() {[m

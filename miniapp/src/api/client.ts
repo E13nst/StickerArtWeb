@@ -145,7 +145,7 @@ class ApiClient {
   // Получение списка стикерсетов с пагинацией
   async getStickerSets(page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     try {
-      const response = await this.client.get<StickerSetListResponse>('/stickersets', {
+      const response = await this.client.get<StickerSetListResponse>('/api/stickersets', {
         params: { page, size }
       });
       return response.data;
@@ -168,7 +168,7 @@ class ApiClient {
   // Поиск стикерсетов по названию
   async searchStickerSets(query: string, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     try {
-      const response = await this.client.get<StickerSetListResponse>('/stickersets/search', {
+      const response = await this.client.get<StickerSetListResponse>('/api/stickersets/search', {
         params: { name: query, page, size }
       });
       return response.data;
@@ -195,7 +195,7 @@ class ApiClient {
 
   // Получение стикерсета по ID
   async getStickerSet(id: number): Promise<StickerSetResponse> {
-    const response = await this.client.get<StickerSetResponse>(`/stickersets/${id}`);
+    const response = await this.client.get<StickerSetResponse>(`/api/stickersets/${id}`);
     return response.data;
   }
 
@@ -245,14 +245,14 @@ class ApiClient {
 
   // Удаление стикерсета
   async deleteStickerSet(id: number): Promise<void> {
-    await this.client.delete(`/stickersets/${id}`);
+    await this.client.delete(`/api/stickersets/${id}`);
   }
 
   // Проверка статуса аутентификации
   async checkAuthStatus(): Promise<AuthResponse> {
     try {
       console.log('🔐 Проверка статуса авторизации...');
-      const response = await this.client.get<AuthResponse>('/auth/status');
+      const response = await this.client.get<AuthResponse>('/api/auth/status');
       console.log('✅ Статус авторизации получен:', response.data);
       return response.data;
     } catch (error) {
@@ -271,7 +271,7 @@ class ApiClient {
 
   // Получение стикера по file_id
   async getSticker(fileId: string): Promise<Blob> {
-    const response = await this.client.get(`/stickers/${fileId}`, {
+    const response = await this.client.get(`/api/proxy/stickers/${fileId}`, {
       responseType: 'blob'
     });
     return response.data;
@@ -279,7 +279,7 @@ class ApiClient {
 
   // Создание URL для стикера
   getStickerUrl(fileId: string): string {
-    return `/api/stickers/${fileId}`;
+    return `/api/proxy/stickers/${fileId}`;
   }
 
   // ============ МЕТОДЫ ДЛЯ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ ============
@@ -287,7 +287,7 @@ class ApiClient {
   // Получение профиля пользователя по userId: GET /api/profiles/{userId}
   async getProfile(userId: number): Promise<UserInfo> {
     try {
-      const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+      const response = await this.client.get<ProfileResponse>(`/api/profiles/${userId}`);
       const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo
@@ -336,7 +336,7 @@ class ApiClient {
   // Профиль текущего пользователя (роль, баланс): GET /api/profiles/me
   async getMyProfile(): Promise<{ role: string; artBalance: number; userId: number } | null> {
     try {
-      const response = await this.client.get<any>('/profiles/me');
+      const response = await this.client.get<any>('/api/profiles/me');
       const data = response.data;
       return {
         role: data.role,
@@ -351,7 +351,7 @@ class ApiClient {
   // Фото профиля: GET /api/users/{userId}/photo
   async getUserPhoto(userId: number): Promise<{ profilePhotoFileId?: string; profilePhotos?: any } | null> {
     try {
-      const response = await this.client.get<any>(`/users/${userId}/photo`);
+      const response = await this.client.get<any>(`/api/users/${userId}/photo`);
       const data = response.data;
       return {
         profilePhotoFileId: data.profilePhotoFileId,
@@ -369,7 +369,7 @@ class ApiClient {
   // Получение информации о пользователе по ID (использует новый API /profiles/{userId})
   async getUserInfo(userId: number): Promise<UserInfo> {
     try {
-      const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+      const response = await this.client.get<ProfileResponse>(`/api/profiles/${userId}`);
       const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo
@@ -419,7 +419,7 @@ class ApiClient {
   async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
     try {
       // API endpoint: /api/profiles/{userId} где userId = telegramId
-      const response = await this.client.get<ProfileResponse>(`/profiles/${telegramId}`);
+      const response = await this.client.get<ProfileResponse>(`/api/profiles/${telegramId}`);
       const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo
@@ -474,7 +474,7 @@ class ApiClient {
     direction: 'ASC' | 'DESC' = 'DESC'
   ): Promise<StickerSetListResponse> {
     try {
-      const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
+      const response = await this.client.get<StickerSetListResponse>(`/api/stickersets/user/${userId}`, {
         params: { page, size, sort, direction }
       });
       return response.data;
@@ -499,7 +499,7 @@ class ApiClient {
   // Поиск стикерсетов пользователя по названию
   async searchUserStickerSets(userId: number, query: string, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     try {
-      const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}/search`, {
+      const response = await this.client.get<StickerSetListResponse>(`/api/stickersets/user/${userId}/search`, {
         params: { name: query, page, size }
       });
       return response.data;
