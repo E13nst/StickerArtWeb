@@ -25,40 +25,27 @@ amvera env add sticker-art-e13nst BACKEND_URL https://stickerartgallery-e13nst.a
 amvera restart sticker-art-e13nst
 ```
 
-## 💾 Персистентное хранилище `/data`
+## 🗂️ Кэширование и логи
 
-### Автоматическое монтирование
+### Nginx Cache
 
-Amvera **автоматически монтирует `/data`** как persistent volume:
-- ✅ Не требует настройки в UI
-- ✅ Автоматически создается при первом деплое
-- ✅ Сохраняется при рестартах и ребилдах
-- ✅ Размер: обычно 1-5 GB (зависит от тарифа)
+Используются **стандартные пути Nginx**:
+- ✅ Кэш API: `/var/cache/nginx/api` (500 MB max, 10 минут для 200 OK)
+- ✅ Логи: `/var/log/nginx/access.log` и `/var/log/nginx/error.log`
+- ⚠️ Данные **не сохраняются** при рестарте контейнера (ephemeral storage)
 
-### Проверка через CLI:
+### Проверка кэша:
 
 ```bash
 # Подключиться к контейнеру
 amvera exec sticker-art-e13nst -- /bin/sh
 
 # Внутри контейнера:
-ls -la /data
-du -sh /data/*
+ls -la /var/cache/nginx/api
+du -sh /var/cache/nginx/api
 
 # Выход
 exit
-```
-
-### Что хранится в `/data`:
-
-```
-/data/
-├── nginx/
-│   ├── cache/          # Proxy cache (API responses)
-│   └── temp/           # Временные файлы Nginx
-└── logs/
-    ├── access.log      # Access logs
-    └── error.log       # Error logs
 ```
 
 ## 📊 Мониторинг
@@ -84,14 +71,14 @@ amvera logs run sticker-art-e13nst
 amvera logs run sticker-art-e13nst --follow
 ```
 
-### Кастомные логи из `/data`:
+### Nginx логи:
 
 ```bash
 # Access log
-amvera exec sticker-art-e13nst -- tail -f /data/logs/access.log
+amvera exec sticker-art-e13nst -- tail -f /var/log/nginx/access.log
 
 # Error log
-amvera exec sticker-art-e13nst -- tail -f /data/logs/error.log
+amvera exec sticker-art-e13nst -- tail -f /var/log/nginx/error.log
 ```
 
 ## 🚀 Деплой процесс
@@ -174,51 +161,20 @@ amvera restart sticker-art-e13nst
 amvera exec sticker-art-e13nst -- env | grep BACKEND_URL
 ```
 
-### Проблема: `/data` не создается или ошибка `mkdir() "/data/nginx/cache" failed (2: No such file or directory)`
+### Проблема: Nginx не стартует
 
-**Причина**: Директории создаются при сборке образа, а не при старте контейнера
+**Проверка логов**:
+```bash
+# Build logs
+amvera logs build sticker-art-e13nst
 
-**Решение**: Используем entrypoint script
-
-В `Dockerfile`:
-```dockerfile
-# Копируем entrypoint
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-VOLUME ["/data"]
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Runtime logs
+amvera logs run sticker-art-e13nst
 ```
 
-В `docker-entrypoint.sh`:
+**Проверка конфига**:
 ```bash
-#!/bin/sh
-# Создаем директории при СТАРТЕ контейнера
-mkdir -p /data/nginx/cache/temp /data/nginx/temp /data/logs
-chown -R nginx:nginx /data
-chmod -R 755 /data
-
-# Запускаем nginx
-exec nginx -g 'daemon off;'
-```
-
-**Почему это важно?**
-- ❌ `RUN mkdir` в Dockerfile - создает при **сборке** образа (volume еще не примонтирован)
-- ✅ `mkdir` в entrypoint - создает при **старте** контейнера (volume уже примонтирован)
-
-### Проблема: Логи не пишутся в `/data/logs`
-
-**Проверка прав**:
-```bash
-amvera exec sticker-art-e13nst -- ls -la /data/logs
-
-# Должно быть: drwxr-xr-x nginx nginx
-```
-
-**Решение**:
-```bash
-amvera exec sticker-art-e13nst -- chown -R nginx:nginx /data
-amvera restart sticker-art-e13nst
+amvera exec sticker-art-e13nst -- nginx -t
 ```
 
 ### Проблема: Кэш не работает
@@ -230,7 +186,7 @@ amvera exec sticker-art-e13nst -- nginx -T | grep proxy_cache_path
 
 **Проверка 2**: Создалась ли директория кэша?
 ```bash
-amvera exec sticker-art-e13nst -- ls -la /data/nginx/cache
+amvera exec sticker-art-e13nst -- ls -la /var/cache/nginx/api
 ```
 
 **Проверка 3**: Есть ли header X-Cache-Status?
@@ -258,27 +214,24 @@ git commit -m "chore: increase cache size"
 git push
 ```
 
-### Очистка старых логов:
+### Очистка кэша:
 
 ```bash
-# Очистить access log
-amvera exec sticker-art-e13nst -- sh -c "> /data/logs/access.log"
+# Очистить кэш API
+amvera exec sticker-art-e13nst -- rm -rf /var/cache/nginx/api/*
 
-# Очистить error log
-amvera exec sticker-art-e13nst -- sh -c "> /data/logs/error.log"
+# Рестарт nginx для применения
+amvera restart sticker-art-e13nst
 ```
 
-### Мониторинг размера `/data`:
+### Мониторинг размера кэша:
 
 ```bash
-# Общий размер
-amvera exec sticker-art-e13nst -- du -sh /data
-
-# По директориям
-amvera exec sticker-art-e13nst -- du -sh /data/*
+# Размер кэша
+amvera exec sticker-art-e13nst -- du -sh /var/cache/nginx/api
 
 # Детально
-amvera exec sticker-art-e13nst -- du -h /data/nginx/cache | tail -20
+amvera exec sticker-art-e13nst -- du -h /var/cache/nginx/api | tail -20
 ```
 
 ## 🔒 Безопасность
@@ -290,17 +243,17 @@ amvera exec sticker-art-e13nst -- du -h /data/nginx/cache | tail -20
 - ✅ User-Agent strings
 - ❌ НЕ должны содержать: токены, пароли, sensitive data
 
-### Ротация логов:
+### Просмотр логов:
 
-Пока ручная очистка раз в неделю/месяц:
 ```bash
-# Backup логов (опционально)
-amvera exec sticker-art-e13nst -- tar -czf /data/logs-backup-$(date +%Y%m%d).tar.gz /data/logs/*.log
+# Последние строки access log
+amvera exec sticker-art-e13nst -- tail -100 /var/log/nginx/access.log
 
-# Очистка
-amvera exec sticker-art-e13nst -- sh -c "> /data/logs/access.log"
-amvera exec sticker-art-e13nst -- sh -c "> /data/logs/error.log"
+# Последние строки error log
+amvera exec sticker-art-e13nst -- tail -100 /var/log/nginx/error.log
 ```
+
+**Примечание**: Логи **не сохраняются** при рестарте контейнера (ephemeral storage).
 
 ## 📚 Полезные команды
 
@@ -333,9 +286,10 @@ amvera env delete sticker-art-e13nst KEY
 ## 🎯 Чеклист после деплоя
 
 - [ ] Проверить что `BACKEND_URL` добавлен в UI
-- [ ] Проверить что `/data` создан: `amvera exec ... -- ls -la /data`
-- [ ] Проверить логи: `amvera logs run ...`
-- [ ] Проверить кэш работает: `curl -I ... | grep X-Cache-Status`
+- [ ] Проверить логи сборки: `amvera logs build sticker-art-e13nst`
+- [ ] Проверить runtime логи: `amvera logs run sticker-art-e13nst`
+- [ ] Проверить что nginx стартовал без ошибок
+- [ ] Проверить кэш работает: `curl -I https://sticker-art-e13nst.amvera.io/api/stickersets | grep X-Cache-Status`
 - [ ] Открыть сайт: https://sticker-art-e13nst.amvera.io/miniapp/
 - [ ] Проверить что стикеры загружаются
 - [ ] Запустить E2E тесты: `npm run test:prod`

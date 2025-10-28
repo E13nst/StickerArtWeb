@@ -1,17 +1,10 @@
-# Кэш для API запросов в /data (персистентное хранилище Amvera)
-proxy_cache_path /data/nginx/cache 
+# Кэш для API запросов (стандартные пути Nginx)
+proxy_cache_path /var/cache/nginx/api 
     levels=1:2 
     keys_zone=api_cache:10m 
     max_size=500m 
     inactive=60m 
     use_temp_path=off;
-
-# Временные файлы в /data
-client_body_temp_path /data/nginx/temp/client_body;
-proxy_temp_path /data/nginx/temp/proxy;
-fastcgi_temp_path /data/nginx/temp/fastcgi;
-uwsgi_temp_path /data/nginx/temp/uwsgi;
-scgi_temp_path /data/nginx/temp/scgi;
 
 server {
     listen 80;
@@ -20,9 +13,9 @@ server {
     root /usr/share/nginx/html;
     index index.html;
     
-    # Логи в персистентное хранилище
-    access_log /data/logs/access.log;
-    error_log /data/logs/error.log warn;
+    # Логи (стандартные пути)
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log warn;
     
     # Gzip compression
     gzip on;

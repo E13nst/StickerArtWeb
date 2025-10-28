@@ -29,15 +29,15 @@ FROM nginx:alpine
 # Устанавливаем gettext для envsubst
 RUN apk add --no-cache gettext
 
+# Создаем директорию для кэша (стандартные пути Nginx)
+RUN mkdir -p /var/cache/nginx/api && \
+    chown -R nginx:nginx /var/cache/nginx
+
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Копируем шаблон конфигурации Nginx
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-
-# Копируем entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
 
 # Переменная окружения по умолчанию
 ENV BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
@@ -45,8 +45,5 @@ ENV BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
 # Открываем порт 80
 EXPOSE 80
 
-# Volume для персистентных данных (будет примонтирован Amvera)
-VOLUME ["/data"]
-
-# Используем наш entrypoint для создания директорий при старте
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Подстановка переменных и запуск nginx
+CMD /bin/sh -c "envsubst '\$BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
