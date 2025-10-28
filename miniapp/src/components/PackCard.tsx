@@ -36,10 +36,11 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   // Используем хук для управления ротацией стикеров
   const { currentIndex: currentStickerIndex } = useStickerRotation({
     stickersCount: pack.previewStickers.length,
-    autoRotateInterval: 2333, // 2333 ≈ 3000/φ (золотое сечение)
-    hoverRotateInterval: 618, // Число Фибоначчи
+    autoRotateInterval: 2333,
+    hoverRotateInterval: 618,
     isHovered,
-    isVisible: isNear
+    isVisible: isNear,
+    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url }))
   });
 
   // Мемоизированный обработчик клика
