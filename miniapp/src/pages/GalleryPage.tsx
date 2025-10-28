@@ -53,18 +53,17 @@ export const GalleryPage: React.FC = () => {
   // Загрузка initData из URL параметров при инициализации
   // BUILD_DEBUG: Force rebuild - timestamp 2025-10-28T14:30:00Z
   useEffect(() => {
-    const buildTimestamp = new Date().toISOString();
-    console.log('🚀 DEBUG: GalleryPage INIT - BUILD: 2025-10-28T12:15:00Z');
-    console.log('✅ storedInitData variable IS DEFINED - FIX DEPLOYED!');
+    console.log('🚀 DEBUG: GalleryPage INIT - BUILD: 2025-10-28T12:20:00Z');
     
     const urlParams = new URLSearchParams(window.location.search);
     const urlInitData = urlParams.get('initData');
-    const storedInitData = localStorage.getItem('telegram_init_data');
+    const storedInitData = localStorage.getItem('telegram_init_data') || null;
     const extensionInitData = apiClient.checkExtensionHeaders();
     
     console.log('🔍 DEBUG: urlInitData:', urlInitData ? 'EXISTS' : 'NULL');
     console.log('🔍 DEBUG: storedInitData:', storedInitData ? 'EXISTS' : 'NULL');
     console.log('🔍 DEBUG: extensionInitData:', extensionInitData ? 'EXISTS' : 'NULL');
+    console.log('✅ All variables defined correctly!');
     
     if (urlInitData) {
       setUiState(prev => ({ ...prev, manualInitData: decodeURIComponent(urlInitData) }));
