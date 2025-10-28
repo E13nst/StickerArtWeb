@@ -23,18 +23,41 @@ RUN echo "=== BUILD INFO ===" && \
     echo "CACHEBUST: ${CACHEBUST}" && \
     echo "NODE_VERSION: $(node --version)" && \
     echo "NPM_VERSION: $(npm --version)" && \
-    date
+    echo "BUILD_TIME: $(date)" && \
+    echo "BUILD_TIMESTAMP: $(date +%s)"
+
+# Debug: Показываем что в директории до сборки
+RUN echo "=== FILES BEFORE BUILD ===" && \
+    ls -la miniapp/src/pages/ && \
+    echo "=== GalleryPage.tsx FIRST 80 LINES ===" && \
+    head -80 miniapp/src/pages/GalleryPage.tsx && \
+    echo "=== SEARCHING FOR storedInitData ===" && \
+    grep -n "storedInitData" miniapp/src/pages/GalleryPage.tsx || echo "NOT FOUND"
 
 # Собираем приложение
 # 1. Очищаем предыдущие сборки (если есть)
 # 2. Проверяем TypeScript
 # 3. Vite собирает в dist/miniapp/ (согласно vite.config.ts: outDir: '../dist/miniapp')
 # 4. Копируем корневой index.html в dist/ для редиректа
-RUN rm -rf dist && \
+RUN echo "=== STARTING BUILD ===" && \
+    rm -rf dist && \
+    echo "dist/ removed" && \
     npx tsc && \
+    echo "TypeScript checked" && \
     npx vite build && \
+    echo "Vite build completed" && \
     mkdir -p dist && \
-    cp index.html dist/
+    cp index.html dist/ && \
+    echo "index.html copied"
+
+# Debug: Показываем что получилось после сборки
+RUN echo "=== FILES AFTER BUILD ===" && \
+    ls -la dist/ && \
+    ls -la dist/miniapp/ && \
+    echo "=== BUILT JS FILES ===" && \
+    ls -lh dist/miniapp/assets/*.js | head -10 && \
+    echo "=== CHECKING FOR storedInitData IN BUILT FILES ===" && \
+    grep -r "storedInitData" dist/miniapp/ || echo "NOT FOUND IN BUILT FILES"
 
 # Stage 2: Nginx для раздачи статики
 FROM nginx:alpine

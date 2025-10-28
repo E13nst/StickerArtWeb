@@ -51,11 +51,17 @@ export const GalleryPage: React.FC = () => {
   const debouncedSearchTerm = useDebounce(uiState.searchTerm, 500);
 
   // Загрузка initData из URL параметров при инициализации
+  // BUILD_DEBUG: Force rebuild - timestamp 2025-10-28T14:30:00Z
   useEffect(() => {
+    console.log('🔍 DEBUG: GalleryPage useEffect - BUILD_TIMESTAMP: 2025-10-28T14:30:00Z');
     const urlParams = new URLSearchParams(window.location.search);
     const urlInitData = urlParams.get('initData');
     const storedInitData = localStorage.getItem('telegram_init_data');
     const extensionInitData = apiClient.checkExtensionHeaders();
+    
+    console.log('🔍 DEBUG: urlInitData:', urlInitData ? 'EXISTS' : 'NULL');
+    console.log('🔍 DEBUG: storedInitData:', storedInitData ? 'EXISTS' : 'NULL');
+    console.log('🔍 DEBUG: extensionInitData:', extensionInitData ? 'EXISTS' : 'NULL');
     
     if (urlInitData) {
       setUiState(prev => ({ ...prev, manualInitData: decodeURIComponent(urlInitData) }));
