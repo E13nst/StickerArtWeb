@@ -26,7 +26,6 @@ proxy_cache_path /data/cache/nginx/stickers  # ✅ Сохраняется меж
 
 Создан `docker-entrypoint.sh`, который:
 - ✅ Проверяет доступность `/data`
-- ✅ Создает тестовый файл `/data/test.txt` с timestamp
 - ✅ Создает директории для кэша с правильными правами
 - ✅ Показывает статистику кэша (размер, количество файлов)
 - ✅ Логирует все действия для отладки
@@ -65,12 +64,6 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
    ```
    === AMVERA /data STORAGE CHECK ===
    ✅ /data directory exists
-   ✅ Created /data/test.txt with timestamp
-   
-   === /data/test.txt content ===
-   Deploy timestamp: 2025-10-28 15:30:00
-   Container hostname: stickerartgallery-xxx
-   Container IP: 10.0.0.1
    
    === CHECKING NGINX CACHE STATS ===
    Cache size: 1.5G
@@ -94,19 +87,6 @@ amvera logs run stickerartgallery
 # Поиск строк про /data
 amvera logs run stickerartgallery | grep "/data"
 ```
-
-### Вариант 3: HTTP endpoint для проверки
-
-Можно добавить endpoint в nginx для чтения `/data/test.txt`:
-
-```nginx
-location /health/storage {
-    alias /data/test.txt;
-    add_header Content-Type text/plain;
-}
-```
-
-Затем открыть: `https://your-domain.amvera.io/health/storage`
 
 ---
 
@@ -261,8 +241,6 @@ https://console.amvera.ru/ → ваш проект → Логи
 ```
 === AMVERA /data STORAGE CHECK ===
 ✅ /data directory exists
-✅ Created /data/test.txt with timestamp
-Deploy timestamp: 2025-10-28 15:30:00
 ```
 
 ### 5. Загрузите несколько стикеров в браузере
@@ -291,7 +269,6 @@ Cached files: 89
 | Путь к кэшу | `/data/cache/nginx/stickers` |
 | Максимальный размер | 20GB |
 | Время жизни | 30 дней |
-| Тестовый файл | `/data/test.txt` |
 | Проверка | Логи контейнера при старте |
 | Persistence | ✅ Сохраняется между деплоями |
 

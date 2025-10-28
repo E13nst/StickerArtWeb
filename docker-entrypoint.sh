@@ -12,17 +12,6 @@ else
     mkdir -p /data
 fi
 
-# Создаем тестовый файл для проверки persistence
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-echo "Deploy timestamp: ${TIMESTAMP}" > /data/test.txt
-echo "Container hostname: $(hostname)" >> /data/test.txt
-echo "Container IP: $(hostname -i 2>/dev/null || echo 'N/A')" >> /data/test.txt
-echo "✅ Created /data/test.txt with timestamp"
-
-# Показываем содержимое тестового файла
-echo "=== /data/test.txt content ==="
-cat /data/test.txt
-
 # Создаем директорию для Nginx кэша с правильными правами
 echo "=== CREATING NGINX CACHE DIRECTORY ==="
 mkdir -p /data/cache/nginx/stickers

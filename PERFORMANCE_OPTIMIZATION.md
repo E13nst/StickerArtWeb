@@ -61,7 +61,7 @@
 **Persistent Storage:**
 - Путь: `/var/cache/nginx` → `/data/cache/nginx/stickers`
 - Проверка: см. `DATA_STORAGE_GUIDE.md`
-- Тестовый файл: `/data/test.txt` (создается при каждом деплое)
+- Проверка через логи: размер кэша и количество файлов
 
 ---
 
