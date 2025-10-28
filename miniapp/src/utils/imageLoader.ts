@@ -15,6 +15,37 @@ export enum LoadPriority {
   TIER_4_BACKGROUND = 1       // Фоновые паки
 }
 
+// Бэкенд-оригин (для нормализации абсолютных URL в относительные прокси-URL)
+const VITE_BACKEND_URL: string | undefined = (import.meta as any)?.env?.VITE_BACKEND_URL;
+let BACKEND_HOST: string | null = null;
+try {
+  if (VITE_BACKEND_URL) {
+    BACKEND_HOST = new URL(VITE_BACKEND_URL).host;
+  }
+} catch {
+  BACKEND_HOST = null;
+}
+
+// Приводим внешние абсолютные URL к локальному прокси пути, чтобы трафик шёл через Nginx
+function normalizeToLocalProxy(url: string): string {
+  try {
+    if (!url || url.startsWith('blob:') || url.startsWith('/')) return url; // уже относительный/blob
+    const parsed = new URL(url);
+    // Если URL указывает на наш backend host (из VITE_BACKEND_URL) — переводим на относительный путь
+    if (BACKEND_HOST && parsed.hostname === BACKEND_HOST) {
+      // используем только путь и query, чтобы попасть под location /api/proxy/stickers/
+      return `${parsed.pathname}${parsed.search}`;
+    }
+    // Если это абсолютный URL, но путь уже /api/proxy/stickers — тоже переводим на относительный
+    if (parsed.pathname.startsWith('/api/proxy/stickers/')) {
+      return `${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    // не валидный абсолютный URL — возвращаем как есть
+  }
+  return url;
+}
+
 class ImageLoader {
   private queue: LoaderQueue = {
     inFlight: new Map(),
@@ -111,12 +142,15 @@ class ImageLoader {
   }
 
   private async loadImageFromUrl(fileId: string, url: string): Promise<string> {
+    // Нормализуем URL к локальному прокси (если был абсолютный на бекенд)
+    const normalizedUrl = normalizeToLocalProxy(url);
+
     // Проверяем валидность URL
-    if (!url || (!url.startsWith('http') && !url.startsWith('blob:'))) {
+    if (!normalizedUrl || (!normalizedUrl.startsWith('http') && !normalizedUrl.startsWith('blob:') && !normalizedUrl.startsWith('/'))) {
       throw new Error(`Invalid image URL: ${url}`);
     }
     
-    console.log(`🔄 Prefetching image for ${fileId}:`, url);
+    console.log(`🔄 Prefetching image for ${fileId}:`, normalizedUrl);
     
     // Реальная загрузка изображения через браузер
     return new Promise((resolve, reject) => {
@@ -125,17 +159,17 @@ class ImageLoader {
       img.onload = () => {
         console.log(`✅ Image loaded for ${fileId}`);
         // Сохранить URL в кеш после успешной загрузки
-        imageCache.set(fileId, url, 0.1);
-        resolve(url);
+        imageCache.set(fileId, normalizedUrl, 0.1);
+        resolve(normalizedUrl);
       };
       
       img.onerror = () => {
         console.warn(`❌ Failed to load image for ${fileId}`);
-        reject(new Error(`Failed to load image: ${url}`));
+        reject(new Error(`Failed to load image: ${normalizedUrl}`));
       };
       
       // Запускаем загрузку
-      img.src = url;
+      img.src = normalizedUrl;
     });
   }
 

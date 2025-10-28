@@ -68,7 +68,11 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - **Nginx** автоматически проксирует API на бэкенд
 
 ### API Integration
-- **Base URL**: `https://stickerartgallery-e13nst.amvera.io`
+- **Base URL (prod)**: задаётся переменной окружения `BACKEND_URL` (используется Nginx)
+- **Base URL (frontend)**: `VITE_BACKEND_URL` (используется в коде; читается как `import.meta.env.VITE_BACKEND_URL`)
+- **Локально**: создайте `.env.local` (в gitignore) с:
+  - `VITE_BACKEND_URL=http://localhost:8080` (или актуальный URL)
+  - `BACKEND_URL=https://stickerartgallery-e13nst.amvera.io` (для Docker/Nginx, при необходимости)
 - **Аутентификация**: всегда используй `X-Telegram-Init-Data` заголовок с `window.Telegram.WebApp.initData`
 - **Документация**: см. `.cursor/api-reference.md` для полного списка endpoints
 - **Кэширование**: стикеры кэшируются в Redis на 7 дней
