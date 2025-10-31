@@ -68,6 +68,20 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - **Кэширование**: стикеры кэшируются в Redis на 7 дней
 - **Локализация**: поддерживаем `ru` и `en` (по умолчанию `en`)
 
+### Likes System (критично!)
+- **Store**: `useLikesStore` (Zustand) с optimistic updates, debounce (500ms), rollback
+- **API**: используй ТОЛЬКО `PUT /api/likes/stickersets/{id}/toggle` для like/unlike
+  - Response: `{ isLiked: boolean, totalLikes: number }`
+- **Field Mapping**: API возвращает разные названия в разных endpoints:
+  - `GET /stickersets`: `likesCount`, `isLikedByCurrentUser`
+  - `PUT /toggle`: `totalLikes`, `isLiked`
+  - Всегда используй nullish coalescing: `likesCount ?? likes`, `isLikedByCurrentUser ?? isLiked`
+- **ЗАЩИТА от race condition**: `initializeLikes` НЕ должна перезаписывать локальные изменения:
+  - Если `syncing: true` → игнорировать API
+  - Если изменение < 3 сек назад и API вернул ДРУГОЕ значение → игнорировать API (старый кэш)
+  - Иначе → использовать данные от API
+- **DDoS Protection**: rate limiting (1 req/sec/sticker), debounce, offline queue, max 3 retries
+
 ### React Patterns
 - **Компоненты**: функциональные компоненты с хуками
 - **Мемоизация**: используй `useMemo`, `useCallback`, `memo()` для оптимизации
