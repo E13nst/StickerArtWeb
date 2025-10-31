@@ -63,8 +63,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
       backgroundColor: 'transparent',
       color: 'var(--tg-theme-text-color, #000000)',
       borderRadius: 0,
-      borderTop: '1px solid var(--tg-theme-border-color, #e0e0e0)',
-      borderBottom: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+      // Убираем лишние разделительные линии для более чистого вида в Telegram
+      borderTop: 'none',
+      borderBottom: 'none',
       boxShadow: 'none'
     }}>
       <Tabs
@@ -73,53 +74,59 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         variant="fullWidth"
         sx={{
           '& .MuiTab-root': {
-            minHeight: 'calc(100vh * 0.055)', // ~5.5% от высоты viewport
-            height: 'calc(100vh * 0.062)', // ~6.2% от высоты viewport
-            maxHeight: '64px',
-            fontSize: isSmallScreen ? 'calc(100vw * 0.035)' : 'calc(100vw * 0.038)', // пропорционально viewport
+            // Ещё компактнее: чтобы влезало без скролла даже в Telegram
+            minHeight: 40,
+            height: 40,
+            maxHeight: 44,
+            fontSize: isSmallScreen ? '0.85rem' : '0.9rem',
             fontWeight: 600,
             textTransform: 'none',
             color: 'var(--tg-theme-hint-color, #999999)',
-            gap: 'calc(100vh * 0.004)',
+            gap: 4, // текст ближе к иконке
             transition: 'all 0.2s ease',
             minWidth: 0,
-            flex: '1 1 var(--phi-382)', // используем золотую пропорцию 38.2%
-            maxWidth: 'var(--phi-382)',
-            paddingLeft: isSmallScreen ? 'calc(100vw * 0.02)' : 'calc(100vw * 0.035)',
-            paddingRight: isSmallScreen ? 'calc(100vw * 0.02)' : 'calc(100vw * 0.035)',
+            flex: '1 1 0', // равномерное распределение для fullWidth
+            paddingLeft: isSmallScreen ? 8 : 10,
+            paddingRight: isSmallScreen ? 8 : 10,
             whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            alignItems: 'center',
             '&.Mui-selected': {
-              color: 'var(--tg-theme-button-color, #2481cc)',
-              fontWeight: 'bold'
+              color: 'var(--tg-theme-text-color, #ffffff)',
+              fontWeight: 700
             },
             '&:hover': {
-              color: 'var(--tg-theme-button-color, #2481cc)',
-              opacity: 0.8
+              color: 'var(--tg-theme-text-color, #ffffff)',
+              opacity: 0.85
             }
           },
           '& .MuiTabs-indicator': {
             backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
-            height: 'calc(100vh * 0.004)', // ~0.4% от высоты viewport
-            minHeight: '2px',
-            maxHeight: '4px',
-            borderRadius: '3px 3px 0 0'
+            height: 2,
+            minHeight: 2,
+            maxHeight: 2,
+            borderRadius: 2
           }
         }}
       >
         <Tab
-          icon={<CollectionsIcon sx={{ fontSize: isSmallScreen ? 'calc(100vw * 0.045)' : 'calc(100vw * 0.052)', minFontSize: '18px', maxFontSize: '24px' }} />}
+          disableRipple
+          icon={<CollectionsIcon sx={{ fontSize: 18 }} />}
           label={labels.sets}
-          iconPosition="top"
+          iconPosition="start"
         />
         <Tab
-          icon={<AccountBalanceWalletIcon sx={{ fontSize: isSmallScreen ? 'calc(100vw * 0.045)' : 'calc(100vw * 0.052)', minFontSize: '18px', maxFontSize: '24px' }} />}
+          disableRipple
+          icon={<AccountBalanceWalletIcon sx={{ fontSize: 18 }} />}
           label={labels.art}
-          iconPosition="top"
+          iconPosition="start"
         />
         <Tab
-          icon={<EmojiEventsIcon sx={{ fontSize: isSmallScreen ? 'calc(100vw * 0.045)' : 'calc(100vw * 0.052)', minFontSize: '18px', maxFontSize: '24px' }} />}
+          disableRipple
+          icon={<EmojiEventsIcon sx={{ fontSize: 18 }} />}
           label={labels.share}
-          iconPosition="top"
+          iconPosition="start"
         />
       </Tabs>
     </Box>

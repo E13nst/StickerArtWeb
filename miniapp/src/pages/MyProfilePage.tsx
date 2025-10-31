@@ -71,6 +71,9 @@ export const MyProfilePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
+  const [setsFilter, setSetsFilter] = useState<'published' | 'liked'>('published');
+  const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
 
@@ -131,44 +134,29 @@ export const MyProfilePage: React.FC = () => {
     console.log('🔍 MyProfilePage: initData:', initData ? `${initData.length} chars` : 'empty');
     
     // Если нет валидного пользователя, используем моковые данные для разработки
+    // НЕ кэшируем моковые данные - они только для разработки
     if (!currentUserId) {
-      const mockId = mockUserId;
-      
-      // Проверяем кэш для мока
-      if (isCacheValid(mockId)) {
-        const cached = getCachedProfile(mockId);
-        if (cached) {
-          console.log('📦 Загрузка мок-профиля из кэша');
-          setUserInfo(cached.userInfo);
-          setUserStickerSets(cached.stickerSets);
-          setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
-          return;
-        }
-      }
-      
-      // Сохраняем моковые данные в кэш
       console.log('🔧 Режим разработки: используем моковые данные');
       setUserInfo(mockUserInfo as any);
       setUserStickerSets(mockStickerSets);
       setPagination(0, 1, mockStickerSets.length);
-      setCachedProfile(mockId, mockUserInfo as any, mockStickerSets, {
-        currentPage: 0,
-        totalPages: 1,
-        totalElements: mockStickerSets.length
-      });
       return;
     }
 
-    // НЕ вызываем reset() - это очищает кэш!
-    // Проверяем, нужна ли загрузка (возможно уже в кэше)
+    // Проверяем кэш, но игнорируем моковые данные
     if (isCacheValid(currentUserId)) {
       const cached = getCachedProfile(currentUserId);
-      if (cached) {
+      // Проверяем, что это НЕ моковые данные (Иван Иванов)
+      if (cached && cached.userInfo.firstName !== 'Иван' && cached.userInfo.username !== 'ivan_ivanov') {
         console.log('📦 Профиль уже в кэше, используем его');
         setUserInfo(cached.userInfo);
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
         return;
+      } else if (cached && (cached.userInfo.firstName === 'Иван' || cached.userInfo.username === 'ivan_ivanov')) {
+        console.log('🗑️ Обнаружены моковые данные в кэше, очищаем и загружаем реальные');
+        // Очищаем моковые данные
+        reset();
       }
     }
 
@@ -356,7 +344,8 @@ export const MyProfilePage: React.FC = () => {
   };
 
   const handleViewStickerSet = (id: number, _name: string) => {
-    const stickerSet = userStickerSets.find(s => s.id === id);
+    const source = setsFilter === 'liked' ? likedStickerSets : userStickerSets;
+    const stickerSet = source.find(s => s.id === id);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsModalOpen(true);
@@ -373,6 +362,24 @@ export const MyProfilePage: React.FC = () => {
       tg.openTelegramLink(`https://t.me/addstickers/${name}`);
     } else {
       window.open(`https://t.me/addstickers/${name}`, '_blank');
+    }
+  };
+
+  // Загрузка понравившихся стикерсетов (мокаем через общий эндпоинт likedOnly)
+  const loadLikedStickerSets = async () => {
+    try {
+      setStickerSetsLoading(true);
+      const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
+      setLikedStickerSets(response.content || []);
+    } catch (e) {
+      console.warn('⚠️ Не удалось загрузить понравившиеся стикерсеты (используем моки/локальные данные)');
+      // Fallback: фильтруем текущие по локальному лайку, если есть
+      const { likes, isLiked } = useLikesStore.getState();
+      const likedIds = new Set(Object.keys(likes).filter((id) => isLiked(id)));
+      const local = userStickerSets.filter(s => likedIds.has(String(s.id)));
+      setLikedStickerSets(local);
+    } finally {
+      setStickerSetsLoading(false);
     }
   };
 
@@ -634,6 +641,29 @@ export const MyProfilePage: React.FC = () => {
           <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
+              {/* Переключатель Published/Liked */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                <Chip
+                  label="Сеты"
+                  color={setsFilter === 'published' ? 'primary' : 'default'}
+                  variant={setsFilter === 'published' ? 'filled' : 'outlined'}
+                  onClick={() => setSetsFilter('published')}
+                  sx={{ borderRadius: 2 }}
+                />
+                <Chip
+                  label="Понравившиеся"
+                  color={setsFilter === 'liked' ? 'primary' : 'default'}
+                  variant={setsFilter === 'liked' ? 'filled' : 'outlined'}
+                  onClick={() => {
+                    setSetsFilter('liked');
+                    if (likedStickerSets.length === 0) {
+                      loadLikedStickerSets();
+                    }
+                  }}
+                  sx={{ borderRadius: 2 }}
+                />
+              </Box>
+
               {/* Поиск */}
               <SearchBar
                 value={searchTerm}
@@ -650,13 +680,15 @@ export const MyProfilePage: React.FC = () => {
                   error={stickerSetsError} 
                   onRetry={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId)} 
                 />
-              ) : filteredStickerSets.length === 0 ? (
+              ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
                 <EmptyState
-                  title="📁 У вас пока нет стикерсетов"
+                  title={setsFilter === 'liked' ? '❤️ Понравившихся пока нет' : '📁 У вас пока нет стикерсетов'}
                   message={
-                    searchTerm 
-                      ? 'По вашему запросу ничего не найдено' 
-                      : 'Создайте свой первый набор стикеров!'
+                    setsFilter === 'liked' 
+                      ? 'Лайкните понравившиеся наборы в галерее, и они появятся здесь'
+                      : (searchTerm 
+                          ? 'По вашему запросу ничего не найдено' 
+                          : 'Создайте свой первый набор стикеров!')
                   }
                   actionLabel="Создать стикер"
                   onAction={handleCreateSticker}
@@ -664,11 +696,11 @@ export const MyProfilePage: React.FC = () => {
               ) : (
                 <div className="fade-in">
                   <SimpleGallery
-                    packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
+                    packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
-                    hasNextPage={currentPage < totalPages - 1}
+                    hasNextPage={setsFilter === 'liked' ? false : currentPage < totalPages - 1}
                     isLoadingMore={isStickerSetsLoading}
-                    onLoadMore={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, undefined, currentPage + 1, true)}
+                    onLoadMore={setsFilter === 'liked' ? undefined : () => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, undefined, currentPage + 1, true)}
                     enablePreloading={true}
                   />
                 </div>
@@ -785,8 +817,9 @@ export const MyProfilePage: React.FC = () => {
         open={isModalOpen}
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
-        onLike={(id, title) => {
-          console.log(`Лайк для стикерсета ${id}: ${title}`);
+        onLike={(id) => {
+          // Настоящее переключение лайка через store
+          useLikesStore.getState().toggleLike(String(id));
         }}
       />
 

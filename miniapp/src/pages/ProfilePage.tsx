@@ -4,18 +4,15 @@ import {
   Container, 
   Box,
   Alert,
-  Button,
   Typography,
   Card,
   CardContent
 } from '@mui/material';
-import ShareIcon from '@mui/icons-material/Share';
-import MessageIcon from '@mui/icons-material/Message';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
-import { getUserFullName, getUserUsername } from '@/utils/userUtils';
+import { getUserUsername, isUserPremium } from '@/utils/userUtils';
 
 // Компоненты
 import StixlyTopHeader from '@/components/StixlyTopHeader';
@@ -25,6 +22,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
+import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
 import { SimpleGallery } from '@/components/SimpleGallery';
@@ -68,21 +66,23 @@ export const ProfilePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // BottomNav теперь глобальный в MainLayout
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: стикеры, 2: поделиться
 
   // Валидация userId
   const userIdNumber = userId ? parseInt(userId, 10) : null;
   
-  // Проверка, является ли просматриваемый профиль профилем текущего пользователя
-  const currentUserId = user?.id;
-  const isOwnProfile = currentUserId && userIdNumber === currentUserId;
-  
   useEffect(() => {
     if (!userIdNumber || isNaN(userIdNumber)) {
       setError('Некорректный ID пользователя');
       return;
     }
+
+    // Очищаем предыдущие данные перед загрузкой новых
+    // Это предотвращает мелькание старых данных
+    setUserInfo(null);
+    setUserStickerSets([]);
 
     // Проверяем кэш перед загрузкой
     if (isCacheValid(userIdNumber)) {
@@ -214,8 +214,13 @@ export const ProfilePage: React.FC = () => {
     const stickerSet = userStickerSets.find(s => s.id === id);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
-      setViewMode('detail');
+      setIsModalOpen(true);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStickerSet(null);
   };
 
   const handleShareStickerSet = (name: string, _title: string) => {
@@ -237,32 +242,6 @@ export const ProfilePage: React.FC = () => {
       tg.openTelegramLink('https://t.me/StickerGalleryBot');
     } else {
       window.open('https://t.me/StickerGalleryBot', '_blank');
-    }
-  };
-
-  const handleShareProfile = () => {
-    const userName = userInfo ? getUserFullName(userInfo) : 'Unknown';
-    if (tg) {
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(`Профиль пользователя ${userName}`)}`);
-    } else {
-      navigator.share?.({
-        title: `Профиль пользователя ${userName}`,
-        url: window.location.href
-      }).catch(() => {
-        // Fallback для браузеров без поддержки Web Share API
-        navigator.clipboard.writeText(window.location.href);
-        alert('Ссылка на профиль скопирована в буфер обмена');
-      });
-    }
-  };
-
-  const handleMessageUser = () => {
-    const username = userInfo?.telegramUserInfo?.user?.username || userInfo?.username;
-    const telegramId = userInfo?.telegramUserInfo?.user?.id || userInfo?.telegramId;
-    if (tg) {
-      tg.openTelegramLink(`https://t.me/${username || telegramId}`);
-    } else {
-      window.open(`https://t.me/${username || telegramId}`, '_blank');
     }
   };
 
@@ -338,6 +317,9 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
+  // Проверка premium статуса для оформления баннера
+  const isPremium = userInfo ? isUserPremium(userInfo) : false;
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 
@@ -350,52 +332,54 @@ export const ProfilePage: React.FC = () => {
       <StixlyTopHeader
         profileMode={{
           enabled: true,
-          backgroundColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          pattern: 'grid',
-          content: null
+          backgroundColor: isPremium 
+            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' 
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          pattern: isPremium ? 'waves' : 'dots',
+          content: isUserLoading ? (
+            <LoadingSpinner message="Загрузка профиля..." />
+          ) : userInfo ? (
+            <Box sx={{ 
+              width: '100%', 
+              height: '100%',
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative'
+            }}>
+              {/* Аватар наполовину на header */}
+              <Box sx={{ 
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translate(-50%, 50%)',
+                zIndex: 20
+              }}>
+                <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
+              </Box>
+            </Box>
+          ) : null
         }}
       />
 
-      {/* Карточка профиля с аватаром и информацией */}
+      {/* Карточка профиля под аватаром (как в MyProfile) */}
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
         {isUserLoading ? (
           <LoadingSpinner message="Загрузка профиля..." />
         ) : userInfo ? (
           <>
-            {/* Аватар с overlap */}
-            <FloatingAvatar userInfo={userInfo} size="large" overlap={50} />
-            
-            {/* Username под аватаром */}
-            <Box sx={{ 
-              textAlign: 'center', 
-              mb: 2,
-              mt: -2,
-              position: 'relative',
-              zIndex: 10
-            }}>
-              {getUserUsername(userInfo) && (
-                <Typography 
-                  variant="h6" 
-                  fontWeight="600"
-                  sx={{ 
-                    color: 'var(--tg-theme-text-color)',
-                    fontSize: '1.125rem'
-                  }}
-                >
-                  @{getUserUsername(userInfo)}
-                </Typography>
-              )}
-            </Box>
-
-            {/* Статистика */}
+            {/* Карточка со статистикой */}
             <Card sx={{ 
               borderRadius: 3,
               backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
               border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
               boxShadow: 'none',
-              mb: 2
+              pt: 0,
+              pb: 2
             }}>
-              <CardContent sx={{ py: 2, px: 3 }}>
+              <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
+                {/* Статистика */}
                 <Box sx={{ 
                   display: 'flex', 
                   justifyContent: 'space-around', 
@@ -435,58 +419,6 @@ export const ProfilePage: React.FC = () => {
                     </Typography>
                   </Box>
                 </Box>
-
-                {/* Кнопки действий - показываем только для чужого профиля */}
-                {!isOwnProfile && (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    gap: 1.5,
-                    mt: 2,
-                    justifyContent: 'center'
-                  }}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<ShareIcon />}
-                      onClick={handleShareProfile}
-                      sx={{
-                        flex: 1,
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 600
-                      }}
-                    >
-                      Поделиться
-                    </Button>
-                    <Button
-                      variant="contained"
-                      startIcon={<MessageIcon />}
-                      onClick={handleMessageUser}
-                      sx={{
-                        flex: 1,
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 600
-                      }}
-                    >
-                      Написать
-                    </Button>
-                  </Box>
-                )}
-                
-                {/* Уведомление для собственного профиля */}
-                {isOwnProfile && (
-                  <Box sx={{ 
-                    mt: 2,
-                    textAlign: 'center'
-                  }}>
-                    <Typography variant="body2" sx={{ 
-                      color: 'var(--tg-theme-hint-color)',
-                      fontStyle: 'italic'
-                    }}>
-                      Это ваш профиль
-                    </Typography>
-                  </Box>
-                )}
               </CardContent>
             </Card>
           </>
@@ -548,8 +480,8 @@ export const ProfilePage: React.FC = () => {
                   message={
                     searchTerm 
                       ? 'По вашему запросу ничего не найдено' 
-                      : userInfo 
-                        ? `У пользователя ${getUserFullName(userInfo)} пока нет созданных стикерсетов`
+                      : userInfo && getUserUsername(userInfo)
+                        ? `У @${getUserUsername(userInfo)} пока нет созданных стикерсетов`
                         : 'У этого пользователя пока нет стикерсетов'
                   }
                   actionLabel="Создать стикер"
@@ -615,18 +547,7 @@ export const ProfilePage: React.FC = () => {
               </Box>
             </TabPanel>
           </>
-        ) : (
-          // Детальный просмотр стикерсета
-          selectedStickerSet && (
-            <StickerSetDetail
-              stickerSet={selectedStickerSet}
-              onBack={() => setViewMode('list')}
-              onShare={handleShareStickerSet}
-              onLike={handleLikeStickerSet}
-              isInTelegramApp={isInTelegramApp}
-            />
-          )
-        )}
+        ) : null}
       </Container>
 
       {/* Debug панель */}
@@ -642,6 +563,16 @@ export const ProfilePage: React.FC = () => {
           else if (newTab === 3) navigate('/profile');
         }}
         isInTelegramApp={isInTelegramApp}
+      />
+
+      {/* Модалка деталей стикерсета (мок) */}
+      <StickerPackModal
+        open={isModalOpen}
+        stickerSet={selectedStickerSet}
+        onClose={handleCloseModal}
+        onLike={(id) => {
+          useLikesStore.getState().toggleLike(String(id));
+        }}
       />
     </Box>
   );
