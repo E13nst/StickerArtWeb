@@ -100,17 +100,18 @@ export const useLikesStore = create<LikesStore>()(
 
         debounceTimers[packId] = setTimeout(async () => {
           try {
-            // Синхронизация с сервером (PUT /toggle не требует параметра shouldLike)
-            const response = await apiClient.toggleLike(parseInt(packId), newIsLiked);
+            // Синхронизация с сервером (PUT /toggle автоматически определяет действие)
+            const response = await apiClient.toggleLike(parseInt(packId));
 
-            // Обновляем с реальным количеством лайков от сервера
+            // Обновляем с РЕАЛЬНЫМИ данными от сервера
+            // API возвращает { isLiked, totalLikes } - это источник истины!
             set((state) => ({
               likes: {
                 ...state.likes,
                 [packId]: {
                   packId,
-                  isLiked: newIsLiked,
-                  likesCount: response.likes,
+                  isLiked: response.isLiked,      // От сервера
+                  likesCount: response.totalLikes, // От сервера
                   syncing: false,
                   error: undefined
                 }
@@ -258,16 +259,16 @@ export const useLikesStore = create<LikesStore>()(
 
           try {
             // PUT /toggle автоматически переключает состояние на сервере
-            const response = await apiClient.toggleLike(parseInt(packId), isLiked);
+            const response = await apiClient.toggleLike(parseInt(packId));
 
-            // Обновляем с реальным количеством лайков от сервера
+            // Обновляем с РЕАЛЬНЫМИ данными от сервера
             set((state) => ({
               likes: {
                 ...state.likes,
                 [packId]: {
                   packId,
-                  isLiked,
-                  likesCount: response.likes,
+                  isLiked: response.isLiked,        // От сервера
+                  likesCount: response.totalLikes,  // От сервера
                   syncing: false,
                   error: undefined
                 }

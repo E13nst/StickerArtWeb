@@ -8,14 +8,9 @@
 ### 1. API методы для лайков (`miniapp/src/api/client.ts`)
 
 ```typescript
-// POST /api/likes/stickersets/{stickerSetId}
-async likeStickerSet(stickerSetId: number): Promise<{ success: boolean; likes: number }>
-
-// DELETE /api/likes/stickersets/{stickerSetId}
-async unlikeStickerSet(stickerSetId: number): Promise<{ success: boolean; likes: number }>
-
 // PUT /api/likes/stickersets/{stickerSetId}/toggle
-async toggleLike(stickerSetId: number, shouldLike: boolean): Promise<{ success: boolean; likes: number }>
+// Единственный метод для лайков - автоматически ставит/убирает
+async toggleLike(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }>
 
 // GET /api/likes/stickersets (пагинация)
 async getLikedStickerSets(page?: number, size?: number): Promise<StickerSetListResponse>
@@ -23,6 +18,12 @@ async getLikedStickerSets(page?: number, size?: number): Promise<StickerSetListR
 // GET /api/likes/top-stickersets
 async getTopStickerSetsByLikes(limit?: number): Promise<StickerSetResponse[]>
 ```
+
+**Почему только один метод?**
+- ✅ Проще логика (не нужно решать что делать)
+- ✅ Меньше кода
+- ✅ Сервер сам знает текущее состояние
+- ✅ Нет путаницы между POST/DELETE
 
 ### 2. Улучшенный `useLikesStore` с защитой от DDOS
 
@@ -284,22 +285,31 @@ public class RateLimiter {
 
 ## 📝 API Endpoints (документация)
 
-### POST /api/likes/stickersets/{stickerSetId}
-Поставить лайк стикерсету
+### PUT /api/likes/stickersets/{stickerSetId}/toggle
+Переключить лайк стикерсета (единственный метод для работы с лайками)
 
 **Headers:**
 ```
 X-Telegram-Init-Data: <telegram_init_data>
-Content-Type: application/json
 ```
+
+**Request:** Нет body, все в URL
 
 **Response (200 OK):**
 ```json
 {
-  "success": true,
-  "likes": 123
+  "isLiked": true,
+  "totalLikes": 42
 }
 ```
+
+**Поля ответа:**
+- `isLiked` (boolean) - Лайкнул ли текущий пользователь (после операции)
+- `totalLikes` (number) - Общее количество лайков стикерсета
+
+**Логика:**
+- Если у пользователя НЕТ лайка → Ставит лайк → `isLiked: true`
+- Если у пользователя ЕСТЬ лайк → Убирает лайк → `isLiked: false`
 
 **Response (429 Too Many Requests):**
 ```json
@@ -308,40 +318,12 @@ Content-Type: application/json
 }
 ```
 
-### DELETE /api/likes/stickersets/{stickerSetId}
-Убрать лайк со стикерсета
-
-**Headers:**
-```
-X-Telegram-Init-Data: <telegram_init_data>
-```
-
-**Response (200 OK):**
+**Response (401 Unauthorized):**
 ```json
 {
-  "success": true,
-  "likes": 122
+  "error": "Invalid or missing Telegram authentication"
 }
 ```
-
-### PUT /api/likes/stickersets/{stickerSetId}/toggle
-Переключить лайк стикерсета (универсальный метод)
-
-**Headers:**
-```
-X-Telegram-Init-Data: <telegram_init_data>
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "likes": 123
-}
-```
-
-**Описание:**  
-Автоматически ставит лайк если его нет, или убирает если есть. Не требует передачи желаемого состояния.
 
 ### GET /api/likes/stickersets
 Получить все лайкнутые стикерсеты текущего пользователя

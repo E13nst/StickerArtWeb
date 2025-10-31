@@ -295,42 +295,13 @@ class ApiClient {
 
   // ============ МЕТОДЫ ДЛЯ ЛАЙКОВ ============
 
-  // Поставить лайк стикерсету
-  // API endpoint: POST /api/likes/stickersets/{stickerSetId}
-  async likeStickerSet(stickerSetId: number): Promise<{ success: boolean; likes: number }> {
-    try {
-      const response = await this.client.post<{ success: boolean; likes: number }>(
-        `/likes/stickersets/${stickerSetId}`
-      );
-      console.log(`✅ Лайк поставлен для стикерсета ${stickerSetId}:`, response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error(`❌ Ошибка при лайке стикерсета ${stickerSetId}:`, error);
-      throw new Error('Не удалось поставить лайк. Попробуйте позже.');
-    }
-  }
-
-  // Убрать лайк со стикерсета
-  // API endpoint: DELETE /api/likes/stickersets/{stickerSetId}
-  async unlikeStickerSet(stickerSetId: number): Promise<{ success: boolean; likes: number }> {
-    try {
-      const response = await this.client.delete<{ success: boolean; likes: number }>(
-        `/likes/stickersets/${stickerSetId}`
-      );
-      console.log(`✅ Лайк убран для стикерсета ${stickerSetId}:`, response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error(`❌ Ошибка при снятии лайка стикерсета ${stickerSetId}:`, error);
-      throw new Error('Не удалось убрать лайк. Попробуйте позже.');
-    }
-  }
-
-  // Переключить лайк (универсальный метод)
+  // Переключить лайк стикерсета (единственный метод для работы с лайками)
   // API endpoint: PUT /api/likes/stickersets/{stickerSetId}/toggle
-  async toggleLike(stickerSetId: number, shouldLike: boolean): Promise<{ success: boolean; likes: number }> {
+  // Если лайк есть - убирает, если нет - ставит
+  // Response: { isLiked: boolean, totalLikes: number }
+  async toggleLike(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }> {
     try {
-      // Используем PUT /toggle endpoint для переключения
-      const response = await this.client.put<{ success: boolean; likes: number }>(
+      const response = await this.client.put<{ isLiked: boolean; totalLikes: number }>(
         `/likes/stickersets/${stickerSetId}/toggle`
       );
       console.log(`✅ Лайк переключен для стикерсета ${stickerSetId}:`, response.data);
