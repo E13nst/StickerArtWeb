@@ -78,11 +78,21 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
     return (
       <Box sx={{ p: 2 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <TelegramIcon sx={{ fontSize: 48, color: '#0088cc', mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
+          <TelegramIcon sx={{ fontSize: 48, color: 'var(--tg-theme-button-color)', mb: 2 }} />
+          <Typography 
+            variant="h6" 
+            gutterBottom
+            sx={{ color: 'var(--tg-theme-text-color)' }}
+          >
             Авторизация через Telegram
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              mb: 2,
+              color: 'var(--tg-theme-hint-color)'
+            }}
+          >
             Для доступа к полному функционалу откройте приложение через Telegram бота
           </Typography>
         </Box>
@@ -95,7 +105,10 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
 
 
         <Divider sx={{ my: 2 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography 
+            variant="caption"
+            sx={{ color: 'var(--tg-theme-hint-color)' }}
+          >
             Режим разработки
           </Typography>
         </Divider>

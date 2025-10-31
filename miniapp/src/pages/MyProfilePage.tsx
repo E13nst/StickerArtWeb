@@ -544,28 +544,53 @@ export const MyProfilePage: React.FC = () => {
                 gap: 2
               }}>
                 <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography variant="h5" fontWeight="bold" color="primary">
+                  <Typography 
+                    variant="h5" 
+                    fontWeight="bold"
+                    sx={{ color: 'var(--tg-theme-button-color)' }}
+                  >
                     {userStickerSets.length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2"
+                    sx={{ color: 'var(--tg-theme-hint-color)' }}
+                  >
                     Наборов
                   </Typography>
                 </Box>
                 
                 <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography variant="h5" fontWeight="bold" color="primary">
+                  <Typography 
+                    variant="h5" 
+                    fontWeight="bold"
+                    sx={{ color: 'var(--tg-theme-button-color)' }}
+                  >
                     {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2"
+                    sx={{ color: 'var(--tg-theme-hint-color)' }}
+                  >
                     Стикеров
                   </Typography>
                 </Box>
                 
                 <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography variant="h5" fontWeight="bold" sx={{ color: '#FFD700' }}>
+                  <Typography 
+                    variant="h5" 
+                    fontWeight="bold"
+                    sx={{ 
+                      color: 'var(--tg-theme-button-color)',
+                      // Золотой оттенок для ART в светлой теме
+                      filter: 'brightness(1.1) saturate(1.2)'
+                    }}
+                  >
                     {userInfo.artBalance || 0}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2"
+                    sx={{ color: 'var(--tg-theme-hint-color)' }}
+                  >
                     ART
                   </Typography>
                 </Box>
@@ -688,12 +713,13 @@ export const MyProfilePage: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 3 }}>
                     <Chip 
                       label={`${userInfo?.artBalance || 0} ART`}
-                      color="primary"
                       sx={{ 
                         fontSize: '1.5rem', 
                         fontWeight: 'bold',
                         height: 56,
-                        px: 3
+                        px: 3,
+                        backgroundColor: 'var(--tg-theme-button-color)',
+                        color: 'var(--tg-theme-button-text-color)'
                       }}
                     />
                   </Box>

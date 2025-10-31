@@ -17,7 +17,11 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
     return (
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography 
+            variant="body2" 
+            textAlign="center"
+            sx={{ color: 'var(--tg-theme-hint-color)' }}
+          >
             Проверка авторизации...
           </Typography>
         </CardContent>

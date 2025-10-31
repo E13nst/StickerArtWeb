@@ -18,7 +18,6 @@ import { apiClient } from '@/api/client';
 import { getUserFullName, getUserUsername } from '@/utils/userUtils';
 
 // Компоненты
-import { UserInfoCard } from '@/components/UserInfoCard';
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { SearchBar } from '@/components/SearchBar';
@@ -36,7 +35,7 @@ import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { tg, isInTelegramApp, initData } = useTelegram();
+  const { tg, user, isInTelegramApp, initData } = useTelegram();
 
   const {
     isLoading,
@@ -74,6 +73,10 @@ export const ProfilePage: React.FC = () => {
 
   // Валидация userId
   const userIdNumber = userId ? parseInt(userId, 10) : null;
+  
+  // Проверка, является ли просматриваемый профиль профилем текущего пользователя
+  const currentUserId = user?.id;
+  const isOwnProfile = currentUserId && userIdNumber === currentUserId;
   
   useEffect(() => {
     if (!userIdNumber || isNaN(userIdNumber)) {
@@ -349,76 +352,144 @@ export const ProfilePage: React.FC = () => {
           enabled: true,
           backgroundColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
           pattern: 'grid',
-          content: isUserLoading ? (
-            <LoadingSpinner message="Загрузка профиля..." />
-          ) : userInfo ? (
-            <Box sx={{ 
-              width: '100%', 
-              height: '100%',
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative'
-            }}>
-              {/* Аватар с overlap - наполовину на header */}
-              <Box sx={{ 
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translate(-50%, 50%)',
-                zIndex: 20
-              }}>
-                <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
-              </Box>
-            </Box>
-          ) : null
+          content: null
         }}
       />
 
-      {/* Карточка с достижениями под аватаром */}
+      {/* Карточка профиля с аватаром и информацией */}
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
-        {userInfo && (
-          <Card sx={{ 
-            borderRadius: 3,
-            backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
-            border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
-            boxShadow: 'none',
-            pt: 0,
-            pb: 2
-          }}>
-            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
-              {/* Статистика */}
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-around', 
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
+        {isUserLoading ? (
+          <LoadingSpinner message="Загрузка профиля..." />
+        ) : userInfo ? (
+          <>
+            {/* Аватар с overlap */}
+            <FloatingAvatar userInfo={userInfo} size="large" overlap={50} />
+            
+            {/* Имя пользователя под аватаром */}
+            <Box sx={{ 
+              textAlign: 'center', 
+              mb: 2,
+              mt: -2
+            }}>
+              <Typography variant="h5" fontWeight="bold" sx={{ 
+                color: 'var(--tg-theme-text-color)',
+                mb: 0.5
               }}>
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography variant="h5" fontWeight="bold" color="primary">
-                    {userStickerSets.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Наборов
-                  </Typography>
+                {getUserFullName(userInfo)}
+              </Typography>
+              {getUserUsername(userInfo) && (
+                <Typography variant="body2" sx={{ 
+                  color: 'var(--tg-theme-hint-color)'
+                }}>
+                  @{getUserUsername(userInfo)}
+                </Typography>
+              )}
+            </Box>
+
+            {/* Статистика */}
+            <Card sx={{ 
+              borderRadius: 3,
+              backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+              border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+              boxShadow: 'none',
+              mb: 2
+            }}>
+              <CardContent sx={{ py: 2, px: 3 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-around', 
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 2
+                }}>
+                  <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight="bold"
+                      sx={{ color: 'var(--tg-theme-button-color)' }}
+                    >
+                      {userStickerSets.length}
+                    </Typography>
+                    <Typography 
+                      variant="body2"
+                      sx={{ color: 'var(--tg-theme-hint-color)' }}
+                    >
+                      Наборов
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight="bold"
+                      sx={{ color: 'var(--tg-theme-button-color)' }}
+                    >
+                      {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
+                    </Typography>
+                    <Typography 
+                      variant="body2"
+                      sx={{ color: 'var(--tg-theme-hint-color)' }}
+                    >
+                      Стикеров
+                    </Typography>
+                  </Box>
                 </Box>
+
+                {/* Кнопки действий - показываем только для чужого профиля */}
+                {!isOwnProfile && (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1.5,
+                    mt: 2,
+                    justifyContent: 'center'
+                  }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ShareIcon />}
+                      onClick={handleShareProfile}
+                      sx={{
+                        flex: 1,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600
+                      }}
+                    >
+                      Поделиться
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<MessageIcon />}
+                      onClick={handleMessageUser}
+                      sx={{
+                        flex: 1,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600
+                      }}
+                    >
+                      Написать
+                    </Button>
+                  </Box>
+                )}
                 
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography variant="h5" fontWeight="bold" color="primary">
-                    {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Стикеров
-                  </Typography>
-                </Box>
-              </Box>
-              
-              {/* Кнопки действий скрыты по требованиям дизайна */}
-            </CardContent>
-          </Card>
-        )}
+                {/* Уведомление для собственного профиля */}
+                {isOwnProfile && (
+                  <Box sx={{ 
+                    mt: 2,
+                    textAlign: 'center'
+                  }}>
+                    <Typography variant="body2" sx={{ 
+                      color: 'var(--tg-theme-hint-color)',
+                      fontStyle: 'italic'
+                    }}>
+                      Это ваш профиль
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
 
         {/* Ошибка пользователя */}
         {userError && (
@@ -513,7 +584,14 @@ export const ProfilePage: React.FC = () => {
                 alignItems: 'center',
                 py: 4
               }}>
-                <Typography variant="h6" color="text.secondary" textAlign="center" sx={{ mb: 1 }}>
+                <Typography 
+                  variant="h6" 
+                  textAlign="center" 
+                  sx={{ 
+                    mb: 1,
+                    color: 'var(--tg-theme-text-color)'
+                  }}
+                >
                   Достижения
                 </Typography>
 
@@ -526,7 +604,11 @@ export const ProfilePage: React.FC = () => {
                   </Box>
                 </Box>
 
-                <Typography variant="body2" color="text.secondary" textAlign="center">
+                <Typography 
+                  variant="body2" 
+                  textAlign="center"
+                  sx={{ color: 'var(--tg-theme-hint-color)' }}
+                >
                   Больше достижений скоро: streak, лайки, топ‑автор и др.
                 </Typography>
               </Box>

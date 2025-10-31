@@ -63,11 +63,21 @@ export const TelegramAuthButton: React.FC<TelegramAuthButtonProps> = ({
 
   return (
     <Box sx={{ textAlign: 'center', p: 3 }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography 
+        variant="h6" 
+        gutterBottom
+        sx={{ color: 'var(--tg-theme-text-color)' }}
+      >
         Авторизация через Telegram
       </Typography>
       
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          mb: 3,
+          color: 'var(--tg-theme-hint-color)'
+        }}
+      >
         Для доступа к полному функционалу приложения необходимо авторизоваться через Telegram
       </Typography>
 

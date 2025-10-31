@@ -240,9 +240,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         padding: 'var(--tg-spacing-4)'
       }}>
         <Typography 
-          variant="h6" 
-          color="text.secondary"
-          sx={{ fontSize: 'var(--tg-font-size-l)' }}
+          variant="h6"
+          sx={{ 
+            fontSize: 'var(--tg-font-size-l)',
+            color: 'var(--tg-theme-hint-color)'
+          }}
         >
           Загрузка стикерсета...
         </Typography>

@@ -12,7 +12,11 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
     return (
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography 
+            variant="body2" 
+            textAlign="center"
+            sx={{ color: 'var(--tg-theme-hint-color)' }}
+          >
             Загрузка информации о пользователе...
           </Typography>
         </CardContent>
@@ -24,7 +28,11 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
     return (
       <Card sx={{ mb: 2 }}>
         <CardContent>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography 
+            variant="body2" 
+            textAlign="center"
+            sx={{ color: 'var(--tg-theme-hint-color)' }}
+          >
             Пользователь не определен
           </Typography>
         </CardContent>
@@ -36,14 +44,26 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
     <Card sx={{ mb: 2 }}>
       <CardContent>
         <Box textAlign="center">
-          <Typography variant="h6" component="p" gutterBottom>
+          <Typography 
+            variant="h6" 
+            component="p" 
+            gutterBottom
+            sx={{ color: 'var(--tg-theme-text-color)' }}
+          >
             Привет, <strong>{user.first_name}{user.last_name ? ` ${user.last_name}` : ''}</strong>!
           </Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
+          <Typography 
+            variant="body2" 
+            gutterBottom
+            sx={{ color: 'var(--tg-theme-hint-color)' }}
+          >
             ID: <strong>{user.id}</strong>
           </Typography>
           {user.username && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2"
+              sx={{ color: 'var(--tg-theme-hint-color)' }}
+            >
               Username: <strong>@{user.username}</strong>
             </Typography>
           )}
