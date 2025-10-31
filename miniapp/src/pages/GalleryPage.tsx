@@ -58,9 +58,20 @@ export const GalleryPage: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlInitData = urlParams.get('initData');
     
-    // Важно: используем переменную СРАЗУ после определения, чтобы minifier не выбросил её
+    // ВАЖНО ДЛЯ СБОРКИ:
+    // 1) Переменная storedInitData должна быть ИСПОЛЬЗОВАНА сразу после объявления.
+    // 2) Иначе минификатор (esbuild/terser) может решить, что она "неиспользуется",
+    //    удалить её и сломать детекцию initData из localStorage в production.
+    // 3) Не переносите и не удаляйте проверку hasStored — порядок важен.
+    // 4) Не рефакторить в "ленивое" использование через позже вычисляемые функции.
+    //    Нам нужен прямой side‑effect обращения к localStorage.
+    //
+    // Если потребуется правка — сверяйтесь с DEBUG логами ниже и обязательно
+    // проверяйте production сборку, а не только dev.
+    //
+    // Ранее это уже ломалось при минификации — оставляем явные комментарии.
     const storedInitData = localStorage.getItem('telegram_init_data');
-    const hasStored = !!storedInitData; // используем переменную
+    const hasStored = !!storedInitData; // не удалять: явное использование защищает от минификатора
     
     const extensionInitData = apiClient.checkExtensionHeaders();
     
