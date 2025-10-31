@@ -212,7 +212,7 @@ a {
   position: relative;
   overflow: hidden;
   background: var(--tg-theme-secondary-bg-color);
-  border: 1px solid var(--tg-theme-border-color);
+  border: none;
 }
 
 .pack-card-skeleton::before {
@@ -287,13 +287,13 @@ a {
 .MuiPaper-root {
   background-color: var(--tg-theme-secondary-bg-color) !important;
   color: var(--tg-theme-text-color) !important;
-  border: 1px solid var(--tg-theme-border-color) !important;
+  border: none !important;
 }
 
 .MuiCard-root {
   background-color: var(--tg-theme-secondary-bg-color) !important;
   color: var(--tg-theme-text-color) !important;
-  border: 1px solid var(--tg-theme-border-color) !important;
+  border: none !important;
   border-radius: var(--tg-radius-l) !important;
 }
 
@@ -414,6 +414,63 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   color: var(--tg-theme-button-color) !important;
 }
 
+/* Tabs scroller — компактный горизонтальный список без скроллбара */
+.MuiTabs-scroller {
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important; /* Firefox */
+  height: 100% !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  background: transparent !important;
+  border-top: 1px solid var(--tg-theme-border-color) !important;
+  border-bottom: 1px solid var(--tg-theme-border-color) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+}
+
+.MuiTabs-scroller::-webkit-scrollbar { /* WebKit */
+  display: none !important;
+}
+
+/* Внутренний контейнер табов — ровное выравнивание и интервалы */
+.MuiTabs-flexContainer {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  width: 100% !important;
+  justify-content: space-between !important;
+}
+
+/* Сбрасываем внутренние отступы корня Tabs */
+.MuiTabs-root {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+}
+
+/* Кнопки табов: без контура и тени */
+.MuiTabs-root .MuiButtonBase-root,
+.MuiTabs-root .MuiTab-root {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
+
+.MuiTabs-root .MuiButtonBase-root:focus,
+.MuiTabs-root .MuiButtonBase-root:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Кнопки в профиле */
 .MuiButton-root {
   color: var(--tg-theme-text-color) !important;
@@ -456,7 +513,7 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
 .MuiAlert-root {
   background-color: var(--tg-theme-secondary-bg-color) !important;
   color: var(--tg-theme-text-color) !important;
-  border: 1px solid var(--tg-theme-border-color) !important;
+  border: none !important;
 }
 
 .MuiAlert-standardError {
@@ -696,11 +753,11 @@ svg,
   gap: var(--tg-spacing-3);
   padding: var(--tg-spacing-4);
   background: var(--tg-theme-secondary-bg-color);
-  border: 1px solid var(--tg-theme-border-color);
+  border: none;
   border-radius: var(--tg-radius-l);
   margin-bottom: var(--tg-spacing-4);
   box-shadow: 0 2px 8px var(--tg-theme-shadow-color);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .tg-user-badge__avatar {
@@ -746,7 +803,7 @@ svg,
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 152, 0, 0.3);
+  border: none;
 }
 
 /* Search Bar */
@@ -895,7 +952,7 @@ input.tg-search__input,
       left: 0;
       right: 0;
       background: var(--tg-theme-secondary-bg-color);
-      border-top: 1px solid var(--tg-theme-border-color);
+      border-top: none;
       z-index: 1000;
       box-shadow: 0 -2px 10px var(--tg-theme-shadow-color);
       backdrop-filter: blur(10px);
@@ -991,7 +1048,7 @@ input.tg-search__input,
     .tg-debug-panel__section {
       margin-bottom: var(--tg-spacing-4);
       padding-bottom: var(--tg-spacing-3);
-      border-bottom: 1px solid var(--tg-theme-secondary-bg-color);
+      border-bottom: none;
     }
 
     .tg-debug-panel__section:last-child {

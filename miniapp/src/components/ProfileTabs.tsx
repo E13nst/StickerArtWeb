@@ -7,8 +7,8 @@ import {
   useMediaQuery
 } from '@mui/material';
 import CollectionsIcon from '@mui/icons-material/Collections';
-import PersonIcon from '@mui/icons-material/Person';
-import ShareIcon from '@mui/icons-material/Share';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 interface ProfileTabsProps {
   activeTab: number;
@@ -34,7 +34,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ py: 1.5 }}> {/* уменьшено для компактности */}
+        <Box sx={{ py: 2 }}>
           {children}
         </Box>
       )}
@@ -48,6 +48,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const labels = isSmallScreen 
+    ? { sets: 'Сеты', art: 'ART', share: 'Ачивки' } 
+    : { sets: 'Стикерсеты', art: 'ART-Points', share: 'Достижения' };
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     onChange(newValue);
@@ -56,48 +59,62 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   return (
     <Box sx={{ 
       width: '100%',
-      mb: 1.5, // уменьшено для экономии пространства
-      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-      color: 'var(--tg-theme-text-color)',
-      borderRadius: 1.5, // уменьшено для компактности
-      border: '1px solid var(--tg-theme-border-color)',
-      boxShadow: '0 1px 3px var(--tg-theme-shadow-color)'
+      mb: 2,
+      backgroundColor: 'transparent',
+      color: 'var(--tg-theme-text-color, #000000)',
+      borderRadius: 0,
+      borderTop: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+      borderBottom: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+      boxShadow: 'none'
     }}>
       <Tabs
         value={activeTab}
         onChange={handleChange}
-        variant={isSmallScreen ? 'fullWidth' : 'standard'}
+        variant="fullWidth"
         sx={{
           '& .MuiTab-root': {
-            minHeight: isSmallScreen ? 40 : 44, // уменьшено для компактности
-            fontSize: isSmallScreen ? '0.75rem' : '0.8rem', // уменьшено для компактности
-            fontWeight: 'bold',
+            minHeight: isSmallScreen ? 44 : 52,
+            fontSize: isSmallScreen ? '0.8rem' : '0.875rem',
+            fontWeight: 600,
             textTransform: 'none',
-            color: 'var(--tg-theme-text-color)',
+            color: 'var(--tg-theme-hint-color, #999999)',
+            gap: isSmallScreen ? 0.25 : 0.5,
+            transition: 'all 0.2s ease',
+            minWidth: 0,
+            flex: '1 1 33.3333%',
+            maxWidth: '33.3333%',
+            paddingLeft: isSmallScreen ? 8 : 14,
+            paddingRight: isSmallScreen ? 8 : 14,
+            whiteSpace: 'nowrap',
             '&.Mui-selected': {
-              color: 'var(--tg-theme-button-color)',
+              color: 'var(--tg-theme-button-color, #2481cc)',
+              fontWeight: 'bold'
             },
+            '&:hover': {
+              color: 'var(--tg-theme-button-color, #2481cc)',
+              opacity: 0.8
+            }
           },
           '& .MuiTabs-indicator': {
-            backgroundColor: 'var(--tg-theme-button-color)',
-            height: 2, // уменьшено для компактности
-            borderRadius: '2px 2px 0 0' // уменьшено для компактности
+            backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
+            height: 3,
+            borderRadius: '3px 3px 0 0'
           }
         }}
       >
         <Tab
-          icon={<CollectionsIcon />}
-          label="Стикерсеты"
+          icon={<CollectionsIcon sx={{ fontSize: isSmallScreen ? '1.05rem' : '1.2rem' }} />}
+          label={labels.sets}
           iconPosition="top"
         />
         <Tab
-          icon={<PersonIcon />}
-          label="ART-Points"
+          icon={<AccountBalanceWalletIcon sx={{ fontSize: isSmallScreen ? '1.05rem' : '1.2rem' }} />}
+          label={labels.art}
           iconPosition="top"
         />
         <Tab
-          icon={<ShareIcon />}
-          label="Поделиться"
+          icon={<EmojiEventsIcon sx={{ fontSize: isSmallScreen ? '1.05rem' : '1.2rem' }} />}
+          label={labels.share}
           iconPosition="top"
         />
       </Tabs>

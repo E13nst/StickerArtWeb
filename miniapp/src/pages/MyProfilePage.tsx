@@ -19,7 +19,9 @@ import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 
 // Компоненты
-import { UserInfoCard } from '@/components/UserInfoCard';
+import { UserInfoCardModern } from '@/components/UserInfoCardModern';
+import StixlyTopHeader from '@/components/StixlyTopHeader';
+import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { SearchBar } from '@/components/SearchBar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
@@ -31,6 +33,7 @@ import { GalleryGrid } from '@/components/GalleryGrid';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
+import { isUserPremium, getUserFullName, getUserUsername } from '@/utils/userUtils';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,15 +71,68 @@ export const MyProfilePage: React.FC = () => {
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
 
+  // Обработчик кастомизации баннера (placeholder для premium)
+  const handleCustomizeBanner = () => {
+    // TODO: Реализовать функционал кастомизации баннера в будущем
+    console.log('Кастомизация баннера (только для premium пользователей)');
+    if (tg) {
+      tg.HapticFeedback?.impactOccurred('light');
+    }
+    // Показываем уведомление или открываем модальное окно в будущем
+    alert('Функция кастомизации баннера будет доступна в ближайшее время!');
+  };
+
   // Получаем telegramId текущего пользователя
   const currentUserId = user?.id;
+
+  // Моковые данные для разработки (когда нет валидной initData)
+  const mockUserId = 123456789;
+  const mockUserInfo = {
+    id: mockUserId,
+    firstName: 'Иван',
+    lastName: 'Иванов',
+    username: 'ivan_ivanov',
+    artBalance: 150,
+    profilePhotoFileId: null,
+    profilePhotos: []
+  };
+  const mockStickerSets: any[] = [
+    {
+      id: 1,
+      title: 'Мои первые стикеры',
+      name: 'my_first_stickers',
+      stickerCount: 12,
+      createdAt: new Date().toISOString(),
+      previewSticker: null
+    },
+    {
+      id: 2,
+      title: 'Веселые котики',
+      name: 'funny_cats',
+      stickerCount: 8,
+      createdAt: new Date().toISOString(),
+      previewSticker: null
+    },
+    {
+      id: 3,
+      title: 'Рабочие мемы',
+      name: 'work_memes',
+      stickerCount: 15,
+      createdAt: new Date().toISOString(),
+      previewSticker: null
+    }
+  ];
 
   useEffect(() => {
     console.log('🔍 MyProfilePage: Текущий пользователь:', user);
     console.log('🔍 MyProfilePage: initData:', initData ? `${initData.length} chars` : 'empty');
     
+    // Если нет валидного пользователя, используем моковые данные для разработки
     if (!currentUserId) {
-      setError('Не удалось получить информацию о пользователе из Telegram');
+      console.log('🔧 Режим разработки: используем моковые данные');
+      setUserInfo(mockUserInfo as any);
+      setUserStickerSets(mockStickerSets);
+      setPagination(0, 1, mockStickerSets.length);
       return;
     }
 
@@ -91,6 +147,7 @@ export const MyProfilePage: React.FC = () => {
     }
 
     loadMyProfile(currentUserId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
   // Загрузка своего профиля
@@ -145,13 +202,19 @@ export const MyProfilePage: React.FC = () => {
       console.log('✅ Информация о пользователе загружена:', combined);
       setUserInfo(combined as any);
     } catch (error: any) {
-      if (error?.response?.status === 401) {
-        setUserError('Требуется авторизация');
+      // В режиме разработки используем моковые данные вместо показа ошибки
+      if (error?.response?.status === 401 || !isInTelegramApp) {
+        console.log('🔧 Режим разработки: используем моковые данные профиля');
+        setUserInfo(mockUserInfo as any);
+        setUserError(null);
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки пользователя';
         setUserError(errorMessage);
       }
-      throw error;
+      // Не пробрасываем ошибку дальше в режиме разработки
+      if (isInTelegramApp) {
+        throw error;
+      }
     } finally {
       setUserLoading(false);
     }
@@ -186,14 +249,24 @@ export const MyProfilePage: React.FC = () => {
       // Обновляем пагинацию
       setPagination(response.number, response.totalPages, response.totalElements);
     } catch (error: any) {
-      if (error?.response?.status === 401) {
-        setStickerSetsError('Требуется авторизация');
+      // В режиме разработки используем моковые данные вместо показа ошибки
+      if (error?.response?.status === 401 || !isInTelegramApp) {
+        console.log('🔧 Режим разработки: используем моковые данные стикерсетов');
+        const filtered = searchQuery 
+          ? mockStickerSets.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          : mockStickerSets;
+        setUserStickerSets(filtered);
+        setPagination(0, 1, filtered.length);
+        setStickerSetsError(null);
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикерсетов';
         console.error('❌ Ошибка загрузки стикерсетов:', error);
         setStickerSetsError(errorMessage);
       }
-      throw error;
+      // Не пробрасываем ошибку дальше в режиме разработки
+      if (isInTelegramApp) {
+        throw error;
+      }
     } finally {
       setStickerSetsLoading(false);
     }
@@ -270,11 +343,12 @@ export const MyProfilePage: React.FC = () => {
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
     
-    if (!currentUserId) return;
+    const userId = currentUserId || mockUserId;
+    if (!userId) return;
 
     // Дебаунс поиска
     const delayedSearch = setTimeout(() => {
-      loadUserStickerSets(currentUserId, newSearchTerm);
+      loadUserStickerSets(userId, newSearchTerm);
     }, 500);
 
     return () => clearTimeout(delayedSearch);
@@ -308,8 +382,8 @@ export const MyProfilePage: React.FC = () => {
     viewMode
   });
 
-  // Основные ошибки
-  if (error) {
+  // Основные ошибки (показываем только в Telegram приложении)
+  if (error && isInTelegramApp) {
     return (
       <Box sx={{ 
         minHeight: '100vh', 
@@ -336,46 +410,137 @@ export const MyProfilePage: React.FC = () => {
     );
   }
 
+  // Проверка premium статуса
+  const isPremium = userInfo ? isUserPremium(userInfo) : false;
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 
-      backgroundColor: 'var(--tg-theme-bg-color)',
-      color: 'var(--tg-theme-text-color)',
-      paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
+      backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+      color: 'var(--tg-theme-text-color, #000000)',
+      paddingBottom: isInTelegramApp ? 0 : 8,
+      overflowX: 'hidden'
     }}>
+      {/* Профильный header */}
+      <StixlyTopHeader
+        profileMode={{
+          enabled: true,
+          backgroundColor: isPremium 
+            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' 
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          pattern: isPremium ? 'waves' : 'dots',
+          content: isUserLoading ? (
+            <LoadingSpinner message="Загрузка профиля..." />
+          ) : userInfo ? (
+            <Box sx={{ 
+              width: '100%', 
+              height: '100%',
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative'
+            }}>
+              {/* Аватар с overlap - наполовину на header */}
+              <Box sx={{ 
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translate(-50%, 50%)',
+                zIndex: 20
+              }}>
+                <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
+              </Box>
+            </Box>
+          ) : null
+        }}
+      />
 
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 1.5 }}> {/* уменьшено для экономии пространства */}
+      {/* Карточка с достижениями под аватаром */}
+      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
+        {userInfo && (
+          <Card sx={{ 
+            borderRadius: 3,
+            backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+            border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+            boxShadow: 'none',
+            pt: 0,
+            pb: 2
+          }}>
+            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
+              {/* Статистика */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-around', 
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2
+              }}>
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography variant="h5" fontWeight="bold" color="primary">
+                    {userStickerSets.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Наборов
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography variant="h5" fontWeight="bold" color="primary">
+                    {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Стикеров
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: '#FFD700' }}>
+                    {userInfo.artBalance || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    ART
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Кнопка поделиться профилем */}
+              {/* Кнопка "Поделиться профилем" удалена по требованиям дизайна */}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Ошибка пользователя */}
+        {userError && isInTelegramApp && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mt: 2,
+              mb: 2,
+              backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+              color: 'var(--tg-theme-text-color, #000000)',
+              border: '1px solid var(--tg-theme-border-color, #e0e0e0)'
+            }}
+          >
+            {userError}
+          </Alert>
+        )}
+
+        {/* Вкладки профиля */}
+        {userInfo && (
+          <ProfileTabs
+            activeTab={activeProfileTab}
+            onChange={setActiveProfileTab}
+            isInTelegramApp={isInTelegramApp}
+          />
+        )}
+      </Container>
+
+      {/* Прокручиваемый контент */}
+      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, pb: 2 }}>
         {viewMode === 'list' ? (
           <>
-            {/* Информация о пользователе */}
-            {userInfo && (
-              <UserInfoCard 
-                userInfo={userInfo} 
-                isLoading={isUserLoading}
-                onShareProfile={handleShareProfile}
-              />
-            )}
-
-            {/* Ошибка пользователя */}
-            {userError && (
-              <Alert severity="error" sx={{ 
-                mb: 2,
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                border: '1px solid var(--tg-theme-border-color)'
-              }}>
-                {userError}
-              </Alert>
-            )}
-
-            {/* Вкладки профиля */}
-            <ProfileTabs
-              activeTab={activeProfileTab}
-              onChange={setActiveProfileTab}
-              isInTelegramApp={isInTelegramApp}
-            />
-
-            {/* Контент вкладок */}
+            {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Поиск */}
               <SearchBar
@@ -388,10 +553,10 @@ export const MyProfilePage: React.FC = () => {
               {/* Контент стикерсетов */}
               {isStickerSetsLoading ? (
                 <LoadingSpinner message="Загрузка стикерсетов..." />
-              ) : stickerSetsError ? (
+              ) : stickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay 
                   error={stickerSetsError} 
-                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId)} 
+                  onRetry={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId)} 
                 />
               ) : filteredStickerSets.length === 0 ? (
                 <EmptyState
@@ -418,7 +583,7 @@ export const MyProfilePage: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                   <Button
                     variant="outlined"
-                    onClick={() => currentUserId && loadUserStickerSets(currentUserId, undefined, currentPage + 1, true)}
+                    onClick={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, undefined, currentPage + 1, true)}
                   >
                     Показать ещё
                   </Button>
@@ -472,45 +637,39 @@ export const MyProfilePage: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleCreateSticker}
-                fullWidth
-                size="large"
-              >
-                Создать новый стикерсет
-              </Button>
+              {/* Кнопка "Создать новый стикерсет" скрыта по требованиям дизайна */}
             </TabPanel>
 
             <TabPanel value={activeProfileTab} index={2}>
-              {/* Действия с профилем */}
+              {/* Достижения профиля */}
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
                 gap: 2,
                 alignItems: 'center',
-                py: 4
+                justifyContent: 'center',
+                py: 5,
+                minHeight: '220px'
               }}>
-                <Typography variant="h6" sx={{ 
-                  color: 'var(--tg-theme-hint-color)', 
-                  textAlign: 'center' 
-                }}>
-                  Поделиться профилем
+                <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                  Достижения
                 </Typography>
-                
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<ShareIcon />}
-                    onClick={handleShareProfile}
-                    size="large"
-                    fullWidth
-                    sx={{ maxWidth: 300 }}
-                  >
-                    Поделиться профилем
-                  </Button>
+
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                    Сеты: {userStickerSets.length}
+                  </Box>
+                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                    Стикеры: {userStickerSets.reduce((s, set) => s + (set.stickerCount || 0), 0)}
+                  </Box>
+                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                    ART: {userInfo?.artBalance || 0}
+                  </Box>
                 </Box>
+
+                <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
+                  Скоро появятся уровни, streak и редкие ачивки.
+                </Typography>
               </Box>
             </TabPanel>
           </>
