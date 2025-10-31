@@ -11,25 +11,20 @@ import {
   useMediaQuery
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
-import ShareIcon from '@mui/icons-material/Share';
-import MessageIcon from '@mui/icons-material/Message';
-import StarIcon from '@mui/icons-material/Star';
 import { UserInfo } from '@/store/useProfileStore';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
-import { getUserFirstName, getUserLastName, getUserUsername, getUserFullName, isUserPremium, getUserTelegramId } from '@/utils/userUtils';
+import { getUserFirstName, getUserLastName, getUserFullName, getUserTelegramId } from '@/utils/userUtils';
 
 interface UserInfoCardProps {
   userInfo: UserInfo;
   isLoading?: boolean;
   onShareProfile?: () => void;
-  onMessageUser?: () => void;
 }
 
 export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   userInfo,
   isLoading = false,
-  onShareProfile,
-  onMessageUser
+  onShareProfile
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -48,9 +43,11 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
         <CardContent sx={{ p: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ 
-              width: 64, 
-              height: 64, 
-              bgcolor: 'var(--tg-theme-hint-color)' 
+              width: 'calc(100% * 0.382)', // Гармоническая пропорция 0.382
+              height: 'calc(100% * 0.382)',
+              borderRadius: '50%', // Явно указываем круглую форму
+              bgcolor: 'var(--tg-theme-hint-color)',
+              aspectRatio: '1 / 1' // Гарантируем идеальный круг
             }}>
               <PersonIcon />
             </Avatar>
@@ -69,8 +66,6 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
   const displayName = getUserFullName(userInfo);
-  const username = getUserUsername(userInfo);
-  const isPremium = isUserPremium(userInfo);
   const telegramId = getUserTelegramId(userInfo);
   
   const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId) || userInfo.avatarUrl;
@@ -109,12 +104,16 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
               loading: 'lazy'
             }}
             sx={{ 
-              width: isSmallScreen ? 48 : 56, // уменьшено для компактности
-              height: isSmallScreen ? 48 : 56,
+              width: isSmallScreen ? 'calc(100% * 0.236)' : 'calc(100% * 0.382)', // Гармонические пропорции
+              height: isSmallScreen ? 'calc(100% * 0.236)' : 'calc(100% * 0.382)',
+              borderRadius: '50%', // Явно указываем круглую форму
               bgcolor: avatarBgColor,
-              fontSize: isSmallScreen ? '1.25rem' : '1.5rem', // уменьшено пропорционально
+              fontSize: isSmallScreen ? 'calc(1rem * 0.618)' : 'calc(1rem * 0.764)', // Пропорционально размерам
               fontWeight: 'bold',
-              alignSelf: isSmallScreen ? 'center' : 'flex-start'
+              alignSelf: isSmallScreen ? 'center' : 'flex-start',
+              minWidth: isSmallScreen ? 32 : 48, // Минимальные размеры для читаемости
+              minHeight: isSmallScreen ? 32 : 48,
+              aspectRatio: '1 / 1' // Гарантируем идеальный круг
             }}
           >
             {initials}
@@ -138,26 +137,6 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
               {displayName}
             </Typography>
 
-            {/* Username */}
-            {username && (
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  mb: 1,
-                  fontSize: isSmallScreen ? '0.8rem' : '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  justifyContent: isSmallScreen ? 'center' : 'flex-start',
-                  color: 'var(--tg-theme-hint-color)'
-                }}
-              >
-                @{username}
-                {isPremium && (
-                  <StarIcon sx={{ fontSize: '1rem', color: 'var(--tg-theme-button-color)' }} />
-                )}
-              </Typography>
-            )}
 
             {/* Роль */}
             <Chip 
@@ -177,49 +156,6 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
 
 
 
-        {/* Действия */}
-        <Box sx={{ 
-          mt: 2, 
-          pt: 2, 
-          borderTop: '1px solid',
-          borderColor: 'var(--tg-theme-border-color)'
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1,
-            justifyContent: 'center'
-          }}>
-            {onShareProfile && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<ShareIcon />}
-                onClick={onShareProfile}
-                sx={{ 
-                  flex: 1,
-                  fontSize: isSmallScreen ? '0.7rem' : '0.8rem'
-                }}
-              >
-                Поделиться
-              </Button>
-            )}
-            
-            {onMessageUser && (
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<MessageIcon />}
-                onClick={onMessageUser}
-                sx={{ 
-                  flex: 1,
-                  fontSize: isSmallScreen ? '0.7rem' : '0.8rem'
-                }}
-              >
-                Написать
-              </Button>
-            )}
-          </Box>
-        </Box>
 
         {/* Telegram ID */}
         <Box sx={{ 

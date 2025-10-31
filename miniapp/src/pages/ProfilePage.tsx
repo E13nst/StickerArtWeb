@@ -5,7 +5,9 @@ import {
   Box,
   Alert,
   Button,
-  Typography
+  Typography,
+  Card,
+  CardContent
 } from '@mui/material';
 import ShareIcon from '@mui/icons-material/Share';
 import MessageIcon from '@mui/icons-material/Message';
@@ -13,10 +15,12 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
-import { getUserFullName } from '@/utils/userUtils';
+import { getUserFullName, getUserUsername } from '@/utils/userUtils';
 
 // Компоненты
 import { UserInfoCard } from '@/components/UserInfoCard';
+import StixlyTopHeader from '@/components/StixlyTopHeader';
+import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { SearchBar } from '@/components/SearchBar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
@@ -26,6 +30,7 @@ import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
 import { GalleryGrid } from '@/components/GalleryGrid';
 import { DebugPanel } from '@/components/DebugPanel';
+import { BottomNav } from '@/components/BottomNav';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 
 export const ProfilePage: React.FC = () => {
@@ -289,38 +294,116 @@ export const ProfilePage: React.FC = () => {
       minHeight: '100vh', 
       backgroundColor: 'var(--tg-theme-bg-color)',
       color: 'var(--tg-theme-text-color)',
-      paddingBottom: isInTelegramApp ? 0 : 8 // Отступ для BottomNav
+      paddingBottom: isInTelegramApp ? 0 : 8,
+      overflowX: 'hidden'
     }}>
+      {/* Профильный header */}
+      <StixlyTopHeader
+        profileMode={{
+          enabled: true,
+          backgroundColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+          pattern: 'grid',
+          content: isUserLoading ? (
+            <LoadingSpinner message="Загрузка профиля..." />
+          ) : userInfo ? (
+            <Box sx={{ 
+              width: '100%', 
+              height: '100%',
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative'
+            }}>
+              {/* Аватар с overlap - наполовину на header */}
+              <Box sx={{ 
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translate(-50%, 50%)',
+                zIndex: 20
+              }}>
+                <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
+              </Box>
+            </Box>
+          ) : null
+        }}
+      />
 
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ py: 1.5 }}> {/* уменьшено для экономии пространства */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-          <TelegramThemeToggle />
-        </Box>
+      {/* Карточка с достижениями под аватаром */}
+      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
+        {userInfo && (
+          <Card sx={{ 
+            borderRadius: 3,
+            backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+            border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+            boxShadow: 'none',
+            pt: 0,
+            pb: 2
+          }}>
+            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
+              {/* Статистика */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-around', 
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2
+              }}>
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography variant="h5" fontWeight="bold" color="primary">
+                    {userStickerSets.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Наборов
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography variant="h5" fontWeight="bold" color="primary">
+                    {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Стикеров
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Кнопки действий скрыты по требованиям дизайна */}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Ошибка пользователя */}
+        {userError && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mt: 2,
+              mb: 2,
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              color: 'var(--tg-theme-text-color)',
+              border: '1px solid var(--tg-theme-border-color)'
+            }}
+          >
+            {userError}
+          </Alert>
+        )}
+
+        {/* Вкладки профиля */}
+        {userInfo && (
+          <ProfileTabs
+            activeTab={activeProfileTab}
+            onChange={setActiveProfileTab}
+            isInTelegramApp={isInTelegramApp}
+          />
+        )}
+      </Container>
+
+      {/* Прокручиваемый контент */}
+      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2 }}>
         {viewMode === 'list' ? (
           <>
-            {/* Информация о пользователе */}
-            {userInfo && (
-              <UserInfoCard 
-                userInfo={userInfo} 
-                isLoading={isUserLoading}
-                onShareProfile={handleShareProfile}
-                onMessageUser={handleMessageUser}
-              />
-            )}
-
-            {/* Ошибка пользователя */}
-            {userError && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {userError}
-              </Alert>
-            )}
-
-            {/* Вкладки профиля */}
-            <ProfileTabs
-              activeTab={activeProfileTab}
-              onChange={setActiveProfileTab}
-              isInTelegramApp={isInTelegramApp}
-            />
 
             {/* Контент вкладок */}
             <TabPanel value={activeProfileTab} index={0}>
@@ -375,7 +458,7 @@ export const ProfilePage: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={activeProfileTab} index={2}>
-              {/* Действия с профилем */}
+              {/* Достижения пользователя */}
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
@@ -383,31 +466,22 @@ export const ProfilePage: React.FC = () => {
                 alignItems: 'center',
                 py: 4
               }}>
-                <Typography variant="h6" color="text.secondary" textAlign="center">
-                  Поделиться профилем
+                <Typography variant="h6" color="text.secondary" textAlign="center" sx={{ mb: 1 }}>
+                  Достижения
                 </Typography>
-                
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<ShareIcon />}
-                    onClick={handleShareProfile}
-                    size="large"
-                    sx={{ minWidth: 200 }}
-                  >
-                    Поделиться профилем
-                  </Button>
-                  
-                  <Button
-                    variant="outlined"
-                    startIcon={<MessageIcon />}
-                    onClick={handleMessageUser}
-                    size="large"
-                    sx={{ minWidth: 200 }}
-                  >
-                    Написать пользователю
-                  </Button>
+
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                    Сеты: {userStickerSets.length}
+                  </Box>
+                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                    Стикеры: {userStickerSets.reduce((s, set) => s + (set.stickerCount || 0), 0)}
+                  </Box>
                 </Box>
+
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Больше достижений скоро: streak, лайки, топ‑автор и др.
+                </Typography>
               </Box>
             </TabPanel>
           </>
@@ -428,7 +502,17 @@ export const ProfilePage: React.FC = () => {
       {/* Debug панель */}
       {initData && <DebugPanel initData={initData} />}
 
-      {/* Нижняя навигация глобальная в MainLayout */}
+      {/* Нижняя навигация */}
+      <BottomNav
+        activeTab={3} // Профиль
+        onChange={(newTab) => {
+          if (newTab === 0) navigate('/');
+          else if (newTab === 1) navigate('/explore');
+          else if (newTab === 2) navigate('/create');
+          else if (newTab === 3) navigate('/profile');
+        }}
+        isInTelegramApp={isInTelegramApp}
+      />
     </Box>
   );
 };

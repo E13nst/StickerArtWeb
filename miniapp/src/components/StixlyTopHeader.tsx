@@ -5,6 +5,20 @@ import { motion, AnimatePresence } from "framer-motion";
 const BASE = (import.meta as any).env?.BASE_URL || "/miniapp/";
 const img = (name: string) => `${BASE}assets/${name}`;
 
+// ============ Типы для профильного режима ============
+export type ProfilePattern = 'none' | 'dots' | 'grid' | 'waves' | 'diagonal';
+
+interface ProfileModeConfig {
+  enabled: true;
+  backgroundColor: string;
+  pattern: ProfilePattern;
+  content?: React.ReactNode;
+}
+
+export interface StixlyTopHeaderProps {
+  profileMode?: ProfileModeConfig | { enabled: false };
+}
+
 type Slide = {
   id: number;
   bg: string;
@@ -32,6 +46,27 @@ const RAW_SLIDES: Omit<Slide, "img"> & { img: string }[] = [
     text: "Your Universe of stickers",
   },
 ];
+
+// ============ Генератор SVG паттернов ============
+const getPatternSVG = (pattern: ProfilePattern, color: string = 'rgba(255,255,255,0.1)'): string => {
+  switch (pattern) {
+    case 'dots':
+      return `data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='2' fill='${encodeURIComponent(color)}'/%3E%3C/svg%3E`;
+    
+    case 'grid':
+      return `data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v1H0zM0 0v40h1V0z' fill='${encodeURIComponent(color)}'/%3E%3C/svg%3E`;
+    
+    case 'waves':
+      return `data:image/svg+xml,%3Csvg width='100' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 25 0, 50 10 T 100 10' stroke='${encodeURIComponent(color)}' fill='none' stroke-width='2'/%3E%3C/svg%3E`;
+    
+    case 'diagonal':
+      return `data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0' stroke='${encodeURIComponent(color)}' stroke-width='1'/%3E%3C/svg%3E`;
+    
+    case 'none':
+    default:
+      return '';
+  }
+};
 
 // Специальная кнопка переключения тем для StixlyTopHeader
 const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
@@ -182,7 +217,7 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
   );
 };
 
-export default function StixlyTopHeader() {
+export default function StixlyTopHeader({ profileMode }: StixlyTopHeaderProps = {}) {
   const [index, setIndex] = useState(0);
 
   const slides: Slide[] = useMemo(
@@ -190,22 +225,68 @@ export default function StixlyTopHeader() {
     []
   );
 
-  // Preload
+  // Режим работы
+  const isProfileMode = profileMode?.enabled === true;
+
+  // Preload (только для обычного режима)
   useEffect(() => {
+    if (isProfileMode) return;
     slides.forEach((s) => {
       const i = new Image();
       i.src = s.img;
     });
-  }, [slides]);
+  }, [slides, isProfileMode]);
 
-  // Autoplay
+  // Autoplay (только для обычного режима)
   useEffect(() => {
+    if (isProfileMode) return;
     const t = setInterval(() => setIndex((v) => (v + 1) % slides.length), 5000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [slides.length, isProfileMode]);
 
   const current = slides[index];
   const isMascot = current.img.includes("mascot");
+
+  // ============ Профильный режим ============
+  if (isProfileMode) {
+    const patternUrl = getPatternSVG(profileMode.pattern);
+    
+    return (
+      <div
+        className="stixly-top-header stixly-top-header--profile"
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "280px",
+          zIndex: 1,
+          overflow: "visible",
+          borderBottomLeftRadius: "1.5rem",
+          borderBottomRightRadius: "1.5rem",
+          background: profileMode.backgroundColor,
+          backgroundImage: patternUrl ? `url(${patternUrl})` : undefined,
+          backgroundRepeat: 'repeat',
+        }}
+      >
+        {/* Контент профиля */}
+        {profileMode.content && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            {profileMode.content}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============ Обычный режим (карусель) ============
 
   return (
     <div

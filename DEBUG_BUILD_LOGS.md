@@ -1,4 +1,4 @@
-# 🔍 Debug Build Logs - Инструкция
+Da# 🔍 Debug Build Logs - Инструкция
 
 ## Что добавлено
 
@@ -309,4 +309,8 @@ curl -s https://sticker-art-e13nst.amvera.io/miniapp/ | grep -o 'index-[^"]*\.js
 ---
 
 **Следующий коммит**: `fix: add comprehensive build and runtime debug logging`
+
+
+
+
 
