@@ -2,8 +2,7 @@ import React, { useCallback, memo, useState } from 'react';
 import { useNearVisible } from '../hooks/useNearVisible';
 import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
-import { LikeCount } from './LikeCount';
-import { useLikesStore } from '../store/useLikesStore';
+import { InteractiveLikeCount } from './InteractiveLikeCount';
 
 interface Pack {
   id: string;
@@ -31,7 +30,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 }) => {
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
   const [isHovered, setIsHovered] = useState(false);
-  const { getLikeState } = useLikesStore();
 
   // Используем хук для управления ротацией стикеров
   const { currentIndex: currentStickerIndex } = useStickerRotation({
@@ -52,9 +50,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 
   // Текущий стикер для отображения
   const currentSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
-  
-  // Состояние лайка
-  const likeState = getLikeState(pack.id);
 
   return (
     <div
@@ -171,11 +166,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         {pack.title}
       </div>
 
-      {/* Лайк и его статус */}
-      <LikeCount
+      {/* Интерактивный лайк */}
+      <InteractiveLikeCount
         packId={pack.id}
-        likesCount={likeState.likesCount}
-        isLiked={likeState.isLiked}
         size="medium"
       />
     </div>

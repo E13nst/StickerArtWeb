@@ -56,11 +56,17 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
-  // Используем глобальный store для лайков
-  const { getLikeState, toggleLike, setLike } = useLikesStore();
-  const likeState = getLikeState(stickerSet.id.toString());
-  const liked = likeState.isLiked;
-  const likes = likeState.likesCount;
+  // Используем глобальный store для лайков с селекторами для автоматического обновления
+  const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
+    state.likes[stickerSet.id.toString()] || { 
+      packId: stickerSet.id.toString(), 
+      isLiked: false, 
+      likesCount: 0 
+    }
+  );
+  const toggleLike = useLikesStore((state) => state.toggleLike);
+  const setLike = useLikesStore((state) => state.setLike);
+  const getLikeState = useLikesStore((state) => state.getLikeState);
 
   // Не инициализируем лайки из пропсов - только из API данных
 
@@ -187,12 +193,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     setActiveIndex(idx);
   }, []);
 
-  const handleLikeClick = () => {
+  const handleLikeClick = async () => {
     const willLike = !liked;
-    toggleLike(stickerSet.id.toString());
     setLikeAnim(true);
     window.setTimeout(() => setLikeAnim(false), 220);
-    if (onLike && willLike) onLike(stickerSet.id, stickerSet.title);
+    
+    try {
+      await toggleLike(stickerSet.id.toString());
+      if (onLike && willLike) onLike(stickerSet.id, stickerSet.title);
+    } catch (error) {
+      console.error('Ошибка при лайке:', error);
+      // UI уже откатится автоматически в store при ошибке
+    }
   };
 
   const handleShareClick = async () => {

@@ -293,6 +293,82 @@ class ApiClient {
     return `/api/proxy/stickers/${fileId}`;
   }
 
+  // ============ МЕТОДЫ ДЛЯ ЛАЙКОВ ============
+
+  // Поставить лайк стикерсету
+  // API endpoint: POST /api/likes/stickersets/{stickerSetId}
+  async likeStickerSet(stickerSetId: number): Promise<{ success: boolean; likes: number }> {
+    try {
+      const response = await this.client.post<{ success: boolean; likes: number }>(
+        `/likes/stickersets/${stickerSetId}`
+      );
+      console.log(`✅ Лайк поставлен для стикерсета ${stickerSetId}:`, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при лайке стикерсета ${stickerSetId}:`, error);
+      throw new Error('Не удалось поставить лайк. Попробуйте позже.');
+    }
+  }
+
+  // Убрать лайк со стикерсета
+  // API endpoint: DELETE /api/likes/stickersets/{stickerSetId}
+  async unlikeStickerSet(stickerSetId: number): Promise<{ success: boolean; likes: number }> {
+    try {
+      const response = await this.client.delete<{ success: boolean; likes: number }>(
+        `/likes/stickersets/${stickerSetId}`
+      );
+      console.log(`✅ Лайк убран для стикерсета ${stickerSetId}:`, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при снятии лайка стикерсета ${stickerSetId}:`, error);
+      throw new Error('Не удалось убрать лайк. Попробуйте позже.');
+    }
+  }
+
+  // Переключить лайк (универсальный метод)
+  // API endpoint: PUT /api/likes/stickersets/{stickerSetId}/toggle
+  async toggleLike(stickerSetId: number, shouldLike: boolean): Promise<{ success: boolean; likes: number }> {
+    try {
+      // Используем PUT /toggle endpoint для переключения
+      const response = await this.client.put<{ success: boolean; likes: number }>(
+        `/likes/stickersets/${stickerSetId}/toggle`
+      );
+      console.log(`✅ Лайк переключен для стикерсета ${stickerSetId}:`, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при переключении лайка стикерсета ${stickerSetId}:`, error);
+      throw new Error('Не удалось изменить лайк. Попробуйте позже.');
+    }
+  }
+
+  // Получить все лайкнутые стикерсеты текущего пользователя
+  // API endpoint: GET /api/likes/stickersets
+  async getLikedStickerSets(page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
+    try {
+      const response = await this.client.get<StickerSetListResponse>('/likes/stickersets', {
+        params: { page, size }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка при получении лайкнутых стикерсетов:', error);
+      throw error;
+    }
+  }
+
+  // Получить топ стикерсетов по лайкам
+  // API endpoint: GET /api/likes/top-stickersets
+  async getTopStickerSetsByLikes(limit: number = 10): Promise<StickerSetResponse[]> {
+    try {
+      const response = await this.client.get<StickerSetResponse[]>('/likes/top-stickersets', {
+        params: { limit }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка при получении топ стикерсетов:', error);
+      throw error;
+    }
+  }
+
   // ============ МЕТОДЫ ДЛЯ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ ============
 
   // Получение профиля пользователя по userId: GET /api/profiles/{userId}

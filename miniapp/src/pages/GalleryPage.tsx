@@ -37,7 +37,7 @@ export const GalleryPage: React.FC = () => {
     setPagination,
   } = useStickerStore();
   const { checkAuth } = useAuth();
-  const { initializeLikes } = useLikesStore();
+  const { initializeLikes, syncPendingLikes } = useLikesStore();
 
   // Категории стикеров (загружаются с API)
   const [categories, setCategories] = useState<Category[]>([]);
@@ -324,6 +324,28 @@ export const GalleryPage: React.FC = () => {
       fetchStickerSets(0, false, uiState.selectedCategories);
     }
   }, [isReady, uiState.manualInitData]); // Убрали fetchStickerSets из зависимостей
+
+  // Автоматическая синхронизация offline очереди лайков
+  useEffect(() => {
+    // Синхронизируем при загрузке страницы
+    syncPendingLikes().catch(err => {
+      console.warn('⚠️ Не удалось синхронизировать offline лайки:', err);
+    });
+
+    // Слушаем событие восстановления сети
+    const handleOnline = () => {
+      console.log('🌐 Сеть восстановлена. Синхронизация offline лайков...');
+      syncPendingLikes().catch(err => {
+        console.warn('⚠️ Не удалось синхронизировать offline лайки при восстановлении сети:', err);
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [syncPendingLikes]);
 
   if (!isReady) {
     return <LoadingSpinner message="Инициализация..." />;

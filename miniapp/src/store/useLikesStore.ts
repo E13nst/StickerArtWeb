@@ -1,46 +1,154 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient } from '../api/client';
 
 interface LikeState {
   packId: string;
   isLiked: boolean;
   likesCount: number;
+  syncing?: boolean;  // Флаг синхронизации с сервером
+  error?: string;     // Ошибка синхронизации
+}
+
+interface PendingLike {
+  packId: string;
+  isLiked: boolean;
+  timestamp: number;
+  retries: number;
 }
 
 interface LikesStore {
   likes: Record<string, LikeState>;
-  toggleLike: (packId: string) => void;
+  pendingSync: PendingLike[];  // Очередь для offline синхронизации
+  lastSyncTime: Record<string, number>;  // Последнее время синхронизации для rate limiting
+  toggleLike: (packId: string) => Promise<void>;
   setLike: (packId: string, isLiked: boolean, likesCount?: number) => void;
   initializeLikes: (stickerSets: Array<{ id: number; likes?: number }>) => void;
   getLikeState: (packId: string) => LikeState;
   isLiked: (packId: string) => boolean;
   getLikesCount: (packId: string) => number;
+  syncPendingLikes: () => Promise<void>;
   clearStorage: () => void;
 }
 
 // Версия storage - при изменении будут очищены старые данные
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
+
+// Константы для защиты от DDOS
+const MIN_REQUEST_INTERVAL = 1000; // Минимум 1 секунда между запросами на один стикер
+const MAX_RETRIES = 3; // Максимум попыток повтора при ошибке
+const DEBOUNCE_DELAY = 500; // Задержка debounce перед отправкой на сервер
+
+// Таймеры debounce для каждого стикерсета
+const debounceTimers: Record<string, NodeJS.Timeout> = {};
 
 export const useLikesStore = create<LikesStore>()(
   persist(
     (set, get) => ({
       likes: {},
+      pendingSync: [],
+      lastSyncTime: {},
 
-      toggleLike: (packId: string) => {
+      toggleLike: async (packId: string) => {
         const currentState = get().likes[packId];
         const newIsLiked = !currentState?.isLiked;
         const newLikesCount = (currentState?.likesCount || 0) + (newIsLiked ? 1 : -1);
+        const now = Date.now();
+        const lastSync = get().lastSyncTime[packId] || 0;
 
+        // ЗАЩИТА ОТ DDOS: Rate limiting - проверяем минимальный интервал
+        if (now - lastSync < MIN_REQUEST_INTERVAL) {
+          console.warn(`⚠️ Rate limit: слишком частые запросы для ${packId}. Подождите ${MIN_REQUEST_INTERVAL}ms`);
+          // Обновляем UI оптимистично, но не синхронизируем с сервером
+          set((state) => ({
+            likes: {
+              ...state.likes,
+              [packId]: {
+                packId,
+                isLiked: newIsLiked,
+                likesCount: Math.max(0, newLikesCount),
+                syncing: false,
+                error: 'Слишком частые запросы. Подождите немного.'
+              }
+            }
+          }));
+          return;
+        }
+
+        // OPTIMISTIC UPDATE: Обновляем UI мгновенно
         set((state) => ({
           likes: {
             ...state.likes,
             [packId]: {
               packId,
               isLiked: newIsLiked,
-              likesCount: Math.max(0, newLikesCount)
+              likesCount: Math.max(0, newLikesCount),
+              syncing: true,
+              error: undefined
             }
+          },
+          lastSyncTime: {
+            ...state.lastSyncTime,
+            [packId]: now
           }
         }));
+
+        // DEBOUNCE: Очищаем предыдущий таймер и создаем новый
+        if (debounceTimers[packId]) {
+          clearTimeout(debounceTimers[packId]);
+        }
+
+        debounceTimers[packId] = setTimeout(async () => {
+          try {
+            // Синхронизация с сервером (PUT /toggle не требует параметра shouldLike)
+            const response = await apiClient.toggleLike(parseInt(packId), newIsLiked);
+
+            // Обновляем с реальным количеством лайков от сервера
+            set((state) => ({
+              likes: {
+                ...state.likes,
+                [packId]: {
+                  packId,
+                  isLiked: newIsLiked,
+                  likesCount: response.likes,
+                  syncing: false,
+                  error: undefined
+                }
+              }
+            }));
+
+            console.log(`✅ Лайк синхронизирован с сервером для ${packId}:`, response);
+          } catch (error) {
+            console.error(`❌ Ошибка синхронизации лайка для ${packId}:`, error);
+
+            // ROLLBACK: Откатываем изменения при ошибке
+            const oldIsLiked = !newIsLiked;
+            const oldLikesCount = (currentState?.likesCount || 0);
+
+            set((state) => ({
+              likes: {
+                ...state.likes,
+                [packId]: {
+                  packId,
+                  isLiked: oldIsLiked,
+                  likesCount: oldLikesCount,
+                  syncing: false,
+                  error: error instanceof Error ? error.message : 'Ошибка синхронизации'
+                }
+              },
+              // Добавляем в очередь для повторной попытки
+              pendingSync: [
+                ...state.pendingSync,
+                {
+                  packId,
+                  isLiked: newIsLiked,
+                  timestamp: Date.now(),
+                  retries: 0
+                }
+              ]
+            }));
+          }
+        }, DEBOUNCE_DELAY);
       },
 
       setLike: (packId: string, isLiked: boolean, likesCount?: number) => {
@@ -109,16 +217,87 @@ export const useLikesStore = create<LikesStore>()(
         return get().likes[packId]?.likesCount || 0;
       },
 
+      // Синхронизация отложенных лайков (для offline режима)
+      syncPendingLikes: async () => {
+        const { pendingSync } = get();
+        
+        if (pendingSync.length === 0) {
+          console.log('✅ Нет отложенных лайков для синхронизации');
+          return;
+        }
+
+        console.log(`🔄 Синхронизация ${pendingSync.length} отложенных лайков...`);
+
+        // Обрабатываем по одному, чтобы не перегрузить сервер
+        for (const pending of pendingSync) {
+          const { packId, isLiked, retries } = pending;
+
+          // Пропускаем если превышено количество попыток
+          if (retries >= MAX_RETRIES) {
+            console.warn(`⚠️ Превышено количество попыток для ${packId}. Пропускаем.`);
+            continue;
+          }
+
+          try {
+            // PUT /toggle автоматически переключает состояние на сервере
+            const response = await apiClient.toggleLike(parseInt(packId), isLiked);
+
+            // Обновляем с реальным количеством лайков от сервера
+            set((state) => ({
+              likes: {
+                ...state.likes,
+                [packId]: {
+                  packId,
+                  isLiked,
+                  likesCount: response.likes,
+                  syncing: false,
+                  error: undefined
+                }
+              },
+              // Удаляем из очереди после успешной синхронизации
+              pendingSync: state.pendingSync.filter(p => p.packId !== packId)
+            }));
+
+            console.log(`✅ Отложенный лайк синхронизирован для ${packId}`);
+          } catch (error) {
+            console.error(`❌ Ошибка синхронизации отложенного лайка для ${packId}:`, error);
+
+            // Увеличиваем счетчик попыток
+            set((state) => ({
+              pendingSync: state.pendingSync.map(p =>
+                p.packId === packId
+                  ? { ...p, retries: p.retries + 1 }
+                  : p
+              )
+            }));
+          }
+
+          // Задержка между запросами для защиты от DDOS
+          await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL));
+        }
+
+        console.log('✅ Синхронизация отложенных лайков завершена');
+      },
+
       clearStorage: () => {
-        // Очищаем только данные о лайках, но оставляем метаданные zustand
-        set({ likes: {} });
+        // Очищаем все данные о лайках
+        set({ 
+          likes: {},
+          pendingSync: [],
+          lastSyncTime: {}
+        });
+        
+        // Очищаем debounce таймеры
+        Object.values(debounceTimers).forEach(timer => clearTimeout(timer));
       }
     }),
     {
       name: 'likes-storage',
       version: STORAGE_VERSION,
       partialize: (state) => ({
-        likes: state.likes
+        likes: state.likes,
+        pendingSync: state.pendingSync,
+        lastSyncTime: state.lastSyncTime
       })
     }
   )
