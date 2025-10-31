@@ -29,7 +29,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { BottomNav } from '@/components/BottomNav';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
-import { GalleryGrid } from '@/components/GalleryGrid';
+import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
@@ -59,6 +59,9 @@ export const MyProfilePage: React.FC = () => {
     setError,
     setUserError,
     setStickerSetsError,
+    getCachedProfile,
+    setCachedProfile,
+    isCacheValid,
     reset
   } = useProfileStore();
   const { initializeLikes } = useLikesStore();
@@ -129,15 +132,45 @@ export const MyProfilePage: React.FC = () => {
     
     // Если нет валидного пользователя, используем моковые данные для разработки
     if (!currentUserId) {
+      const mockId = mockUserId;
+      
+      // Проверяем кэш для мока
+      if (isCacheValid(mockId)) {
+        const cached = getCachedProfile(mockId);
+        if (cached) {
+          console.log('📦 Загрузка мок-профиля из кэша');
+          setUserInfo(cached.userInfo);
+          setUserStickerSets(cached.stickerSets);
+          setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
+          return;
+        }
+      }
+      
+      // Сохраняем моковые данные в кэш
       console.log('🔧 Режим разработки: используем моковые данные');
       setUserInfo(mockUserInfo as any);
       setUserStickerSets(mockStickerSets);
       setPagination(0, 1, mockStickerSets.length);
+      setCachedProfile(mockId, mockUserInfo as any, mockStickerSets, {
+        currentPage: 0,
+        totalPages: 1,
+        totalElements: mockStickerSets.length
+      });
       return;
     }
 
-    // Сбрасываем состояние и загружаем профиль
-    reset();
+    // НЕ вызываем reset() - это очищает кэш!
+    // Проверяем, нужна ли загрузка (возможно уже в кэше)
+    if (isCacheValid(currentUserId)) {
+      const cached = getCachedProfile(currentUserId);
+      if (cached) {
+        console.log('📦 Профиль уже в кэше, используем его');
+        setUserInfo(cached.userInfo);
+        setUserStickerSets(cached.stickerSets);
+        setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
+        return;
+      }
+    }
 
     // Настраиваем заголовки: initData либо заголовки расширения в dev
     if (initData) {
@@ -150,8 +183,27 @@ export const MyProfilePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
 
-  // Загрузка своего профиля
-  const loadMyProfile = async (telegramId: number) => {
+  // Загрузка своего профиля с кэшированием
+  const loadMyProfile = async (telegramId: number, forceReload: boolean = false) => {
+    // Проверяем кэш
+    if (!forceReload && isCacheValid(telegramId)) {
+      const cached = getCachedProfile(telegramId);
+      if (cached) {
+        console.log(`📦 Загрузка моего профиля из кэша`);
+        setUserInfo(cached.userInfo);
+        setUserStickerSets(cached.stickerSets);
+        setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
+        
+        // Инициализируем лайки
+        if (cached.stickerSets.length > 0) {
+          initializeLikes(cached.stickerSets);
+        }
+        return;
+      }
+    }
+    
+    // Загружаем с сервера
+    console.log(`🌐 Загрузка моего профиля с сервера`);
     setLoading(true);
     
     try {
@@ -170,6 +222,21 @@ export const MyProfilePage: React.FC = () => {
       
       if (stickerSetsResponse.status === 'rejected') {
         console.error('Ошибка загрузки стикерсетов:', stickerSetsResponse.reason);
+      }
+      
+      // Сохраняем в кэш только если оба запроса успешны
+      if (userResponse.status === 'fulfilled' && stickerSetsResponse.status === 'fulfilled') {
+        const currentUserInfo = useProfileStore.getState().userInfo;
+        const currentStickerSets = useProfileStore.getState().userStickerSets;
+        const currentPagination = {
+          currentPage: useProfileStore.getState().currentPage,
+          totalPages: useProfileStore.getState().totalPages,
+          totalElements: useProfileStore.getState().totalElements
+        };
+        
+        if (currentUserInfo && currentStickerSets) {
+          setCachedProfile(telegramId, currentUserInfo, currentStickerSets, currentPagination);
+        }
       }
 
     } catch (error) {
@@ -571,15 +638,19 @@ export const MyProfilePage: React.FC = () => {
                 />
               ) : (
                 <div className="fade-in">
-                  <GalleryGrid
+                  <SimpleGallery
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
+                    hasNextPage={currentPage < totalPages - 1}
+                    isLoadingMore={isStickerSetsLoading}
+                    onLoadMore={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, undefined, currentPage + 1, true)}
+                    enablePreloading={true}
                   />
                 </div>
               )}
 
-              {/* Показать ещё */}
-              {filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
+              {/* Кнопка "Показать ещё" убрана, так как SimpleGallery использует infinite scroll */}
+              {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                   <Button
                     variant="outlined"

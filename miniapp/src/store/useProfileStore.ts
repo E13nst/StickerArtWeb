@@ -35,7 +35,22 @@ export interface UserInfo {
   profilePhotos?: any; // Коллекция фотографий профиля
 }
 
+// Тип для кэшированного профиля
+interface CachedProfile {
+  userInfo: UserInfo;
+  stickerSets: StickerSetResponse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalElements: number;
+  };
+  timestamp: number;
+}
+
 interface ProfileState {
+  // Кэш профилей (userId -> данные профиля)
+  profileCache: Map<number, CachedProfile>;
+  cacheTTL: number; // Time to live в миллисекундах (по умолчанию 5 минут)
   // Состояние загрузки
   isLoading: boolean;
   isUserLoading: boolean;
@@ -76,12 +91,20 @@ interface ProfileState {
   // Действия для пагинации
   setPagination: (page: number, totalPages: number, totalElements: number) => void;
   
+  // Действия для кэша
+  getCachedProfile: (userId: number) => CachedProfile | null;
+  setCachedProfile: (userId: number, userInfo: UserInfo, stickerSets: StickerSetResponse[], pagination: { currentPage: number; totalPages: number; totalElements: number }) => void;
+  isCacheValid: (userId: number) => boolean;
+  clearCache: (userId?: number) => void;
+  
   // Сброс состояния
   reset: () => void;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
   // Начальное состояние
+  profileCache: new Map<number, CachedProfile>(),
+  cacheTTL: 5 * 60 * 1000, // 5 минут
   isLoading: false,
   isUserLoading: false,
   isStickerSetsLoading: false,
@@ -129,6 +152,55 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   // Действия для пагинации
   setPagination: (page: number, totalPages: number, totalElements: number) => 
     set({ currentPage: page, totalPages, totalElements }),
+  
+  // Действия для кэша
+  getCachedProfile: (userId: number) => {
+    const { profileCache } = get();
+    return profileCache.get(userId) || null;
+  },
+  
+  setCachedProfile: (userId: number, userInfo: UserInfo, stickerSets: StickerSetResponse[], pagination: { currentPage: number; totalPages: number; totalElements: number }) => {
+    const { profileCache } = get();
+    const newCache = new Map(profileCache);
+    newCache.set(userId, {
+      userInfo,
+      stickerSets,
+      pagination,
+      timestamp: Date.now()
+    });
+    set({ profileCache: newCache });
+    console.log(`💾 Профиль пользователя ${userId} сохранен в кэш`);
+  },
+  
+  isCacheValid: (userId: number) => {
+    const { profileCache, cacheTTL } = get();
+    const cached = profileCache.get(userId);
+    if (!cached) return false;
+    
+    const age = Date.now() - cached.timestamp;
+    const isValid = age < cacheTTL;
+    
+    if (!isValid) {
+      console.log(`⏰ Кэш профиля ${userId} устарел (${Math.round(age / 1000)}с)`);
+    } else {
+      console.log(`✅ Кэш профиля ${userId} актуален (${Math.round(age / 1000)}с)`);
+    }
+    
+    return isValid;
+  },
+  
+  clearCache: (userId?: number) => {
+    const { profileCache } = get();
+    if (userId !== undefined) {
+      const newCache = new Map(profileCache);
+      newCache.delete(userId);
+      set({ profileCache: newCache });
+      console.log(`🧹 Кэш профиля ${userId} очищен`);
+    } else {
+      set({ profileCache: new Map() });
+      console.log('🧹 Весь кэш профилей очищен');
+    }
+  },
   
   // Сброс состояния
   reset: () => set({

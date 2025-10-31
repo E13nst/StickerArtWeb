@@ -14,7 +14,11 @@ export default function MainLayout({ children }: Props) {
   return (
     <div className="stixly-main-layout" style={{ position: 'relative', minHeight: '100vh' }}>
       {!isProfilePage && <StixlyTopHeader />}
-      <div>{children}</div>
+      <div style={{ 
+        paddingBottom: 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)' // высота навигации + отступ снизу + дополнительное пространство
+      }}>
+        {children}
+      </div>
       <BottomNav />
     </div>
   );

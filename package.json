@@ -21,7 +21,7 @@
     "test:prod:report": "playwright show-report playwright-report-prod",
     "start": "powershell -ExecutionPolicy Bypass -File scripts/simple-start.ps1",
     "stop": "powershell -ExecutionPolicy Bypass -File scripts/simple-stop.ps1",
-    "restart": "powershell -ExecutionPolicy Bypass -File scripts/simple-stop.ps1; powershell -ExecutionPolicy Bypass -File scripts/simple-start.ps1",
+    "restart": "powershell -ExecutionPolicy Bypass -File scripts/simple-restart.ps1",
     "rebuild": "powershell -ExecutionPolicy Bypass -File scripts/simple-rebuild.ps1",
     "check": "powershell -ExecutionPolicy Bypass -File scripts/simple-check.ps1",
     "quick-test": "powershell -ExecutionPolicy Bypass -File scripts/simple-check.ps1"

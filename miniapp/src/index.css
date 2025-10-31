@@ -40,6 +40,7 @@
   --tg-theme-hint-color: #999999;
   --tg-theme-link-color: #2481cc;
   --tg-theme-button-color: #2481cc;
+  --tg-theme-button-color-rgb: 36, 129, 204;
   --tg-theme-button-text-color: #ffffff;
   --tg-theme-secondary-bg-color: #f8f9fa;
   --tg-theme-border-color: #e0e0e0;
@@ -48,6 +49,126 @@
   --tg-theme-success-color: #4caf50;
   --tg-theme-warning-color: #ff9800;
   --tg-theme-error-color: #f44336;
+}
+
+/* Harmonious proportional utilities (container-first, minimal code) */
+:root {
+  --phi-236: 23.6%;
+  --phi-382: 38.2%;
+  --phi-50: 50%;
+  --phi-618: 61.8%;
+  --phi-764: 76.4%;
+}
+
+/* Mark any element as a container for container query units */
+.cq {
+  container-type: inline-size;
+}
+
+/* Width utilities (percent of parent/container) */
+.w-236 { width: var(--phi-236); }
+.w-382 { width: var(--phi-382); }
+.w-50 { width: var(--phi-50); }
+.w-618 { width: var(--phi-618); }
+.w-764 { width: var(--phi-764); }
+
+/* Height utilities
+   Default: % of parent height (requires definite parent height)
+   In containers: prefer cqh for robustness */
+.h-236 { height: var(--phi-236); }
+.h-382 { height: var(--phi-382); }
+.h-50 { height: var(--phi-50); }
+.h-618 { height: var(--phi-618); }
+.h-764 { height: var(--phi-764); }
+
+@supports (height: 1cqh) {
+  .cq .h-236 { height: 23.6cqh; }
+  .cq .h-382 { height: 38.2cqh; }
+  .cq .h-50 { height: 50cqh; }
+  .cq .h-618 { height: 61.8cqh; }
+  .cq .h-764 { height: 76.4cqh; }
+}
+
+/* Spacing utilities derived from parent/container width */
+.p-236 { padding: var(--phi-236); }
+.p-382 { padding: var(--phi-382); }
+.p-50  { padding: var(--phi-50); }
+.p-618 { padding: var(--phi-618); }
+.p-764 { padding: var(--phi-764); }
+
+.px-236 { padding-left: var(--phi-236); padding-right: var(--phi-236); }
+.px-382 { padding-left: var(--phi-382); padding-right: var(--phi-382); }
+.px-50  { padding-left: var(--phi-50);  padding-right: var(--phi-50); }
+.px-618 { padding-left: var(--phi-618); padding-right: var(--phi-618); }
+.px-764 { padding-left: var(--phi-764); padding-right: var(--phi-764); }
+
+.py-236 { padding-top: var(--phi-236); padding-bottom: var(--phi-236); }
+.py-382 { padding-top: var(--phi-382); padding-bottom: var(--phi-382); }
+.py-50  { padding-top: var(--phi-50);  padding-bottom: var(--phi-50); }
+.py-618 { padding-top: var(--phi-618); padding-bottom: var(--phi-618); }
+.py-764 { padding-top: var(--phi-764); padding-bottom: var(--phi-764); }
+
+.m-236 { margin: var(--phi-236); }
+.m-382 { margin: var(--phi-382); }
+.m-50  { margin: var(--phi-50); }
+.m-618 { margin: var(--phi-618); }
+.m-764 { margin: var(--phi-764); }
+
+.mx-236 { margin-left: var(--phi-236); margin-right: var(--phi-236); }
+.mx-382 { margin-left: var(--phi-382); margin-right: var(--phi-382); }
+.mx-50  { margin-left: var(--phi-50);  margin-right: var(--phi-50); }
+.mx-618 { margin-left: var(--phi-618); margin-right: var(--phi-618); }
+.mx-764 { margin-left: var(--phi-764); margin-right: var(--phi-764); }
+
+.my-236 { margin-top: var(--phi-236); margin-bottom: var(--phi-236); }
+.my-382 { margin-top: var(--phi-382); margin-bottom: var(--phi-382); }
+.my-50  { margin-top: var(--phi-50);  margin-bottom: var(--phi-50); }
+.my-618 { margin-top: var(--phi-618); margin-bottom: var(--phi-618); }
+.my-764 { margin-top: var(--phi-764); margin-bottom: var(--phi-764); }
+
+/* Gap utilities for flex/grid */
+.gap-236 { gap: var(--phi-236); }
+.gap-382 { gap: var(--phi-382); }
+.gap-50  { gap: var(--phi-50); }
+.gap-618 { gap: var(--phi-618); }
+.gap-764 { gap: var(--phi-764); }
+
+/* Flex-basis helpers to size items proportionally in flex layouts */
+.basis-236 { flex: 0 0 var(--phi-236); }
+.basis-382 { flex: 0 0 var(--phi-382); }
+.basis-50  { flex: 0 0 var(--phi-50); }
+.basis-618 { flex: 0 0 var(--phi-618); }
+.basis-764 { flex: 0 0 var(--phi-764); }
+
+/* Common proportional grid splits */
+.grid-236-764 { display: grid; grid-template-columns: var(--phi-236) var(--phi-764); }
+.grid-382-618 { display: grid; grid-template-columns: var(--phi-382) var(--phi-618); }
+
+/* Container-first spacing (use cqw when supported) */
+@supports (width: 1cqw) {
+  .cq .p-236 { padding: 23.6cqw; }
+  .cq .p-382 { padding: 38.2cqw; }
+  .cq .p-50  { padding: 50cqw; }
+  .cq .p-618 { padding: 61.8cqw; }
+  .cq .p-764 { padding: 76.4cqw; }
+
+  .cq .px-236 { padding-left: 23.6cqw; padding-right: 23.6cqw; }
+  .cq .px-382 { padding-left: 38.2cqw; padding-right: 38.2cqw; }
+  .cq .px-50  { padding-left: 50cqw;  padding-right: 50cqw; }
+  .cq .px-618 { padding-left: 61.8cqw; padding-right: 61.8cqw; }
+  .cq .px-764 { padding-left: 76.4cqw; padding-right: 76.4cqw; }
+
+  .cq .py-236 { padding-top: 23.6cqh; padding-bottom: 23.6cqh; }
+  .cq .py-382 { padding-top: 38.2cqh; padding-bottom: 38.2cqh; }
+  .cq .py-50  { padding-top: 50cqh;  padding-bottom: 50cqh; }
+  .cq .py-618 { padding-top: 61.8cqh; padding-bottom: 61.8cqh; }
+  .cq .py-764 { padding-top: 76.4cqh; padding-bottom: 76.4cqh; }
+
+  .cq .gap-236 { gap: 23.6cqw; }
+  .cq .gap-382 { gap: 38.2cqw; }
+  .cq .gap-50  { gap: 50cqw; }
+  .cq .gap-618 { gap: 61.8cqw; }
+  .cq .gap-764 { gap: 76.4cqw; }
 }
 
 html, body {
@@ -284,7 +405,8 @@ a {
 }
 
 /* Отключаем стандартные стили Material-UI и применяем Telegram тему */
-.MuiPaper-root {
+/* Исключаем BottomNav Paper для сохранения прозрачности */
+.MuiPaper-root:not(.bottom-nav-paper) {
   background-color: var(--tg-theme-secondary-bg-color) !important;
   color: var(--tg-theme-text-color) !important;
   border: none !important;
@@ -402,16 +524,22 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   color: var(--tg-theme-button-text-color) !important;
 }
 
-.MuiBottomNavigation-root {
+/* BottomNavigation стили убраны - прозрачность настраивается в компоненте */
+/* .MuiBottomNavigation-root {
   background-color: var(--tg-theme-secondary-bg-color) !important;
-}
+} */
 
+/* Цвета для BottomNavigation настраиваются в компоненте */
 .MuiBottomNavigationAction-root {
   color: var(--tg-theme-hint-color) !important;
+  /* Убираем фон для сохранения прозрачности */
+  background-color: transparent !important;
 }
 
 .MuiBottomNavigationAction-root.Mui-selected {
   color: var(--tg-theme-button-color) !important;
+  /* Убираем фон для сохранения прозрачности */
+  background-color: transparent !important;
 }
 
 /* Tabs scroller — компактный горизонтальный список без скроллбара */
@@ -668,6 +796,7 @@ svg,
   --tg-theme-hint-color: #708499;
   --tg-theme-link-color: #6ab2f2;
   --tg-theme-button-color: #5288c1;
+  --tg-theme-button-color-rgb: 82, 136, 193;
   --tg-theme-button-text-color: #ffffff;
   --tg-theme-secondary-bg-color: #131415;
   --tg-theme-border-color: #2a3441;
@@ -684,6 +813,7 @@ svg,
   --tg-theme-hint-color: #999999;
   --tg-theme-link-color: #2481cc;
   --tg-theme-button-color: #2481cc;
+  --tg-theme-button-color-rgb: 36, 129, 204;
   --tg-theme-button-text-color: #ffffff;
   --tg-theme-secondary-bg-color: #f8f9fa;
   --tg-theme-border-color: #e0e0e0;
@@ -945,43 +1075,67 @@ input.tg-search__input,
       padding: var(--tg-spacing-2);
     }
 
-    /* Debug Panel */
-    .tg-debug-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--tg-theme-secondary-bg-color);
-      border-top: none;
-      z-index: 1000;
-      box-shadow: 0 -2px 10px var(--tg-theme-shadow-color);
-      backdrop-filter: blur(10px);
-    }
-
+    /* Debug Panel - базовые стили для обычной кнопки (если понадобится) */
     .tg-debug-panel__toggle {
       width: 100%;
-      padding: var(--tg-spacing-2) var(--tg-spacing-4);
-      background: var(--tg-theme-secondary-bg-color);
+      padding: var(--tg-spacing-3) var(--tg-spacing-4);
+      background: transparent;
       border: none;
       color: var(--tg-theme-hint-color);
       font-size: var(--tg-font-size-s);
       font-weight: 600;
-      text-align: left;
+      text-align: center;
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: all 0.2s ease;
       font-family: inherit;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      gap: var(--tg-spacing-2);
+      border-radius: calc(100vw * 0.04);
+    }
+
+    /* Компактная кнопка Debug */
+    .tg-debug-panel__toggle--compact {
+      width: calc(100vw * 0.08); /* ~8% от ширины viewport (уменьшено) */
+      height: calc(100vw * 0.08);
+      min-width: 28px;
+      min-height: 28px;
+      max-width: 36px;
+      max-height: 36px;
+      padding: 0;
+      font-size: calc(100vw * 0.03); /* ~3% от ширины viewport (уменьшено) */
+      background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 95%, transparent);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border-radius: 50%; /* делаем круглой */
+      box-shadow: 0 2px 8px var(--tg-theme-shadow-color);
+    }
+
+    .tg-debug-panel__toggle:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .tg-debug-panel__toggle--compact:hover {
+      background: color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent);
+      transform: scale(1.05);
     }
 
     .tg-debug-panel__toggle:active {
-      background: var(--tg-theme-bg-color);
+      background: rgba(0, 0, 0, 0.08);
+      transform: scale(0.98);
+    }
+
+    .tg-debug-panel__toggle--compact:active {
+      background: color-mix(in srgb, var(--tg-theme-button-color) 30%, transparent);
+      transform: scale(0.95);
     }
 
     .tg-debug-panel__content {
       padding: var(--tg-spacing-4);
-      background: var(--tg-theme-bg-color);
+      background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 98%, transparent);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
       max-height: 400px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;

@@ -111,19 +111,37 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
   }
 
   return (
-    <div 
-      className="tg-debug-panel"
-      style={{ position: 'fixed', left: 0, right: 0, bottom: 72, zIndex: 900 }}
-    >
+    <>
       <button 
-        className="tg-debug-panel__toggle"
+        className="tg-debug-panel__toggle tg-debug-panel__toggle--compact"
         onClick={handleToggle}
+        title="Debug Info"
+        style={{
+          position: 'fixed',
+          left: 'calc(100vw * 0.012)', // минимальный отступ слева
+          bottom: 0, // вплотную к низу экрана
+          zIndex: 1001, // выше навигации
+        }}
       >
-        🔍 Debug Info {expanded ? '▼' : '▶'}
+        {expanded ? '▼' : '▶'}
       </button>
       
       {expanded && (
-        <div className="tg-debug-panel__content">
+        <div 
+          className="tg-debug-panel__content"
+          style={{
+            position: 'fixed',
+            left: 'calc(100vw * 0.024)',
+            right: 'calc(100vw * 0.024)',
+            bottom: 'calc(36px + 8px)', // высота кнопки (max) + зазор
+            borderRadius: 'calc(100vw * 0.04)',
+            boxShadow: '0 4px 16px var(--tg-theme-shadow-color)',
+            zIndex: 1002, // выше кнопки и навигации
+            background: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 98%, transparent)',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+          }}
+        >
           {/* Информация о сборке */}
           <div className="tg-debug-panel__section">
             <div className="tg-debug-panel__info">
@@ -217,6 +235,6 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

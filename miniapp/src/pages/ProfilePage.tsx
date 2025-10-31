@@ -28,7 +28,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
-import { GalleryGrid } from '@/components/GalleryGrid';
+import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { BottomNav } from '@/components/BottomNav';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
@@ -44,6 +44,8 @@ export const ProfilePage: React.FC = () => {
     isStickerSetsLoading,
     userInfo,
     userStickerSets,
+    currentPage,
+    totalPages,
     error,
     userError,
     stickerSetsError,
@@ -52,9 +54,13 @@ export const ProfilePage: React.FC = () => {
     setStickerSetsLoading,
     setUserInfo,
     setUserStickerSets,
+    setPagination,
     setError,
     setUserError,
     setStickerSetsError,
+    getCachedProfile,
+    setCachedProfile,
+    isCacheValid,
     reset
   } = useProfileStore();
   const { initializeLikes } = useLikesStore();
@@ -75,13 +81,30 @@ export const ProfilePage: React.FC = () => {
       return;
     }
 
-    // Сбрасываем состояние при смене пользователя
-    reset();
+    // Проверяем кэш перед загрузкой
+    if (isCacheValid(userIdNumber)) {
+      const cached = getCachedProfile(userIdNumber);
+      if (cached) {
+        console.log(`📦 Профиль ${userIdNumber} уже в кэше, используем его`);
+        setUserInfo(cached.userInfo);
+        setUserStickerSets(cached.stickerSets);
+        setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
+        
+        // Инициализируем лайки
+        if (cached.stickerSets.length > 0) {
+          initializeLikes(cached.stickerSets);
+        }
+        return;
+      }
+    }
+
+    // НЕ вызываем reset() - это очищает кэш!
     loadUserProfile(userIdNumber);
   }, [userIdNumber]);
 
-  // Загрузка профиля пользователя
+  // Загрузка профиля пользователя с сервера (кэш проверяется в useEffect)
   const loadUserProfile = async (id: number) => {
+    console.log(`🌐 Загрузка профиля ${id} с сервера`);
     setLoading(true);
     
     try {
@@ -98,6 +121,22 @@ export const ProfilePage: React.FC = () => {
       
       if (stickerSetsResponse.status === 'rejected') {
         console.error('Ошибка загрузки стикерсетов:', stickerSetsResponse.reason);
+      }
+      
+      // Сохраняем в кэш только если оба запроса успешны
+      if (userResponse.status === 'fulfilled' && stickerSetsResponse.status === 'fulfilled') {
+        // Получаем текущие данные из store (они уже установлены в loadUserInfo и loadUserStickerSets)
+        const currentUserInfo = useProfileStore.getState().userInfo;
+        const currentStickerSets = useProfileStore.getState().userStickerSets;
+        const currentPagination = {
+          currentPage: useProfileStore.getState().currentPage,
+          totalPages: useProfileStore.getState().totalPages,
+          totalElements: useProfileStore.getState().totalElements
+        };
+        
+        if (currentUserInfo && currentStickerSets) {
+          setCachedProfile(id, currentUserInfo, currentStickerSets, currentPagination);
+        }
       }
 
     } catch (error) {
@@ -137,6 +176,13 @@ export const ProfilePage: React.FC = () => {
         : await apiClient.getUserStickerSets(id);
       
       setUserStickerSets(response.content || []);
+      
+      // Обновляем пагинацию
+      setPagination(
+        response.number || 0,
+        response.totalPages || 0,
+        response.totalElements || 0
+      );
       
       // Инициализируем лайки из загруженных данных
       if (response.content && response.content.length > 0) {
@@ -439,9 +485,10 @@ export const ProfilePage: React.FC = () => {
                 />
               ) : (
                 <div className="fade-in">
-                  <GalleryGrid
+                  <SimpleGallery
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
+                    enablePreloading={true}
                   />
                 </div>
               )}

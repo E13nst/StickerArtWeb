@@ -58,28 +58,54 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <Paper 
+      className="bottom-nav-paper"
       sx={{ 
         position: 'fixed', 
-        bottom: 0, 
-        left: 0, 
-        right: 0,
+        bottom: 'calc(100vh * 0.024)', // ~2.4% отступ снизу (гармоничное значение)
+        left: 'calc(100vw * 0.024)', // ~2.4% отступ слева
+        right: 'calc(100vw * 0.024)', // ~2.4% отступ справа
         zIndex: 1000,
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        borderTop: '1px solid var(--tg-theme-border-color)',
-        backdropFilter: 'blur(10px)'
+        // Фоллбэк для старых браузеров
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        // Современный способ: более прозрачный фон
+        background: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 70%, transparent)',
+        border: 'none',
+        borderRadius: 'calc(100vw * 0.05)', // ~5% закругление углов (как у Telegram)
+        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        // Добавляем внутренний отступ для контента
+        padding: 'calc(100vh * 0.006) 0', // ~0.6% вертикальный padding (уменьшено)
       }}
-      elevation={8}
+      elevation={0}
     >
       <BottomNavigation
         value={getCurrentTab()}
         onChange={handleNavigation}
         sx={{
-          height: 64,
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          height: 'calc(100vh * 0.062)', // 6.2% от высоты viewport (гармоничное значение)
+          minHeight: '52px',
+          maxHeight: '64px',
+          backgroundColor: 'transparent !important', // Принудительно прозрачный
+          background: 'none !important', // Убираем любой background
+          boxShadow: 'none',
           '& .MuiBottomNavigationAction-root': {
             color: 'var(--tg-theme-hint-color)',
+            minWidth: 'auto',
+            padding: 'calc(100vh * 0.004) calc(100vw * 0.02)', // padding из пропорций (уменьшено)
+            backgroundColor: 'transparent !important',
             '&.Mui-selected': {
               color: 'var(--tg-theme-button-color)',
+              backgroundColor: 'rgba(var(--tg-theme-button-color-rgb, 36, 129, 204), 0.1) !important',
+              borderRadius: 'calc(100vw * 0.03)',
+            },
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+            '& .MuiSvgIcon-root': {
+              fontSize: 'calc(100vw * 0.055)', // ~5.5% от ширины viewport для иконок (уменьшено)
+              minFontSize: '20px',
+              maxFontSize: '26px',
             },
           },
         }}

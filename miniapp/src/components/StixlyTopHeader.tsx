@@ -167,15 +167,19 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
       onClick={handleToggle}
       style={{
         position: 'absolute',
-        bottom: '12px',
-        right: '12px',
-        width: '32px',
-        height: '32px',
+        bottom: 'calc(100vh * 0.015)', // ~1.5% от высоты viewport
+        right: 'calc(100vw * 0.03)', // ~3% от ширины viewport
+        width: 'calc(100vw * 0.084)', // ~8.4% от ширины viewport
+        height: 'calc(100vw * 0.084)',
+        minWidth: '28px',
+        minHeight: '28px',
+        maxWidth: '40px',
+        maxHeight: '40px',
         borderRadius: '50%',
         border: `1px solid ${borderColor}`,
         background: 'transparent',
         color: 'rgba(255, 255, 255, 0.9)',
-        fontSize: '16px',
+        fontSize: 'calc(100vw * 0.042)', // ~4.2% от ширины viewport
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -257,11 +261,13 @@ export default function StixlyTopHeader({ profileMode }: StixlyTopHeaderProps = 
         style={{
           position: "relative",
           width: "100%",
-          height: "280px",
+          height: "calc(100vh * 0.382)", // 38.2% от высоты viewport (золотая пропорция)
+          minHeight: "240px",
+          maxHeight: "320px",
           zIndex: 1,
           overflow: "visible",
-          borderBottomLeftRadius: "1.5rem",
-          borderBottomRightRadius: "1.5rem",
+          borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
+          borderBottomRightRadius: "calc(100vw * 0.038)",
           background: profileMode.backgroundColor,
           backgroundImage: patternUrl ? `url(${patternUrl})` : undefined,
           backgroundRepeat: 'repeat',
@@ -276,7 +282,7 @@ export default function StixlyTopHeader({ profileMode }: StixlyTopHeaderProps = 
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "20px",
+              padding: "calc(100vw * 0.05)", // ~5% от ширины viewport
             }}
           >
             {profileMode.content}
@@ -294,11 +300,13 @@ export default function StixlyTopHeader({ profileMode }: StixlyTopHeaderProps = 
       style={{
         position: "relative",
         width: "100%",
-        height: "119px", // 14.6% золотой пропорции для минимальных элементов
+        height: "calc(100vh * 0.146)", // 14.6% от высоты viewport (упрощенная золотая пропорция)
+        minHeight: "100px",
+        maxHeight: "140px",
         zIndex: 1,
         overflow: "hidden",
-        borderBottomLeftRadius: "1.5rem",
-        borderBottomRightRadius: "1.5rem",
+        borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
+        borderBottomRightRadius: "calc(100vw * 0.038)",
         pointerEvents: "auto", // разрешаем взаимодействия для кнопки
       }}
     >
