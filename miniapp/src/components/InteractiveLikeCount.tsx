@@ -47,9 +47,11 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Подписываемся на изменения конкретного лайка через селектор
-  const { likesCount, isLiked } = useLikesStore((state) => 
-    state.likes[packId] || { packId, isLiked: false, likesCount: 0 }
-  );
+  const { likesCount, isLiked } = useLikesStore((state) => {
+    const likeState = state.likes[packId] || { packId, isLiked: false, likesCount: 0 };
+    console.log(`🔍 DEBUG InteractiveLikeCount [${packId}]:`, likeState);
+    return likeState;
+  });
   const toggleLike = useLikesStore((state) => state.toggleLike);
 
   const sizeStyles = {

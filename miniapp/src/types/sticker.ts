@@ -70,7 +70,8 @@ export interface StickerSetResponse {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
-  likes?: number;
+  likes?: number;  // Общее количество лайков
+  isLiked?: boolean;  // Лайкнул ли ТЕКУЩИЙ пользователь (требует авторизации)
   categories?: string[]; // Категории стикерсета (animals, memes, etc.)
 }
 

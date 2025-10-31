@@ -164,7 +164,9 @@ export const useLikesStore = create<LikesStore>()(
         }));
       },
 
-      initializeLikes: (stickerSets: Array<{ id: number; likes?: number }>) => {
+      initializeLikes: (stickerSets: Array<{ id: number; likes?: number; isLiked?: boolean }>) => {
+        console.log('🔍 DEBUG initializeLikes: Получено стикерсетов:', stickerSets.length);
+        
         set((state) => {
           // Используем Map для эффективного batch обновления
           const updates = new Map<string, LikeState>();
@@ -184,13 +186,29 @@ export const useLikesStore = create<LikesStore>()(
             // Инициализируем только если API предоставляет актуальные данные о лайках
             if (stickerSet.likes !== undefined) {
               const packId = stickerSet.id.toString();
+              
+              // ВАЖНО: Приоритет данных от API! 
+              // Если API вернул isLiked - используем его, иначе берем из локального store
+              const isLiked = stickerSet.isLiked !== undefined 
+                ? stickerSet.isLiked  // ✅ Данные от API (авторизованный пользователь)
+                : (filteredLikes[packId]?.isLiked || false);  // Fallback к локальному store
+              
+              console.log(`🔍 DEBUG: Стикерсет ${packId}:`, {
+                apiIsLiked: stickerSet.isLiked,
+                storeIsLiked: filteredLikes[packId]?.isLiked,
+                finalIsLiked: isLiked,
+                likes: stickerSet.likes
+              });
+              
               updates.set(packId, {
                 packId,
-                isLiked: filteredLikes[packId]?.isLiked || false,
+                isLiked,
                 likesCount: stickerSet.likes
               });
             }
           });
+          
+          console.log(`✅ DEBUG: Инициализировано ${updates.size} лайков`);
           
           // Одно обновление вместо N отдельных обновлений
           if (updates.size === 0) return { likes: filteredLikes };
