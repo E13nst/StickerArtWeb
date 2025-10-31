@@ -71,6 +71,7 @@ export interface StickerSetResponse {
   lastName?: string;
   avatarUrl?: string;
   likes?: number;
+  categories?: string[]; // Категории стикерсета (animals, memes, etc.)
 }
 
 // Доп. метаданные набора (загружаются отдельно)
@@ -131,4 +132,15 @@ export interface ProfileResponse {
   user: ProfileUser;
   createdAt: string;
   updatedAt: string;
+}
+
+// Категории стикеров (из API)
+export interface CategoryResponse {
+  id: number;
+  key: string;
+  name: string;
+  description: string;
+  iconUrl?: string;
+  displayOrder: number;
+  isActive: boolean;
 }

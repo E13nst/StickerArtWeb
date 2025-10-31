@@ -566,6 +566,11 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   display: none !important;
 }
 
+/* Category filter scroller — matches production styling */
+.category-filter-scroller::-webkit-scrollbar {
+  display: none;
+}
+
 /* Внутренний контейнер табов — ровное выравнивание и интервалы */
 .MuiTabs-flexContainer {
   display: flex !important;

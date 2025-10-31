@@ -19,6 +19,7 @@ import { SearchBar } from '../components/SearchBar';
 // Новые компоненты галереи
 import { SimpleGallery } from '../components/SimpleGallery';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
+import { CategoryFilter, Category } from '../components/CategoryFilter';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -38,13 +39,26 @@ export const GalleryPage: React.FC = () => {
   const { checkAuth } = useAuth();
   const { initializeLikes } = useLikesStore();
 
+  // Категории стикеров (загружаются с API)
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Адаптер для преобразования CategoryResponse в Category для UI
+  const adaptCategoriesToUI = useCallback((apiCategories: typeof apiClient extends { getCategories(): Promise<infer T> } ? Awaited<T> : never): Category[] => {
+    return apiCategories.map(cat => ({
+      id: cat.key,
+      label: cat.name,
+      title: cat.description
+    }));
+  }, []);
+
   // Оптимизированное локальное состояние
   const [uiState, setUiState] = useState({
     searchTerm: '',
     selectedStickerSet: null as StickerSetResponse | null,
     isDetailOpen: false,
     manualInitData: '',
-    isLoadingMore: false
+    isLoadingMore: false,
+    selectedCategories: [] as string[]
   });
 
   // Debounced search term для оптимизации поиска
@@ -94,8 +108,12 @@ export const GalleryPage: React.FC = () => {
     }
   }, []);
 
-  // Загрузка стикерсетов - исправлена циклическая зависимость
-  const fetchStickerSets = useCallback(async (page: number = 0, isLoadMore: boolean = false) => {
+  // Загрузка стикерсетов - с поддержкой фильтрации по категориям
+  const fetchStickerSets = useCallback(async (
+    page: number = 0, 
+    isLoadMore: boolean = false,
+    filterCategories?: string[]
+  ) => {
     if (isLoadMore) {
       setUiState(prev => ({ ...prev, isLoadingMore: true }));
     } else {
@@ -117,8 +135,10 @@ export const GalleryPage: React.FC = () => {
         console.log('🔧 Режим без авторизации: загружаем публичные данные');
       }
 
-      // Загружаем данные сразу, не дожидаясь авторизации (публичная галерея)
-      const response = await apiClient.getStickerSets(page);
+      // Загружаем данные с фильтром по категориям
+      const response = await apiClient.getStickerSets(page, 20, {
+        categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined
+      });
       
       if (isLoadMore) {
         // Добавляем новые стикерсеты к существующим
@@ -162,12 +182,12 @@ export const GalleryPage: React.FC = () => {
     }
   }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
 
-  // Загрузка следующей страницы
+  // Загрузка следующей страницы с учетом фильтров
   const loadMoreStickerSets = useCallback(() => {
     if (currentPage < totalPages - 1 && !uiState.isLoadingMore) {
-      fetchStickerSets(currentPage + 1, true);
+      fetchStickerSets(currentPage + 1, true, uiState.selectedCategories);
     }
-  }, [currentPage, totalPages, uiState.isLoadingMore, fetchStickerSets]);
+  }, [currentPage, totalPages, uiState.isLoadingMore, uiState.selectedCategories, fetchStickerSets]);
 
   // Поиск стикерсетов
   const searchStickerSets = useCallback(async (query: string) => {
@@ -237,6 +257,17 @@ export const GalleryPage: React.FC = () => {
     }
   }, [searchStickerSets, fetchStickerSets]);
 
+  const handleCategoryToggle = useCallback((categoryId: string) => {
+    setUiState(prev => {
+      const isSelected = prev.selectedCategories.includes(categoryId);
+      const newCategories = isSelected
+        ? prev.selectedCategories.filter(id => id !== categoryId)
+        : [...prev.selectedCategories, categoryId];
+      
+      return { ...prev, selectedCategories: newCategories };
+    });
+  }, []);
+
   // Debounced поиск отключен - поиск только по требованию (Enter или клик)
   // useEffect(() => {
   //   if (debouncedSearchTerm) {
@@ -244,12 +275,20 @@ export const GalleryPage: React.FC = () => {
   //   }
   // }, [debouncedSearchTerm, searchStickerSets]);
 
-  // Оптимизированная фильтрация с мемоизацией
-  const filteredStickerSets = useMemo(() => 
-    stickerSets.filter(stickerSet =>
-      stickerSet.title.toLowerCase().includes(uiState.searchTerm.toLowerCase())
-    ), [stickerSets, uiState.searchTerm]
-  );
+  // Оптимизированная фильтрация с мемоизацией (только по локальному поисковому запросу)
+  // Фильтрация по категориям теперь происходит на сервере через API
+  const filteredStickerSets = useMemo(() => {
+    let filtered = stickerSets;
+
+    // Фильтр по поисковому запросу (локальный)
+    if (uiState.searchTerm.trim()) {
+      filtered = filtered.filter(stickerSet =>
+        stickerSet.title.toLowerCase().includes(uiState.searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [stickerSets, uiState.searchTerm]);
 
   // Мемоизация адаптированных данных для галереи
   const galleryPacks = useMemo(() => 
@@ -257,10 +296,32 @@ export const GalleryPage: React.FC = () => {
     [filteredStickerSets]
   );
 
+  // Загрузка категорий при инициализации
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await apiClient.getCategories();
+        const adaptedCategories = adaptCategoriesToUI(categoriesData);
+        setCategories(adaptedCategories);
+      } catch (error) {
+        console.error('❌ Ошибка загрузки категорий:', error);
+      }
+    };
+
+    loadCategories();
+  }, [adaptCategoriesToUI]);
+
+  // Перезагрузка при изменении выбранных категорий
+  useEffect(() => {
+    if (isReady) {
+      fetchStickerSets(0, false, uiState.selectedCategories);
+    }
+  }, [uiState.selectedCategories]); // Реагируем на изменение категорий
+
   // Инициализация - исправлен бесконечный цикл
   useEffect(() => {
     if (isReady) {
-      fetchStickerSets();
+      fetchStickerSets(0, false, uiState.selectedCategories);
     }
   }, [isReady, uiState.manualInitData]); // Убрали fetchStickerSets из зависимостей
 
@@ -283,7 +344,15 @@ export const GalleryPage: React.FC = () => {
           disabled={isLoading}
         />
 
-
+        {/* Category Filter */}
+        {categories.length > 0 && (
+          <CategoryFilter
+            categories={categories}
+            selectedCategories={uiState.selectedCategories}
+            onCategoryToggle={handleCategoryToggle}
+            disabled={isLoading}
+          />
+        )}
 
         {/* Content */}
         {isLoading ? (
@@ -293,9 +362,15 @@ export const GalleryPage: React.FC = () => {
         ) : filteredStickerSets.length === 0 ? (
           <EmptyState
             title="🎨 Стикеры не найдены"
-            message={uiState.searchTerm ? 'По вашему запросу ничего не найдено' : 'У вас пока нет созданных наборов стикеров'}
-            actionLabel="Создать стикер"
-            onAction={() => {
+            message={
+              uiState.selectedCategories.length > 0 
+                ? `Нет стикеров с выбранными категориями. Попробуйте снять фильтр или выбрать другие категории.`
+                : uiState.searchTerm 
+                  ? 'По вашему запросу ничего не найдено' 
+                  : 'У вас пока нет созданных наборов стикеров'
+            }
+            actionLabel={uiState.selectedCategories.length > 0 ? undefined : "Создать стикер"}
+            onAction={uiState.selectedCategories.length > 0 ? undefined : () => {
               if (tg) {
                 tg.openTelegramLink('https://t.me/StickerGalleryBot');
               }

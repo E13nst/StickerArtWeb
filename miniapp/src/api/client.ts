@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
@@ -142,11 +142,70 @@ class ApiClient {
     console.log('🧹 Заголовки аутентификации удалены');
   }
 
-  // Получение списка стикерсетов с пагинацией
-  async getStickerSets(page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
-    const response = await this.client.get<StickerSetListResponse>('/stickersets', {
-      params: { page, size }
-    });
+  // Получение категорий стикеров
+  // API возвращает список CategoryDto с локализованными названиями
+  // Поддерживает заголовок X-Language (ru/en) для локализации
+  async getCategories(): Promise<CategoryResponse[]> {
+    try {
+      const response = await this.client.get<CategoryResponse[]>('/categories');
+      // API возвращает массив активных категорий, отсортированных по displayOrder
+      return response.data.filter(cat => cat.isActive);
+    } catch (error) {
+      console.warn('⚠️ Не удалось загрузить категории с API, используем fallback');
+      // Fallback категории, если API недоступен
+      return [
+        { id: 1, key: 'animals', name: 'Animals', description: 'Stickers with animals', displayOrder: 1, isActive: true },
+        { id: 2, key: 'memes', name: 'Memes', description: 'Popular memes', displayOrder: 2, isActive: true },
+        { id: 3, key: 'emotions', name: 'Emotions', description: 'Express emotions', displayOrder: 3, isActive: true },
+        { id: 4, key: 'cute', name: 'Cute', description: 'Cute and funny stickers', displayOrder: 4, isActive: true },
+        { id: 5, key: 'anime', name: 'Anime', description: 'Anime characters', displayOrder: 5, isActive: true },
+        { id: 6, key: 'cartoons', name: 'Cartoons', description: 'Cartoon characters', displayOrder: 6, isActive: true },
+        { id: 7, key: 'food', name: 'Food', description: 'Food and drinks stickers', displayOrder: 7, isActive: true },
+        { id: 8, key: 'nature', name: 'Nature', description: 'Nature and landscapes', displayOrder: 8, isActive: true },
+        { id: 9, key: 'people', name: 'People', description: 'People and celebrities', displayOrder: 9, isActive: true },
+        { id: 10, key: 'holidays', name: 'Holidays', description: 'Holiday stickers', displayOrder: 10, isActive: true },
+        { id: 11, key: 'work', name: 'Work', description: 'Work-related stickers', displayOrder: 11, isActive: true },
+        { id: 12, key: 'love', name: 'Love', description: 'Romantic stickers', displayOrder: 12, isActive: true },
+        { id: 13, key: 'funny', name: 'Funny', description: 'Humorous stickers', displayOrder: 13, isActive: true },
+        { id: 14, key: 'sports', name: 'Sports', description: 'Sports stickers', displayOrder: 14, isActive: true },
+        { id: 15, key: 'music', name: 'Music', description: 'Music stickers', displayOrder: 15, isActive: true },
+        { id: 16, key: 'technology', name: 'Technology', description: 'Technology and electronics stickers', displayOrder: 16, isActive: true },
+        { id: 17, key: 'movies', name: 'Movies', description: 'Movie and TV series stickers', displayOrder: 17, isActive: true }
+      ];
+    }
+  }
+
+  // Получение списка стикерсетов с пагинацией и фильтрацией
+  async getStickerSets(
+    page: number = 0, 
+    size: number = 20,
+    options?: {
+      categoryKeys?: string[]; // Фильтр по категориям (массив ключей)
+      likedOnly?: boolean;     // Только лайкнутые
+      sort?: string;           // Поле для сортировки
+      direction?: 'ASC' | 'DESC'; // Направление сортировки
+    }
+  ): Promise<StickerSetListResponse> {
+    const params: Record<string, any> = { page, size };
+    
+    if (options?.categoryKeys && options.categoryKeys.length > 0) {
+      // API ожидает строку через запятую
+      params.categoryKeys = options.categoryKeys.join(',');
+    }
+    
+    if (options?.likedOnly) {
+      params.likedOnly = true;
+    }
+    
+    if (options?.sort) {
+      params.sort = options.sort;
+    }
+    
+    if (options?.direction) {
+      params.direction = options.direction;
+    }
+    
+    const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
     return response.data;
   }
 
