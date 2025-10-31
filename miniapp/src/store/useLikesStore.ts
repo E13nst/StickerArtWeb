@@ -165,7 +165,14 @@ export const useLikesStore = create<LikesStore>()(
         }));
       },
 
-      initializeLikes: (stickerSets: Array<{ id: number; likes?: number; isLiked?: boolean }>) => {
+      initializeLikes: (stickerSets: Array<{ 
+        id: number; 
+        // API возвращает разные названия в разных endpoints
+        likes?: number;              // Старое название
+        likesCount?: number;         // Новое название (GET /stickersets)
+        isLiked?: boolean;           // Старое название
+        isLikedByCurrentUser?: boolean;  // Новое название (GET /stickersets)
+      }>) => {
         console.log('🔍 DEBUG initializeLikes: Получено стикерсетов:', stickerSets.length);
         
         set((state) => {
@@ -184,27 +191,33 @@ export const useLikesStore = create<LikesStore>()(
           });
           
           stickerSets.forEach(stickerSet => {
-            // Инициализируем только если API предоставляет актуальные данные о лайках
-            if (stickerSet.likes !== undefined) {
+            // API возвращает либо likesCount, либо likes
+            const apiLikesCount = stickerSet.likesCount ?? stickerSet.likes;
+            
+            // Инициализируем только если API предоставляет данные о лайках
+            if (apiLikesCount !== undefined) {
               const packId = stickerSet.id.toString();
               
-              // ВАЖНО: Приоритет данных от API! 
-              // Если API вернул isLiked - используем его, иначе берем из локального store
-              const isLiked = stickerSet.isLiked !== undefined 
-                ? stickerSet.isLiked  // ✅ Данные от API (авторизованный пользователь)
+              // ВАЖНО: Приоритет данных от API!
+              // API возвращает либо isLikedByCurrentUser, либо isLiked
+              const apiIsLiked = stickerSet.isLikedByCurrentUser ?? stickerSet.isLiked;
+              
+              const isLiked = apiIsLiked !== undefined 
+                ? apiIsLiked  // ✅ Данные от API (авторизованный пользователь)
                 : (filteredLikes[packId]?.isLiked || false);  // Fallback к локальному store
               
               console.log(`🔍 DEBUG: Стикерсет ${packId}:`, {
+                apiIsLikedByCurrentUser: stickerSet.isLikedByCurrentUser,
                 apiIsLiked: stickerSet.isLiked,
                 storeIsLiked: filteredLikes[packId]?.isLiked,
                 finalIsLiked: isLiked,
-                likes: stickerSet.likes
+                apiLikesCount: apiLikesCount
               });
               
               updates.set(packId, {
                 packId,
                 isLiked,
-                likesCount: stickerSet.likes
+                likesCount: apiLikesCount
               });
             }
           });

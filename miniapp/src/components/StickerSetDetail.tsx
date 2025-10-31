@@ -85,13 +85,25 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           setFullStickerSet(fullData);
           
           // Инициализируем лайки только если API предоставляет данные
-          // И только если в store еще нет данных для этого стикерсета
-          if (fullData.likes !== undefined && fullData.likes >= 0) {
+          // API может вернуть либо likesCount, либо likes
+          const apiLikesCount = fullData.likesCount ?? fullData.likes;
+          const apiIsLiked = fullData.isLikedByCurrentUser ?? fullData.isLiked;
+          
+          if (apiLikesCount !== undefined && apiLikesCount >= 0) {
             const currentState = getLikeState(stickerSet.id.toString());
-            // Обновляем только если в store нет данных (likesCount === 0)
-            if (currentState.likesCount === 0) {
-              setLike(stickerSet.id.toString(), false, fullData.likes);
-            }
+            
+            // Обновляем данные от API (они приоритетнее локального store)
+            setLike(
+              stickerSet.id.toString(), 
+              apiIsLiked ?? currentState.isLiked,  // Если API не вернул - берем из store
+              apiLikesCount
+            );
+            
+            console.log(`🔍 DEBUG StickerSetDetail: Инициализация лайков для ${stickerSet.id}:`, {
+              apiLikesCount,
+              apiIsLiked,
+              currentState
+            });
           }
           
           // Предзагружаем миниатюры асинхронно

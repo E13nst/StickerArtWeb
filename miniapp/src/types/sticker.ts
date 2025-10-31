@@ -70,9 +70,25 @@ export interface StickerSetResponse {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
-  likes?: number;  // Общее количество лайков
-  isLiked?: boolean;  // Лайкнул ли ТЕКУЩИЙ пользователь (требует авторизации)
-  categories?: string[]; // Категории стикерсета (animals, memes, etc.)
+  
+  // Лайки - API использует разные названия полей в разных endpoints:
+  // GET /stickersets возвращает:
+  likesCount?: number;              // Общее количество лайков
+  isLikedByCurrentUser?: boolean;   // Лайкнул ли ТЕКУЩИЙ пользователь
+  
+  // Для обратной совместимости (старые названия):
+  likes?: number;      
+  isLiked?: boolean;   
+  
+  categories?: Array<{
+    id: number;
+    key: string;
+    name: string;
+    description: string;
+    iconUrl?: string;
+    displayOrder: number;
+    isActive: boolean;
+  }>; // Категории стикерсета
 }
 
 // Доп. метаданные набора (загружаются отдельно)
