@@ -365,22 +365,23 @@ export const ProfilePage: React.FC = () => {
             {/* Аватар с overlap */}
             <FloatingAvatar userInfo={userInfo} size="large" overlap={50} />
             
-            {/* Имя пользователя под аватаром */}
+            {/* Username под аватаром */}
             <Box sx={{ 
               textAlign: 'center', 
               mb: 2,
-              mt: -2
+              mt: -2,
+              position: 'relative',
+              zIndex: 10
             }}>
-              <Typography variant="h5" fontWeight="bold" sx={{ 
-                color: 'var(--tg-theme-text-color)',
-                mb: 0.5
-              }}>
-                {getUserFullName(userInfo)}
-              </Typography>
               {getUserUsername(userInfo) && (
-                <Typography variant="body2" sx={{ 
-                  color: 'var(--tg-theme-hint-color)'
-                }}>
+                <Typography 
+                  variant="h6" 
+                  fontWeight="600"
+                  sx={{ 
+                    color: 'var(--tg-theme-text-color)',
+                    fontSize: '1.125rem'
+                  }}
+                >
                   @{getUserUsername(userInfo)}
                 </Typography>
               )}
