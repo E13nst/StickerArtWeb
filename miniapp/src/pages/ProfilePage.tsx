@@ -101,6 +101,13 @@ export const ProfilePage: React.FC = () => {
       }
     }
 
+    // Устанавливаем заголовки авторизации, если есть initData
+    if (initData) {
+      apiClient.setAuthHeaders(initData);
+    } else {
+      apiClient.checkExtensionHeaders();
+    }
+
     // НЕ вызываем reset() - это очищает кэш!
     loadUserProfile(userIdNumber);
   }, [userIdNumber]);

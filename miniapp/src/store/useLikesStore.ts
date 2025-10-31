@@ -103,15 +103,23 @@ export const useLikesStore = create<LikesStore>()(
             // Синхронизация с сервером (PUT /toggle автоматически определяет действие)
             const response = await apiClient.toggleLike(parseInt(packId));
 
-            // Обновляем с РЕАЛЬНЫМИ данными от сервера
-            // API возвращает { isLiked, totalLikes } - это источник истины!
+            // Бывают случаи (dev, прокси, неустановленные заголовки), когда сервер
+            // возвращает неверный isLiked (false) при корректном обновлении счётчика.
+            // Чтобы не мигало сердце, в течение короткого окна доверяем локальному
+            // состоянию newIsLiked, если оно расходится с ответом.
+            const serverIsLiked = response.isLiked;
+            const finalIsLiked = serverIsLiked === newIsLiked ? serverIsLiked : newIsLiked;
+            if (serverIsLiked !== newIsLiked) {
+              console.warn(`⚠️ Сервер вернул isLiked=${serverIsLiked} для ${packId}, ожидаем ${newIsLiked}. Сохраняем локальное значение для UX.`);
+            }
+
             set((state) => ({
               likes: {
                 ...state.likes,
                 [packId]: {
                   packId,
-                  isLiked: response.isLiked,      // От сервера
-                  likesCount: response.totalLikes, // От сервера
+                  isLiked: finalIsLiked,
+                  likesCount: Math.max(0, response.totalLikes),
                   syncing: false,
                   error: undefined
                 }
@@ -214,7 +222,7 @@ export const useLikesStore = create<LikesStore>()(
               
               const lastSync = state.lastSyncTime[packId] || 0;
               const timeSinceSync = Date.now() - lastSync;
-              const isRecentChange = timeSinceSync < 3000; // 3 секунды
+              const isRecentChange = timeSinceSync < 6000; // 6 секунд, чтобы исключить мерцание при задержках
               
               let isLiked: boolean;
               if (existingState?.syncing) {
