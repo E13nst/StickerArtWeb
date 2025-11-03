@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
 
 interface StickerThumbnailProps {
@@ -18,6 +18,7 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Используем thumbFileId если доступен, иначе основной fileId
   const actualFileId = thumbFileId || fileId;
@@ -25,6 +26,13 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
   
   // Отладочная информация
   console.log('🖼️ StickerThumbnail:', { fileId, thumbFileId, actualFileId, size, imageUrl });
+
+  // Проверяем готовность изображения после монтирования
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      setLoading(false);
+    }
+  }, []);
 
   const handleLoad = () => {
     console.log('✅ Image loaded:', imageUrl);
@@ -81,6 +89,7 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
         </div>
       )}
       <img
+        ref={imgRef}
         src={imageUrl}
         alt={emoji || ''}
         className={className}

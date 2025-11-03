@@ -15,6 +15,9 @@ import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerThumbnail } from './StickerThumbnail';
 import { useLikesStore } from '@/store/useLikesStore';
+import { imageLoader } from '@/utils/imageLoader';
+import { LoadPriority } from '@/utils/imageLoader';
+import { prefetchSticker } from '@/utils/animationLoader';
 
 // Простое кеширование метаданных для мгновенного отображения при повторном открытии
 const metaCache = new Map<number, StickerSetMeta>();
@@ -70,6 +73,35 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const setLike = useLikesStore((state) => state.setLike);
   const getLikeState = useLikesStore((state) => state.getLikeState);
 
+  // Функция предзагрузки миниатюр
+  const preloadThumbnails = useCallback(async (stickers: any[]) => {
+    if (!isModal) return; // Предзагружаем только в модальном окне
+    console.log('🔄 Preloading thumbnails with MODAL priority...');
+    
+    const promises = stickers.map((sticker, index) => {
+      const actualFileId = sticker.thumb?.file_id || sticker.file_id;
+      const imageUrl = getStickerThumbnailUrl(actualFileId, 128);
+      return imageLoader.loadImage(actualFileId, imageUrl, LoadPriority.TIER_0_MODAL, stickerSet.id.toString(), index);
+    });
+    
+    await Promise.allSettled(promises);
+    console.log('✅ All thumbnails preloaded');
+  }, [isModal, stickerSet.id]);
+
+  // Функция предзагрузки больших стикеров
+  const preloadLargeStickers = useCallback(async (stickers: any[]) => {
+    if (!isModal) return; // Предзагружаем только в модальном окне
+    console.log('🔄 Preloading large stickers with MODAL priority...');
+    
+    const promises = stickers.map((sticker, index) => {
+      const imageUrl = getStickerImageUrl(sticker.file_id);
+      return prefetchSticker(sticker.file_id, imageUrl);
+    });
+    
+    await Promise.allSettled(promises);
+    console.log('✅ All large stickers preloaded');
+  }, [isModal]);
+
   // Не инициализируем лайки из пропсов - только из API данных
 
   // Загружаем полную информацию о стикерсете с сервера
@@ -108,13 +140,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             });
           }
           
-          // Предзагружаем миниатюры асинхронно
-          preloadThumbnails(fullData.telegramStickerSetInfo?.stickers || []);
+          // Предзагружаем миниатюры сначала
+          await preloadThumbnails(fullData.telegramStickerSetInfo?.stickers || []);
           
-          // Предзагружаем большие стикеры асинхронно
-          setTimeout(() => {
-            preloadLargeStickers(fullData.telegramStickerSetInfo?.stickers || []);
-          }, 1000); // Задержка 1 секунда, чтобы не блокировать UI
+          // Проверяем что модальное окно все еще открыто
+          if (!mounted) return;
+          
+          // Затем предзагружаем большие стикеры
+          preloadLargeStickers(fullData.telegramStickerSetInfo?.stickers || []);
         }
       } catch (err) {
         console.warn('Ошибка загрузки полной информации о стикерсете:', err);
@@ -132,47 +165,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
     loadFullStickerSet();
     return () => { mounted = false; };
-  }, [stickerSet.id, getLikeState, setLike]);
-
-  // Функция предзагрузки миниатюр
-  const preloadThumbnails = (stickers: any[]) => {
-    console.log('🔄 Preloading thumbnails...');
-    stickers.forEach((sticker, index) => {
-      const actualFileId = sticker.thumb?.file_id || sticker.file_id;
-      const imageUrl = getStickerThumbnailUrl(actualFileId, 128);
-      
-      // Создаем Image объект для предзагрузки
-      const img = new Image();
-      img.onload = () => {
-        console.log(`✅ Preloaded thumbnail ${index + 1}/${stickers.length}`);
-      };
-      img.onerror = () => {
-        console.warn(`❌ Failed to preload thumbnail ${index + 1}`);
-      };
-      img.src = imageUrl;
-    });
-  };
-
-  // Функция предзагрузки больших стикеров (только первые несколько)
-  const preloadLargeStickers = (stickers: any[]) => {
-    console.log('🔄 Preloading large stickers...');
-    // Предзагружаем только первые 3 стикера для быстрого переключения
-    const stickersToPreload = stickers.slice(0, 3);
-    
-    stickersToPreload.forEach((sticker, index) => {
-      const imageUrl = getStickerImageUrl(sticker.file_id);
-      
-      // Создаем Image объект для предзагрузки
-      const img = new Image();
-      img.onload = () => {
-        console.log(`✅ Preloaded large sticker ${index + 1}/${stickersToPreload.length}`);
-      };
-      img.onerror = () => {
-        console.warn(`❌ Failed to preload large sticker ${index + 1}`);
-      };
-      img.src = imageUrl;
-    });
-  };
+  }, [stickerSet.id, getLikeState, setLike, preloadThumbnails, preloadLargeStickers]);
 
   // Загружаем метаданные БЕЗ синхронизации лайков
   useEffect(() => {
@@ -483,6 +476,24 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           }}>
             {stickerSet.title}
           </Typography>
+          {meta && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--tg-spacing-3)' }}>
+              <a 
+                href={`/miniapp/profile/${meta.author.id}`} 
+                style={{ 
+                  textDecoration: 'none', 
+                  fontWeight: 600,
+                  fontSize: 'var(--tg-font-size-s)',
+                  color: '#4fc3f7',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                }}
+                onMouseEnter={(e) => e.target.style.color = '#81d4fa'}
+                onMouseLeave={(e) => e.target.style.color = '#4fc3f7'}
+              >
+                {meta.author.firstName} {meta.author.lastName || ''}
+              </a>
+            </Box>
+          )}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>
             <IconButton
               aria-label="like"
@@ -535,22 +546,38 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               <ShareIcon />
             </IconButton>
           </Box>
-          {meta && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--tg-spacing-2)' }}>
-              <a 
-                href={`/miniapp/profile/${meta.author.id}`} 
-                style={{ 
-                  textDecoration: 'none', 
-                  fontWeight: 600,
-                  fontSize: 'var(--tg-font-size-s)',
-                  color: '#4fc3f7',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.8)'
-                }}
-                onMouseEnter={(e) => e.target.style.color = '#81d4fa'}
-                onMouseLeave={(e) => e.target.style.color = '#4fc3f7'}
-              >
-                {meta.author.firstName} {meta.author.lastName || ''}
-              </a>
+          {/* Категории горизонтальная скролл лента */}
+          {(fullStickerSet?.categories && fullStickerSet.categories.length > 0) && (
+            <Box sx={{ 
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              padding: 'var(--tg-spacing-3)',
+              marginTop: 'var(--tg-spacing-3)',
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' },
+              maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+              WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+            }}>
+              {fullStickerSet.categories.map((category) => (
+                <Box
+                  key={category.id}
+                  sx={{
+                    flexShrink: 0,
+                    padding: '4px 12px',
+                    borderRadius: '13px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                  }}
+                >
+                  {category.name}
+                </Box>
+              ))}
             </Box>
           )}
         </CardContent>

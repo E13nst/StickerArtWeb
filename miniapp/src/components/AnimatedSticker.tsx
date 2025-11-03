@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Lottie from 'lottie-react';
-
-// Глобальный кеш для Lottie анимаций
-const animationCache = new Map<string, any>();
+import type { LottieRefCurrentProps } from 'lottie-react';
+import { animationCache } from '../utils/animationLoader';
 
 interface AnimatedStickerProps {
   fileId: string;
@@ -22,6 +21,10 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   const [animationData, setAnimationData] = useState<any>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Refs для управления анимацией и IntersectionObserver
+  const animationRef = useRef<LottieRefCurrentProps>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,8 +80,8 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
             setAnimationData(data);
           }
         } else {
-          // Если это не JSON (например, webp/png), показываем ошибку
-          console.log('🎬 Not a JSON animation, using fallback:', fileId);
+          // Если это не JSON (webp/png/gif), используем fallback к <img>
+          console.log('🎬 Not a JSON animation, will use fallback image:', fileId);
           if (!cancelled) {
             setError(true);
           }
@@ -102,14 +105,80 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
     };
   }, [fileId, imageUrl]);
 
+  // IntersectionObserver для паузы анимаций вне viewport
+  useEffect(() => {
+    if (!animationRef.current || !containerRef.current || !animationData) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!animationRef.current) return;
+        
+        // Не возобновляем если модальное окно открыто
+        if (document.body.classList.contains('modal-open')) return;
+        
+        if (!entry.isIntersecting) {
+          animationRef.current.pause();
+        } else {
+          animationRef.current.play();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '50px'
+      }
+    );
+
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [animationData, fileId]);
+
+  // MutationObserver для паузы всех анимаций при открытии модального окна
+  useEffect(() => {
+    if (!animationRef.current || !containerRef.current) return;
+
+    const mutationObserver = new MutationObserver(() => {
+      if (!animationRef.current || !containerRef.current) return;
+      
+      const isModalOpen = document.body.classList.contains('modal-open');
+      
+      if (isModalOpen) {
+        animationRef.current.pause();
+      } else {
+        // Возобновляем только если элемент видим в viewport (как у IntersectionObserver)
+        const rect = containerRef.current.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        const isVisible = rect.top < windowHeight + 50 && rect.bottom > -50;
+        if (isVisible) {
+          animationRef.current.play();
+        }
+      }
+    });
+
+    mutationObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => {
+      mutationObserver.disconnect();
+    };
+  }, [animationData]);
+
   if (loading) {
     return (
-      <div className={className} style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        fontSize: '48px' 
-      }}>
+      <div 
+        ref={containerRef}
+        className={className} 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          fontSize: '48px' 
+        }}
+      >
         {hidePlaceholder ? null : (emoji || '🎨')}
       </div>
     );
@@ -118,40 +187,45 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   if (error || !animationData) {
     // Fallback - пробуем показать как обычное изображение
     return (
-      <img
-        src={imageUrl}
-        alt={emoji || ''}
-        className={className}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }}
-        onError={(e) => {
-          // Если и изображение не загрузилось - показываем эмодзи
-          console.log('🎬 Image fallback failed, showing emoji:', fileId);
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          const parent = target.parentElement;
-          if (parent) {
-            parent.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 48px;">${emoji || '🎨'}</div>`;
-          }
-        }}
-      />
+      <div ref={containerRef}>
+        <img
+          src={imageUrl}
+          alt={emoji || ''}
+          className={className}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+          onError={(e) => {
+            // Если и изображение не загрузилось - показываем эмодзи
+            console.log('🎬 Image fallback failed, showing emoji:', fileId);
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 48px;">${emoji || '🎨'}</div>`;
+            }
+          }}
+        />
+      </div>
     );
   }
 
   return (
-    <Lottie
-      animationData={animationData}
-      loop={true}
-      autoplay={true}
-      className={className}
-      style={{
-        width: '100%',
-        height: '100%',
-      }}
-    />
+    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+      <Lottie
+        lottieRef={animationRef}
+        animationData={animationData}
+        loop={true}
+        autoplay={true}
+        className={className}
+        style={{
+          width: '100%',
+          height: '100%',
+        }}
+      />
+    </div>
   );
 };
 

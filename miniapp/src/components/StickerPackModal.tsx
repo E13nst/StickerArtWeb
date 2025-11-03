@@ -14,7 +14,7 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, sticke
   if (!stickerSet) return null;
 
   return (
-    <ModalBackdrop open={open}>
+    <ModalBackdrop open={open} onClose={onClose}>
       <StickerSetDetail
         stickerSet={stickerSet}
         onBack={onClose}

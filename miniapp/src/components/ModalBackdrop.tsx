@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
 import { useTelegram } from '@/hooks/useTelegram';
+import { clearNonGalleryAnimations } from '@/utils/animationLoader';
 
 interface ModalBackdropProps {
   open: boolean;
   children: React.ReactNode;
+  onClose?: () => void;
 }
 
-export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children }) => {
+export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, onClose }) => {
   const { themeParams } = useTelegram();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -17,11 +19,15 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children }) 
       setIsVisible(true);
     } else {
       const timer = setTimeout(() => setIsVisible(false), 200);
+      
+      // Очищаем кеш анимаций после закрытия модального окна
+      clearNonGalleryAnimations();
+      
       return () => clearTimeout(timer);
     }
   }, [open]);
 
-  // Блокируем скролл body при открытии модального окна
+  // Блокируем скролл body и добавляем класс для паузы анимаций при открытии модального окна
   useEffect(() => {
     if (open) {
       const originalStyle = {
@@ -29,9 +35,11 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children }) 
       };
 
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
 
       return () => {
         document.body.style.overflow = originalStyle.overflow;
+        document.body.classList.remove('modal-open');
       };
     }
   }, [open]);
@@ -51,8 +59,15 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children }) 
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
   return (
     <Box
+      onClick={handleBackdropClick}
       sx={{
         position: 'fixed',
         top: 0,
