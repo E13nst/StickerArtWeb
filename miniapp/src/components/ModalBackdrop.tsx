@@ -24,23 +24,34 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children }) 
   // Блокируем скролл body при открытии модального окна
   useEffect(() => {
     if (open) {
+      // Сохраняем текущую позицию скролла
+      const scrollY = window.scrollY;
+      
       const originalStyle = {
         overflow: document.body.style.overflow,
         position: document.body.style.position,
         width: document.body.style.width,
         height: document.body.style.height,
+        top: document.body.style.top,
       };
 
+      // Устанавливаем top для сохранения позиции скролла
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
       document.body.style.height = '100%';
+      document.body.style.top = `-${scrollY}px`;
 
       return () => {
+        // Восстанавливаем стили
         document.body.style.overflow = originalStyle.overflow;
         document.body.style.position = originalStyle.position;
         document.body.style.width = originalStyle.width;
         document.body.style.height = originalStyle.height;
+        document.body.style.top = originalStyle.top;
+        
+        // Восстанавливаем позицию скролла
+        window.scrollTo(0, scrollY);
       };
     }
   }, [open]);
