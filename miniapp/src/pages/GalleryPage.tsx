@@ -152,14 +152,9 @@ export const GalleryPage: React.FC = () => {
       }
       
       // Инициализируем лайки из API данных
+      // При загрузке дополнительных страниц используем mergeMode=true для защиты от перезаписи
       if (response.content && response.content.length > 0) {
-        console.log('🔍 DEBUG: Инициализация лайков из API:', response.content.map(s => ({
-          id: s.id,
-          title: s.title,
-          likes: s.likes,
-          isLiked: s.isLiked
-        })));
-        initializeLikes(response.content);
+        initializeLikes(response.content, isLoadMore);
       }
       
       // Обновляем информацию о пагинации
