@@ -64,23 +64,82 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 ### API Integration
 - **Base URL**: `https://stickerartgallery-e13nst.amvera.io`
 - **Аутентификация**: всегда используй `X-Telegram-Init-Data` заголовок с `window.Telegram.WebApp.initData`
-- **Документация**: см. `.cursor/api-reference.md` для полного списка endpoints
-- **Кэширование**: стикеры кэшируются в Redis на 7 дней
-- **Локализация**: поддерживаем `ru` и `en` (по умолчанию `en`)
+- **Локализация**: поддерживаем `ru` и `en` (по умолчанию `en`) через заголовок `X-Language`
+- **Кэширование**: стикеры кэшируются в Redis на 7 дней, API GET запросы кэшируются Nginx на 10 минут
+
+### API Endpoints
+
+#### Категории (Categories)
+- `GET /api/categories` — список активных категорий (поддержка `X-Language` для локализации)
+  - Response: `CategoryResponse[]` (id, key, name, description, displayOrder, isActive)
+
+#### Стикерсеты (StickerSets)
+- `GET /api/stickersets` — список стикерсетов с пагинацией
+  - Params: `page`, `size`, `categoryKeys` (через запятую), `likedOnly`, `sort`, `direction` (ASC/DESC)
+  - Response: `StickerSetListResponse` (content, totalElements, totalPages, size, number)
+  - Fields: `likesCount`, `isLikedByCurrentUser` (используй nullish coalescing)
+- `GET /api/stickersets/search` — поиск стикерсетов по названию
+  - Params: `name`, `page`, `size`
+  - Response: `StickerSetListResponse`
+- `GET /api/stickersets/{id}` — получение стикерсета по ID
+  - Response: `StickerSetResponse` (полная информация о стикерсете)
+- `DELETE /api/stickersets/{id}` — удаление стикерсета (требует аутентификации)
+- `GET /api/stickersets/user/{userId}` — стикерсеты пользователя
+  - Params: `page`, `size`, `sort`, `direction`
+  - Response: `StickerSetListResponse`
+- `GET /api/stickersets/user/{userId}/search` — поиск стикерсетов пользователя
+  - Params: `name`, `page`, `size`
+  - Response: `StickerSetListResponse`
+
+#### Аутентификация (Auth)
+- `GET /api/auth/status` — проверка статуса аутентификации
+  - Headers: `X-Telegram-Init-Data` (обязательно)
+  - Response: `AuthResponse` (user, authenticated, role)
+
+#### Лайки (Likes)
+- `PUT /api/likes/stickersets/{id}/toggle` — переключение лайка (единственный метод для like/unlike)
+  - Response: `{ isLiked: boolean, totalLikes: number }`
+  - **Важно**: используй ТОЛЬКО этот endpoint для работы с лайками
+- `GET /api/likes/stickersets` — лайкнутые стикерсеты текущего пользователя
+  - Params: `page`, `size`
+  - Response: `StickerSetListResponse`
+- `GET /api/likes/top-stickersets` — топ стикерсетов по лайкам
+  - Params: `limit` (default: 10)
+  - Response: `StickerSetResponse[]`
+
+#### Профили (Profiles)
+- `GET /api/profiles/{userId}` — профиль пользователя по ID
+  - Response: `ProfileResponse` (userId, user, role, artBalance)
+- `GET /api/profiles/me` — профиль текущего пользователя
+  - Response: `{ role: string, artBalance: number, userId: number }`
+
+#### Пользователи (Users)
+- `GET /api/users/{userId}/photo` — фото профиля пользователя
+  - Response: `{ profilePhotoFileId?: string, profilePhotos?: any }` или `404` если нет фото
+
+#### Прокси (Proxy)
+- `GET /api/proxy/stickers/{fileId}` — проксирование стикера по file_id
+  - Query: `?file=true|1` для агрессивного кэширования (14 дней)
+  - Query: `?size={size}` для указания размера изображения
+  - Response: `Blob` (изображение стикера)
+  - **Кэширование**: только при `file=true|1`, иначе не кэшируется
+
+#### Конфигурация (Config)
+- `GET /api/config` — конфигурация приложения
+  - Response: `{ botName: string, miniAppUrl: string }`
 
 ### Likes System (критично!)
 - **Store**: `useLikesStore` (Zustand) с optimistic updates, debounce (500ms), rollback
-- **API**: используй ТОЛЬКО `PUT /api/likes/stickersets/{id}/toggle` для like/unlike
-  - Response: `{ isLiked: boolean, totalLikes: number }`
-- **Field Mapping**: API возвращает разные названия в разных endpoints:
+- **API**: используй ТОЛЬКО `PUT /api/likes/stickersets/{id}/toggle` (см. раздел "Лайки" выше)
+- **Field Mapping**: API возвращает разные названия в разных endpoints — всегда используй nullish coalescing:
   - `GET /stickersets`: `likesCount`, `isLikedByCurrentUser`
   - `PUT /toggle`: `totalLikes`, `isLiked`
-  - Всегда используй nullish coalescing: `likesCount ?? likes`, `isLikedByCurrentUser ?? isLiked`
-- **ЗАЩИТА от race condition**: `initializeLikes` НЕ должна перезаписывать локальные изменения:
+  - Маппинг: `likesCount ?? totalLikes`, `isLikedByCurrentUser ?? isLiked`
+- **Защита от race condition**: `initializeLikes` НЕ должна перезаписывать локальные изменения:
   - Если `syncing: true` → игнорировать API
   - Если изменение < 3 сек назад и API вернул ДРУГОЕ значение → игнорировать API (старый кэш)
   - Иначе → использовать данные от API
-- **DDoS Protection**: rate limiting (1 req/sec/sticker), debounce, offline queue, max 3 retries
+- **DDoS Protection**: rate limiting (1 req/sec/sticker), debounce (500ms), offline queue, max 3 retries
 
 ### React Patterns
 - **Компоненты**: функциональные компоненты с хуками
@@ -140,7 +199,8 @@ Before implementing any solution, briefly analyze the requirements and confirm u
   - `--port 3000` — фиксированный порт
 
 ### Reference Files
-- API документация: `.cursor/api-reference.md`
-- Правила проекта: `.cursor/project-rules.md`
-- Swagger UI: `https://stickerartgallery-e13nst.amvera.io/v3/api-docs`
+- API документация: `.cursor/api-reference.md` (если существует)
+- Правила проекта: `.cursor/project-rules.md` (если существует)
+- **Swagger UI**: `https://stickerartgallery-e13nst.amvera.io/swagger-ui/index.html#/`
+- **OpenAPI JSON**: `https://stickerartgallery-e13nst.amvera.io/v3/api-docs`
 ---

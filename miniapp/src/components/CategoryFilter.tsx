@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTelegram } from '../hooks/useTelegram';
+import { SortButton } from './SortButton';
 
 export interface Category {
   id: string;
@@ -12,13 +13,19 @@ interface CategoryFilterProps {
   selectedCategories: string[];
   onCategoryToggle: (categoryId: string) => void;
   disabled?: boolean;
+  sortByLikes?: boolean;
+  onSortToggle?: () => void;
+  sortDisabled?: boolean;
 }
 
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories,
   selectedCategories,
   onCategoryToggle,
-  disabled = false
+  disabled = false,
+  sortByLikes = false,
+  onSortToggle,
+  sortDisabled = false
 }) => {
   const { tg } = useTelegram();
 
@@ -36,12 +43,22 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   return (
     <div
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
         padding: '4px 8px',
         height: '48px',
         backgroundColor: 'transparent',
         overflow: 'hidden',
       }}
     >
+      {onSortToggle && (
+        <SortButton
+          sortByLikes={sortByLikes}
+          onToggle={onSortToggle}
+          disabled={sortDisabled || disabled}
+        />
+      )}
       <div
         style={{
           display: 'flex',
@@ -50,6 +67,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           scrollbarWidth: 'none',
           height: '100%',
           alignItems: 'center',
+          flex: 1,
+          minWidth: 0,
         }}
         className="category-filter-scroller"
       >
@@ -104,4 +123,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     </div>
   );
 };
+
+
+
+
+
+
+
 

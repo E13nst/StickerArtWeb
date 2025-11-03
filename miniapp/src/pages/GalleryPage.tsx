@@ -58,7 +58,8 @@ export const GalleryPage: React.FC = () => {
     isDetailOpen: false,
     manualInitData: '',
     isLoadingMore: false,
-    selectedCategories: [] as string[]
+    selectedCategories: [] as string[],
+    sortByLikes: false
   });
 
   // Debounced search term для оптимизации поиска
@@ -135,9 +136,11 @@ export const GalleryPage: React.FC = () => {
         console.log('🔧 Режим без авторизации: загружаем публичные данные');
       }
 
-      // Загружаем данные с фильтром по категориям
+      // Загружаем данные с фильтром по категориям и сортировкой
       const response = await apiClient.getStickerSets(page, 20, {
-        categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined
+        categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined,
+        sort: uiState.sortByLikes ? 'likesCount' : undefined,
+        direction: uiState.sortByLikes ? 'DESC' : undefined
       });
       
       if (isLoadMore) {
@@ -186,7 +189,7 @@ export const GalleryPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [uiState.manualInitData, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
+  }, [uiState.manualInitData, uiState.sortByLikes, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
 
   // Загрузка следующей страницы с учетом фильтров
   const loadMoreStickerSets = useCallback(() => {
@@ -280,6 +283,10 @@ export const GalleryPage: React.FC = () => {
     });
   }, []);
 
+  const handleSortToggle = useCallback(() => {
+    setUiState(prev => ({ ...prev, sortByLikes: !prev.sortByLikes }));
+  }, []);
+
   // Debounced поиск отключен - поиск только по требованию (Enter или клик)
   // useEffect(() => {
   //   if (debouncedSearchTerm) {
@@ -323,12 +330,12 @@ export const GalleryPage: React.FC = () => {
     loadCategories();
   }, [adaptCategoriesToUI]);
 
-  // Перезагрузка при изменении выбранных категорий
+  // Перезагрузка при изменении выбранных категорий или сортировки
   useEffect(() => {
     if (isReady) {
       fetchStickerSets(0, false, uiState.selectedCategories);
     }
-  }, [uiState.selectedCategories]); // Реагируем на изменение категорий
+  }, [uiState.selectedCategories, uiState.sortByLikes]); // Реагируем на изменение категорий и сортировки
 
   // Инициализация - исправлен бесконечный цикл
   useEffect(() => {
@@ -378,13 +385,16 @@ export const GalleryPage: React.FC = () => {
           disabled={isLoading}
         />
 
-        {/* Category Filter */}
+        {/* Category Filter with Sort Button */}
         {categories.length > 0 && (
           <CategoryFilter
             categories={categories}
             selectedCategories={uiState.selectedCategories}
             onCategoryToggle={handleCategoryToggle}
             disabled={isLoading}
+            sortByLikes={uiState.sortByLikes}
+            onSortToggle={handleSortToggle}
+            sortDisabled={isLoading || !!uiState.searchTerm}
           />
         )}
 
