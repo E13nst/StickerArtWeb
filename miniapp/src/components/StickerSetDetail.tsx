@@ -483,17 +483,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           }}>
             {stickerSet.title}
           </Typography>
-          {meta && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--tg-spacing-2)' }}>
-              <Typography variant="body2" sx={{ 
-                color: 'rgba(255, 255, 255, 0.8)',
-                fontSize: 'var(--tg-font-size-s)',
-                textShadow: '0 1px 2px rgba(0,0,0,0.8)'
-              }}>
-                Автор: {meta.author.firstName} {meta.author.lastName || ''}
-              </Typography>
-            </Box>
-          )}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>
             <IconButton
               aria-label="like"
