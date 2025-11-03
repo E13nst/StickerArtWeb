@@ -343,9 +343,9 @@ export const MyProfilePage: React.FC = () => {
     navigate('/'); // Возврат на главную
   };
 
-  const handleViewStickerSet = (id: number, _name: string) => {
+  const handleViewStickerSet = (packId: string) => {
     const source = setsFilter === 'liked' ? likedStickerSets : userStickerSets;
-    const stickerSet = source.find(s => s.id === id);
+    const stickerSet = source.find(s => s.id.toString() === packId);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsModalOpen(true);

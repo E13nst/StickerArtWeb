@@ -217,8 +217,8 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleViewStickerSet = (id: number, _name: string) => {
-    const stickerSet = userStickerSets.find(s => s.id === id);
+  const handleViewStickerSet = (packId: string) => {
+    const stickerSet = userStickerSets.find(s => s.id.toString() === packId);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsModalOpen(true);
