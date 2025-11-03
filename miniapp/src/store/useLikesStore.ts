@@ -200,65 +200,61 @@ export const useLikesStore = create<LikesStore>()(
           
           stickerSets.forEach(stickerSet => {
             // API возвращает либо likesCount, либо likes
-            const apiLikesCount = stickerSet.likesCount ?? stickerSet.likes;
+            const apiLikesCount = stickerSet.likesCount ?? stickerSet.likes ?? 0;
+            const packId = stickerSet.id.toString();
+            const existingState = filteredLikes[packId];
             
-            // Инициализируем только если API предоставляет данные о лайках
-            if (apiLikesCount !== undefined) {
-              const packId = stickerSet.id.toString();
-              const existingState = filteredLikes[packId];
-              
-              // API возвращает либо isLikedByCurrentUser, либо isLiked
-              const apiIsLiked = stickerSet.isLikedByCurrentUser ?? stickerSet.isLiked;
-              
-              // КРИТИЧЕСКИ ВАЖНАЯ ЛОГИКА ПРИОРИТЕТА:
-              // 1. Если есть локальное изменение которое сейчас синхронизируется (syncing: true)
-              //    → НЕ ПЕРЕЗАПИСЫВАЕМ! Оставляем локальное состояние
-              // 2. Если изменение было недавно (< 3 сек) и API вернул ДРУГОЕ значение
-              //    → НЕ ПЕРЕЗАПИСЫВАЕМ! API еще не обновил кэш
-              // 3. Если API вернул данные и прошло достаточно времени
-              //    → Используем данные от API (они свежее)
-              // 4. Если API не вернул данных
-              //    → Fallback к локальному store
-              
-              const lastSync = state.lastSyncTime[packId] || 0;
-              const timeSinceSync = Date.now() - lastSync;
-              const isRecentChange = timeSinceSync < 6000; // 6 секунд, чтобы исключить мерцание при задержках
-              
-              let isLiked: boolean;
-              if (existingState?.syncing) {
-                // Идет синхронизация - НЕ ПЕРЕЗАПИСЫВАЕМ локальное состояние!
-                isLiked = existingState.isLiked;
-                console.log(`⚠️ ЗАЩИТА: Стикерсет ${packId} синхронизируется, сохраняем локальное состояние:`, existingState.isLiked);
-              } else if (isRecentChange && existingState && apiIsLiked !== undefined && apiIsLiked !== existingState.isLiked) {
-                // API вернул СТАРОЕ значение, но у нас свежее изменение (< 3 сек)
-                isLiked = existingState.isLiked;
-                console.log(`⚠️ ЗАЩИТА: Стикерсет ${packId} изменен недавно (${timeSinceSync}ms), игнорируем старые данные API`);
-              } else if (apiIsLiked !== undefined) {
-                // API вернул свежие данные и прошло достаточно времени
-                isLiked = apiIsLiked;
-              } else {
-                // Fallback к локальному store
-                isLiked = existingState?.isLiked || false;
-              }
-              
-              console.log(`🔍 DEBUG: Стикерсет ${packId}:`, {
-                apiIsLikedByCurrentUser: stickerSet.isLikedByCurrentUser,
-                apiIsLiked: stickerSet.isLiked,
-                storeIsLiked: existingState?.isLiked,
-                storeSyncing: existingState?.syncing,
-                finalIsLiked: isLiked,
-                apiLikesCount: apiLikesCount
-              });
-              
-              updates.set(packId, {
-                packId,
-                isLiked,
-                likesCount: apiLikesCount,
-                // Сохраняем флаг syncing если он был
-                syncing: existingState?.syncing,
-                error: existingState?.error
-              });
+            // API возвращает либо isLikedByCurrentUser, либо isLiked
+            const apiIsLiked = stickerSet.isLikedByCurrentUser ?? stickerSet.isLiked;
+            
+            // КРИТИЧЕСКИ ВАЖНАЯ ЛОГИКА ПРИОРИТЕТА:
+            // 1. Если есть локальное изменение которое сейчас синхронизируется (syncing: true)
+            //    → НЕ ПЕРЕЗАПИСЫВАЕМ! Оставляем локальное состояние
+            // 2. Если изменение было недавно (< 3 сек) и API вернул ДРУГОЕ значение
+            //    → НЕ ПЕРЕЗАПИСЫВАЕМ! API еще не обновил кэш
+            // 3. Если API вернул данные и прошло достаточно времени
+            //    → Используем данные от API (они свежее)
+            // 4. Если API не вернул данных
+            //    → Fallback к локальному store
+            
+            const lastSync = state.lastSyncTime[packId] || 0;
+            const timeSinceSync = Date.now() - lastSync;
+            const isRecentChange = timeSinceSync < 6000; // 6 секунд, чтобы исключить мерцание при задержках
+            
+            let isLiked: boolean;
+            if (existingState?.syncing) {
+              // Идет синхронизация - НЕ ПЕРЕЗАПИСЫВАЕМ локальное состояние!
+              isLiked = existingState.isLiked;
+              console.log(`⚠️ ЗАЩИТА: Стикерсет ${packId} синхронизируется, сохраняем локальное состояние:`, existingState.isLiked);
+            } else if (isRecentChange && existingState && apiIsLiked !== undefined && apiIsLiked !== existingState.isLiked) {
+              // API вернул СТАРОЕ значение, но у нас свежее изменение (< 3 сек)
+              isLiked = existingState.isLiked;
+              console.log(`⚠️ ЗАЩИТА: Стикерсет ${packId} изменен недавно (${timeSinceSync}ms), игнорируем старые данные API`);
+            } else if (apiIsLiked !== undefined) {
+              // API вернул свежие данные и прошло достаточно времени
+              isLiked = apiIsLiked;
+            } else {
+              // Fallback к локальному store
+              isLiked = existingState?.isLiked || false;
             }
+            
+            console.log(`🔍 DEBUG: Стикерсет ${packId}:`, {
+              apiIsLikedByCurrentUser: stickerSet.isLikedByCurrentUser,
+              apiIsLiked: stickerSet.isLiked,
+              storeIsLiked: existingState?.isLiked,
+              storeSyncing: existingState?.syncing,
+              finalIsLiked: isLiked,
+              apiLikesCount: apiLikesCount
+            });
+            
+            updates.set(packId, {
+              packId,
+              isLiked,
+              likesCount: apiLikesCount,
+              // Сохраняем флаг syncing если он был
+              syncing: existingState?.syncing,
+              error: existingState?.error
+            });
           });
           
           console.log(`✅ DEBUG: Инициализировано ${updates.size} лайков`);

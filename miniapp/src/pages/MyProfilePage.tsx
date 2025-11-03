@@ -371,6 +371,11 @@ export const MyProfilePage: React.FC = () => {
       setStickerSetsLoading(true);
       const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
       setLikedStickerSets(response.content || []);
+      
+      // Инициализируем лайки из загруженных данных
+      if (response.content && response.content.length > 0) {
+        initializeLikes(response.content);
+      }
     } catch (e) {
       console.warn('⚠️ Не удалось загрузить понравившиеся стикерсеты (используем моки/локальные данные)');
       // Fallback: фильтруем текущие по локальному лайку, если есть
