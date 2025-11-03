@@ -26,7 +26,7 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
     
     const stickers = stickerSet.telegramStickerSetInfo?.stickers || [];
     
-    // Выбираем 4 случайных стикера для превью
+    // Выбираем 3 случайных стикера для превью
     const getRandomStickers = (stickers: any[], count: number) => {
       if (stickers.length === 0) return [];
       if (stickers.length <= count) return stickers;
@@ -39,7 +39,7 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       return shuffled.slice(0, count);
     };
     
-    const randomStickers = getRandomStickers(stickers, 4);
+    const randomStickers = getRandomStickers(stickers, 3);
     
     const result: GalleryPack = {
       id: stickerSet.id.toString(),

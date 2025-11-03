@@ -1,8 +1,11 @@
-import React, { useCallback, memo, useState } from 'react';
+import React, { useCallback, memo, useState, useEffect } from 'react';
 import { useNearVisible } from '../hooks/useNearVisible';
 import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
+import { imageLoader } from '../utils/imageLoader';
+import { prefetchAnimation } from '../utils/animationLoader';
+import { LoadPriority } from '../utils/imageLoader';
 
 interface Pack {
   id: string;
@@ -30,6 +33,44 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 }) => {
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
   const [isHovered, setIsHovered] = useState(false);
+  const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
+
+  // Предзагрузка первого стикера
+  useEffect(() => {
+    if (pack.previewStickers.length > 0 && isNear) {
+      const firstSticker = pack.previewStickers[0];
+      const priority = isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE;
+      
+      // Загружаем изображение и JSON если анимация
+      imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority)
+        .then(() => {
+          console.log(`✅ First sticker ready for pack ${pack.id}`);
+          setIsFirstStickerReady(true);
+          
+          // Prefetch JSON для анимаций
+          if (firstSticker.isAnimated) {
+            prefetchAnimation(firstSticker.fileId, firstSticker.url).catch(() => {});
+          }
+        })
+        .catch(() => {
+          console.warn(`⚠️ Failed to load first sticker for pack ${pack.id}`);
+          setIsFirstStickerReady(true); // Показываем даже если ошибка
+        });
+
+      // Предзагрузка остальных стикеров фоном с меньшим приоритетом
+      for (let i = 1; i < pack.previewStickers.length; i++) {
+        const sticker = pack.previewStickers[i];
+        imageLoader.loadImage(sticker.fileId, sticker.url, LoadPriority.TIER_4_BACKGROUND)
+          .then(() => {
+            // Prefetch JSON для анимаций
+            if (sticker.isAnimated) {
+              prefetchAnimation(sticker.fileId, sticker.url).catch(() => {});
+            }
+          })
+          .catch(() => {}); // Игнорируем ошибки для фоновых стикеров
+      }
+    }
+  }, [pack.id, pack.previewStickers, isNear, isHighPriority]);
 
   // Используем хук для управления ротацией стикеров
   const { currentIndex: currentStickerIndex } = useStickerRotation({
@@ -38,7 +79,8 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     hoverRotateInterval: 618,
     isHovered,
     isVisible: isNear,
-    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url }))
+    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url })),
+    minDisplayDuration: 2000
   });
 
   // Мемоизированный обработчик клика
@@ -73,45 +115,58 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         transition: 'transform 0.233s ease, box-shadow 0.233s ease' // 0.233 ≈ 1/φ
       }}
     >
-      {/* Сменяющиеся превью стикеров */}
+      {/* Сменяющиеся превью стикеров - ОПТИМИЗИРОВАНО: рендерим только активный */}
       <div style={{ 
         width: '100%', 
         height: '100%', 
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {pack.previewStickers.map((sticker, index) => {
-          const isActive = index === currentStickerIndex;
-          const isNext = index === (currentStickerIndex + 1) % pack.previewStickers.length;
+        {!isFirstStickerReady ? (
+          // Skeleton loader пока первый стикер загружается
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '48px',
+              color: 'var(--tg-theme-hint-color)',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }}
+          >
+            {pack.previewStickers[0]?.emoji || '🎨'}
+          </div>
+        ) : (() => {
+          const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
+          if (!activeSticker) return null;
           
           return (
             <div
-              key={`${pack.id}-${sticker.fileId}-${index}`}
+              key={`${pack.id}-${activeSticker.fileId}-${currentStickerIndex}`}
               data-testid="sticker-preview"
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
                 width: '100%',
                 height: '100%',
-                opacity: isActive ? 1 : 0,
-                transform: isActive ? 'scale(1)' : 'scale(0.95)',
-                transition: 'opacity 0.618s ease-in-out, transform 0.618s ease-in-out', // Золотое сечение
-                zIndex: isActive ? 2 : 1
+                position: 'absolute',
+                top: 0,
+                left: 0
               }}
             >
-              {sticker.fileId ? (
-                sticker.isAnimated ? (
+              {activeSticker.fileId ? (
+                activeSticker.isAnimated ? (
                   <AnimatedSticker
-                    fileId={sticker.fileId}
-                    imageUrl={sticker.url}
-                    emoji={sticker.emoji}
+                    fileId={activeSticker.fileId}
+                    imageUrl={activeSticker.url}
+                    emoji={activeSticker.emoji}
                     className="pack-card-animated-sticker"
                   />
                 ) : (
                   <img
-                    src={sticker.url}
-                    alt={sticker.emoji}
+                    src={activeSticker.url}
+                    alt={activeSticker.emoji}
                     className="pack-card-image"
                     style={{
                       width: '100%',
@@ -134,12 +189,12 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                     color: 'var(--tg-theme-hint-color)'
                   }}
                 >
-                  {sticker.emoji}
+                  {activeSticker.emoji}
                 </div>
               )}
             </div>
           );
-        })}
+        })()}
       </div>
       
       {/* Заголовок пака */}

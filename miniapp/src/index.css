@@ -7,6 +7,12 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Анимация пульсации для skeleton loader */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
