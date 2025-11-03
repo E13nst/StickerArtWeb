@@ -15,31 +15,14 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, sticke
 
   return (
     <ModalBackdrop open={open}>
-      <div 
-        data-testid="sticker-pack-modal"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        onClick={(e) => {
-          // Закрываем модальное окно при клике на фон
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
-      >
-        <StickerSetDetail
-          stickerSet={stickerSet}
-          onBack={onClose}
-          onShare={() => {}}
-          onLike={onLike}
-          isInTelegramApp={true}
-        />
-      </div>
+      <StickerSetDetail
+        stickerSet={stickerSet}
+        onBack={onClose}
+        onShare={() => {}}
+        onLike={onLike}
+        isInTelegramApp={true}
+        isModal={true}
+      />
     </ModalBackdrop>
   );
 };

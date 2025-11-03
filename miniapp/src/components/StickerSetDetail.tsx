@@ -25,6 +25,7 @@ interface StickerSetDetailProps {
   onShare: (name: string, title: string) => void;
   onLike?: (id: number, title: string) => void;
   isInTelegramApp?: boolean;
+  isModal?: boolean;
 }
 
 export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
@@ -32,7 +33,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   onBack,
   onShare,
   onLike,
-  isInTelegramApp: _isInTelegramApp = false
+  isInTelegramApp: _isInTelegramApp = false,
+  isModal = false
 }) => {
   const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -233,7 +235,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   if (loading) {
     return (
       <Box sx={{ 
-        height: '100vh', 
+        height: isModal ? 'auto' : '100vh', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
@@ -256,7 +258,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   if (error && !fullStickerSet) {
     return (
       <Box sx={{ 
-        height: '100vh', 
+        height: isModal ? 'auto' : '100vh', 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
@@ -289,7 +291,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   return (
     <Box sx={{ 
-      height: '100vh', 
+      height: isModal ? 'auto' : '100vh', 
       overflow: 'hidden', 
       display: 'flex', 
       flexDirection: 'column', 
