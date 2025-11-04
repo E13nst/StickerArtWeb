@@ -638,26 +638,42 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         </Box>
       </Box>
 
-      {/* Информация о наборе: внизу, без аватара, крупное имя набора и кликабельный автор */}
-      <Card sx={{ 
-        width: 'min(92vw, 720px)', 
-        marginTop: 'var(--tg-spacing-3)', 
-        zIndex: 9999, // Очень высокий z-index
-        position: 'relative',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Более прозрачный фон
-        border: '2px solid rgba(255, 255, 255, 0.3)', // Белая рамка
-        borderRadius: 'var(--tg-radius-l)',
-        backdropFilter: 'blur(8px)', // Добавляем blur для лучшей читаемости
-        WebkitBackdropFilter: 'blur(8px)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.8)' // Сильная тень
-      }}>
-        <CardContent sx={{ padding: 'var(--tg-spacing-4)' }}>
+      {/* Информация о наборе: полупрозрачная карточка как превью стикеров */}
+      <Card 
+        className="sticker-detail-info-card"
+        sx={{ 
+          width: 'min(92vw, 720px)', 
+          marginTop: 'var(--tg-spacing-3)', 
+          zIndex: 9999, // Очень высокий z-index
+          position: 'relative',
+          backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
+          border: '1px solid rgba(255, 255, 255, 0.2) !important', // Тонкая рамка как у превью
+          borderRadius: 'var(--tg-radius-l)',
+          backdropFilter: 'blur(6px)', // Blur как у превью стикеров
+          WebkitBackdropFilter: 'blur(6px)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)', // Мягкая тень
+          // Переопределяем стили MUI для темного полупрозрачного фона
+          '& .MuiCardContent-root': {
+            backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
+            padding: 'var(--tg-spacing-4)',
+            color: 'white', // Белый текст для хорошей видимости
+            '&:last-child': {
+              paddingBottom: 'var(--tg-spacing-4)' // Убираем стандартный отступ MUI
+            }
+          }
+        }}
+      >
+        <CardContent sx={{ 
+          padding: 'var(--tg-spacing-4)',
+          backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
+          color: 'white !important' // Белый цвет текста для контраста
+        }}>
           <Typography variant="h5" sx={{ 
             textAlign: 'center', 
             fontWeight: 700,
-            color: 'white',
+            color: 'white !important', // Явно белый цвет для хорошей видимости
             fontSize: 'var(--tg-font-size-xxl)',
-            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+            textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)', // Усиленная тень для контраста
             marginBottom: 'var(--tg-spacing-2)'
           }}>
             {stickerSet.title}
@@ -670,16 +686,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   textDecoration: 'none', 
                   fontWeight: 600,
                   fontSize: 'var(--tg-font-size-s)',
-                  color: '#4fc3f7',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+                  color: '#81d4fa', // Более яркий цвет для лучшей видимости
+                  textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)' // Усиленная тень
                 }}
                 onMouseEnter={(e) => {
                   const target = e.target as HTMLElement;
-                  target.style.color = '#81d4fa';
+                  target.style.color = '#b3e5fc';
+                  target.style.textShadow = '0 1px 4px rgba(0,0,0,0.9), 0 2px 3px rgba(0,0,0,0.7)';
                 }}
                 onMouseLeave={(e) => {
                   const target = e.target as HTMLElement;
-                  target.style.color = '#4fc3f7';
+                  target.style.color = '#81d4fa';
+                  target.style.textShadow = '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)';
                 }}
               >
                 {meta.author.firstName} {meta.author.lastName || ''}
@@ -710,10 +728,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             <Typography variant="body2" sx={{ 
               minWidth: 24, 
               textAlign: 'center',
-              color: 'white',
+              color: 'white !important', // Явно белый цвет
               fontWeight: 600,
               fontSize: 'var(--tg-font-size-m)',
-              textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)' // Усиленная тень для контраста
             }}>
               {likes}
             </Typography>
@@ -759,12 +777,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     flexShrink: 0,
                     padding: '4px 12px',
                     borderRadius: '13px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.25)', // Более яркий фон для категорий
+                    color: 'white !important', // Явно белый цвет
                     fontSize: '14px',
-                    fontWeight: 500,
+                    fontWeight: 600, // Более жирный шрифт
                     whiteSpace: 'nowrap',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.4)', // Более яркая рамка
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)', // Тень для текста
                   }}
                 >
                   {category.name}

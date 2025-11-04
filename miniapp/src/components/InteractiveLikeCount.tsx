@@ -85,6 +85,30 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
     
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#ffffff' : '#6b7280';
   };
+  
+  // Получаем цвет текста для числа лайков с учетом темы и состояния лайка
+  const getTextColor = () => {
+    if (isLiked) {
+      // При поставленном лайке - проверяем тему для контраста
+      const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-bg-color').trim();
+      
+      if (bgColor) {
+        const isDark = bgColor.includes('#') ? 
+          parseInt(bgColor.replace('#', ''), 16) < 0x808080 : 
+          bgColor.includes('dark') || bgColor.includes('black');
+        
+        // На светлой теме используем темный цвет для контраста с красным сердцем
+        // На темной теме используем белый
+        return isDark ? '#ffffff' : '#1f2937';
+      }
+      
+      // Fallback: определяем по системной теме
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#ffffff' : '#1f2937';
+    }
+    
+    // Если лайк не поставлен - используем обычный цвет темы
+    return getThemeColor();
+  };
 
   // Обработчик клика на лайк
   const handleLikeClick = useCallback(async (e: React.MouseEvent) => {
@@ -157,12 +181,14 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
       <span style={{
         position: 'relative',
         fontSize: currentSize.fontSize,
-        color: isLiked ? '#ffffff' : getThemeColor(),
+        color: getTextColor(),
         fontWeight: '600',
         lineHeight: 1,
         textAlign: 'center',
         zIndex: 2,
-        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+        textShadow: isLiked 
+          ? '0 1px 2px rgba(255, 255, 255, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3)' 
+          : '0 1px 2px rgba(0, 0, 0, 0.3)',
         transform: 'translateY(-2px)',
         transition: 'color 0.233s ease'
       }}>

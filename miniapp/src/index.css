@@ -425,6 +425,18 @@ a {
   border-radius: var(--tg-radius-l) !important;
 }
 
+/* Исключаем карточку с информацией о стикерсете из глобальных стилей */
+.MuiCard-root.sticker-detail-info-card {
+  background-color: rgba(0, 0, 0, 0.4) !important; /* Увеличена прозрачность (было 0.6) */
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.MuiCard-root.sticker-detail-info-card .MuiCardContent-root {
+  background-color: rgba(0, 0, 0, 0.4) !important; /* Увеличена прозрачность (было 0.6) */
+  color: white !important;
+}
+
 /* Модальные окна с адаптивным затемнением */
 .MuiDialog-paper {
   background-color: transparent !important;
