@@ -66,6 +66,7 @@ export const MyProfilePage: React.FC = () => {
     getCachedProfile,
     setCachedProfile,
     isCacheValid,
+    clearCache,
     reset
   } = useProfileStore();
   const { initializeLikes, isLiked } = useLikesStore();
@@ -161,6 +162,11 @@ export const MyProfilePage: React.FC = () => {
         setUserInfo(cached.userInfo);
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
+        
+        // ВАЖНО: Инициализируем лайки из кеша (mergeMode = true для сохранения актуальных лайков)
+        if (cached.stickerSets.length > 0) {
+          initializeLikes(cached.stickerSets, true);
+        }
         return;
       } else if (cached && (cached.userInfo.firstName === 'Иван' || cached.userInfo.username === 'ivan_ivanov')) {
         console.log('🗑️ Обнаружены моковые данные в кэше, очищаем и загружаем реальные');
@@ -191,9 +197,10 @@ export const MyProfilePage: React.FC = () => {
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
         
-        // Инициализируем лайки
+        // ВАЖНО: Инициализируем лайки из кеша с mergeMode = true
+        // Это сохраняет актуальные лайки из store, но обновляет данные стикерсетов
         if (cached.stickerSets.length > 0) {
-          initializeLikes(cached.stickerSets);
+          initializeLikes(cached.stickerSets, true);
         }
         return;
       }
@@ -402,6 +409,13 @@ export const MyProfilePage: React.FC = () => {
     if (setsFilter === 'liked') {
       // Используем функцию синхронизации для обновления списка
       syncLikedListFromStore();
+    }
+    
+    // ВАЖНО: Инвалидируем кеш профиля при изменении лайков
+    // Кеш содержит устаревшие данные о лайках, нужно обновить
+    if (currentUserId) {
+      clearCache(currentUserId);
+      console.log('🔄 Кеш профиля инвалидирован после изменения лайков');
     }
   };
   
