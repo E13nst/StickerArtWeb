@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Box } from '@mui/material';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { useLikesStore } from '../store/useLikesStore';
@@ -20,6 +21,9 @@ import { SearchBar } from '../components/SearchBar';
 import { SimpleGallery } from '../components/SimpleGallery';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 import { CategoryFilter, Category } from '../components/CategoryFilter';
+import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
+import { AddStickerPackButton } from '../components/AddStickerPackButton';
+import { SortButton } from '../components/SortButton';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -59,7 +63,8 @@ export const GalleryPage: React.FC = () => {
     manualInitData: '',
     isLoadingMore: false,
     selectedCategories: [] as string[],
-    sortByLikes: false
+    sortByLikes: false,
+    isUploadModalOpen: false
   });
 
   // Debounced search term для оптимизации поиска
@@ -137,10 +142,12 @@ export const GalleryPage: React.FC = () => {
       }
 
       // Загружаем данные с фильтром по категориям и сортировкой
+      // При включенной сортировке по лайкам: сортировка по likesCount DESC (от самых лайкнутых)
+      // При выключенной: сортировка по id DESC (последние добавленные)
       const response = await apiClient.getStickerSets(page, 20, {
         categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined,
-        sort: uiState.sortByLikes ? 'likesCount' : undefined,
-        direction: uiState.sortByLikes ? 'DESC' : undefined
+        sort: uiState.sortByLikes ? 'likesCount' : 'id',
+        direction: 'DESC'
       });
       
       if (isLoadMore) {
@@ -371,25 +378,41 @@ export const GalleryPage: React.FC = () => {
     <>
       <TelegramLayout>
 
-        {/* Search Bar */}
-        <SearchBar
-          value={uiState.searchTerm}
-          onChange={handleSearchChange}
-          onSearch={handleSearch}
-          placeholder="Поиск стикеров..."
-          disabled={isLoading}
-        />
-
-        {/* Category Filter with Sort Button */}
-        {categories.length > 0 && (
-          <CategoryFilter
-            categories={categories}
-            selectedCategories={uiState.selectedCategories}
-            onCategoryToggle={handleCategoryToggle}
-            disabled={isLoading}
+        {/* Search Bar with Sort Button */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', mb: '0.618rem', px: '0.618rem' }}>
+          <Box sx={{ flex: 1 }}>
+            <SearchBar
+              value={uiState.searchTerm}
+              onChange={handleSearchChange}
+              onSearch={handleSearch}
+              placeholder="Поиск стикеров..."
+              disabled={isLoading}
+            />
+          </Box>
+          <SortButton
             sortByLikes={uiState.sortByLikes}
-            onSortToggle={handleSortToggle}
-            sortDisabled={isLoading || !!uiState.searchTerm}
+            onToggle={handleSortToggle}
+            disabled={isLoading || !!uiState.searchTerm || categories.length === 0}
+          />
+        </Box>
+
+        {/* Category Filter */}
+        {categories.length > 0 && (
+          <Box sx={{ mb: '0.618rem' }}>
+            <CategoryFilter
+              categories={categories}
+              selectedCategories={uiState.selectedCategories}
+              onCategoryToggle={handleCategoryToggle}
+              disabled={isLoading}
+            />
+          </Box>
+        )}
+
+        {/* Кнопка создания стикерпака */}
+        {!isLoading && !error && (
+          <AddStickerPackButton
+            variant="gallery"
+            onClick={() => setUiState(prev => ({ ...prev, isUploadModalOpen: true }))}
           />
         )}
 
@@ -435,6 +458,15 @@ export const GalleryPage: React.FC = () => {
         onClose={handleBackToList}
         onLike={(id, title) => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);
+        }}
+      />
+      <UploadStickerPackModal
+        open={uiState.isUploadModalOpen}
+        onClose={() => setUiState(prev => ({ ...prev, isUploadModalOpen: false }))}
+        onUpload={async (link: string) => {
+          await apiClient.uploadStickerPackByLink(link);
+          // Обновляем галерею после успешной загрузки
+          await fetchStickerSets(0, false, uiState.selectedCategories);
         }}
       />
     </>

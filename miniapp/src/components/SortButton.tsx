@@ -22,8 +22,8 @@ export const SortButton: React.FC<SortButtonProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '4px 8px',
-        borderRadius: '13px',
+        padding: '0 0.618rem', // Отступы по горизонтали
+        borderRadius: '0.59rem', // 0.236 * 2.5rem ≈ 0.59rem
         background: sortByLikes 
           ? 'var(--tg-theme-button-color, #2481cc)' 
           : 'var(--tg-theme-secondary-bg-color, #ffffff)',
@@ -32,14 +32,14 @@ export const SortButton: React.FC<SortButtonProps> = ({
           : 'var(--tg-theme-text-color, #000000)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        fontSize: '20px',
+        fontSize: '0.955rem', // 0.382 * 2.5rem ≈ 0.955rem
         fontWeight: 400,
         transition: 'all 0.2s',
         outline: 'none',
         border: 'none',
         boxShadow: 'none',
-        minHeight: '32px',
-        minWidth: '32px',
+        height: '2.5rem', // Высота по пропорции
+        minWidth: '2.5rem',
         userSelect: 'none'
       }}
     >

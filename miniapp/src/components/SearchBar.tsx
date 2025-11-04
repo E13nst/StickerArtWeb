@@ -40,101 +40,97 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <Box sx={{ mb: 1.5 }}> {/* уменьшено с mb: 2 до mb: 1.5 для экономии пространства */}
-      <TextField
-        fullWidth
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyPress={handleKeyPress}
-        disabled={disabled}
-        inputProps={{ 'data-testid': 'search-input' }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Box
-                component="button"
-                onClick={handleSearchClick}
-                sx={{
-                  border: 'none',
-                  background: 'none',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: 0,
-                  color: 'var(--tg-theme-hint-color)',
-                  opacity: disabled ? 0.5 : 1
-                }}
-                aria-label="Поиск"
-                disabled={disabled}
-              >
-                <SearchIcon 
-                  color={disabled ? "disabled" : "action"} 
-                  sx={{ 
-                    color: disabled ? 'var(--tg-theme-hint-color)' : 'var(--tg-theme-hint-color)',
-                    opacity: disabled ? 0.5 : 1,
-                    fontSize: '20px' // уменьшенный размер иконки для компактности
-                  }} 
-                />
-              </Box>
-            </InputAdornment>
-          ),
-          endAdornment: value ? (
-            <InputAdornment position="end">
-              <Box
-                component="button"
-                onClick={handleClear}
-                sx={{
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: 0,
-                  color: 'var(--tg-theme-hint-color)'
-                }}
-                aria-label="Очистить поиск"
-              >
-                <ClearIcon fontSize="small" sx={{ color: 'var(--tg-theme-hint-color)', fontSize: '18px' }} />
-              </Box>
-            </InputAdornment>
-          ) : null,
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 1.5, // уменьшено с 2 до 1.5 для более компактного вида
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)',
-            height: '44px', // фиксированная высота по золотой пропорции (23.6%)
-            fontSize: '14px', // уменьшенный размер шрифта для компактности
-            '&:hover': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--tg-theme-button-color)',
-              },
-            },
-            '&.Mui-focused': {
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--tg-theme-button-color)',
-                borderWidth: 2,
-              },
-            },
+    <TextField
+      fullWidth
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyPress={handleKeyPress}
+      disabled={disabled}
+      inputProps={{ 'data-testid': 'search-input' }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Box
+              component="button"
+              onClick={handleSearchClick}
+              sx={{
+                border: 'none',
+                background: 'none',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: 0,
+                color: 'var(--tg-theme-hint-color)',
+                opacity: disabled ? 0.5 : 1
+              }}
+              aria-label="Поиск"
+              disabled={disabled}
+            >
+              <SearchIcon 
+                sx={{ 
+                  color: disabled ? 'var(--tg-theme-hint-color)' : 'var(--tg-theme-hint-color)',
+                  opacity: disabled ? 0.5 : 1,
+                  fontSize: '0.955rem' // 0.382 * 2.5rem ≈ 0.955rem
+                }} 
+              />
+            </Box>
+          </InputAdornment>
+        ),
+        endAdornment: value ? (
+          <InputAdornment position="end">
+            <Box
+              component="button"
+              onClick={handleClear}
+              sx={{
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: 0,
+                color: 'var(--tg-theme-hint-color)'
+              }}
+              aria-label="Очистить поиск"
+            >
+              <ClearIcon sx={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.955rem' }} />
+            </Box>
+          </InputAdornment>
+        ) : null,
+      }}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          borderRadius: '0.59rem', // 0.236 * 2.5rem ≈ 0.59rem
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          color: 'var(--tg-theme-text-color)',
+          height: '2.5rem', // Высота по пропорции
+          fontSize: '0.875rem', // 14px
+          paddingLeft: '0.618rem', // Отступы по горизонтали
+          paddingRight: '0.618rem',
+          '&:hover': {
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'var(--tg-theme-border-color)',
+              borderColor: 'var(--tg-theme-button-color)',
             },
           },
-          '& .MuiInputBase-input': {
-            color: 'var(--tg-theme-text-color)',
-            '&::placeholder': {
-              color: 'var(--tg-theme-hint-color)',
-              opacity: 1,
+          '&.Mui-focused': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'var(--tg-theme-button-color)',
+              borderWidth: 2,
             },
           },
-          '& .MuiInputBase-input::placeholder': {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'var(--tg-theme-border-color)',
+          },
+        },
+        '& .MuiInputBase-input': {
+          color: 'var(--tg-theme-text-color)',
+          fontSize: '0.875rem',
+          '&::placeholder': {
             color: 'var(--tg-theme-hint-color)',
             opacity: 1,
           },
-        }}
-      />
-    </Box>
+        },
+      }}
+    />
   );
 };

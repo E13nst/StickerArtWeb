@@ -582,6 +582,37 @@ class ApiClient {
       };
     }
   }
+
+  // Загрузка стикерпака по ссылке
+  // API endpoint: POST /api/stickersets/import или POST /api/stickersets с параметром link
+  // Параметр: link - ссылка на стикерпак (например, https://t.me/addstickers/...)
+  async uploadStickerPackByLink(link: string): Promise<StickerSetResponse> {
+    try {
+      // Пробуем несколько возможных endpoints
+      let response;
+      try {
+        // Вариант 1: POST /api/stickersets/import
+        response = await this.client.post<StickerSetResponse>('/stickersets/import', { link });
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          // Вариант 2: POST /api/stickersets с параметром link
+          response = await this.client.post<StickerSetResponse>('/stickersets', null, {
+            params: { link }
+          });
+        } else {
+          throw err;
+        }
+      }
+      console.log('✅ Стикерпак загружен:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка загрузки стикерпака:', error);
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось загрузить стикерпак. Проверьте ссылку и попробуйте снова.';
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

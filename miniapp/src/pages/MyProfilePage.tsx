@@ -34,6 +34,9 @@ import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { isUserPremium, getUserFullName, getUserUsername } from '@/utils/userUtils';
+import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
+import { AddStickerPackButton } from '@/components/AddStickerPackButton';
+import { SortButton } from '@/components/SortButton';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -79,6 +82,8 @@ export const MyProfilePage: React.FC = () => {
   const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [sortByLikes, setSortByLikes] = useState(false);
 
   // Обработчик кастомизации баннера (placeholder для premium)
   const handleCustomizeBanner = () => {
@@ -203,7 +208,7 @@ export const MyProfilePage: React.FC = () => {
       // Параллельная загрузка данных пользователя и стикерсетов
       const [userResponse, stickerSetsResponse] = await Promise.allSettled([
         loadUserInfo(telegramId),
-        loadUserStickerSets(telegramId)
+        loadUserStickerSets(telegramId, undefined, 0, false, sortByLikes)
       ]);
 
       // Проверяем результаты
@@ -279,7 +284,7 @@ export const MyProfilePage: React.FC = () => {
   };
 
   // Загрузка стикерсетов пользователя
-  const loadUserStickerSets = async (telegramId: number, searchQuery?: string, page: number = 0, append: boolean = false) => {
+  const loadUserStickerSets = async (telegramId: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
     setStickerSetsLoading(true);
     setStickerSetsError(null);
 
@@ -287,21 +292,53 @@ export const MyProfilePage: React.FC = () => {
       // Используем userInfo.id если он уже загружен, иначе telegramId
       const userId = userInfo?.id || telegramId;
       
-      console.log('🔍 Загрузка стикерсетов для userId:', userId, 'telegramId:', telegramId, 'searchQuery:', searchQuery);
+      console.log('🔍 Загрузка стикерсетов для userId:', userId, 'telegramId:', telegramId, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam);
       
-      // По ТЗ сортировка createdAt DESC
+      // Если есть поисковый запрос, используем специальный эндпоинт поиска
+      if (searchQuery && searchQuery.trim()) {
+        const response = await apiClient.searchUserStickerSets(userId, searchQuery, page, 20);
+        
+        if (append) {
+          setUserStickerSets(response.number === 0 ? (response.content || []) : getUniqueAppended(userStickerSets, response.content || []));
+        } else {
+          setUserStickerSets(response.content || []);
+        }
+        
+        if (response.content && response.content.length > 0) {
+          initializeLikes(response.content);
+        }
+        
+        setPagination(response.number, response.totalPages, response.totalElements);
+        return;
+      }
+      
+      // Загружаем стикерсеты пользователя
+      // При выключенной сортировке по лайкам: сортировка по createdAt DESC (последние добавленные)
+      // При включенной: загружаем как есть, затем сортируем локально по лайкам
+      // Используем 'createdAt' так как API поддерживает только 'createdAt' | 'title' | 'name'
       const response = await apiClient.getUserStickerSets(userId, page, 20, 'createdAt', 'DESC');
       
       console.log('✅ Стикерсеты загружены:', response.content?.length || 0, 'страница:', response.number, 'из', response.totalPages);
-      if (append) {
-        setUserStickerSets(response.number === 0 ? (response.content || []) : getUniqueAppended(userStickerSets, response.content || []));
-      } else {
-        setUserStickerSets(response.content || []);
-      }
       
       // Инициализируем лайки из загруженных данных
       if (response.content && response.content.length > 0) {
         initializeLikes(response.content);
+      }
+      
+      // Если включена сортировка по лайкам, сортируем локально по likesCount DESC
+      let finalContent = response.content || [];
+      if (sortByLikesParam && finalContent.length > 0) {
+        finalContent = [...finalContent].sort((a, b) => {
+          const likesA = a.likes || a.likesCount || 0;
+          const likesB = b.likes || b.likesCount || 0;
+          return likesB - likesA; // DESC - от самых лайкнутых
+        });
+      }
+      
+      if (append) {
+        setUserStickerSets(response.number === 0 ? finalContent : getUniqueAppended(userStickerSets, finalContent));
+      } else {
+        setUserStickerSets(finalContent);
       }
       
       // Обновляем пагинацию
@@ -480,22 +517,32 @@ export const MyProfilePage: React.FC = () => {
   // Обработка поиска
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
-    
-    const userId = currentUserId || mockUserId;
-    if (!userId) return;
-
-    // Дебаунс поиска
-    const delayedSearch = setTimeout(() => {
-      loadUserStickerSets(userId, newSearchTerm);
-    }, 500);
-
-    return () => clearTimeout(delayedSearch);
   };
 
-  // Фильтрация стикерсетов (локальная + серверная)
-  const filteredStickerSets = userStickerSets.filter(stickerSet =>
-    stickerSet.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Обработка поиска с отправкой
+  const handleSearch = (searchTermValue: string) => {
+    const userId = currentUserId || mockUserId;
+    if (!userId) return;
+    
+    if (searchTermValue.trim()) {
+      loadUserStickerSets(userId, searchTermValue, 0, false, sortByLikes);
+    } else {
+      loadUserStickerSets(userId, undefined, 0, false, sortByLikes);
+    }
+  };
+
+  // Обработка переключения сортировки
+  const handleSortToggle = () => {
+    const newSortByLikes = !sortByLikes;
+    setSortByLikes(newSortByLikes);
+    const userId = currentUserId || mockUserId;
+    if (userId) {
+      loadUserStickerSets(userId, searchTerm || undefined, 0, false, newSortByLikes);
+    }
+  };
+
+  // Фильтрация стикерсетов (при поиске данные уже отфильтрованы на сервере)
+  const filteredStickerSets = userStickerSets;
 
   // Обработка кнопки "Назад" в Telegram
   useEffect(() => {
@@ -728,13 +775,23 @@ export const MyProfilePage: React.FC = () => {
                 />
               </Box>
 
-              {/* Поиск */}
-              <SearchBar
-                value={searchTerm}
-                onChange={handleSearchChange}
-                placeholder="Поиск моих стикерсетов..."
-                disabled={isStickerSetsLoading}
-              />
+              {/* Поиск и сортировка */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', mb: '0.618rem', px: '0.618rem' }}>
+                <Box sx={{ flex: 1 }}>
+                  <SearchBar
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    onSearch={handleSearch}
+                    placeholder="Поиск моих стикерсетов..."
+                    disabled={isStickerSetsLoading}
+                  />
+                </Box>
+                <SortButton
+                  sortByLikes={sortByLikes}
+                  onToggle={handleSortToggle}
+                  disabled={isStickerSetsLoading || !!searchTerm}
+                />
+              </Box>
 
               {/* Контент стикерсетов */}
               {isStickerSetsLoading ? (
@@ -742,7 +799,7 @@ export const MyProfilePage: React.FC = () => {
               ) : stickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay 
                   error={stickerSetsError} 
-                  onRetry={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId)} 
+                  onRetry={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, searchTerm || undefined, 0, false, sortByLikes)} 
                 />
               ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
                 <EmptyState
@@ -764,7 +821,7 @@ export const MyProfilePage: React.FC = () => {
                     onPackClick={handleViewStickerSet}
                     hasNextPage={setsFilter === 'liked' ? false : currentPage < totalPages - 1}
                     isLoadingMore={isStickerSetsLoading}
-                    onLoadMore={setsFilter === 'liked' ? undefined : () => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, undefined, currentPage + 1, true)}
+                    onLoadMore={setsFilter === 'liked' ? undefined : () => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)}
                     enablePreloading={true}
                   />
                 </div>
@@ -830,7 +887,11 @@ export const MyProfilePage: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Кнопка "Создать новый стикерсет" скрыта по требованиям дизайна */}
+              {/* Кнопка создания стикерпака */}
+              <AddStickerPackButton
+                variant="profile"
+                onClick={() => setIsUploadModalOpen(true)}
+              />
             </TabPanel>
 
             <TabPanel value={activeProfileTab} index={2}>
@@ -889,6 +950,19 @@ export const MyProfilePage: React.FC = () => {
 
       {/* Debug панель */}
       {initData && <DebugPanel initData={initData} />}
+
+      {/* Модальное окно загрузки стикерпака */}
+      <UploadStickerPackModal
+        open={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={async (link: string) => {
+          await apiClient.uploadStickerPackByLink(link);
+          // Обновляем профиль и список стикерсетов после успешной загрузки
+          if (currentUserId) {
+            await loadMyProfile(currentUserId, true);
+          }
+        }}
+      />
     </Box>
   );
 };

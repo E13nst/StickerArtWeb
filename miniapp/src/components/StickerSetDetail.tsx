@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { 
   Box, 
   Typography, 
@@ -22,6 +22,142 @@ import { prefetchSticker } from '@/utils/animationLoader';
 // Простое кеширование метаданных для мгновенного отображения при повторном открытии
 const metaCache = new Map<number, StickerSetMeta>();
 
+// Кеш полных данных стикерсетов для оптимистичного UI
+interface CachedStickerSet {
+  data: StickerSetResponse;
+  timestamp: number;
+  ttl: number; // Время жизни кеша в миллисекундах
+}
+
+const stickerSetCache = new Map<number, CachedStickerSet>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 минут
+
+// Компонент для ленивой загрузки миниатюр
+interface LazyThumbnailProps {
+  sticker: any;
+  index: number;
+  activeIndex: number;
+  onClick: (idx: number) => void;
+  shouldLoadImmediately: boolean;
+}
+
+const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
+  sticker,
+  index,
+  activeIndex,
+  onClick,
+  shouldLoadImmediately
+}) => {
+  const [isInView, setIsInView] = useState(shouldLoadImmediately);
+  const [shouldRender, setShouldRender] = useState(shouldLoadImmediately);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Если уже загружаем сразу или это активный стикер - рендерим
+    if (shouldLoadImmediately || index === activeIndex) {
+      setShouldRender(true);
+      setIsInView(true);
+      return;
+    }
+
+    // Используем IntersectionObserver для lazy loading
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          setShouldRender(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '200px', // Предзагружаем за 200px до появления
+        threshold: 0.01
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [shouldLoadImmediately, index, activeIndex]);
+
+  // Всегда рендерим активный стикер
+  useEffect(() => {
+    if (index === activeIndex) {
+      setShouldRender(true);
+      setIsInView(true);
+    }
+  }, [index, activeIndex]);
+
+  return (
+    <Box
+      ref={containerRef}
+      onClick={() => onClick(index)}
+      sx={{
+        flex: '0 0 auto',
+        width: 128,
+        height: 128,
+        minWidth: 128,
+        minHeight: 128,
+        borderRadius: 'var(--tg-radius-m)',
+        border: '1px solid',
+        borderColor: index === activeIndex ? 'primary.main' : 'rgba(255,255,255,0.2)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'transform 120ms ease, border-color 120ms ease, background-color 200ms ease',
+        '&:active': { transform: 'scale(0.98)' },
+        position: 'relative'
+      }}
+    >
+      {shouldRender ? (
+        <>
+          <StickerThumbnail
+            fileId={sticker.file_id}
+            thumbFileId={sticker.thumb?.file_id}
+            emoji={sticker.emoji}
+            size={128}
+          />
+          {sticker.emoji && (
+            <Box sx={{
+              position: 'absolute',
+              bottom: 'var(--tg-spacing-2)',
+              left: 'var(--tg-spacing-2)',
+              color: 'white',
+              fontSize: 'var(--tg-font-size-xl)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
+            }}>
+              {sticker.emoji}
+            </Box>
+          )}
+        </>
+      ) : (
+        // Skeleton placeholder пока не загрузили
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+          fontSize: '24px',
+          backgroundColor: 'rgba(0,0,0,0.3)'
+        }}>
+          {sticker.emoji || '🎨'}
+        </Box>
+      )}
+    </Box>
+  );
+});
+
+LazyThumbnail.displayName = 'LazyThumbnail';
+
 interface StickerSetDetailProps {
   stickerSet: StickerSetResponse;
   onBack: () => void;
@@ -39,8 +175,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   isInTelegramApp: _isInTelegramApp = false,
   isModal = false
 }) => {
-  const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Оптимистичный UI: показываем данные из пропсов сразу, обновляем когда загрузятся полные данные
+  const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(() => {
+    // Проверяем кеш при инициализации
+    const cached = stickerSetCache.get(stickerSet.id);
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      console.log('✅ Загружено из кеша:', stickerSet.id);
+      return cached.data;
+    }
+    // Если кеша нет, используем данные из пропсов
+    return stickerSet;
+  });
+  const [loading, setLoading] = useState(false); // Начинаем с false для оптимистичного UI
   const [error, setError] = useState<string | null>(null);
 
   const stickerCount = fullStickerSet?.telegramStickerSetInfo?.stickers?.length || stickerSet.telegramStickerSetInfo?.stickers?.length || 0;
@@ -104,32 +250,70 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   // Не инициализируем лайки из пропсов - только из API данных
 
-  // Загружаем полную информацию о стикерсете с сервера
+  // Загружаем полную информацию о стикерсете с сервера (оптимистично - в фоне)
   useEffect(() => {
     let mounted = true;
+    let abortController: AbortController | null = null;
     
     const loadFullStickerSet = async () => {
+      // Проверяем кеш перед загрузкой
+      const cached = stickerSetCache.get(stickerSet.id);
+      if (cached && Date.now() - cached.timestamp < cached.ttl) {
+        console.log('✅ Используем кешированные данные:', stickerSet.id);
+        if (mounted) {
+          setFullStickerSet(cached.data);
+          // Инициализируем лайки из кеша
+          const apiLikesCount = cached.data.likesCount ?? cached.data.likes;
+          const apiIsLiked = cached.data.isLikedByCurrentUser ?? cached.data.isLiked;
+          if (apiLikesCount !== undefined && apiLikesCount >= 0) {
+            setLike(stickerSet.id.toString(), apiIsLiked ?? false, apiLikesCount);
+          }
+        }
+        return; // Не загружаем если есть свежий кеш
+      }
+      
       try {
-        setLoading(true);
+        // Показываем индикатор загрузки только если данных еще нет
+        if (!fullStickerSet || fullStickerSet.id !== stickerSet.id) {
+          setLoading(true);
+        }
         setError(null);
         
-        // Загружаем полную информацию о стикерсете
+        // Создаем AbortController для возможности отмены
+        abortController = new AbortController();
+        
+        // Загружаем полную информацию о стикерсете (параллельно с метаданными)
         const fullData = await apiClient.getStickerSet(stickerSet.id);
+        
+        if (!mounted || abortController.signal.aborted) return;
+        
+        // Сохраняем в кеш
+        stickerSetCache.set(stickerSet.id, {
+          data: fullData,
+          timestamp: Date.now(),
+          ttl: CACHE_TTL
+        });
+        
+        // Ограничиваем размер кеша (удаляем старые записи)
+        if (stickerSetCache.size > 50) {
+          const oldestKey = Array.from(stickerSetCache.entries())
+            .sort((a, b) => a[1].timestamp - b[1].timestamp)[0]?.[0];
+          if (oldestKey) stickerSetCache.delete(oldestKey);
+        }
+        
         if (mounted) {
           setFullStickerSet(fullData);
           
           // Инициализируем лайки только если API предоставляет данные
-          // API может вернуть либо likesCount, либо likes
           const apiLikesCount = fullData.likesCount ?? fullData.likes;
           const apiIsLiked = fullData.isLikedByCurrentUser ?? fullData.isLiked;
           
           if (apiLikesCount !== undefined && apiLikesCount >= 0) {
             const currentState = getLikeState(stickerSet.id.toString());
             
-            // Обновляем данные от API (они приоритетнее локального store)
             setLike(
               stickerSet.id.toString(), 
-              apiIsLiked ?? currentState.isLiked,  // Если API не вернул - берем из store
+              apiIsLiked ?? currentState.isLiked,
               apiLikesCount
             );
             
@@ -140,31 +324,41 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             });
           }
           
-          // Предзагружаем миниатюры сначала
-          await preloadThumbnails(fullData.telegramStickerSetInfo?.stickers || []);
+          // Умная предзагрузка: только первые 15 стикеров для миниатюр
+          const stickers = fullData.telegramStickerSetInfo?.stickers || [];
+          const thumbnailsToPreload = stickers.slice(0, 15);
+          await preloadThumbnails(thumbnailsToPreload);
           
-          // Проверяем что модальное окно все еще открыто
-          if (!mounted) return;
+          if (!mounted || abortController.signal.aborted) return;
           
-          // Затем предзагружаем большие стикеры
-          preloadLargeStickers(fullData.telegramStickerSetInfo?.stickers || []);
+          // Предзагружаем только первые 3 больших стикера (для плавного UX)
+          const largeStickersToPreload = stickers.slice(0, 3);
+          preloadLargeStickers(largeStickersToPreload);
         }
       } catch (err) {
+        if (!mounted || abortController?.signal.aborted) return;
+        
         console.warn('Ошибка загрузки полной информации о стикерсете:', err);
         if (mounted) {
           setError('Не удалось загрузить полную информацию о стикерсете');
-          // Используем данные из пропсов как fallback
-          setFullStickerSet(stickerSet);
+          // Используем данные из пропсов как fallback (уже есть в fullStickerSet)
+          if (!fullStickerSet) {
+            setFullStickerSet(stickerSet);
+          }
         }
       } finally {
-        if (mounted) {
+        if (mounted && !abortController?.signal.aborted) {
           setLoading(false);
         }
       }
     };
 
     loadFullStickerSet();
-    return () => { mounted = false; };
+    
+    return () => { 
+      mounted = false;
+      abortController?.abort();
+    };
   }, [stickerSet.id, getLikeState, setLike, preloadThumbnails, preloadLargeStickers]);
 
   // Загружаем метаданные БЕЗ синхронизации лайков
@@ -224,8 +418,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }
   };
 
-  // Показываем индикатор загрузки если данные еще загружаются
-  if (loading) {
+  // НЕ блокируем отображение - показываем оптимистичный UI сразу
+  // Индикатор загрузки показываем только если данных совсем нет
+  if (loading && !fullStickerSet) {
     return (
       <Box sx={{ 
         height: isModal ? 'auto' : '100vh', 
@@ -394,58 +589,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             </Box>
           ) : (
             stickers.map((s, idx) => {
-              console.log('🎯 Rendering thumbnail:', { 
-                idx, 
-                fileId: s.file_id, 
-                thumbFileId: s.thumb?.file_id,
-                emoji: s.emoji,
-                hasThumb: !!s.thumb
-              });
+              // Оптимизация: загружаем только первые 20 миниатюр сразу, остальные lazy
+              const shouldLoadImmediately = idx < 20 || idx === activeIndex;
+              
               return (
-                <Box
+                <LazyThumbnail
                   key={s.file_id}
-                  data-thumb={idx}
-                  onClick={() => handleStickerClick(idx)}
-                  sx={{
-                    flex: '0 0 auto',
-                    width: 128,
-                    height: 128,
-                    minWidth: 128,
-                    minHeight: 128,
-                    borderRadius: 'var(--tg-radius-m)',
-                    border: '1px solid',
-                    borderColor: idx === activeIndex ? 'primary.main' : 'rgba(255,255,255,0.2)',
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(6px)',
-                    WebkitBackdropFilter: 'blur(6px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'transform 120ms ease, border-color 120ms ease, background-color 200ms ease',
-                    '&:active': { transform: 'scale(0.98)' },
-                    position: 'relative'
-                  }}
-                >
-                  <StickerThumbnail
-                    fileId={s.file_id}
-                    thumbFileId={s.thumb?.file_id}
-                    emoji={s.emoji}
-                    size={128}
-                  />
-                  {s.emoji && (
-                    <Box sx={{
-                      position: 'absolute',
-                      bottom: 'var(--tg-spacing-2)',
-                      left: 'var(--tg-spacing-2)',
-                      color: 'white',
-                      fontSize: 'var(--tg-font-size-xl)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
-                    }}>
-                      {s.emoji}
-                    </Box>
-                  )}
-                </Box>
+                  sticker={s}
+                  index={idx}
+                  activeIndex={activeIndex}
+                  onClick={handleStickerClick}
+                  shouldLoadImmediately={shouldLoadImmediately}
+                />
               );
             })
           )}

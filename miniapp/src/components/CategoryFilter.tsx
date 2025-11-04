@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTelegram } from '../hooks/useTelegram';
-import { SortButton } from './SortButton';
 
 export interface Category {
   id: string;
@@ -13,19 +12,13 @@ interface CategoryFilterProps {
   selectedCategories: string[];
   onCategoryToggle: (categoryId: string) => void;
   disabled?: boolean;
-  sortByLikes?: boolean;
-  onSortToggle?: () => void;
-  sortDisabled?: boolean;
 }
 
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories,
   selectedCategories,
   onCategoryToggle,
-  disabled = false,
-  sortByLikes = false,
-  onSortToggle,
-  sortDisabled = false
+  disabled = false
 }) => {
   const { tg } = useTelegram();
 
@@ -45,24 +38,17 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        padding: '4px 8px',
-        height: '48px',
+        gap: '0.5rem',
+        padding: '0 0.618rem', // Отступы по горизонтали
+        minHeight: '2.5rem',
         backgroundColor: 'transparent',
         overflow: 'hidden',
       }}
     >
-      {onSortToggle && (
-        <SortButton
-          sortByLikes={sortByLikes}
-          onToggle={onSortToggle}
-          disabled={sortDisabled || disabled}
-        />
-      )}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '0.5rem',
           overflow: 'auto hidden',
           scrollbarWidth: 'none',
           height: '100%',
@@ -91,22 +77,22 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               }}
               style={{
                 flexShrink: 0,
-                padding: '4px 8px',
-                borderRadius: '13px',
+                padding: '0 0.618rem', // Отступы по горизонтали
+                borderRadius: '0.59rem', // 0.236 * 2.5rem ≈ 0.59rem
                 backgroundColor: isSelected
                   ? 'var(--tg-theme-button-color, #2481cc)'
                   : 'var(--tg-theme-secondary-bg-color, #ffffff)',
                 color: isSelected
                   ? 'var(--tg-theme-button-text-color, #ffffff)'
                   : 'var(--tg-theme-text-color, #000000)',
-                fontSize: '14px',
-                fontWeight: isSelected ? 500 : 400,
+                fontSize: '0.875rem', // 14px
+                fontWeight: isSelected ? 600 : 400,
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '32px',
+                height: '2.5rem', // Высота по пропорции
                 whiteSpace: 'nowrap',
                 outline: 'none',
                 border: 'none',
