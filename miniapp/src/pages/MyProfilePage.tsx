@@ -409,11 +409,12 @@ export const MyProfilePage: React.FC = () => {
   const galleryStickerSets = useStickerStore((state) => state.stickerSets);
   
   // Простая функция синхронизации списка понравившихся из store
+  // ВАЖНО: НЕ используем likedStickerSets внутри чтобы избежать цикла
   const syncLikedListFromStore = useCallback(() => {
     const { isLiked: isLikedFn } = useLikesStore.getState();
     
     // Объединяем все доступные источники данных
-    const allAvailableSets = [...userStickerSets, ...likedStickerSets, ...galleryStickerSets];
+    const allAvailableSets = [...userStickerSets, ...galleryStickerSets];
     
     // Фильтруем по лайкам из store (единственный источник правды)
     const liked = allAvailableSets.filter(s => isLikedFn(String(s.id)));
@@ -421,8 +422,9 @@ export const MyProfilePage: React.FC = () => {
     // Убираем дубликаты по ID
     const unique = Array.from(new Map(liked.map(s => [String(s.id), s])).values());
     
+    // Обновляем список (без проверки на изменение чтобы избежать проблем с зависимостями)
     setLikedStickerSets(unique);
-  }, [userStickerSets, likedStickerSets, galleryStickerSets]);
+  }, [userStickerSets, galleryStickerSets]);
 
   const handleShareStickerSet = (name: string, _title: string) => {
     if (tg) {
@@ -433,7 +435,7 @@ export const MyProfilePage: React.FC = () => {
   };
 
   // Простая загрузка понравившихся: формируем список из store
-  const loadLikedStickerSets = async () => {
+  const loadLikedStickerSets = useCallback(async () => {
     try {
       setStickerSetsLoading(true);
       
@@ -452,34 +454,28 @@ export const MyProfilePage: React.FC = () => {
       }
       
       // Формируем список из store - это единственный источник правды
+      // initializeLikes синхронный, поэтому можно вызывать сразу
       syncLikedListFromStore();
     } finally {
       setStickerSetsLoading(false);
     }
-  };
+  }, [syncLikedListFromStore, initializeLikes]);
   
-  // Синхронизация списка "понравившиеся" с изменениями лайков в store
-  useEffect(() => {
-    // Обновляем список только если активен фильтр "понравившиеся"
-    if (setsFilter === 'liked') {
-      syncLikedListFromStore();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allLikes, setsFilter, userStickerSets, syncLikedListFromStore]);
-  
-  // Обновление списка при переключении фильтра
+  // Единый useEffect для синхронизации списка "понравившиеся"
   useEffect(() => {
     if (setsFilter === 'liked') {
-      // Если список пустой, загружаем с сервера
-      if (likedStickerSets.length === 0) {
+      // Проверяем есть ли данные для синхронизации
+      const hasData = userStickerSets.length > 0 || galleryStickerSets.length > 0;
+      
+      if (!hasData) {
+        // Загружаем с сервера если нет локальных данных
         loadLikedStickerSets();
       } else {
-        // Иначе синхронизируем с текущим состоянием store
+        // Синхронизируем с текущим состоянием store
         syncLikedListFromStore();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setsFilter]);
+  }, [setsFilter, allLikes, userStickerSets, galleryStickerSets, syncLikedListFromStore, loadLikedStickerSets]);
 
   const handleLikeStickerSet = (id: number, title: string) => {
     // TODO: Реализовать API для лайков
