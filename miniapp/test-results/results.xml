@@ -1,37 +1,58 @@
-<testsuites id="" name="" tests="5" failures="1" skipped="4" errors="0" time="1920.742428">
-<testsuite name="gallery.spec.ts" timestamp="2025-10-28T09:57:13.925Z" hostname="chromium" tests="5" failures="1" skipped="4" time="1915.817" errors="0">
-<testcase name="Sticker Gallery › количество карточек стикерсетов соответствует размеру API запроса" classname="gallery.spec.ts" time="1915.817">
-<failure message="gallery.spec.ts:12:3 количество карточек стикерсетов соответствует размеру API запроса" type="FAILURE">
-<![CDATA[  [chromium] › gallery.spec.ts:12:3 › Sticker Gallery › количество карточек стикерсетов соответствует размеру API запроса 
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="41.000431">
+<testsuite name="performance.spec.ts" timestamp="2025-11-02T21:34:58.177Z" hostname="mobile" tests="1" failures="1" skipped="0" time="30.967" errors="0">
+<testcase name="Performance Metrics Collection › Сбор метрик производительности галереи стикеров @mobile" classname="performance.spec.ts" time="30.967">
+<failure message="performance.spec.ts:55:3 Сбор метрик производительности галереи стикеров @mobile" type="FAILURE">
+<![CDATA[  [mobile] › performance.spec.ts:55:3 › Performance Metrics Collection › Сбор метрик производительности галереи стикеров @mobile 
 
-    Error: page.waitForSelector: Target page, context or browser has been closed
+    Test timeout of 30000ms exceeded.
 
-      41 |     await page.waitForSelector('[data-testid="pack-card"]', { timeout: 10000 });
-      42 |     
-    > 43 |     // Получаем количество карточек на странице
-         |                ^
-      44 |     const packCards = await page.locator('[data-testid="pack-card"]').all();
-      45 |     const cardsCount = packCards.length;
-      46 |     
-        at C:\Users\Notebook\StickerArtWeb-1\tests\gallery.spec.ts:43:16
+    Error: response.body: Test timeout of 30000ms exceeded.
+
+      142 |         request.responseTime = timestamp - request.timestamp;
+      143 |         request.status = status;
+    > 144 |         request.size = (await response.body()).length;
+          |                                        ^
+      145 |       }
+      146 |       
+      147 |       activeRequests.delete(url);
+        at Page.<anonymous> (C:\Users\Notebook\StickerArtWeb-1\tests\performance.spec.ts:144:40)
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      259 |     while (Date.now() < idleEnd) {
+      260 |       await readFPS('idle');
+    > 261 |       await page.waitForTimeout(1000);
+          |                  ^
+      262 |     }
+      263 |     
+      264 |     metrics.runtimeMetrics.fpsIdle = fpsSamples.filter(s => s.state === 'idle').map(s => s.fps);
+        at C:\Users\Notebook\StickerArtWeb-1\tests\performance.spec.ts:261:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\error-context.md
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
 ]]>
 </failure>
-</testcase>
-<testcase name="Sticker Gallery › API запрос использует правильные параметры по умолчанию" classname="gallery.spec.ts" time="0">
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Sticker Gallery › пагинация работает корректно" classname="gallery.spec.ts" time="0">
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Sticker Gallery › API ответ соответствует формату PageResponseStickerSetDto" classname="gallery.spec.ts" time="0">
-<skipped>
-</skipped>
-</testcase>
-<testcase name="Sticker Gallery › поиск фильтрует карточки корректно" classname="gallery.spec.ts" time="0">
-<skipped>
-</skipped>
+<system-out>
+<![CDATA[📊 [METRICS] Starting navigation...
+📊 [METRICS] Waiting for gallery to load...
+✅ [METRICS] First sticker visible at 13181ms
+✅ [METRICS] All visible stickers count: 20
+📊 [METRICS] Starting 20s idle phase...
+
+[[ATTACHMENT|..\..\test-results\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\test-failed-1.png]]
+
+[[ATTACHMENT|..\..\test-results\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\error-context.md]]
+
+[[ATTACHMENT|..\..\test-results\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\video.webm]]
+]]>
+</system-out>
 </testcase>
 </testsuite>
 </testsuites>

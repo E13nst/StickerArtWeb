@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { imageLoader } from '../utils/imageLoader';
 import { imageCache } from '../utils/galleryUtils';
+import { animationCache } from '../utils/animationLoader';
 
 interface UseStickerRotationProps {
   stickersCount: number;
@@ -9,7 +10,7 @@ interface UseStickerRotationProps {
   isHovered?: boolean;
   isVisible?: boolean;
   // Опционально: источники стикеров для предварительной загрузки
-  stickerSources?: Array<{ fileId: string; url: string }>;
+  stickerSources?: Array<{ fileId: string; url: string; isAnimated?: boolean }>;
   // Минимальное время показа стикера (по умолчанию 2 секунды)
   minDisplayDuration?: number;
 }
@@ -45,15 +46,17 @@ export const useStickerRotation = ({
   }, [stickersCount, currentIndex]);
 
   // Функция проверки готовности стикера (изображение + JSON если анимированный)
-  const isStickerReady = useCallback((fileId: string, url: string): boolean => {
+  const isStickerReady = useCallback((fileId: string, url: string, isAnimated?: boolean): boolean => {
     // Проверяем что изображение в кеше
     if (!imageCache.get(fileId)) {
       return false;
     }
     
-    // Проверяем JSON в кеше (может быть анимированный стикер)
-    // Если JSON в кеше - отлично, если нет - может быть статичный стикер (это нормально)
-    // Главное - изображение должно быть готово
+    // Для анимированных стикеров проверяем JSON в кеше
+    if (isAnimated && !animationCache.get(fileId)) {
+      return false;
+    }
+    
     return true;
   }, []);
 
@@ -65,35 +68,151 @@ export const useStickerRotation = ({
 
     const delay = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
 
-    // Функция ожидания готовности стикера с таймаутом
-    const waitForStickerReady = async (fileId: string, url: string, timeoutMs: number = 5000): Promise<boolean> => {
+    // Функция ожидания готовности стикера с таймаутом и проверкой реальной загрузки
+    const waitForStickerReady = async (fileId: string, url: string, isAnimated?: boolean, timeoutMs: number = 6000): Promise<boolean> => {
       const startTime = Date.now();
       
-      // Проверяем сразу
-      if (isStickerReady(fileId, url)) {
-        return true;
+      // Проверяем сразу - если уже в кэше и готов
+      if (isStickerReady(fileId, url, isAnimated)) {
+        // Для анимаций дополнительно проверяем что JSON действительно загружен
+        if (isAnimated) {
+          const animData = animationCache.get(fileId);
+          if (animData) {
+            return true;
+          }
+        } else {
+          // Для обычных изображений проверяем реальную готовность через Image
+          const cachedUrl = imageCache.get(fileId);
+          if (cachedUrl) {
+            try {
+              const img = new Image();
+              img.src = cachedUrl;
+              // Если изображение уже загружено браузером, complete будет true
+              if (img.complete) {
+                return true;
+              }
+              // Иначе ждем загрузки с таймаутом
+              const loadPromise = new Promise<boolean>((resolve) => {
+                const timeout = setTimeout(() => {
+                  resolve(img.complete);
+                }, 500); // 500мс на загрузку
+                
+                img.onload = () => {
+                  clearTimeout(timeout);
+                  resolve(true);
+                };
+                img.onerror = () => {
+                  clearTimeout(timeout);
+                  resolve(false);
+                };
+              });
+              if (await loadPromise) {
+                return true;
+              }
+            } catch {
+              // Игнорируем ошибки проверки
+            }
+          }
+        }
       }
       
       // Пробуем загрузить если нет в кеше
       try {
         await imageLoader.loadImage(fileId, url, 1);
+        
+        // После загрузки через imageLoader, проверяем реальную готовность
+        if (isAnimated) {
+          // Для анимаций проверяем наличие JSON
+          if (!animationCache.has(fileId)) {
+            // Пробуем загрузить анимацию
+            try {
+              const response = await fetch(url);
+              if (response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                  const data = await response.json();
+                  animationCache.set(fileId, data);
+                  return true;
+                }
+              }
+            } catch {
+              // Игнорируем ошибки
+            }
+          } else {
+            return true;
+          }
+        } else {
+          // Для обычных изображений проверяем реальную загрузку
+          const cachedUrl = imageCache.get(fileId);
+          if (cachedUrl) {
+            const img = new Image();
+            img.src = cachedUrl;
+            if (img.complete) {
+              return true;
+            }
+            // Ждем загрузки с таймаутом (увеличиваем до 500мс как пользователь указал)
+            const loadPromise = new Promise<boolean>((resolve) => {
+              const timeout = setTimeout(() => {
+                resolve(img.complete);
+              }, 500); // 500мс на загрузку как указал пользователь
+              
+              img.onload = () => {
+                clearTimeout(timeout);
+                resolve(true);
+              };
+              img.onerror = () => {
+                clearTimeout(timeout);
+                resolve(false);
+              };
+            });
+            return await loadPromise;
+          }
+        }
       } catch {
         // ignore load errors
       }
       
-      // Проверяем периодически с небольшими интервалами
+      // Проверяем периодически с небольшими интервалами до таймаута
       while (Date.now() - startTime < timeoutMs) {
         if (cancelled) return false;
         
-        if (isStickerReady(fileId, url)) {
-          return true;
+        if (isStickerReady(fileId, url, isAnimated)) {
+          // Дополнительная проверка реальной готовности
+          if (!isAnimated) {
+            const cachedUrl = imageCache.get(fileId);
+            if (cachedUrl) {
+              try {
+                const img = new Image();
+                img.src = cachedUrl;
+                if (img.complete) {
+                  return true;
+                }
+              } catch {
+                // Игнорируем
+              }
+            }
+          } else {
+            // Для анимаций проверяем наличие данных
+            if (animationCache.has(fileId)) {
+              return true;
+            }
+          }
         }
         
-        await delay(50); // проверяем каждые 50ms
+        await delay(100); // проверяем каждые 100ms (было 50ms)
       }
       
       // Таймаут - считаем готовым если изображение хотя бы попыталось загрузиться
-      return imageCache.get(fileId) !== undefined;
+      // Но лучше вернуть false чтобы не показывать неготовый стикер
+      return isStickerReady(fileId, url, isAnimated);
+    };
+
+    const checkCancel = () => {
+      if (document.body.classList.contains('modal-open') || cancelled) {
+        cancelled = true;
+        return true;
+      }
+      return false;
     };
 
     const schedule = async () => {
@@ -108,18 +227,28 @@ export const useStickerRotation = ({
         await delay(remainingTime);
       }
       
-      if (cancelled) return;
+      if (checkCancel()) return;
 
-      // 2) Проверяем готовность СЛЕДУЮЩЕГО стикера (загружается фоном из PackCard)
+      // 2) Проверяем готовность СЛЕДУЮЩЕГО стикера (увеличиваем таймаут до 6000мс)
       if (stickerSources && stickerSources.length > 0) {
         const nextIdx = (currentIdx + 1) % Math.min(stickersCount, stickerSources.length);
         const nextSrc = stickerSources[nextIdx];
         if (nextSrc) {
-          await waitForStickerReady(nextSrc.fileId, nextSrc.url, 3000);
+          const isReady = await waitForStickerReady(nextSrc.fileId, nextSrc.url, nextSrc.isAnimated, 6000);
+          // Логируем для отладки
+          if (import.meta.env.DEV) {
+            console.log(`🎨 Next sticker ${nextIdx} ready: ${isReady}`, nextSrc.fileId);
+          }
+          
+          // Если стикер готов, добавляем небольшую задержку (50-100мс) для гарантии полной готовности
+          // Это помогает избежать пауз при переключении
+          if (isReady) {
+            await delay(100); // Даем дополнительное время на полную загрузку
+          }
         }
       }
 
-      if (cancelled) return;
+      if (checkCancel()) return;
 
       // 3) Переключаемся только если всё готово
       setCurrentIndex(prev => (prev + 1) % stickersCount);
@@ -127,7 +256,6 @@ export const useStickerRotation = ({
       // 4) Планируем следующий цикл
       if (!cancelled) {
         timeoutRef.current = setTimeout(() => {
-          // запускаем асинхронно, не блокируя event loop
           schedule();
         }, 0);
       }

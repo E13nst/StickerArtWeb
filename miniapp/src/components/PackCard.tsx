@@ -4,7 +4,7 @@ import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { imageLoader } from '../utils/imageLoader';
-import { prefetchAnimation } from '../utils/animationLoader';
+import { prefetchAnimation, markAsGalleryAnimation } from '../utils/animationLoader';
 import { LoadPriority } from '../utils/imageLoader';
 
 interface Pack {
@@ -35,9 +35,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
 
-  // Предзагрузка первого стикера
+  // Предзагрузка первого стикера фоном для всех карточек
   useEffect(() => {
-    if (pack.previewStickers.length > 0 && isNear) {
+    if (pack.previewStickers.length > 0) {
       const firstSticker = pack.previewStickers[0];
       const priority = isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE;
       
@@ -49,28 +49,36 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           
           // Prefetch JSON для анимаций
           if (firstSticker.isAnimated) {
-            prefetchAnimation(firstSticker.fileId, firstSticker.url).catch(() => {});
+            prefetchAnimation(firstSticker.fileId, firstSticker.url).then(() => {
+              markAsGalleryAnimation(firstSticker.fileId);
+            }).catch(() => {});
           }
         })
         .catch(() => {
           console.warn(`⚠️ Failed to load first sticker for pack ${pack.id}`);
           setIsFirstStickerReady(true); // Показываем даже если ошибка
         });
+    }
+  }, [pack.id, pack.previewStickers, isHighPriority]);
 
-      // Предзагрузка остальных стикеров фоном с меньшим приоритетом
+  // Предзагрузка остальных стикеров фоном только когда карточка рядом с viewport
+  useEffect(() => {
+    if (pack.previewStickers.length > 0 && isNear) {
       for (let i = 1; i < pack.previewStickers.length; i++) {
         const sticker = pack.previewStickers[i];
         imageLoader.loadImage(sticker.fileId, sticker.url, LoadPriority.TIER_4_BACKGROUND)
           .then(() => {
             // Prefetch JSON для анимаций
             if (sticker.isAnimated) {
-              prefetchAnimation(sticker.fileId, sticker.url).catch(() => {});
+              prefetchAnimation(sticker.fileId, sticker.url).then(() => {
+                markAsGalleryAnimation(sticker.fileId);
+              }).catch(() => {});
             }
           })
           .catch(() => {}); // Игнорируем ошибки для фоновых стикеров
       }
     }
-  }, [pack.id, pack.previewStickers, isNear, isHighPriority]);
+  }, [pack.id, pack.previewStickers, isNear]);
 
   // Используем хук для управления ротацией стикеров
   const { currentIndex: currentStickerIndex } = useStickerRotation({
@@ -79,9 +87,12 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     hoverRotateInterval: 618,
     isHovered,
     isVisible: isNear,
-    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url })),
+    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url, isAnimated: s.isAnimated })),
     minDisplayDuration: 2000
   });
+
+  // useStickerRotation гарантирует готовность стикера перед переключением индекса
+  // Поэтому мы можем напрямую использовать currentStickerIndex без дополнительных проверок
 
   // Мемоизированный обработчик клика
   const handleClick = useCallback(() => {
@@ -89,9 +100,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       onClick(pack.id);
     }
   }, [onClick, pack.id]);
-
-  // Текущий стикер для отображения
-  const currentSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
 
   return (
     <div
@@ -143,6 +151,8 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
           if (!activeSticker) return null;
           
+          // useStickerRotation гарантирует готовность перед переключением
+          // Поэтому показываем стикер сразу по currentStickerIndex
           return (
             <div
               key={`${pack.id}-${activeSticker.fileId}-${currentStickerIndex}`}
@@ -152,45 +162,29 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 height: '100%',
                 position: 'absolute',
                 top: 0,
-                left: 0
+                left: 0,
+                opacity: 1
               }}
             >
-              {activeSticker.fileId ? (
-                activeSticker.isAnimated ? (
-                  <AnimatedSticker
-                    fileId={activeSticker.fileId}
-                    imageUrl={activeSticker.url}
-                    emoji={activeSticker.emoji}
-                    className="pack-card-animated-sticker"
-                  />
-                ) : (
-                  <img
-                    src={activeSticker.url}
-                    alt={activeSticker.emoji}
-                    className="pack-card-image"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                    loading={isHighPriority ? 'eager' : 'lazy'}
-                    decoding="async"
-                  />
-                )
+              {activeSticker.isAnimated ? (
+                <AnimatedSticker
+                  fileId={activeSticker.fileId}
+                  imageUrl={activeSticker.url}
+                  emoji={activeSticker.emoji}
+                  className="pack-card-animated-sticker"
+                  hidePlaceholder={true}
+                />
               ) : (
-                <div 
+                <img
+                  src={activeSticker.url}
+                  alt={activeSticker.emoji}
+                  className="pack-card-image"
                   style={{
                     width: '100%',
                     height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '48px',
-                    color: 'var(--tg-theme-hint-color)'
+                    objectFit: 'cover'
                   }}
-                >
-                  {activeSticker.emoji}
-                </div>
+                />
               )}
             </div>
           );

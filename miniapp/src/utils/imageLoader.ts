@@ -9,6 +9,7 @@ interface LoaderQueue {
 
 // Приоритеты загрузки
 export enum LoadPriority {
+  TIER_0_MODAL = 5,            // Стикеры в модальном окне (наивысший)
   TIER_1_FIRST_6_PACKS = 4,    // Первые 6 паков на экране
   TIER_2_FIRST_IMAGE = 3,      // Первое изображение каждого пака
   TIER_3_ADDITIONAL = 2,       // Остальные изображения
@@ -150,21 +151,30 @@ class ImageLoader {
       throw new Error(`Invalid image URL: ${url}`);
     }
     
-    console.log(`🔄 Prefetching image for ${fileId}:`, normalizedUrl);
+    // Логируем только в dev режиме
+    if (import.meta.env.DEV) {
+      console.log(`🔄 Prefetching image for ${fileId}:`, normalizedUrl);
+    }
     
     // Реальная загрузка изображения через браузер
     return new Promise((resolve, reject) => {
       const img = new Image();
       
       img.onload = () => {
-        console.log(`✅ Image loaded for ${fileId}`);
+        // Логируем только в dev режиме
+        if (import.meta.env.DEV) {
+          console.log(`✅ Image loaded for ${fileId}`);
+        }
         // Сохранить URL в кеш после успешной загрузки
         imageCache.set(fileId, normalizedUrl, 0.1);
         resolve(normalizedUrl);
       };
       
       img.onerror = () => {
-        console.warn(`❌ Failed to load image for ${fileId}`);
+        // Логируем только в dev режиме, чтобы не засорять консоль в production
+        if (import.meta.env.DEV) {
+          console.warn(`❌ Failed to load image for ${fileId}`);
+        }
         reject(new Error(`Failed to load image: ${normalizedUrl}`));
       };
       

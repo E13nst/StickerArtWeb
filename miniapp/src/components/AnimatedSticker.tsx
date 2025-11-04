@@ -9,6 +9,7 @@ interface AnimatedStickerProps {
   emoji?: string;
   className?: string;
   hidePlaceholder?: boolean;
+  onReady?: () => void;
 }
 
 export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
@@ -16,11 +17,13 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   imageUrl,
   emoji,
   className,
-  hidePlaceholder
+  hidePlaceholder,
+  onReady
 }) => {
   const [animationData, setAnimationData] = useState<any>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const readyCalledRef = useRef(false);
   
   // Refs для управления анимацией и IntersectionObserver
   const animationRef = useRef<LottieRefCurrentProps>(null);
@@ -28,6 +31,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
 
   useEffect(() => {
     let cancelled = false;
+    readyCalledRef.current = false; // Сброс при изменении fileId/imageUrl
 
     const loadAnimation = async () => {
       try {
@@ -50,6 +54,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
           if (!cancelled) {
             setAnimationData(animationCache.get(fileId));
             setLoading(false);
+            // onReady будет вызван в useEffect для Lottie
           }
           return;
         }
@@ -78,6 +83,8 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
             animationCache.set(fileId, data);
             console.log('🎬 Cached animation:', fileId);
             setAnimationData(data);
+            setLoading(false);
+            // onReady будет вызван в useEffect для Lottie
           }
         } else {
           // Если это не JSON (webp/png/gif), используем fallback к <img>
@@ -167,6 +174,22 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
     };
   }, [animationData]);
 
+  // Вызываем onReady когда анимация/изображение готовы к показу (ВСЕГДА вызывается до return)
+  useEffect(() => {
+    if (!loading && !readyCalledRef.current) {
+      if (animationData && animationRef.current) {
+        // Для Lottie - небольшая задержка для рендеринга
+        const timer = setTimeout(() => {
+          if (!readyCalledRef.current) {
+            readyCalledRef.current = true;
+            onReady?.();
+          }
+        }, 50);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [animationData, loading, onReady]);
+
   if (loading) {
     return (
       <div 
@@ -197,6 +220,12 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
             height: '100%',
             objectFit: 'cover'
           }}
+          onLoad={() => {
+            if (!readyCalledRef.current) {
+              readyCalledRef.current = true;
+              onReady?.();
+            }
+          }}
           onError={(e) => {
             // Если и изображение не загрузилось - показываем эмодзи
             console.log('🎬 Image fallback failed, showing emoji:', fileId);
@@ -205,6 +234,10 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
             const parent = target.parentElement;
             if (parent) {
               parent.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 48px;">${emoji || '🎨'}</div>`;
+            }
+            if (!readyCalledRef.current) {
+              readyCalledRef.current = true;
+              onReady?.(); // Вызываем даже при ошибке
             }
           }}
         />

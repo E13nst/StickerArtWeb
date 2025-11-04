@@ -309,3 +309,11 @@ powershell -ExecutionPolicy Bypass -File scripts/simple-start.ps1
 
 **Последнее обновление:** 2025-10-31
 
+
+
+
+
+
+
+
+

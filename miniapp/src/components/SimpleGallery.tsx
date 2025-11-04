@@ -43,7 +43,6 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     get: getCachedData, 
     set: setCachedData, 
     preloadNextPage, 
-    preloadImages,
     getStats,
     cacheSize 
   } = useSmartCache({
@@ -72,18 +71,8 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     if (packs.length > 0) {
       const cacheKey = `packs_${packs.length}`;
       setCachedData(cacheKey, packs);
-      
-      // Предзагрузка изображений для первых 6 паков
-      const firstSixPacks = packs.slice(0, 6);
-      const imageUrls = firstSixPacks.flatMap(pack => 
-        pack.previewStickers.map(sticker => sticker.url)
-      );
-      
-      if (imageUrls.length > 0) {
-        preloadImages(imageUrls);
-      }
     }
-  }, [packs, setCachedData, preloadImages]);
+  }, [packs, setCachedData]);
 
   // Предзагрузка следующей страницы
   useEffect(() => {

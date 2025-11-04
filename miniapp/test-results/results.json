@@ -9,7 +9,7 @@
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
-    "maxFailures": 1,
+    "maxFailures": 0,
     "metadata": {
       "actualWorkers": 1
     },
@@ -52,171 +52,141 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 0
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/Notebook/StickerArtWeb-1/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/Users/Notebook/StickerArtWeb-1/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
       }
     ],
     "shard": null,
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.56.1",
-    "workers": 1,
+    "workers": 6,
     "webServer": {
       "command": "cd .. && npm run dev",
-      "url": "http://localhost:3000",
+      "url": "http://localhost:3001",
       "reuseExistingServer": true,
       "timeout": 120000
     }
   },
   "suites": [
     {
-      "title": "gallery.spec.ts",
-      "file": "gallery.spec.ts",
+      "title": "performance.spec.ts",
+      "file": "performance.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Sticker Gallery",
-          "file": "gallery.spec.ts",
-          "line": 3,
+          "title": "Performance Metrics Collection",
+          "file": "performance.spec.ts",
+          "line": 54,
           "column": 6,
           "specs": [
             {
-              "title": "количество карточек стикерсетов соответствует размеру API запроса",
+              "title": "Сбор метрик производительности галереи стикеров @mobile",
               "ok": false,
-              "tags": [],
+              "tags": [
+                "mobile"
+              ],
               "tests": [
                 {
-                  "timeout": 0,
+                  "timeout": 30000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
+                  "projectId": "mobile",
+                  "projectName": "mobile",
                   "results": [
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 1915817,
+                      "status": "timedOut",
+                      "duration": 30967,
                       "error": {
-                        "message": "Error: page.waitForSelector: Target page, context or browser has been closed",
-                        "stack": "Error: page.waitForSelector: Target page, context or browser has been closed\n    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts:43:16",
-                        "location": {
-                          "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts",
-                          "column": 16,
-                          "line": 43
-                        },
-                        "snippet": "  41 |     await page.waitForSelector('[data-testid=\"pack-card\"]', { timeout: 10000 });\n  42 |     \n> 43 |     // Получаем количество карточек на странице\n     |                ^\n  44 |     const packCards = await page.locator('[data-testid=\"pack-card\"]').all();\n  45 |     const cardsCount = packCards.length;\n  46 |     "
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
                       },
                       "errors": [
                         {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
                           "location": {
-                            "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts",
-                            "column": 16,
-                            "line": 43
+                            "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\performance.spec.ts",
+                            "column": 40,
+                            "line": 144
                           },
-                          "message": "Error: page.waitForSelector: Target page, context or browser has been closed\n\n  41 |     await page.waitForSelector('[data-testid=\"pack-card\"]', { timeout: 10000 });\n  42 |     \n> 43 |     // Получаем количество карточек на странице\n     |                ^\n  44 |     const packCards = await page.locator('[data-testid=\"pack-card\"]').all();\n  45 |     const cardsCount = packCards.length;\n  46 |     \n    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts:43:16"
+                          "message": "Error: response.body: Test timeout of 30000ms exceeded.\n\n\u001b[0m \u001b[90m 142 |\u001b[39m         request\u001b[33m.\u001b[39mresponseTime \u001b[33m=\u001b[39m timestamp \u001b[33m-\u001b[39m request\u001b[33m.\u001b[39mtimestamp\u001b[33m;\u001b[39m\n \u001b[90m 143 |\u001b[39m         request\u001b[33m.\u001b[39mstatus \u001b[33m=\u001b[39m status\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 144 |\u001b[39m         request\u001b[33m.\u001b[39msize \u001b[33m=\u001b[39m (\u001b[36mawait\u001b[39m response\u001b[33m.\u001b[39mbody())\u001b[33m.\u001b[39mlength\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 145 |\u001b[39m       }\n \u001b[90m 146 |\u001b[39m       \n \u001b[90m 147 |\u001b[39m       activeRequests\u001b[33m.\u001b[39m\u001b[36mdelete\u001b[39m(url)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at Page.<anonymous> (C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\performance.spec.ts:144:40)\u001b[22m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\performance.spec.ts",
+                            "column": 18,
+                            "line": 261
+                          },
+                          "message": "Error: page.waitForTimeout: Test timeout of 30000ms exceeded.\n\n\u001b[0m \u001b[90m 259 |\u001b[39m     \u001b[36mwhile\u001b[39m (\u001b[33mDate\u001b[39m\u001b[33m.\u001b[39mnow() \u001b[33m<\u001b[39m idleEnd) {\n \u001b[90m 260 |\u001b[39m       \u001b[36mawait\u001b[39m readFPS(\u001b[32m'idle'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 261 |\u001b[39m       \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m1000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 262 |\u001b[39m     }\n \u001b[90m 263 |\u001b[39m     \n \u001b[90m 264 |\u001b[39m     metrics\u001b[33m.\u001b[39mruntimeMetrics\u001b[33m.\u001b[39mfpsIdle \u001b[33m=\u001b[39m fpsSamples\u001b[33m.\u001b[39mfilter(s \u001b[33m=>\u001b[39m s\u001b[33m.\u001b[39mstate \u001b[33m===\u001b[39m \u001b[32m'idle'\u001b[39m)\u001b[33m.\u001b[39mmap(s \u001b[33m=>\u001b[39m s\u001b[33m.\u001b[39mfps)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\performance.spec.ts:261:18\u001b[22m"
                         }
                       ],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "📊 [METRICS] Starting navigation...\n"
+                        },
+                        {
+                          "text": "📊 [METRICS] Waiting for gallery to load...\n"
+                        },
+                        {
+                          "text": "✅ [METRICS] First sticker visible at 13181ms\n"
+                        },
+                        {
+                          "text": "✅ [METRICS] All visible stickers count: 20\n"
+                        },
+                        {
+                          "text": "📊 [METRICS] Starting 20s idle phase...\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T09:57:15.718Z",
+                      "startTime": "2025-11-02T21:35:00.637Z",
                       "annotations": [],
-                      "attachments": [],
-                      "errorLocation": {
-                        "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery.spec.ts",
-                        "column": 16,
-                        "line": 43
-                      }
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Notebook\\StickerArtWeb-1\\test-results\\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Notebook\\StickerArtWeb-1\\test-results\\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\\error-context.md"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Notebook\\StickerArtWeb-1\\test-results\\performance-Performance-Me-80eab-сти-галереи-стикеров-mobile-mobile\\video.webm"
+                        }
+                      ]
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "0087bd98ece4956907e4-5cd0fb9db966e60b5c76",
-              "file": "gallery.spec.ts",
-              "line": 12,
-              "column": 3
-            },
-            {
-              "title": "API запрос использует правильные параметры по умолчанию",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 0,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "0087bd98ece4956907e4-07236727753fb03230c2",
-              "file": "gallery.spec.ts",
-              "line": 96,
-              "column": 3
-            },
-            {
-              "title": "пагинация работает корректно",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 0,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "0087bd98ece4956907e4-6c8234eefc51067bbf6e",
-              "file": "gallery.spec.ts",
-              "line": 148,
-              "column": 3
-            },
-            {
-              "title": "API ответ соответствует формату PageResponseStickerSetDto",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 0,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "0087bd98ece4956907e4-95b125021ed6689855c4",
-              "file": "gallery.spec.ts",
-              "line": 177,
-              "column": 3
-            },
-            {
-              "title": "поиск фильтрует карточки корректно",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 0,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "0087bd98ece4956907e4-8b5d9410807609824fc0",
-              "file": "gallery.spec.ts",
-              "line": 236,
+              "id": "b15d6361b2fc38288977-46e30d3b09989fb178d0",
+              "file": "performance.spec.ts",
+              "line": 55,
               "column": 3
             }
           ]
@@ -224,16 +194,12 @@
       ]
     }
   ],
-  "errors": [
-    {
-      "message": "Testing stopped early after 1 maximum allowed failures."
-    }
-  ],
+  "errors": [],
   "stats": {
-    "startTime": "2025-10-28T09:57:13.842Z",
-    "duration": 1920742.428,
+    "startTime": "2025-11-02T21:34:54.111Z",
+    "duration": 41000.431,
     "expected": 0,
-    "skipped": 4,
+    "skipped": 0,
     "unexpected": 1,
     "flaky": 0
   }
