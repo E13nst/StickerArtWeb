@@ -10,21 +10,23 @@ interface AddStickerPackButtonProps {
 
 const buttonStyles = {
   width: '100%',
-  height: '2.5rem',
-  padding: '0 0.618rem',
-  borderRadius: '0.59rem',
+  maxWidth: '100%',
+  height: '2.2rem',
+  padding: '0 0.75rem',
+  borderRadius: '0.75rem',
   border: 'none',
   backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
   color: 'var(--tg-theme-button-text-color, #ffffff)',
-  fontSize: '0.875rem',
-  fontWeight: 600,
+  fontSize: '0.8125rem',
+  fontWeight: 500,
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   gap: '0.5rem',
   transition: 'all 0.2s ease',
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+  boxSizing: 'border-box'
 };
 
 export const AddStickerPackButton: React.FC<AddStickerPackButtonProps> = ({ onClick, variant = 'gallery' }) => {
@@ -35,13 +37,11 @@ export const AddStickerPackButton: React.FC<AddStickerPackButtonProps> = ({ onCl
 
   if (variant === 'gallery') {
     return (
-      <div style={{ padding: '0 0.618rem', marginBottom: '8px', display: 'flex', alignItems: 'center', minHeight: '2.5rem' }}>
-        <button onClick={handleClick} style={buttonStyles} onMouseEnter={(e) => Object.assign(e.currentTarget.style, hover)} onMouseLeave={(e) => Object.assign(e.currentTarget.style, reset)}>
-          <span style={{ fontSize: '0.955rem', lineHeight: '1', display: 'flex', alignItems: 'center', fontWeight: 600 }}>+</span>
-          <span>Добавьте стикерпак</span>
-          <span style={{ fontSize: '0.75rem', opacity: 0.9, backgroundColor: 'rgba(255, 255, 255, 0.2)', padding: '2px 6px', borderRadius: '6px' }}>+10 ART</span>
-        </button>
-      </div>
+      <button onClick={handleClick} style={buttonStyles} onMouseEnter={(e) => Object.assign(e.currentTarget.style, hover)} onMouseLeave={(e) => Object.assign(e.currentTarget.style, reset)}>
+        <span style={{ fontSize: '0.875rem', lineHeight: '1', display: 'flex', alignItems: 'center', fontWeight: 400 }}>+</span>
+        <span>Добавить</span>
+        <span style={{ fontSize: '0.6875rem', opacity: 0.85, backgroundColor: 'rgba(255, 255, 255, 0.2)', padding: '2px 5px', borderRadius: '5px' }}>+10 ART</span>
+      </button>
     );
   }
 

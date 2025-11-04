@@ -819,8 +819,7 @@ export const MyProfilePage: React.FC = () => {
                   actionLabel="Создать стикер"
                   onAction={handleCreateSticker}
                 />
-              ) : (
-                <div className="fade-in">
+                              ) : (
                   <SimpleGallery
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
@@ -828,9 +827,14 @@ export const MyProfilePage: React.FC = () => {
                     isLoadingMore={isStickerSetsLoading}
                     onLoadMore={setsFilter === 'liked' ? undefined : () => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)}
                     enablePreloading={true}
+                    addButtonElement={setsFilter === 'published' ? (
+                      <AddStickerPackButton
+                        variant="gallery"
+                        onClick={() => setIsUploadModalOpen(true)}
+                      />
+                    ) : undefined}
                   />
-                </div>
-              )}
+                )}
 
               {/* Кнопка "Показать ещё" убрана, так как SimpleGallery использует infinite scroll */}
               {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (

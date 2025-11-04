@@ -23,6 +23,8 @@ interface SimpleGalleryProps {
   hasNextPage?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
+  // Кнопка добавления как первый элемент сетки
+  addButtonElement?: React.ReactNode;
 }
 
 export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
@@ -32,7 +34,8 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   batchSize = 20,
   hasNextPage = false,
   isLoadingMore = false,
-  onLoadMore
+  onLoadMore,
+  addButtonElement
 }) => {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -188,145 +191,334 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
       style={{
         width: '100%',
         maxHeight: '80vh',
-        overflow: 'auto'
+        overflow: 'auto',
+        position: 'relative'
       }}
       data-testid="gallery-container"
     >
-
-
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        display: 'flex',
         gap: '8px',
-        padding: '8px'
+        padding: '0 8px 8px 8px',
+        width: '100%',
+        alignItems: 'flex-start'
       }}>
-        {/* Skeleton Loading */}
-        {showSkeleton && (
-          <>
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={`skeleton-${index}`}
-                style={{
-                  height: '200px',
-                  width: '100%',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-                  backgroundSize: '200% 100%',
-                  animation: 'shimmer 1.5s infinite',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Имитация контента карточки */}
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '60px',
-                  height: '60px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                  borderRadius: '50%',
-                  animation: 'pulse 2s infinite'
-                }} />
-                
-                {/* Имитация заголовка */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  left: '8px',
-                  right: '8px',
-                  height: '16px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                  borderRadius: '8px',
-                  animation: 'pulse 2s infinite'
-                }} />
-              </div>
-            ))}
-          </>
-        )}
+        {/* Левая колонка */}
+        <div style={{
+          flex: '1 1 0%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          minWidth: 0,
+          maxWidth: 'calc(50% - 4px)',
+          boxSizing: 'border-box',
+          overflow: 'visible'
+        }}>
+          {/* Кнопка добавления как первый элемент левой колонки */}
+          {!showSkeleton && addButtonElement && (
+            <div style={{
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+              flexShrink: 0,
+              marginTop: '0',
+              marginBottom: '8px',
+              position: 'sticky',
+              top: '0',
+              zIndex: 10,
+              paddingTop: '8px',
+              paddingBottom: '8px'
+            }}>
+              {addButtonElement}
+            </div>
+          )}
 
-        {/* Реальные карточки */}
-        {!showSkeleton && visiblePacks.map((pack, index) => {
-          const isLikeAnimating = likeAnimations.has(pack.id);
-          
-          return (
-            <div
-              key={pack.id}
-              style={{
-                position: 'relative'
-              }}
-            >
-              {/* Анимация лайка */}
-              {isLikeAnimating && (
+          {/* Skeleton Loading - левая колонка */}
+          {showSkeleton && (
+            <>
+              {Array.from({ length: Math.ceil(6 / 2) }).map((_, index) => (
                 <div
+                  key={`skeleton-left-${index}`}
                   style={{
+                    height: '200px',
+                    width: '100%',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 1.5s infinite',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Имитация контента карточки */}
+                  <div style={{
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    zIndex: 10,
-                    pointerEvents: 'none'
-                  }}
-                >
-                  {/* Пульсация */}
-                  <div
-                    style={{
-                      width: '100px',
-                      height: '100px',
-                      borderRadius: '50%',
-                      background: 'radial-gradient(circle, rgba(255, 0, 0, 0.3) 0%, transparent 70%)',
-                      animation: 'likePulse 0.6s ease-out',
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                  />
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '50%',
+                    animation: 'pulse 2s infinite'
+                  }} />
                   
-                  {/* Частицы */}
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: '6px',
-                        height: '6px',
-                        backgroundColor: '#ff6b6b',
-                        borderRadius: '50%',
-                        animation: `particle-${i} 0.6s ease-out forwards`,
-                        animationDelay: `${i * 50}ms`
-                      }}
-                    />
-                  ))}
-                  
-                  {/* Сердечко */}
+                  {/* Имитация заголовка */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    left: '8px',
+                    right: '8px',
+                    height: '16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Реальные карточки - левая колонка (четные индексы после кнопки) */}
+          {!showSkeleton && visiblePacks.map((pack, index) => {
+            // Распределяем карточки: после кнопки в левой колонке идут четные индексы (0, 2, 4...)
+            // Но если есть кнопка, то индекс 0 идет в левую колонку как второй элемент
+            const hasButton = !!addButtonElement;
+            const shouldBeInLeftColumn = hasButton 
+              ? (index % 2 === 0) // 0, 2, 4... в левую (после кнопки)
+              : (index % 2 === 0); // 0, 2, 4... в левую
+            
+            if (!shouldBeInLeftColumn) return null;
+
+            const isLikeAnimating = likeAnimations.has(pack.id);
+            
+            return (
+              <div
+                key={pack.id}
+                style={{
+                  position: 'relative',
+                  width: '100%'
+                }}
+              >
+                {/* Анимация лайка */}
+                {isLikeAnimating && (
                   <div
                     style={{
                       position: 'absolute',
                       top: '50%',
                       left: '50%',
                       transform: 'translate(-50%, -50%)',
-                      fontSize: '24px',
-                      animation: 'likeHeart 0.6s ease-out'
+                      zIndex: 10,
+                      pointerEvents: 'none'
                     }}
                   >
-                    ❤️
+                    {/* Радиальная волна */}
+                    <div
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(255, 0, 0, 0.3) 0%, transparent 70%)',
+                        animation: 'likePulse 0.6s ease-out',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    />
+                    
+                    {/* Частицы */}
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: '#ff6b6b',
+                          borderRadius: '50%',
+                          animation: `particle-${i} 0.6s ease-out forwards`,
+                          animationDelay: `${i * 50}ms`
+                        }}
+                      />
+                    ))}
+                    
+                    {/* Сердечко */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: '24px',
+                        animation: 'likeHeart 0.6s ease-out'
+                      }}
+                    >
+                      ❤️
+                    </div>
                   </div>
+                )}
+                
+                <PackCard
+                  pack={pack}
+                  isFirstRow={index < 2}
+                  isHighPriority={index < 6}
+                  onClick={handlePackClick}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Правая колонка */}
+        <div style={{
+          flex: '1 1 0%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          minWidth: 0,
+          maxWidth: 'calc(50% - 4px)',
+          boxSizing: 'border-box',
+          overflow: 'hidden'
+        }}>
+          {/* Skeleton Loading - правая колонка */}
+          {showSkeleton && (
+            <>
+              {Array.from({ length: Math.floor(6 / 2) }).map((_, index) => (
+                <div
+                  key={`skeleton-right-${index}`}
+                  style={{
+                    height: '200px',
+                    width: '100%',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 1.5s infinite',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Имитация контента карточки */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '50%',
+                    animation: 'pulse 2s infinite'
+                  }} />
+                  
+                  {/* Имитация заголовка */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    left: '8px',
+                    right: '8px',
+                    height: '16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    animation: 'pulse 2s infinite'
+                  }} />
                 </div>
-              )}
-              
-          <PackCard
-            pack={pack}
-            isFirstRow={index < 2}
-            isHighPriority={index < 6}
-            onClick={handlePackClick}
-          />
-            </div>
-          );
-        })}
+              ))}
+            </>
+          )}
+
+          {/* Реальные карточки - правая колонка (нечетные индексы) */}
+          {!showSkeleton && visiblePacks.map((pack, index) => {
+            // Правая колонка получает нечетные индексы (1, 3, 5...)
+            // Это создаст эффект, что правая колонка начинается с первой карточки (index 1)
+            const shouldBeInRightColumn = index % 2 === 1;
+            
+            if (!shouldBeInRightColumn) return null;
+
+            const isLikeAnimating = likeAnimations.has(pack.id);
+            
+            return (
+              <div
+                key={pack.id}
+                style={{
+                  position: 'relative',
+                  width: '100%'
+                }}
+              >
+                {/* Анимация лайка */}
+                {isLikeAnimating && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      zIndex: 10,
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    {/* Радиальная волна */}
+                    <div
+                      style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(255, 0, 0, 0.3) 0%, transparent 70%)',
+                        animation: 'likePulse 0.6s ease-out',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    />
+                    
+                    {/* Частицы */}
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: '#ff6b6b',
+                          borderRadius: '50%',
+                          animation: `particle-${i} 0.6s ease-out forwards`,
+                          animationDelay: `${i * 50}ms`
+                        }}
+                      />
+                    ))}
+                    
+                    {/* Сердечко */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        fontSize: '24px',
+                        animation: 'likeHeart 0.6s ease-out'
+                      }}
+                    >
+                      ❤️
+                    </div>
+                  </div>
+                )}
+                
+                <PackCard
+                  pack={pack}
+                  isFirstRow={index < 2}
+                  isHighPriority={index < 6}
+                  onClick={handlePackClick}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Индикатор загрузки */}

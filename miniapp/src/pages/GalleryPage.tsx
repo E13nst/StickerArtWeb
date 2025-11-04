@@ -62,9 +62,9 @@ export const GalleryPage: React.FC = () => {
     isDetailOpen: false,
     manualInitData: '',
     isLoadingMore: false,
+    isUploadModalOpen: false,
     selectedCategories: [] as string[],
-    sortByLikes: false,
-    isUploadModalOpen: false
+    sortByLikes: false
   });
 
   // Debounced search term для оптимизации поиска
@@ -408,13 +408,7 @@ export const GalleryPage: React.FC = () => {
           </Box>
         )}
 
-        {/* Кнопка создания стикерпака */}
-        {!isLoading && !error && (
-          <AddStickerPackButton
-            variant="gallery"
-            onClick={() => setUiState(prev => ({ ...prev, isUploadModalOpen: true }))}
-          />
-        )}
+        
 
         {/* Content */}
         {isLoading ? (
@@ -447,11 +441,26 @@ export const GalleryPage: React.FC = () => {
               isLoadingMore={uiState.isLoadingMore}
               onLoadMore={loadMoreStickerSets}
               enablePreloading={true}
+              addButtonElement={
+                <AddStickerPackButton
+                  variant="gallery"
+                  onClick={() => setUiState(prev => ({ ...prev, isUploadModalOpen: true }))}
+                />
+              }
             />
           </div>
         )}
       </TelegramLayout>
       <DebugPanel initData={initData} />
+      <UploadStickerPackModal
+        open={uiState.isUploadModalOpen}
+        onClose={() => setUiState(prev => ({ ...prev, isUploadModalOpen: false }))}
+        onUpload={async (link: string) => {
+          // Обновляем список стикерсетов после успешной загрузки
+          await fetchStickerSets();
+          setUiState(prev => ({ ...prev, isUploadModalOpen: false }));
+        }}
+      />
       <StickerPackModal 
         open={uiState.isDetailOpen} 
         stickerSet={uiState.selectedStickerSet} 
