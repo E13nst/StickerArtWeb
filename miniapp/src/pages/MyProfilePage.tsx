@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -396,25 +396,51 @@ export const MyProfilePage: React.FC = () => {
     setIsModalOpen(false);
     setSelectedStickerSet(null);
     
-    // Обновляем список "понравившиеся" если активен этот фильтр
+    // Всегда обновляем список "понравившиеся" если активен этот фильтр
     // (модальное окно могло обновить состояние лайка через store)
     if (setsFilter === 'liked') {
-      // Синхронизируем список с текущими лайками из store
-      const { likes, isLiked: isLikedFn } = useLikesStore.getState();
-      const likedIds = new Set(Object.keys(likes).filter((id) => isLikedFn(id)));
-      
-      // Обновляем список: оставляем только лайкнутые
-      const stillLiked = likedStickerSets.filter(s => likedIds.has(String(s.id)));
-      
-      // Добавляем новые лайкнутые из userStickerSets
-      const currentIds = new Set(stillLiked.map(s => String(s.id)));
-      const missingFromList = userStickerSets.filter(s => 
-        likedIds.has(String(s.id)) && !currentIds.has(String(s.id))
-      );
-      
-      setLikedStickerSets([...stillLiked, ...missingFromList]);
+      // Используем функцию синхронизации для обновления списка
+      syncLikedListFromStore();
     }
   };
+  
+  // Функция синхронизации списка понравившихся из store
+  const syncLikedListFromStore = useCallback(() => {
+    const { likes, isLiked: isLikedFn } = useLikesStore.getState();
+    const likedIds = new Set(Object.keys(likes).filter((id) => isLikedFn(id)));
+    
+    // Собираем все лайкнутые стикерсеты из разных источников
+    const likedFromServer = likedStickerSets.filter(s => likedIds.has(String(s.id)));
+    const likedFromUserSets = userStickerSets.filter(s => likedIds.has(String(s.id)));
+    
+    // Объединяем, убирая дубликаты
+    const allLikedIds = new Set<string>();
+    const merged: any[] = [];
+    
+    // Сначала добавляем из серверного списка (если есть)
+    likedFromServer.forEach(s => {
+      const id = String(s.id);
+      if (!allLikedIds.has(id)) {
+        allLikedIds.add(id);
+        merged.push(s);
+      }
+    });
+    
+    // Затем добавляем из userStickerSets
+    likedFromUserSets.forEach(s => {
+      const id = String(s.id);
+      if (!allLikedIds.has(id)) {
+        allLikedIds.add(id);
+        merged.push(s);
+      }
+    });
+    
+    // Обновляем список только если он изменился
+    if (merged.length !== likedStickerSets.length || 
+        merged.some((s, i) => String(s.id) !== String(likedStickerSets[i]?.id))) {
+      setLikedStickerSets(merged);
+    }
+  }, [likedStickerSets, userStickerSets]);
 
   const handleShareStickerSet = (name: string, _title: string) => {
     if (tg) {
@@ -432,22 +458,39 @@ export const MyProfilePage: React.FC = () => {
       const serverLikedSets = response.content || [];
       
       // Инициализируем лайки из загруженных данных с mergeMode для сохранения локальных изменений
+      // Важно: mergeMode = true сохраняет локальные изменения, но обновляет данные от API
       if (serverLikedSets.length > 0) {
         initializeLikes(serverLikedSets, true); // mergeMode = true
       }
       
-      // Объединяем данные с сервера с локальными лайками из store
+      // Получаем актуальное состояние лайков после инициализации
       const { likes, isLiked: isLikedFn } = useLikesStore.getState();
-      const locallyLikedIds = new Set(Object.keys(likes).filter((id) => isLikedFn(id)));
+      const allLikedIds = new Set(Object.keys(likes).filter((id) => isLikedFn(id)));
       
-      // Добавляем стикерсеты из userStickerSets, которые лайкнуты локально но не в серверном списке
-      const serverIds = new Set(serverLikedSets.map(s => String(s.id)));
-      const additionalLocal = userStickerSets.filter(s => 
-        locallyLikedIds.has(String(s.id)) && !serverIds.has(String(s.id))
-      );
+      // Объединяем стикерсеты из разных источников
+      const merged: any[] = [];
+      const addedIds = new Set<string>();
       
-      // Объединяем: сначала серверные (приоритет), затем локальные
-      setLikedStickerSets([...serverLikedSets, ...additionalLocal]);
+      // 1. Добавляем серверные стикерсеты (они точно лайкнуты)
+      serverLikedSets.forEach(s => {
+        const id = String(s.id);
+        if (!addedIds.has(id)) {
+          addedIds.add(id);
+          merged.push(s);
+        }
+      });
+      
+      // 2. Добавляем стикерсеты из userStickerSets, которые лайкнуты локально
+      userStickerSets.forEach(s => {
+        const id = String(s.id);
+        if (allLikedIds.has(id) && !addedIds.has(id)) {
+          addedIds.add(id);
+          merged.push(s);
+        }
+      });
+      
+      // Обновляем список
+      setLikedStickerSets(merged);
     } catch (e) {
       console.warn('⚠️ Не удалось загрузить понравившиеся стикерсеты (используем локальные данные)');
       // Fallback: фильтруем текущие по локальному лайку
@@ -464,25 +507,24 @@ export const MyProfilePage: React.FC = () => {
   useEffect(() => {
     // Обновляем список только если активен фильтр "понравившиеся"
     if (setsFilter === 'liked') {
-      const { likes, isLiked: isLikedFn } = useLikesStore.getState();
-      const likedIds = new Set(Object.keys(likes).filter((id) => isLikedFn(id)));
-      
-      // Объединяем текущий список с локально лайкнутыми стикерсетами
-      const currentIds = new Set(likedStickerSets.map(s => String(s.id)));
-      const missingFromList = userStickerSets.filter(s => 
-        likedIds.has(String(s.id)) && !currentIds.has(String(s.id))
-      );
-      
-      // Удаляем стикерсеты, которые больше не лайкнуты
-      const stillLiked = likedStickerSets.filter(s => likedIds.has(String(s.id)));
-      
-      // Обновляем список: убираем разлайкнутые, добавляем новые
-      if (missingFromList.length > 0 || stillLiked.length !== likedStickerSets.length) {
-        setLikedStickerSets([...stillLiked, ...missingFromList]);
+      syncLikedListFromStore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allLikes, setsFilter, userStickerSets, syncLikedListFromStore]);
+  
+  // Обновление списка при переключении фильтра
+  useEffect(() => {
+    if (setsFilter === 'liked') {
+      // Если список пустой, загружаем с сервера
+      if (likedStickerSets.length === 0) {
+        loadLikedStickerSets();
+      } else {
+        // Иначе синхронизируем с текущим состоянием store
+        syncLikedListFromStore();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allLikes, setsFilter, userStickerSets]);
+  }, [setsFilter]);
 
   const handleLikeStickerSet = (id: number, title: string) => {
     // TODO: Реализовать API для лайков
@@ -767,9 +809,7 @@ export const MyProfilePage: React.FC = () => {
                   variant={setsFilter === 'liked' ? 'filled' : 'outlined'}
                   onClick={() => {
                     setSetsFilter('liked');
-                    if (likedStickerSets.length === 0) {
-                      loadLikedStickerSets();
-                    }
+                    // Список обновится в useEffect при изменении setsFilter
                   }}
                   sx={{ borderRadius: 2 }}
                 />

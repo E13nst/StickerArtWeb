@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
 import { 
   Box, 
   Typography, 
@@ -189,7 +189,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [loading, setLoading] = useState(false); // Начинаем с false для оптимистичного UI
   const [error, setError] = useState<string | null>(null);
 
-  const stickerCount = fullStickerSet?.telegramStickerSetInfo?.stickers?.length || stickerSet.telegramStickerSetInfo?.stickers?.length || 0;
 
   const [meta, setMeta] = useState<StickerSetMeta | null>(() => {
     const cached = metaCache.get(stickerSet.id);
@@ -250,7 +249,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   // Не инициализируем лайки из пропсов - только из API данных
 
-  // Загружаем полную информацию о стикерсете с сервера (оптимистично - в фоне)
+  // Загружаем полную информацию о стикерсете и метаданные ПАРАЛЛЕЛЬНО (оптимистично - в фоне)
   useEffect(() => {
     let mounted = true;
     let abortController: AbortController | null = null;
@@ -269,6 +268,16 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             setLike(stickerSet.id.toString(), apiIsLiked ?? false, apiLikesCount);
           }
         }
+        // Загружаем метаданные отдельно если их нет в кеше
+        const cachedMeta = metaCache.get(stickerSet.id);
+        if (!cachedMeta && mounted) {
+          apiClient.getStickerSetMeta(stickerSet.id).then((m) => {
+            if (!mounted) return;
+            const metaWithoutLikes = { ...m, likes: 0 };
+            metaCache.set(stickerSet.id, metaWithoutLikes);
+            setMeta(metaWithoutLikes);
+          }).catch(() => {});
+        }
         return; // Не загружаем если есть свежий кеш
       }
       
@@ -282,8 +291,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         // Создаем AbortController для возможности отмены
         abortController = new AbortController();
         
-        // Загружаем полную информацию о стикерсете (параллельно с метаданными)
-        const fullData = await apiClient.getStickerSet(stickerSet.id);
+        // ПАРАЛЛЕЛЬНАЯ загрузка: полная информация и метаданные одновременно
+        const [fullData, metaData] = await Promise.all([
+          apiClient.getStickerSet(stickerSet.id),
+          apiClient.getStickerSetMeta(stickerSet.id).catch(() => null) // Метаданные не критичны
+        ]);
         
         if (!mounted || abortController.signal.aborted) return;
         
@@ -293,6 +305,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           timestamp: Date.now(),
           ttl: CACHE_TTL
         });
+        
+        // Кешируем метаданные если они загрузились
+        if (metaData) {
+          const metaWithoutLikes = { ...metaData, likes: 0 };
+          metaCache.set(stickerSet.id, metaWithoutLikes);
+          if (mounted) {
+            setMeta(metaWithoutLikes);
+          }
+        }
         
         // Ограничиваем размер кеша (удаляем старые записи)
         if (stickerSetCache.size > 50) {
@@ -361,34 +382,26 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     };
   }, [stickerSet.id, getLikeState, setLike, preloadThumbnails, preloadLargeStickers]);
 
-  // Загружаем метаданные БЕЗ синхронизации лайков
-  useEffect(() => {
-    let mounted = true;
-    apiClient.getStickerSetMeta(stickerSet.id).then((m) => {
-      if (!mounted) return;
-      // Кэшируем метаданные, но БЕЗ поля likes
-      const metaWithoutLikes = { ...m, likes: 0 };
-      metaCache.set(stickerSet.id, metaWithoutLikes);
-      setMeta(metaWithoutLikes);
-      
-      // НЕ синхронизируем лайки из метаданных
-      // Лайки берутся только из API запроса getStickerSet
-    }).catch(() => {});
-    return () => { mounted = false; };
-  }, [stickerSet.id]);
-
-  // Используем полные данные или fallback к данным из пропсов
-  const stickers = fullStickerSet?.telegramStickerSetInfo?.stickers || stickerSet.telegramStickerSetInfo?.stickers || [];
+  // Мемоизируем список стикеров для оптимизации рендеринга
+  const stickers = useMemo(() => {
+    return fullStickerSet?.telegramStickerSetInfo?.stickers || stickerSet.telegramStickerSetInfo?.stickers || [];
+  }, [fullStickerSet?.telegramStickerSetInfo?.stickers, stickerSet.telegramStickerSetInfo?.stickers]);
   
-  // Отладочная информация
-  console.log('🎯 StickerSetDetail:', {
-    stickerSetId: stickerSet.id,
-    loading,
-    error,
-    fullStickerSet: !!fullStickerSet,
-    stickersCount: stickers.length,
-    stickers: stickers.map(s => ({ file_id: s.file_id, emoji: s.emoji }))
-  });
+  // Мемоизируем количество стикеров
+  const stickerCount = useMemo(() => {
+    return stickers.length;
+  }, [stickers.length]);
+  
+  // Отладочная информация (только в dev режиме)
+  if ((import.meta as any).env?.DEV) {
+    console.log('🎯 StickerSetDetail:', {
+      stickerSetId: stickerSet.id,
+      loading,
+      error,
+      fullStickerSet: !!fullStickerSet,
+      stickersCount: stickers.length
+    });
+  }
 
   const handleStickerClick = useCallback((idx: number) => {
     setActiveIndex(idx);
@@ -401,6 +414,24 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     
     try {
       await toggleLike(stickerSet.id.toString());
+      
+      // Обновляем кеш при изменении лайков
+      const cached = stickerSetCache.get(stickerSet.id);
+      if (cached) {
+        const updatedData = {
+          ...cached.data,
+          likesCount: willLike ? (cached.data.likesCount ?? 0) + 1 : Math.max((cached.data.likesCount ?? 1) - 1, 0),
+          isLikedByCurrentUser: willLike,
+          isLiked: willLike
+        };
+        stickerSetCache.set(stickerSet.id, {
+          ...cached,
+          data: updatedData
+        });
+        // Обновляем отображаемые данные
+        setFullStickerSet(updatedData);
+      }
+      
       if (onLike && willLike) onLike(stickerSet.id, stickerSet.title);
     } catch (error) {
       console.error('Ошибка при лайке:', error);
@@ -642,8 +673,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   color: '#4fc3f7',
                   textShadow: '0 1px 2px rgba(0,0,0,0.8)'
                 }}
-                onMouseEnter={(e) => e.target.style.color = '#81d4fa'}
-                onMouseLeave={(e) => e.target.style.color = '#4fc3f7'}
+                onMouseEnter={(e) => {
+                  const target = e.target as HTMLElement;
+                  target.style.color = '#81d4fa';
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.target as HTMLElement;
+                  target.style.color = '#4fc3f7';
+                }}
               >
                 {meta.author.firstName} {meta.author.lastName || ''}
               </a>
