@@ -760,13 +760,22 @@ export const MyProfilePage: React.FC = () => {
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Переключатель Published/Liked */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+              <Box sx={{ display: 'flex', gap: '0.618rem', mb: '0.618rem', mt: '-0.618rem' }}>
                 <Chip
-                  label="Сеты"
+                  label="Мои"
                   color={setsFilter === 'published' ? 'primary' : 'default'}
                   variant={setsFilter === 'published' ? 'filled' : 'outlined'}
                   onClick={() => setSetsFilter('published')}
-                  sx={{ borderRadius: 2 }}
+                  sx={{ 
+                    borderRadius: '0.618rem',
+                    transform: 'none !important',
+                    '&:hover': {
+                      transform: 'none !important'
+                    },
+                    '&:active': {
+                      transform: 'none !important'
+                    }
+                  }}
                 />
                 <Chip
                   label="Понравившиеся"
@@ -776,7 +785,16 @@ export const MyProfilePage: React.FC = () => {
                     setSetsFilter('liked');
                     // Список обновится в useEffect при изменении setsFilter
                   }}
-                  sx={{ borderRadius: 2 }}
+                  sx={{ 
+                    borderRadius: '0.618rem',
+                    transform: 'none !important',
+                    '&:hover': {
+                      transform: 'none !important'
+                    },
+                    '&:active': {
+                      transform: 'none !important'
+                    }
+                  }}
                 />
               </Box>
 

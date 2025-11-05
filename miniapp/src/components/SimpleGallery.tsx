@@ -25,6 +25,8 @@ interface SimpleGalleryProps {
   onLoadMore?: () => void;
   // Кнопка добавления как первый элемент сетки
   addButtonElement?: React.ReactNode;
+  // Фильтр категорий
+  categoryFilter?: React.ReactNode;
 }
 
 export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
@@ -35,11 +37,18 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   hasNextPage = false,
   isLoadingMore = false,
   onLoadMore,
-  addButtonElement
+  addButtonElement,
+  categoryFilter
 }) => {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
+  
+  // Случайные амплитуды для колонок (8-16px)
+  const [floatAmplitudes] = useState(() => ({
+    left: Math.floor(Math.random() * 9) + 8, // 8-16px
+    right: Math.floor(Math.random() * 9) + 8 // 8-16px
+  }));
   
   // Умное кэширование
   const { 
@@ -186,50 +195,92 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   }
 
   return (
-    <div
-      onScroll={handleScroll}
-      style={{
-        width: '100%',
-        maxHeight: '80vh',
-        overflow: 'auto',
-        position: 'relative'
-      }}
-      data-testid="gallery-container"
-    >
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        padding: '0 8px 8px 8px',
-        width: '100%',
-        alignItems: 'flex-start'
-      }}>
-        {/* Левая колонка */}
+    <>
+      <style>{`
+        @keyframes floatColumn1 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-${floatAmplitudes.left}px); }
+        }
+        @keyframes floatColumn2 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(${floatAmplitudes.right}px); }
+        }
+        @keyframes compensateFloat1 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(${floatAmplitudes.left}px); }
+        }
+        .gallery-column-float-1 {
+          animation: floatColumn1 6.18s ease-in-out infinite;
+        }
+        .gallery-column-float-2 {
+          animation: floatColumn2 7.64s ease-in-out infinite;
+          animation-delay: 1.18s;
+        }
+        .add-button-compensate {
+          animation: compensateFloat1 6.18s ease-in-out infinite;
+        }
+      `}</style>
+      <div
+        onScroll={handleScroll}
+        style={{
+          width: '100%',
+          height: 'calc(100vh - 200px)',
+          overflow: 'auto',
+          position: 'relative'
+        }}
+        data-testid="gallery-container"
+      >
+        {/* Category Filter - зафиксирован в верхней части */}
+        {categoryFilter && (
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            width: '100%',
+            padding: 'calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382)'
+          }}>
+            {categoryFilter}
+          </div>
+        )}
         <div style={{
-          flex: '1 1 0%',
           display: 'flex',
-          flexDirection: 'column',
           gap: '8px',
-          minWidth: 0,
-          maxWidth: 'calc(50% - 4px)',
-          boxSizing: 'border-box',
-          overflow: 'visible'
+          padding: '0 calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382)',
+          width: '100%',
+          alignItems: 'flex-start'
         }}>
+        {/* Левая колонка */}
+        <div 
+          className="gallery-column-float-1"
+          style={{
+            flex: '1 1 0%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            minWidth: 0,
+            maxWidth: 'calc(50% - 4px)',
+            boxSizing: 'border-box',
+            overflow: 'visible'
+          }}
+        >
           {/* Кнопка добавления как первый элемент левой колонки */}
           {!showSkeleton && addButtonElement && (
-            <div style={{
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
-              flexShrink: 0,
-              marginTop: '0',
-              marginBottom: '8px',
-              position: 'sticky',
-              top: '0',
-              zIndex: 10,
-              paddingTop: '8px',
-              paddingBottom: '8px'
-            }}>
+            <div 
+              className="add-button-compensate"
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+                flexShrink: 0,
+                marginTop: '0',
+                marginBottom: 'calc(1rem * 0.382)',
+                position: 'sticky',
+                top: categoryFilter ? 'calc(1rem * 3.382)' : '0',
+                zIndex: 11,
+                paddingBottom: 'calc(1rem * 0.382)'
+              }}
+            >
               {addButtonElement}
             </div>
           )}
@@ -374,16 +425,19 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         </div>
 
         {/* Правая колонка */}
-        <div style={{
-          flex: '1 1 0%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          minWidth: 0,
-          maxWidth: 'calc(50% - 4px)',
-          boxSizing: 'border-box',
-          overflow: 'hidden'
-        }}>
+        <div 
+          className="gallery-column-float-2"
+          style={{
+            flex: '1 1 0%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            minWidth: 0,
+            maxWidth: 'calc(50% - 4px)',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
+          }}
+        >
           {/* Skeleton Loading - правая колонка */}
           {showSkeleton && (
             <>
@@ -568,10 +622,11 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 
-// CSS анимации только для skeleton loading и лайков
+// CSS анимации для skeleton loading, лайков и люфта колонок
 const skeletonStyles = `
 @keyframes shimmer {
   0% { background-position: -200% 0; }

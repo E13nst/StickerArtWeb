@@ -379,7 +379,7 @@ export const GalleryPage: React.FC = () => {
       <TelegramLayout>
 
         {/* Search Bar with Sort Button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', mb: '0.618rem', px: '0.618rem' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', mb: '0.382rem', px: '0.618rem' }}>
           <Box sx={{ flex: 1 }}>
             <SearchBar
               value={uiState.searchTerm}
@@ -395,20 +395,6 @@ export const GalleryPage: React.FC = () => {
             disabled={isLoading || !!uiState.searchTerm || categories.length === 0}
           />
         </Box>
-
-        {/* Category Filter */}
-        {categories.length > 0 && (
-          <Box sx={{ mb: '0.618rem' }}>
-            <CategoryFilter
-              categories={categories}
-              selectedCategories={uiState.selectedCategories}
-              onCategoryToggle={handleCategoryToggle}
-              disabled={isLoading}
-            />
-          </Box>
-        )}
-
-        
 
         {/* Content */}
         {isLoading ? (
@@ -435,6 +421,14 @@ export const GalleryPage: React.FC = () => {
         ) : (
           <div className="fade-in">
             <SimpleGallery
+              categoryFilter={categories.length > 0 ? (
+                <CategoryFilter
+                  categories={categories}
+                  selectedCategories={uiState.selectedCategories}
+                  onCategoryToggle={handleCategoryToggle}
+                  disabled={isLoading}
+                />
+              ) : null}
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
               hasNextPage={currentPage < totalPages - 1}

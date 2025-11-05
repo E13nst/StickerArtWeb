@@ -62,9 +62,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       sx={{ 
         position: 'fixed', 
         bottom: 'calc(100vh * 0.024)', // ~2.4% отступ снизу (гармоничное значение)
-        left: 'calc(100vw * 0.024)', // ~2.4% отступ слева
-        right: 'calc(100vw * 0.024)', // ~2.4% отступ справа
+        left: 'calc(100vw * 0.118)', // 11.8% отступ слева (для ширины 76.4%)
+        right: 'calc(100vw * 0.118)', // 11.8% отступ справа (для ширины 76.4%)
         zIndex: 1000,
+        overflow: 'hidden', // Обрезаем анимацию, выходящую за края
         // Фоллбэк для старых браузеров
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         // Современный способ: более прозрачный фон
@@ -89,15 +90,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           backgroundColor: 'transparent !important', // Принудительно прозрачный
           background: 'none !important', // Убираем любой background
           boxShadow: 'none',
+          overflow: 'hidden', // Обрезаем анимацию кнопок
           '& .MuiBottomNavigationAction-root': {
+            borderRadius: 'calc(100vw * 0.03)', // Закругление для анимации
+            overflow: 'hidden', // Обрезаем ripple эффект
             color: 'var(--tg-theme-hint-color)',
             minWidth: 'auto',
             padding: 'calc(100vh * 0.004) calc(100vw * 0.02)', // padding из пропорций (уменьшено)
             backgroundColor: 'transparent !important',
             '&.Mui-selected': {
               color: 'var(--tg-theme-button-color)',
-              backgroundColor: 'rgba(var(--tg-theme-button-color-rgb, 36, 129, 204), 0.1) !important',
-              borderRadius: 'calc(100vw * 0.03)',
+              backgroundColor: 'transparent !important',
+              '& .MuiSvgIcon-root': {
+                color: 'var(--tg-theme-button-color)',
+                filter: 'drop-shadow(0 0 8px color-mix(in srgb, var(--tg-theme-button-color) 35%, transparent))',
+              },
             },
             '&:hover': {
               backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -111,44 +118,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         }}
       >
         <BottomNavigationAction 
-          icon={<HomeIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'var(--tg-theme-button-color)',
-              },
-            },
-          }}
+          icon={<HomeIcon />} 
+          touchRippleProps={{ center: true }}
         />
         <BottomNavigationAction 
-          icon={<CollectionsIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'var(--tg-theme-button-color)',
-              },
-            },
-          }}
+          icon={<CollectionsIcon />} 
+          touchRippleProps={{ center: true }}
         />
         <BottomNavigationAction 
-          icon={<ShoppingCartIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'var(--tg-theme-button-color)',
-              },
-            },
-          }}
+          icon={<ShoppingCartIcon />} 
+          touchRippleProps={{ center: true }}
         />
         <BottomNavigationAction 
-          icon={<AccountCircleIcon />}
-          sx={{
-            '&.Mui-selected': {
-              '& .MuiSvgIcon-root': {
-                color: 'var(--tg-theme-button-color)',
-              },
-            },
-          }}
+          icon={<AccountCircleIcon />} 
+          touchRippleProps={{ center: true }}
         />
       </BottomNavigation>
     </Paper>

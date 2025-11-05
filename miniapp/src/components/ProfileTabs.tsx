@@ -34,7 +34,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ py: 2 }}>
+        <Box sx={{ pt: '0.382rem', pb: '0.764rem' }}>
           {children}
         </Box>
       )}
@@ -48,22 +48,34 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const labels = isSmallScreen 
-    ? { sets: 'Сеты', art: 'ART', share: 'Ачивки' } 
-    : { sets: 'Стикерсеты', art: 'ART-Points', share: 'Достижения' };
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     onChange(newValue);
   };
 
+  // Пропорции Фибоначчи для всех элементов
+  const baseUnit = 1; // Базовый размер в rem
+  const spacing = {
+    tiny: `${0.236 * baseUnit}rem`,    // 0.236
+    small: `${0.382 * baseUnit}rem`,   // 0.382
+    medium: `${0.5 * baseUnit}rem`,     // 0.500
+    golden: `${0.618 * baseUnit}rem`,  // 0.618
+    large: `${0.764 * baseUnit}rem`    // 0.764
+  };
+  
+  const dividerWidth = '1px';
+  const dividerColor = 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))';
+  const dividerOpacity = 0.618; // Золотое сечение
+  const dividerTop = '23.6%'; // 0.236 пропорция Фибоначчи
+  const dividerBottom = '23.6%';
+
   return (
     <Box sx={{ 
       width: '100%',
-      mb: 2,
+      mb: spacing.golden, // 0.618rem вместо 2
       backgroundColor: 'transparent',
       color: 'var(--tg-theme-text-color, #000000)',
       borderRadius: 0,
-      // Убираем лишние разделительные линии для более чистого вида в Telegram
       borderTop: 'none',
       borderBottom: 'none',
       boxShadow: 'none'
@@ -74,59 +86,54 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         variant="fullWidth"
         sx={{
           '& .MuiTab-root': {
-            // Ещё компактнее: чтобы влезало без скролла даже в Telegram
-            minHeight: 40,
-            height: 40,
-            maxHeight: 44,
-            fontSize: isSmallScreen ? '0.85rem' : '0.9rem',
-            fontWeight: 600,
-            textTransform: 'none',
+            minHeight: 48,
+            height: 48,
+            maxHeight: 48,
             color: 'var(--tg-theme-hint-color, #999999)',
-            gap: 4, // текст ближе к иконке
             transition: 'all 0.2s ease',
             minWidth: 0,
-            flex: '1 1 0', // равномерное распределение для fullWidth
-            paddingLeft: isSmallScreen ? 8 : 10,
-            paddingRight: isSmallScreen ? 8 : 10,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            flex: '1 1 0',
+            padding: spacing.golden, // 0.618rem
             alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            '&:not(:last-child)::after': {
+              content: '""',
+              position: 'absolute',
+              right: 0,
+              top: dividerTop,
+              bottom: dividerBottom,
+              width: dividerWidth,
+              backgroundColor: dividerColor,
+              opacity: dividerOpacity
+            },
             '&.Mui-selected': {
-              color: 'var(--tg-theme-text-color, #ffffff)',
-              fontWeight: 700
+              color: 'var(--tg-theme-button-color, #2481cc)'
             },
             '&:hover': {
-              color: 'var(--tg-theme-text-color, #ffffff)',
+              color: 'var(--tg-theme-button-color, #2481cc)',
               opacity: 0.85
             }
           },
           '& .MuiTabs-indicator': {
-            backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
-            height: 2,
-            minHeight: 2,
-            maxHeight: 2,
-            borderRadius: 2
+            display: 'none' // Убираем стандартный индикатор
           }
         }}
       >
         <Tab
           disableRipple
-          icon={<CollectionsIcon sx={{ fontSize: 18 }} />}
-          label={labels.sets}
-          iconPosition="start"
+          icon={<CollectionsIcon sx={{ fontSize: '1.5rem', margin: 0 }} />}
+          iconPosition="top"
         />
         <Tab
           disableRipple
-          icon={<AccountBalanceWalletIcon sx={{ fontSize: 18 }} />}
-          label={labels.art}
-          iconPosition="start"
+          icon={<AccountBalanceWalletIcon sx={{ fontSize: '1.5rem', margin: 0 }} />}
+          iconPosition="top"
         />
         <Tab
           disableRipple
-          icon={<EmojiEventsIcon sx={{ fontSize: 18 }} />}
-          label={labels.share}
-          iconPosition="start"
+          icon={<EmojiEventsIcon sx={{ fontSize: '1.5rem', margin: 0 }} />}
+          iconPosition="top"
         />
       </Tabs>
     </Box>

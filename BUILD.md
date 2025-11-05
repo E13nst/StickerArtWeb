@@ -172,3 +172,5 @@ docker run -p 80:80 -e BACKEND_URL=https://stickerartgallery-e13nst.amvera.io st
 
 
 
+
+
