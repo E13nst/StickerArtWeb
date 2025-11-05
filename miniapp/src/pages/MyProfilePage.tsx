@@ -951,6 +951,7 @@ export const MyProfilePage: React.FC = () => {
                 </Typography>
               </Box>
             </TabPanel>
+        </>
       </Container>
 
       {/* Нижняя навигация */}
