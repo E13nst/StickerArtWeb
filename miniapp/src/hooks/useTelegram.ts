@@ -120,6 +120,8 @@ export const useTelegram = () => {
     const hasInitData = Boolean(window.Telegram?.WebApp?.initData);
     
     let telegram: TelegramWebApp;
+    let expandTimeout: ReturnType<typeof setTimeout> | null = null;
+    let handleScroll: (() => void) | null = null;
     
     // В dev режиме без реальных данных Telegram - используем mock
     if (isDev && (!hasTelegramWebApp || !hasInitData)) {
@@ -144,6 +146,42 @@ export const useTelegram = () => {
       // Инициализация Telegram Web App
       telegram.ready();
       telegram.expand();
+      
+      // Предотвращаем сворачивание миниаппа при скролле
+      // Подписываемся на изменение viewport и автоматически расширяем обратно
+      if (typeof telegram.onEvent === 'function') {
+        telegram.onEvent('viewportChanged', () => {
+          // Если viewport изменился и приложение свернулось - расширяем обратно
+          if (!telegram.isExpanded) {
+            console.log('📱 Viewport изменился, расширяем миниапп обратно');
+            telegram.expand();
+          }
+        });
+      }
+      
+      // Периодически вызываем expand() при скролле для предотвращения сворачивания
+      handleScroll = () => {
+        // Очищаем предыдущий таймаут
+        if (expandTimeout) {
+          clearTimeout(expandTimeout);
+        }
+        
+        // Вызываем expand() с небольшой задержкой после скролла
+        expandTimeout = setTimeout(() => {
+          if (telegram && !telegram.isExpanded) {
+            console.log('📱 Вызываем expand() после скролла');
+            telegram.expand();
+          }
+        }, 100);
+      };
+      
+      // Добавляем обработчик скролла на window
+      if (handleScroll) {
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        
+        // Также добавляем обработчик на touchmove для мобильных устройств
+        window.addEventListener('touchmove', handleScroll, { passive: true });
+      }
       
       // Устанавливаем цвета header и bottom bar в соответствии с темой
       if (telegram.setHeaderColor) {
@@ -320,6 +358,17 @@ export const useTelegram = () => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         mediaQuery.removeEventListener('change', systemThemeListenerRef.current);
       }
+      
+      // Удаляем обработчики скролла
+      if (handleScroll) {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('touchmove', handleScroll);
+      }
+      
+      // Очищаем таймаут
+      if (expandTimeout) {
+        clearTimeout(expandTimeout);
+      }
     };
   }, []);
 
@@ -381,6 +430,15 @@ export const useTelegram = () => {
 
   const isInTelegramApp = Boolean(tg && initData && initData.trim() !== '');
 
+  // Функция для обновления цвета header
+  const updateHeaderColor = (color: string) => {
+    if (tg && typeof tg.setHeaderColor === 'function') {
+      // Преобразуем hex цвет в формат для Telegram
+      // Telegram принимает либо 'bg_color' либо hex цвет
+      tg.setHeaderColor(color);
+    }
+  };
+
   return {
     tg,
     user,
@@ -389,6 +447,7 @@ export const useTelegram = () => {
     isInTelegramApp,
     isMockMode,
     checkInitDataExpiry,
-    refreshInitData
+    refreshInitData,
+    updateHeaderColor
   };
 };

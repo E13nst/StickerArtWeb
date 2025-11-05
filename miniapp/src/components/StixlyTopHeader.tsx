@@ -17,6 +17,7 @@ interface ProfileModeConfig {
 
 export interface StixlyTopHeaderProps {
   profileMode?: ProfileModeConfig | { enabled: false };
+  onSlideChange?: (slideBg: string) => void;
 }
 
 type Slide = {
@@ -221,7 +222,7 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
   );
 };
 
-export default function StixlyTopHeader({ profileMode }: StixlyTopHeaderProps = {}) {
+export default function StixlyTopHeader({ profileMode, onSlideChange }: StixlyTopHeaderProps = {}) {
   const [index, setIndex] = useState(0);
 
   const slides: Slide[] = useMemo(
@@ -231,6 +232,14 @@ export default function StixlyTopHeader({ profileMode }: StixlyTopHeaderProps = 
 
   // Режим работы
   const isProfileMode = profileMode?.enabled === true;
+
+  // Уведомляем о смене слайда
+  useEffect(() => {
+    if (!isProfileMode && onSlideChange) {
+      const current = slides[index];
+      onSlideChange(current.bg);
+    }
+  }, [index, slides, isProfileMode, onSlideChange]);
 
   // Preload (только для обычного режима)
   useEffect(() => {
