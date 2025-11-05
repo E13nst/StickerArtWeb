@@ -84,6 +84,8 @@ export const MyProfilePage: React.FC = () => {
   const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
   // Флаг: был ли список загружен с сервера (для оптимизации - не загружаем повторно)
   const [isLikedListLoaded, setIsLikedListLoaded] = useState(false);
+  // Сохраняем исходный список для защиты от удаления карточек до инициализации в store
+  const [originalLikedSetIds, setOriginalLikedSetIds] = useState<Set<string>>(new Set());
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -424,16 +426,26 @@ export const MyProfilePage: React.FC = () => {
       const serverLikedSets = response.content || [];
       
       // Инициализируем лайки из серверных данных
+      // Важно: все стикерсеты из likedOnly должны быть лайкнуты
       if (serverLikedSets.length > 0) {
-        initializeLikes(serverLikedSets, true);
+        // Убеждаемся, что все стикерсеты помечены как лайкнутые
+        const setsWithLikes = serverLikedSets.map(set => ({
+          ...set,
+          isLikedByCurrentUser: true, // Все из likedOnly должны быть лайкнуты
+          isLiked: true // Для совместимости со старым API
+        }));
+        initializeLikes(setsWithLikes, true);
       }
       
       // Сохраняем загруженные данные и отмечаем что список загружен
       setLikedStickerSets(serverLikedSets);
+      // Сохраняем исходные ID для защиты от случайного удаления
+      setOriginalLikedSetIds(new Set(serverLikedSets.map(s => String(s.id))));
       setIsLikedListLoaded(true);
     } catch (e) {
       console.warn('⚠️ Не удалось загрузить понравившиеся с сервера');
       setLikedStickerSets([]);
+      setOriginalLikedSetIds(new Set());
       setIsLikedListLoaded(false);
     } finally {
       setStickerSetsLoading(false);
@@ -442,18 +454,32 @@ export const MyProfilePage: React.FC = () => {
   
   // Локальное обновление списка при изменении лайков (без запроса к серверу)
   const updateLikedListLocally = useCallback(() => {
-    const { isLiked: isLikedFn } = useLikesStore.getState();
+    const { isLiked: isLikedFn, likes } = useLikesStore.getState();
     
     setLikedStickerSets(prev => {
-      // Убираем удаленные лайки (те, что больше не лайкнуты)
-      const withoutRemoved = prev.filter(s => isLikedFn(String(s.id)));
+      // Фильтруем: оставляем только те, что либо лайкнуты в store, либо были в исходном списке с сервера
+      // Это предотвращает удаление карточек до их полной инициализации в store
+      const withoutRemoved = prev.filter(s => {
+        const packId = String(s.id);
+        const likeState = likes[packId];
+        // Если есть состояние в store - используем его
+        if (likeState !== undefined) {
+          return likeState.isLiked;
+        }
+        // Если нет в store, но был в исходном списке с сервера - оставляем (еще не обновился)
+        // Это защищает от удаления карточек до их полной инициализации
+        return originalLikedSetIds.has(packId);
+      });
       
       // Получаем текущие лайкнутые стикерсеты из доступных источников
       // (для добавления новых, которые были лайкнуты локально)
       const allAvailableSets = [...userStickerSets];
-      const newlyLiked = allAvailableSets.filter(s => 
-        isLikedFn(String(s.id)) && !prev.some(p => String(p.id) === String(s.id))
-      );
+      const newlyLiked = allAvailableSets.filter(s => {
+        const packId = String(s.id);
+        const isCurrentlyLiked = isLikedFn(packId);
+        const alreadyInList = prev.some(p => String(p.id) === packId);
+        return isCurrentlyLiked && !alreadyInList;
+      });
       
       // Объединяем существующие и новые, убираем дубликаты
       if (newlyLiked.length > 0) {
@@ -466,11 +492,12 @@ export const MyProfilePage: React.FC = () => {
       // Если ничего не изменилось, возвращаем прежний список
       return withoutRemoved;
     });
-  }, [userStickerSets]);
+  }, [userStickerSets, originalLikedSetIds]);
   
   // При обновлении профиля (монтирование компонента или изменение пользователя) - сбрасываем флаг
   useEffect(() => {
     setIsLikedListLoaded(false);
+    setOriginalLikedSetIds(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
   
