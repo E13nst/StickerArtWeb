@@ -205,7 +205,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(${floatAmplitudes.right}px); }
         }
-        @keyframes compensateFloat1 {
+        @keyframes compensateButtonFloat {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(${floatAmplitudes.left}px); }
         }
@@ -216,8 +216,8 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           animation: floatColumn2 7.64s ease-in-out infinite;
           animation-delay: 1.18s;
         }
-        .add-button-compensate {
-          animation: compensateFloat1 6.18s ease-in-out infinite;
+        .add-button-fixed {
+          animation: compensateButtonFloat 6.18s ease-in-out infinite;
         }
       `}</style>
       <div
@@ -266,7 +266,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           {/* Кнопка добавления как первый элемент левой колонки */}
           {!showSkeleton && addButtonElement && (
             <div 
-              className="add-button-compensate"
+              className="add-button-fixed"
               style={{
                 width: '100%',
                 maxWidth: '100%',
