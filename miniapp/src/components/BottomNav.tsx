@@ -27,7 +27,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
-    if (location.pathname === '/') return 0;
+    if (location.pathname === '/' || location.pathname === '/dashboard') return 0;
+    if (location.pathname === '/gallery') return 1;
     if (location.pathname.startsWith('/profile')) return 3;
     return typeof activeTab === 'number' ? activeTab : internalTab;
   };
@@ -41,13 +42,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
     switch (newValue) {
       case 0:
-        navigate('/');
+        navigate('/dashboard');
         break;
       case 1:
-        navigate('/'); // пока те же, можно заменить на /stickers, когда появится
+        navigate('/gallery');
         break;
       case 2:
-        navigate('/'); // placeholder
+        navigate('/gallery'); // placeholder для магазина
         break;
       case 3:
         // Навигация к моему профилю
@@ -119,19 +120,19 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       >
         <BottomNavigationAction 
           icon={<HomeIcon />} 
-          touchRippleProps={{ center: true }}
+          slotProps={{ touchRipple: { center: true } }}
         />
         <BottomNavigationAction 
           icon={<CollectionsIcon />} 
-          touchRippleProps={{ center: true }}
+          slotProps={{ touchRipple: { center: true } }}
         />
         <BottomNavigationAction 
           icon={<ShoppingCartIcon />} 
-          touchRippleProps={{ center: true }}
+          slotProps={{ touchRipple: { center: true } }}
         />
         <BottomNavigationAction 
           icon={<AccountCircleIcon />} 
-          touchRippleProps={{ center: true }}
+          slotProps={{ touchRipple: { center: true } }}
         />
       </BottomNavigation>
     </Paper>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GalleryPage } from '@/pages/GalleryPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { MyProfilePage } from '@/pages/MyProfilePage';
+import { DashboardPage } from '@/pages/DashboardPage';
 import MainLayout from '@/layouts/MainLayout';
 import { useLikesStore } from '@/store/useLikesStore';
 
@@ -26,11 +27,13 @@ const App: React.FC = () => {
     <Router basename="/miniapp">
       <MainLayout>
         <Routes>
-          <Route path="/" element={<GalleryPage />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/profile" element={<MyProfilePage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />
           {/* Fallback route */}
-          <Route path="*" element={<GalleryPage />} />
+          <Route path="*" element={<DashboardPage />} />
         </Routes>
       </MainLayout>
     </Router>

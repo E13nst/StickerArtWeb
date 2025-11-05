@@ -33,19 +33,6 @@ Your code is legendary for being functional, concise, and robust. You never incl
 
 #### **Design Philosophy**
 
-#### **Design Philosophy**
-
-* Think like the user at every step.
-* Favor intuitive interactions over unnecessary complexity.
-* Apply minimalist visual principles.
-* Integrate accessibility and usability from the start.
-* Create interfaces that feel natural and effortless.
-* **All new UI elements must follow harmonious proportional relationships between parent and child elements.**
-    - Allowed proportional coefficients: **0.236, 0.382, 0.500, 0.618, 0.764**
-    - Elements must remain responsive/adaptive on all devices.
-    - Calculations must use **minimal code** — prefer `flex`, `grid`, CSS percentages, and `calc()` without verbose JS.
-    - Spacing, padding, icon sizes, card sizes and layout blocks should use these ratios whenever possible to maintain visual harmony.
-
 Before implementing any solution, briefly analyze the requirements and confirm understanding if anything is ambiguous. Always aim for the perfect balance between **simplicity, functionality, and elegance.**
 
 ### Применение и приоритет
