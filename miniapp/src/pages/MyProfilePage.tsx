@@ -417,12 +417,7 @@ export const MyProfilePage: React.FC = () => {
   };
 
   // Загрузка понравившихся с сервера (только при первом запросе или обновлении профиля)
-  const loadLikedStickerSets = useCallback(async (forceReload: boolean = false) => {
-    // Если уже загружено и не принудительная перезагрузка - пропускаем
-    if (!forceReload && isLikedListLoaded) return;
-    
-    if (isStickerSetsLoading) return;
-    
+  const loadLikedStickerSets = useCallback(async () => {
     try {
       setStickerSetsLoading(true);
       const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
@@ -443,7 +438,7 @@ export const MyProfilePage: React.FC = () => {
     } finally {
       setStickerSetsLoading(false);
     }
-  }, [initializeLikes, isStickerSetsLoading, isLikedListLoaded]);
+  }, [initializeLikes]);
   
   // Локальное обновление списка при изменении лайков (без запроса к серверу)
   const updateLikedListLocally = useCallback(() => {
@@ -473,28 +468,27 @@ export const MyProfilePage: React.FC = () => {
     });
   }, [userStickerSets]);
   
+  // При обновлении профиля (монтирование компонента или изменение пользователя) - сбрасываем флаг
+  useEffect(() => {
+    setIsLikedListLoaded(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]);
+  
   // Загружаем с сервера только при первом открытии вкладки "Понравившиеся"
   useEffect(() => {
-    if (setsFilter === 'liked' && !isLikedListLoaded) {
-      loadLikedStickerSets(false);
+    if (setsFilter === 'liked' && !isLikedListLoaded && !isStickerSetsLoading) {
+      loadLikedStickerSets();
     }
-  }, [setsFilter, isLikedListLoaded, loadLikedStickerSets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setsFilter, isLikedListLoaded, isStickerSetsLoading]);
   
   // Локально обновляем список при изменении лайков (без запроса к серверу)
   useEffect(() => {
     if (setsFilter === 'liked' && isLikedListLoaded) {
       updateLikedListLocally();
     }
-  }, [likedIdsHash, setsFilter, isLikedListLoaded, updateLikedListLocally]);
-  
-  // При обновлении профиля (монтирование компонента или изменение пользователя) - сбрасываем флаг
-  useEffect(() => {
-    setIsLikedListLoaded(false);
-    // Если фильтр уже активен, загружаем сразу
-    if (setsFilter === 'liked') {
-      loadLikedStickerSets(true);
-    }
-  }, [currentUserId, setsFilter, loadLikedStickerSets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [likedIdsHash, setsFilter, isLikedListLoaded]);
 
 
   const handleCreateSticker = () => {
