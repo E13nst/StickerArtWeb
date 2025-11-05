@@ -10,17 +10,13 @@ import {
   CardContent,
   Chip
 } from '@mui/material';
-import ShareIcon from '@mui/icons-material/Share';
-import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
-import { useStickerStore } from '@/store/useStickerStore';
 import { apiClient } from '@/api/client';
 
 // Компоненты
-import { UserInfoCardModern } from '@/components/UserInfoCardModern';
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { SearchBar } from '@/components/SearchBar';
@@ -28,13 +24,12 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { BottomNav } from '@/components/BottomNav';
-import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { isUserPremium, getUserFullName, getUserUsername } from '@/utils/userUtils';
+import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { SortButton } from '@/components/SortButton';
@@ -69,44 +64,31 @@ export const MyProfilePage: React.FC = () => {
     clearCache,
     reset
   } = useProfileStore();
-  const { initializeLikes, isLiked } = useLikesStore();
+  const { initializeLikes } = useLikesStore();
   
-  // Подписываемся на изменения лайков для синхронизации списка "понравившиеся"
-  // Используем хэш ID лайкнутых стикерсетов для отслеживания изменений
+  // Подписываемся на изменения лайков для перезагрузки списка "понравившиеся"
   const likedIdsHash = useLikesStore((state) => {
-    const likedIds = Object.entries(state.likes)
+    return Object.entries(state.likes)
       .filter(([_, likeState]) => likeState.isLiked)
       .map(([id]) => id)
       .sort()
       .join(',');
-    return likedIds;
   });
 
   // Локальное состояние
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
   const [setsFilter, setSetsFilter] = useState<'published' | 'liked'>('published');
   const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
-  // Кеш загруженных с сервера лайкнутых стикерсетов (для использования после обновления страницы)
-  const [loadedLikedStickerSets, setLoadedLikedStickerSets] = useState<any[]>([]);
+  // Флаг: был ли список загружен с сервера (для оптимизации - не загружаем повторно)
+  const [isLikedListLoaded, setIsLikedListLoaded] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
 
-  // Обработчик кастомизации баннера (placeholder для premium)
-  const handleCustomizeBanner = () => {
-    // TODO: Реализовать функционал кастомизации баннера в будущем
-    console.log('Кастомизация баннера (только для premium пользователей)');
-    if (tg) {
-      tg.HapticFeedback?.impactOccurred('light');
-    }
-    // Показываем уведомление или открываем модальное окно в будущем
-    alert('Функция кастомизации баннера будет доступна в ближайшее время!');
-  };
 
   // Получаем telegramId текущего пользователя
   const currentUserId = user?.id;
@@ -414,48 +396,17 @@ export const MyProfilePage: React.FC = () => {
     setIsModalOpen(false);
     setSelectedStickerSet(null);
     
-    // Всегда обновляем список "понравившиеся" если активен этот фильтр
-    // (модальное окно могло обновить состояние лайка через store)
-    if (setsFilter === 'liked') {
-      // Используем функцию синхронизации для обновления списка
-      syncLikedListFromStore();
+    // Локально обновляем список "понравившиеся" если активен этот фильтр (без запроса к серверу)
+    if (setsFilter === 'liked' && isLikedListLoaded) {
+      updateLikedListLocally();
     }
     
-    // ВАЖНО: Инвалидируем кеш профиля при изменении лайков
-    // Кеш содержит устаревшие данные о лайках, нужно обновить
+    // Инвалидируем кеш профиля при изменении лайков
     if (currentUserId) {
       clearCache(currentUserId);
-      console.log('🔄 Кеш профиля инвалидирован после изменения лайков');
     }
   };
   
-  // Получаем стикерсеты из галереи для использования в списке понравившихся
-  const galleryStickerSets = useStickerStore((state) => state.stickerSets);
-  
-  // Простая функция синхронизации списка понравившихся из store
-  // ВАЖНО: НЕ используем likedStickerSets внутри чтобы избежать цикла
-  const syncLikedListFromStore = useCallback(() => {
-    const { isLiked: isLikedFn } = useLikesStore.getState();
-    
-    // Объединяем все доступные источники данных (включая загруженные с сервера)
-    const allAvailableSets = [...userStickerSets, ...galleryStickerSets, ...loadedLikedStickerSets];
-    
-    // Фильтруем по лайкам из store (единственный источник правды)
-    const liked = allAvailableSets.filter(s => isLikedFn(String(s.id)));
-    
-    // Убираем дубликаты по ID
-    const unique = Array.from(new Map(liked.map(s => [String(s.id), s])).values());
-    
-    // Обновляем список только если изменился состав (предотвращаем лишние перерисовки)
-    setLikedStickerSets(prev => {
-      const prevIds = new Set(prev.map(s => String(s.id)));
-      const newIds = new Set(unique.map(s => String(s.id)));
-      if (prevIds.size === newIds.size && [...prevIds].every(id => newIds.has(id))) {
-        return prev; // Состав не изменился
-      }
-      return unique;
-    });
-  }, [userStickerSets, galleryStickerSets, loadedLikedStickerSets]);
 
   const handleShareStickerSet = (name: string, _title: string) => {
     if (tg) {
@@ -465,92 +416,86 @@ export const MyProfilePage: React.FC = () => {
     }
   };
 
-  // Простая загрузка понравившихся: формируем список из store
-  const loadLikedStickerSets = useCallback(async () => {
-    // Проверяем, не загружается ли уже
+  // Загрузка понравившихся с сервера (только при первом запросе или обновлении профиля)
+  const loadLikedStickerSets = useCallback(async (forceReload: boolean = false) => {
+    // Если уже загружено и не принудительная перезагрузка - пропускаем
+    if (!forceReload && isLikedListLoaded) return;
+    
     if (isStickerSetsLoading) return;
     
     try {
       setStickerSetsLoading(true);
+      const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
+      const serverLikedSets = response.content || [];
       
-      // Пытаемся загрузить с сервера для получения полных данных
-      try {
-        const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
-        const serverLikedSets = response.content || [];
-        
-        // ВАЖНО: Сохраняем загруженные данные для использования в синхронизации
-        setLoadedLikedStickerSets(serverLikedSets);
-        
-        // Инициализируем лайки из серверных данных (mergeMode = true сохраняет локальные)
-        if (serverLikedSets.length > 0) {
-          initializeLikes(serverLikedSets, true);
-        }
-      } catch (e) {
-        // Игнорируем ошибку загрузки с сервера - используем локальные данные
-        console.warn('⚠️ Не удалось загрузить понравившиеся с сервера, используем локальные данные');
+      // Инициализируем лайки из серверных данных
+      if (serverLikedSets.length > 0) {
+        initializeLikes(serverLikedSets, true);
       }
       
-      // Формируем список из store - это единственный источник правды
-      // initializeLikes синхронный, поэтому можно вызывать сразу
-      syncLikedListFromStore();
+      // Сохраняем загруженные данные и отмечаем что список загружен
+      setLikedStickerSets(serverLikedSets);
+      setIsLikedListLoaded(true);
+    } catch (e) {
+      console.warn('⚠️ Не удалось загрузить понравившиеся с сервера');
+      setLikedStickerSets([]);
+      setIsLikedListLoaded(false);
     } finally {
       setStickerSetsLoading(false);
     }
-  }, [syncLikedListFromStore, initializeLikes, isStickerSetsLoading]);
+  }, [initializeLikes, isStickerSetsLoading, isLikedListLoaded]);
   
-  // Синхронизация при переключении фильтра
-  useEffect(() => {
-    if (setsFilter === 'liked') {
-      // Проверяем есть ли данные для синхронизации
-      const hasData = userStickerSets.length > 0 || galleryStickerSets.length > 0 || loadedLikedStickerSets.length > 0;
+  // Локальное обновление списка при изменении лайков (без запроса к серверу)
+  const updateLikedListLocally = useCallback(() => {
+    const { isLiked: isLikedFn } = useLikesStore.getState();
+    
+    setLikedStickerSets(prev => {
+      // Убираем удаленные лайки (те, что больше не лайкнуты)
+      const withoutRemoved = prev.filter(s => isLikedFn(String(s.id)));
       
-      if (!hasData) {
-        // Загружаем с сервера если нет локальных данных
-        loadLikedStickerSets();
-      } else {
-        // Синхронизируем с текущим состоянием store
-        syncLikedListFromStore();
-      }
-    }
-  }, [setsFilter, loadLikedStickerSets, syncLikedListFromStore, userStickerSets.length, galleryStickerSets.length, loadedLikedStickerSets.length]);
-  
-  // Синхронизация при изменении лайков (отслеживаем через хэш ID)
-  useEffect(() => {
-    if (setsFilter === 'liked') {
-      syncLikedListFromStore();
-    }
-  }, [likedIdsHash, setsFilter, syncLikedListFromStore]);
-  
-  // Синхронизация при изменении доступных стикерсетов
-  useEffect(() => {
-    if (setsFilter === 'liked') {
-      syncLikedListFromStore();
-    }
-  }, [userStickerSets.length, galleryStickerSets.length, loadedLikedStickerSets.length, setsFilter, syncLikedListFromStore]);
-  
-  // При монтировании компонента: если фильтр "liked" активен и есть лайки, но нет данных - загружаем
-  useEffect(() => {
-    if (setsFilter === 'liked') {
-      // Проверяем, есть ли лайки в store
-      const { likes } = useLikesStore.getState();
-      const hasLikes = Object.values(likes).some(like => like.isLiked);
+      // Получаем текущие лайкнутые стикерсеты из доступных источников
+      // (для добавления новых, которые были лайкнуты локально)
+      const allAvailableSets = [...userStickerSets];
+      const newlyLiked = allAvailableSets.filter(s => 
+        isLikedFn(String(s.id)) && !prev.some(p => String(p.id) === String(s.id))
+      );
       
-      // Если есть лайки, но нет данных стикерсетов - загружаем
-      if (hasLikes && loadedLikedStickerSets.length === 0 && userStickerSets.length === 0 && galleryStickerSets.length === 0) {
-        loadLikedStickerSets();
-      } else if (hasLikes || loadedLikedStickerSets.length > 0) {
-        // Если есть данные или лайки - синхронизируем
-        syncLikedListFromStore();
+      // Объединяем существующие и новые, убираем дубликаты
+      if (newlyLiked.length > 0) {
+        const unique = Array.from(
+          new Map([...withoutRemoved, ...newlyLiked].map(s => [String(s.id), s])).values()
+        );
+        return unique;
       }
+      
+      // Если ничего не изменилось, возвращаем прежний список
+      return withoutRemoved;
+    });
+  }, [userStickerSets]);
+  
+  // Загружаем с сервера только при первом открытии вкладки "Понравившиеся"
+  useEffect(() => {
+    if (setsFilter === 'liked' && !isLikedListLoaded) {
+      loadLikedStickerSets(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setsFilter]); // При изменении фильтра или монтировании
+  }, [setsFilter, isLikedListLoaded, loadLikedStickerSets]);
+  
+  // Локально обновляем список при изменении лайков (без запроса к серверу)
+  useEffect(() => {
+    if (setsFilter === 'liked' && isLikedListLoaded) {
+      updateLikedListLocally();
+    }
+  }, [likedIdsHash, setsFilter, isLikedListLoaded, updateLikedListLocally]);
+  
+  // При обновлении профиля (монтирование компонента или изменение пользователя) - сбрасываем флаг
+  useEffect(() => {
+    setIsLikedListLoaded(false);
+    // Если фильтр уже активен, загружаем сразу
+    if (setsFilter === 'liked') {
+      loadLikedStickerSets(true);
+    }
+  }, [currentUserId, setsFilter, loadLikedStickerSets]);
 
-  const handleLikeStickerSet = (id: number, title: string) => {
-    // TODO: Реализовать API для лайков
-    console.log(`Лайк стикерсета: ${title} (ID: ${id})`);
-    alert(`Лайк для "${title}" будет реализован в будущем!`);
-  };
 
   const handleCreateSticker = () => {
     if (tg) {
@@ -618,15 +563,14 @@ export const MyProfilePage: React.FC = () => {
         tg.BackButton.hide();
       }
     };
-  }, [tg, viewMode]);
+  }, [tg]);
 
   console.log('🔍 MyProfilePage состояние:', {
     currentUserId,
     userInfo: userInfo?.firstName,
     stickerSetsCount: userStickerSets.length,
     filteredCount: filteredStickerSets.length,
-    isLoading,
-    viewMode
+    isLoading
   });
 
   // Основные ошибки (показываем только в Telegram приложении)
@@ -810,8 +754,7 @@ export const MyProfilePage: React.FC = () => {
 
       {/* Прокручиваемый контент */}
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, pb: 2 }}>
-        {viewMode === 'list' ? (
-          <>
+        <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Переключатель Published/Liked */}
@@ -1008,8 +951,6 @@ export const MyProfilePage: React.FC = () => {
                 </Typography>
               </Box>
             </TabPanel>
-          </>
-        ) : null}
       </Container>
 
       {/* Нижняя навигация */}
