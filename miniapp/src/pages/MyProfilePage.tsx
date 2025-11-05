@@ -90,6 +90,8 @@ export const MyProfilePage: React.FC = () => {
   // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
   const [setsFilter, setSetsFilter] = useState<'published' | 'liked'>('published');
   const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
+  // Кеш загруженных с сервера лайкнутых стикерсетов (для использования после обновления страницы)
+  const [loadedLikedStickerSets, setLoadedLikedStickerSets] = useState<any[]>([]);
   const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -435,8 +437,8 @@ export const MyProfilePage: React.FC = () => {
   const syncLikedListFromStore = useCallback(() => {
     const { isLiked: isLikedFn } = useLikesStore.getState();
     
-    // Объединяем все доступные источники данных
-    const allAvailableSets = [...userStickerSets, ...galleryStickerSets];
+    // Объединяем все доступные источники данных (включая загруженные с сервера)
+    const allAvailableSets = [...userStickerSets, ...galleryStickerSets, ...loadedLikedStickerSets];
     
     // Фильтруем по лайкам из store (единственный источник правды)
     const liked = allAvailableSets.filter(s => isLikedFn(String(s.id)));
@@ -453,7 +455,7 @@ export const MyProfilePage: React.FC = () => {
       }
       return unique;
     });
-  }, [userStickerSets, galleryStickerSets]);
+  }, [userStickerSets, galleryStickerSets, loadedLikedStickerSets]);
 
   const handleShareStickerSet = (name: string, _title: string) => {
     if (tg) {
@@ -476,6 +478,9 @@ export const MyProfilePage: React.FC = () => {
         const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
         const serverLikedSets = response.content || [];
         
+        // ВАЖНО: Сохраняем загруженные данные для использования в синхронизации
+        setLoadedLikedStickerSets(serverLikedSets);
+        
         // Инициализируем лайки из серверных данных (mergeMode = true сохраняет локальные)
         if (serverLikedSets.length > 0) {
           initializeLikes(serverLikedSets, true);
@@ -497,7 +502,7 @@ export const MyProfilePage: React.FC = () => {
   useEffect(() => {
     if (setsFilter === 'liked') {
       // Проверяем есть ли данные для синхронизации
-      const hasData = userStickerSets.length > 0 || galleryStickerSets.length > 0;
+      const hasData = userStickerSets.length > 0 || galleryStickerSets.length > 0 || loadedLikedStickerSets.length > 0;
       
       if (!hasData) {
         // Загружаем с сервера если нет локальных данных
@@ -507,7 +512,7 @@ export const MyProfilePage: React.FC = () => {
         syncLikedListFromStore();
       }
     }
-  }, [setsFilter, loadLikedStickerSets, syncLikedListFromStore]); // Только при изменении фильтра
+  }, [setsFilter, loadLikedStickerSets, syncLikedListFromStore, userStickerSets.length, galleryStickerSets.length, loadedLikedStickerSets.length]);
   
   // Синхронизация при изменении лайков (отслеживаем через хэш ID)
   useEffect(() => {
@@ -521,7 +526,25 @@ export const MyProfilePage: React.FC = () => {
     if (setsFilter === 'liked') {
       syncLikedListFromStore();
     }
-  }, [userStickerSets.length, galleryStickerSets.length, setsFilter, syncLikedListFromStore]);
+  }, [userStickerSets.length, galleryStickerSets.length, loadedLikedStickerSets.length, setsFilter, syncLikedListFromStore]);
+  
+  // При монтировании компонента: если фильтр "liked" активен и есть лайки, но нет данных - загружаем
+  useEffect(() => {
+    if (setsFilter === 'liked') {
+      // Проверяем, есть ли лайки в store
+      const { likes } = useLikesStore.getState();
+      const hasLikes = Object.values(likes).some(like => like.isLiked);
+      
+      // Если есть лайки, но нет данных стикерсетов - загружаем
+      if (hasLikes && loadedLikedStickerSets.length === 0 && userStickerSets.length === 0 && galleryStickerSets.length === 0) {
+        loadLikedStickerSets();
+      } else if (hasLikes || loadedLikedStickerSets.length > 0) {
+        // Если есть данные или лайки - синхронизируем
+        syncLikedListFromStore();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setsFilter]); // При изменении фильтра или монтировании
 
   const handleLikeStickerSet = (id: number, title: string) => {
     // TODO: Реализовать API для лайков
