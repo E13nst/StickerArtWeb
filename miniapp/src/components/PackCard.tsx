@@ -163,7 +163,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                opacity: 1
+                opacity: 1,
+                willChange: 'opacity',
+                transition: 'opacity 0.2s ease-in-out'
               }}
             >
               {activeSticker.isAnimated ? (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Box } from '@mui/material';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
@@ -332,18 +332,43 @@ export const GalleryPage: React.FC = () => {
     loadCategories();
   }, [adaptCategoriesToUI]);
 
+  // Флаг для отслеживания первой загрузки
+  const hasInitializedRef = useRef(false);
+  // Храним последние значения фильтров для предотвращения лишних перезагрузок
+  const lastFiltersRef = useRef<{ categories: string[], sortByLikes: boolean }>({
+    categories: [],
+    sortByLikes: false
+  });
+
   // Перезагрузка при изменении выбранных категорий или сортировки
   useEffect(() => {
-    if (isReady) {
+    if (!isReady || !hasInitializedRef.current) return;
+    
+    // Проверяем, действительно ли изменились фильтры
+    const categoriesChanged = JSON.stringify(uiState.selectedCategories) !== JSON.stringify(lastFiltersRef.current.categories);
+    const sortChanged = uiState.sortByLikes !== lastFiltersRef.current.sortByLikes;
+    
+    if (categoriesChanged || sortChanged) {
+      lastFiltersRef.current = {
+        categories: [...uiState.selectedCategories],
+        sortByLikes: uiState.sortByLikes
+      };
       fetchStickerSets(0, false, uiState.selectedCategories);
     }
-  }, [uiState.selectedCategories, uiState.sortByLikes]); // Реагируем на изменение категорий и сортировки
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiState.selectedCategories, uiState.sortByLikes, isReady]); // Убрали fetchStickerSets из зависимостей
 
-  // Инициализация - исправлен бесконечный цикл
+  // Инициализация - только при первом монтировании или изменении initData
   useEffect(() => {
-    if (isReady) {
+    if (isReady && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      lastFiltersRef.current = {
+        categories: [...uiState.selectedCategories],
+        sortByLikes: uiState.sortByLikes
+      };
       fetchStickerSets(0, false, uiState.selectedCategories);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, uiState.manualInitData]); // Убрали fetchStickerSets из зависимостей
 
   // Автоматическая синхронизация offline очереди лайков

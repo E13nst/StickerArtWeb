@@ -19,7 +19,7 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({
             height: '200px',
             width: '100%',
             borderRadius: '12px',
-            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+            background: `linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #ffffff) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%)`,
             backgroundSize: '200% 100%',
             animation: 'shimmer 1.5s infinite',
             position: 'relative',
@@ -34,7 +34,7 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({
             transform: 'translate(-50%, -50%)',
             width: '60px',
             height: '60px',
-            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
             borderRadius: '50%',
             animation: 'pulse 2s infinite'
           }} />
@@ -46,7 +46,7 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({
             left: '8px',
             right: '8px',
             height: '16px',
-            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
             borderRadius: '8px',
             animation: 'pulse 2s infinite'
           }} />

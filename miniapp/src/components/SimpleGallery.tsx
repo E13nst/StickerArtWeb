@@ -64,14 +64,43 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   });
   
   // Определяем, нужна ли виртуализация (адаптивно)
+  // ВАЖНО: Виртуализация определяется только при первой загрузке, чтобы избежать
+  // переключения компонента во время пагинации (что вызывает потерю позиции скролла)
   const getVirtualizationThreshold = useCallback(() => {
     // На мобильных устройствах порог ниже
     const isMobile = window.innerWidth < 768;
     return isMobile ? 50 : 100;
   }, []);
 
-  const virtualizationThreshold = getVirtualizationThreshold();
-  const shouldUseVirtualization = packs.length > virtualizationThreshold;
+  // Используем useRef для сохранения начального решения о виртуализации
+  const virtualizationDecisionRef = useRef<boolean | null>(null);
+  const lastPacksLengthRef = useRef<number>(0);
+  
+  // Инициализируем решение о виртуализации только один раз при первой загрузке
+  // Или сбрасываем при полной перезагрузке (когда количество элементов резко уменьшается)
+  useEffect(() => {
+    // Если количество элементов резко уменьшилось (более чем на 50%), это полная перезагрузка
+    const isFullReload = lastPacksLengthRef.current > 0 && 
+                         packs.length < lastPacksLengthRef.current * 0.5;
+    
+    if (isFullReload) {
+      // Сбрасываем решение при полной перезагрузке
+      virtualizationDecisionRef.current = null;
+    }
+    
+    // Определяем виртуализацию только если решение еще не принято
+    if (virtualizationDecisionRef.current === null && packs.length > 0) {
+      const virtualizationThreshold = getVirtualizationThreshold();
+      virtualizationDecisionRef.current = packs.length > virtualizationThreshold;
+    }
+    
+    // Сохраняем текущее количество для следующей проверки
+    lastPacksLengthRef.current = packs.length;
+  }, [packs.length, getVirtualizationThreshold]);
+  
+  // Используем виртуализацию только если она была определена при первой загрузке
+  // Если packs пустой, используем обычный режим
+  const shouldUseVirtualization = virtualizationDecisionRef.current === true;
 
   // Показываем skeleton при пустом списке
   useEffect(() => {
@@ -111,6 +140,27 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
 
   // Infinite scroll для пагинации
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
+
+  // Сохраняем позицию скролла перед обновлением данных
+  useEffect(() => {
+    if (containerRef.current && isLoadingMore) {
+      scrollPositionRef.current = containerRef.current.scrollTop;
+    }
+  }, [isLoadingMore]);
+
+  // Восстанавливаем позицию скролла после загрузки
+  useEffect(() => {
+    if (containerRef.current && !isLoadingMore && scrollPositionRef.current > 0) {
+      // Используем requestAnimationFrame для плавного восстановления
+      requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = scrollPositionRef.current;
+        }
+      });
+    }
+  }, [isLoadingMore, packs.length]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -120,6 +170,10 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
       (entries) => {
         const [entry] = entries;
         if (entry.isIntersecting && hasNextPage && !isLoadingMore && onLoadMore) {
+          // Сохраняем позицию скролла перед загрузкой
+          if (containerRef.current) {
+            scrollPositionRef.current = containerRef.current.scrollTop;
+          }
           onLoadMore();
         }
       },
@@ -221,12 +275,16 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         }
       `}</style>
       <div
+        ref={containerRef}
         onScroll={handleScroll}
         style={{
           width: '100%',
-          height: 'calc(100vh - 200px)',
+          height: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 200px)',
+          minHeight: '400px',
+          maxHeight: 'calc(100dvh - 200px)',
           overflow: 'auto',
-          position: 'relative'
+          position: 'relative',
+          WebkitOverflowScrolling: 'touch'
         }}
         data-testid="gallery-container"
       >
@@ -295,7 +353,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
                     height: '200px',
                     width: '100%',
                     borderRadius: '12px',
-                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    background: `linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #ffffff) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%)`,
                     backgroundSize: '200% 100%',
                     animation: 'shimmer 1.5s infinite',
                     position: 'relative',
@@ -310,7 +368,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
                     transform: 'translate(-50%, -50%)',
                     width: '60px',
                     height: '60px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
                     borderRadius: '50%',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -322,7 +380,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
                     left: '8px',
                     right: '8px',
                     height: '16px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
                     borderRadius: '8px',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -346,10 +404,12 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
             
             return (
               <div
-                key={pack.id}
+                key={`left-${pack.id}-${index}`}
                 style={{
                   position: 'relative',
-                  width: '100%'
+                  width: '100%',
+                  willChange: 'transform',
+                  transition: 'opacity 0.2s ease-in-out'
                 }}
               >
                 {/* Анимация лайка */}
@@ -448,7 +508,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
                     height: '200px',
                     width: '100%',
                     borderRadius: '12px',
-                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    background: `linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #ffffff) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%)`,
                     backgroundSize: '200% 100%',
                     animation: 'shimmer 1.5s infinite',
                     position: 'relative',
@@ -463,7 +523,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
                     transform: 'translate(-50%, -50%)',
                     width: '60px',
                     height: '60px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
                     borderRadius: '50%',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -475,7 +535,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
                     left: '8px',
                     right: '8px',
                     height: '16px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
                     borderRadius: '8px',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -496,10 +556,12 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
             
             return (
               <div
-                key={pack.id}
+                key={`right-${pack.id}-${index}`}
                 style={{
                   position: 'relative',
-                  width: '100%'
+                  width: '100%',
+                  willChange: 'transform',
+                  transition: 'opacity 0.2s ease-in-out'
                 }}
               >
                 {/* Анимация лайка */}

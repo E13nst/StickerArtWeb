@@ -230,3 +230,4 @@ loadStickers().then(stickers => { ... });  // Асинхронно
 
 
 
+
