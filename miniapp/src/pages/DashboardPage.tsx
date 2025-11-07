@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Box, Typography, Grid, Card, CardContent, Skeleton } from '@mui/material';
+import { Container, Box, Typography, Grid, Card, CardContent, Skeleton, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useStickerStore } from '@/store/useStickerStore';
@@ -43,6 +43,45 @@ export const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const quickActions = [
+    {
+      label: 'Roulette',
+      shadow: '0 10px 30px rgba(79, 70, 229, 0.25)',
+      glow: 'rgba(79, 70, 229, 0.45)',
+      minWidth: 132,
+    },
+    {
+      label: 'AI-Tools',
+      shadow: '0 10px 30px rgba(236, 72, 153, 0.25)',
+      glow: 'rgba(236, 72, 153, 0.45)',
+      minWidth: 148,
+    },
+    {
+      label: 'Earn ART',
+      shadow: '0 10px 30px rgba(16, 185, 129, 0.25)',
+      glow: 'rgba(16, 185, 129, 0.45)',
+      minWidth: 148,
+    },
+    {
+      label: 'NFT-Stickers',
+      shadow: '0 10px 30px rgba(59, 130, 246, 0.25)',
+      glow: 'rgba(59, 130, 246, 0.45)',
+      minWidth: 164,
+    },
+    {
+      label: 'Deepfake',
+      shadow: '0 10px 30px rgba(245, 158, 11, 0.25)',
+      glow: 'rgba(245, 158, 11, 0.45)',
+      minWidth: 150,
+    },
+    {
+      label: 'Battle',
+      shadow: '0 10px 30px rgba(239, 68, 68, 0.25)',
+      glow: 'rgba(239, 68, 68, 0.45)',
+      minWidth: 140,
+    },
+  ];
 
   // Подсчет статистики с трендами
   useEffect(() => {
@@ -287,166 +326,124 @@ export const DashboardPage: React.FC = () => {
       paddingBottom: 0
     }}>
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, py: 3 }}>
-        <Typography 
-          variant="h4" 
-          fontWeight="bold" 
-          sx={{ 
-            mb: 3, 
-            color: 'var(--tg-theme-text-color)',
-            fontSize: { xs: '1.5rem', sm: '2rem' }
+        <Box
+          sx={{
+            position: 'relative',
+            mb: 3,
+            px: 1,
+            overflow: 'visible',
           }}
         >
-          Stickers Dashboard
-        </Typography>
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: '-56px -140px',
+              pointerEvents: 'none',
+              zIndex: 0,
+              opacity: 0.62,
+              filter: 'blur(56px)',
+              background:
+                'linear-gradient(180deg, rgba(8,11,18,0.82) 0%, rgba(8,11,18,0.52) 36%, rgba(8,11,18,0) 100%) ,\
+                 radial-gradient(circle at 18% 52%, rgba(79,70,229,0.22) 0%, rgba(16,18,26,0) 48%) ,\
+                 radial-gradient(circle at 50% 36%, rgba(236,72,153,0.22) 0%, rgba(16,18,26,0) 52%) ,\
+                 radial-gradient(circle at 80% 52%, rgba(16,185,129,0.24) 0%, rgba(16,18,26,0) 50%)',
+            }}
+          />
+          <Box
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'nowrap',
+              gap: 1.25,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              '&::-webkit-scrollbar': {
+                display: 'none',
+              },
+              py: 0.5,
+              width: '100vw',
+              marginLeft: 'calc(-50vw + 50%)',
+              paddingLeft: 'clamp(16px, 6vw, 36px)',
+              paddingRight: 'clamp(16px, 6vw, 36px)',
+              zIndex: 1,
+            }}
+          >
+            {quickActions.map((action) => (
+              <Button
+                key={action.label}
+                variant="contained"
+                color="inherit"
+                disableElevation
+                disableRipple
+                disabled
+                sx={{
+                  flex: '0 0 auto',
+                  minWidth: action.minWidth,
+                  borderRadius: 3,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  fontWeight: 700,
+                  px: 2,
+                  whiteSpace: 'nowrap',
+                  position: 'relative',
+                  overflow: 'visible',
+                  backgroundImage: 'none',
+                  backgroundColor: 'rgba(17, 20, 29, 0.58) !important',
+                  color: '#f5f8ff !important',
+                  backdropFilter: 'blur(18px)',
+                  border: '1px solid rgba(94, 109, 136, 0.22)',
+                  transition: 'background-color 0.25s ease, transform 0.25s ease, opacity 0.25s ease',
+                  opacity: 0.92,
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: '-32px -96px',
+                    borderRadius: 'inherit',
+                    background: `radial-gradient(ellipse at center, ${action.glow} 0%, rgba(17, 20, 29, 0) 68%)`,
+                    opacity: 0.58,
+                    zIndex: -1,
+                    transition: 'opacity 0.25s ease, transform 0.25s ease',
+                    pointerEvents: 'none',
+                    filter: 'blur(16px)',
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(26, 30, 42, 0.74) !important',
+                    transform: 'translateY(-1px)',
+                    '&::after': {
+                      opacity: 0.8,
+                      transform: 'scale(1.08)',
+                    }
+                  },
+                  '&:active': {
+                    backgroundColor: 'rgba(12, 15, 22, 0.82) !important',
+                    transform: 'translateY(1px)',
+                    '&::after': {
+                      opacity: 0.64,
+                      transform: 'scale(0.98)',
+                    }
+                  },
+                  '&:focus-visible': {
+                    outline: '2px solid rgba(94, 109, 136, 0.42)',
+                    outlineOffset: '2px',
+                  },
+                  '&.Mui-disabled::after': {
+                    opacity: 0.62,
+                  },
+                }}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </Box>
+        </Box>
 
         {isLoading ? (
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            {/* Верхняя панель метрик */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12}>
-                <Card
-                  sx={{
-                    borderRadius: 3,
-                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                    border: '1px solid var(--tg-theme-border-color)',
-                    boxShadow: 'none',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-                    }
-                  }}
-                >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                      <Box sx={{ textAlign: 'center', minWidth: '80px', flex: 1 }}>
-                        <Typography 
-                          variant="h5" 
-                          fontWeight="bold"
-                          sx={{ color: '#6366F1' }}
-                        >
-                          {stats.totalStickerPacks || 0}
-                        </Typography>
-                        <Typography 
-                          variant="body2"
-                          sx={{ color: 'var(--tg-theme-hint-color)' }}
-                        >
-                          Наборов
-                        </Typography>
-                        {stats.stickerPacksTrend && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: stats.stickerPacksTrend.startsWith('+') 
-                                ? 'var(--tg-theme-button-color)' 
-                                : 'var(--tg-theme-hint-color)',
-                              fontSize: '0.65rem',
-                              fontWeight: 500,
-                              display: 'block',
-                              mt: 0.5
-                            }}
-                          >
-                            {stats.stickerPacksTrend} за день
-                          </Typography>
-                        )}
-                      </Box>
-                      
-                      <Box sx={{ textAlign: 'center', minWidth: '80px', flex: 1 }}>
-                        <Typography 
-                          variant="h5" 
-                          fontWeight="bold"
-                          sx={{ color: '#EC4899' }}
-                        >
-                          {stats.totalLikes.toLocaleString('ru-RU')}
-                        </Typography>
-                        <Typography 
-                          variant="body2"
-                          sx={{ color: 'var(--tg-theme-hint-color)' }}
-                        >
-                          Лайков
-                        </Typography>
-                        {stats.likesTodayTrend && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: stats.likesTodayTrend.startsWith('+') 
-                                ? 'var(--tg-theme-button-color)' 
-                                : 'var(--tg-theme-hint-color)',
-                              fontSize: '0.65rem',
-                              fontWeight: 500,
-                              display: 'block',
-                              mt: 0.5
-                            }}
-                          >
-                            {stats.likesTodayTrend} за сегодня
-                          </Typography>
-                        )}
-                      </Box>
-                      
-                      <Box sx={{ textAlign: 'center', minWidth: '80px', flex: 1 }}>
-                        <Box
-                          sx={{
-                            width: '80px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.4) 50%, rgba(245, 158, 11, 0.2) 100%)',
-                            backgroundSize: '200% 100%',
-                            animation: 'shimmer 2s ease-in-out infinite',
-                            '@keyframes shimmer': {
-                              '0%': {
-                                backgroundPosition: '200% 0',
-                              },
-                              '100%': {
-                                backgroundPosition: '-200% 0',
-                              },
-                            },
-                            position: 'relative',
-                            overflow: 'hidden',
-                            margin: '0 auto'
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
-                              backgroundSize: '200% 100%',
-                              animation: 'shimmer 2s ease-in-out infinite',
-                              pointerEvents: 'none',
-                            }}
-                          />
-                        </Box>
-                        <Typography 
-                          variant="body2"
-                          sx={{ color: 'var(--tg-theme-hint-color)', mt: 1 }}
-                        >
-                          ART
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: 'var(--tg-theme-hint-color)',
-                            fontSize: '0.65rem',
-                            fontWeight: 500,
-                            display: 'block',
-                            mt: 0.5,
-                            fontStyle: 'italic'
-                          }}
-                        >
-                          ~за месяц
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
             {/* Топ-5 авторов */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid 
