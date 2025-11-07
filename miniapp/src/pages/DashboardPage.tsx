@@ -340,12 +340,12 @@ export const DashboardPage: React.FC = () => {
               inset: '-80px -220px',
               pointerEvents: 'none',
               zIndex: 0,
-              opacity: 0.7,
+              opacity: 0.75,
+              filter: 'blur(60px)',
               background:
-                'radial-gradient(circle at 15% 50%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 52%) ,\
-                 radial-gradient(circle at 50% 36%, rgba(236,72,153,0.28) 0%, rgba(16,18,26,0) 60%) ,\
-                 radial-gradient(circle at 78% 52%, rgba(16,185,129,0.32) 0%, rgba(16,18,26,0) 56%)',
-              filter: 'blur(58px)',
+                'radial-gradient(circle at 15% 50%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 56%) ,\
+                 radial-gradient(circle at 50% 36%, rgba(236,72,153,0.24) 0%, rgba(16,18,26,0) 62%) ,\
+                 radial-gradient(circle at 78% 52%, rgba(16,185,129,0.28) 0%, rgba(16,18,26,0) 58%)',
             }}
           />
           <Box
@@ -355,8 +355,8 @@ export const DashboardPage: React.FC = () => {
               flexDirection: 'row',
               flexWrap: 'nowrap',
               gap: 1.25,
-              overflowX: 'visible',
-              overflowY: 'visible',
+              overflowX: 'auto',
+              overflowY: 'hidden',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               '&::-webkit-scrollbar': {
@@ -388,48 +388,25 @@ export const DashboardPage: React.FC = () => {
                   px: 2,
                   whiteSpace: 'nowrap',
                   position: 'relative',
-                  overflow: 'visible',
-                  backgroundImage: 'none',
-                  backgroundColor: 'rgba(17, 20, 29, 0.58) !important',
+                  overflow: 'hidden',
+                  backgroundImage: `radial-gradient(circle at 50% 20%, ${action.glow} 0%, rgba(17, 20, 29, 0) 72%)`,
+                  backgroundColor: 'rgba(17, 20, 29, 0.6) !important',
                   color: '#f5f8ff !important',
-                  backdropFilter: 'blur(18px)',
+                  backdropFilter: 'blur(16px)',
                   border: '1px solid rgba(94, 109, 136, 0.22)',
                   transition: 'background-color 0.25s ease, transform 0.25s ease, opacity 0.25s ease',
-                  opacity: 0.92,
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    inset: '-32px -96px',
-                    borderRadius: 'inherit',
-                    background: `radial-gradient(ellipse at center, ${action.glow} 0%, rgba(17, 20, 29, 0) 68%)`,
-                    opacity: 0.58,
-                    zIndex: -1,
-                    transition: 'opacity 0.25s ease, transform 0.25s ease',
-                    pointerEvents: 'none',
-                    filter: 'blur(16px)',
-                  },
+                  opacity: 0.94,
                   '&:hover': {
-                    backgroundColor: 'rgba(26, 30, 42, 0.74) !important',
+                    backgroundColor: 'rgba(26, 30, 42, 0.78) !important',
                     transform: 'translateY(-1px)',
-                    '&::after': {
-                      opacity: 0.8,
-                      transform: 'scale(1.08)',
-                    }
                   },
                   '&:active': {
-                    backgroundColor: 'rgba(12, 15, 22, 0.82) !important',
+                    backgroundColor: 'rgba(12, 15, 22, 0.84) !important',
                     transform: 'translateY(1px)',
-                    '&::after': {
-                      opacity: 0.64,
-                      transform: 'scale(0.98)',
-                    }
                   },
                   '&:focus-visible': {
                     outline: '2px solid rgba(94, 109, 136, 0.42)',
                     outlineOffset: '2px',
-                  },
-                  '&.Mui-disabled::after': {
-                    opacity: 0.62,
                   },
                 }}
               >
