@@ -29,6 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const getCurrentTab = () => {
     if (location.pathname === '/' || location.pathname === '/dashboard') return 0;
     if (location.pathname === '/gallery') return 1;
+    if (location.pathname === '/nft-soon') return 2;
     if (location.pathname.startsWith('/profile')) return 3;
     return typeof activeTab === 'number' ? activeTab : internalTab;
   };
@@ -48,7 +49,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         navigate('/gallery');
         break;
       case 2:
-        navigate('/gallery'); // placeholder для магазина
+        navigate('/nft-soon');
         break;
       case 3:
         // Навигация к моему профилю
