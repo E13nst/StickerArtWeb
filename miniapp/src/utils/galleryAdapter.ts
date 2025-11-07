@@ -16,6 +16,26 @@ export interface GalleryPack {
 // Кэш для избежания повторных вычислений
 const adapterCache = new Map<string, GalleryPack>();
 
+const parseStickerInfo = (stickerSet: StickerSetResponse) => {
+  const info = stickerSet.telegramStickerSetInfo as unknown;
+
+  if (!info) {
+    return { stickers: [] };
+  }
+
+  if (typeof info === 'string') {
+    try {
+      const parsed = JSON.parse(info);
+      return parsed && typeof parsed === 'object' ? parsed : { stickers: [] };
+    } catch (error) {
+      console.warn('⚠️ Не удалось распарсить telegramStickerSetInfo:', error, stickerSet.id);
+      return { stickers: [] };
+    }
+  }
+
+  return info as { stickers?: any[] };
+};
+
 export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]): GalleryPack[] {
   return stickerSets.map(stickerSet => {
     const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}`;
@@ -25,7 +45,8 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       return adapterCache.get(cacheKey)!;
     }
     
-    const stickers = stickerSet.telegramStickerSetInfo?.stickers || [];
+    const telegramInfo = parseStickerInfo(stickerSet);
+    const stickers = Array.isArray(telegramInfo.stickers) ? telegramInfo.stickers : [];
     
     // Выбираем 3 случайных стикера для превью
     const getRandomStickers = (stickers: any[], count: number) => {

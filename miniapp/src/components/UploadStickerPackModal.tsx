@@ -6,11 +6,9 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  IconButton,
   TextField,
   Typography
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { AnimatedSticker } from './AnimatedSticker';
@@ -74,7 +72,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   }, [open]);
 
   const handleClose = () => {
-    if (isSubmittingLink || isApplyingCategories) {
+    if (isSubmittingLink || isApplyingCategories || step === 'categories') {
       return;
     }
     resetState();
@@ -408,17 +406,12 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   const renderCategoriesStep = () => (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <IconButton onClick={() => setStep('link')} sx={{ mr: 1 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
-          Добавьте категории
-        </Typography>
-      </Box>
+      <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 2 }}>
+        Добавьте категории
+      </Typography>
 
       <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', mb: 2 }}>
-        Вы получите +10 ART после публикации набора. Проверьте данные, выберите категории и подтвердите.
+        Вы получите +10 ART после публикации набора. Проверьте данные, выберите категории и подтвердите. После сохранения окно закроется автоматически.
       </Typography>
 
       <Box
@@ -446,42 +439,6 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       </Box>
 
       <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 1 }}>
-        Выбранные категории
-      </Typography>
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 1,
-          minHeight: '40px',
-          border: '1px dashed var(--tg-theme-border-color)',
-          borderRadius: '12px',
-          padding: '8px'
-        }}
-      >
-        {selectedCategories.length === 0 ? (
-          <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
-            Категории пока не выбраны
-          </Typography>
-        ) : (
-          selectedCategories.map((key) => {
-            const category = categories.find((item) => item.key === key);
-            return (
-              <Chip
-                key={key}
-                label={category?.name || key}
-                onDelete={() => handleCategoryToggle(key)}
-                color="primary"
-                sx={{ backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)' }}
-              />
-            );
-          })
-        )}
-      </Box>
-
-      <Divider sx={{ my: 2 }} />
-
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 1 }}>
         Выберите категории для стикерсета:
       </Typography>
 
@@ -500,30 +457,33 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         </Alert>
       )}
 
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          overflowX: 'auto',
-          pb: 1,
-          '&::-webkit-scrollbar': {
-            height: '6px'
-          }
-        }}
-      >
-        {categoriesLoading ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={16} />
-            <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
-              Загрузка категорий...
-            </Typography>
-          </Box>
-        ) : categoriesError ? (
-          <Alert severity="error" sx={{ width: '100%' }}>
-            {categoriesError}
-          </Alert>
-        ) : (
-          categories.map((category) => {
+      {categoriesLoading ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <CircularProgress size={16} />
+          <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+            Загрузка категорий...
+          </Typography>
+        </Box>
+      ) : categoriesError ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {categoriesError}
+        </Alert>
+      ) : (
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 1,
+            maxHeight: '220px',
+            overflowY: 'auto',
+            pb: 1,
+            pr: 0.5,
+            borderRadius: '12px',
+            border: '1px solid var(--tg-theme-border-color)',
+            padding: '12px'
+          }}
+        >
+          {categories.map((category) => {
             const isSelected = selectedCategories.includes(category.key);
             return (
               <Chip
@@ -533,20 +493,18 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                 color={isSelected ? 'primary' : 'default'}
                 variant={isSelected ? 'filled' : 'outlined'}
                 sx={{
-                  flexShrink: 0,
                   cursor: 'pointer',
-                  fontWeight: isSelected ? 600 : 400
+                  fontWeight: isSelected ? 600 : 400,
+                  transition: 'transform 0.15s ease',
+                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  }
                 }}
               />
             );
-          })
-        )}
-      </Box>
-
-      {categoriesError && !categoriesLoading && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {categoriesError}
-        </Alert>
+          })}
+        </Box>
       )}
 
       <Button
