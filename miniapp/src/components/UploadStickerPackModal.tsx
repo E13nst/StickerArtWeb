@@ -5,7 +5,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Divider,
   TextField,
   Typography
 } from '@mui/material';
@@ -13,7 +12,7 @@ import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { AnimatedSticker } from './AnimatedSticker';
 import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
-import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
+import type { Sticker, StickerSetResponse, CategoryResponse, StickerSetPreviewResponse, CreateStickerSetRequest } from '@/types/sticker';
 
 interface UploadStickerPackModalProps {
   open: boolean;
@@ -40,6 +39,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const [linkError, setLinkError] = useState<string | null>(null);
 
   const [createdStickerSet, setCreatedStickerSet] = useState<StickerSetResponse | null>(null);
+  const [previewData, setPreviewData] = useState<StickerSetPreviewResponse | null>(null);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
@@ -58,6 +58,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     setIsSubmittingLink(false);
     setLinkError(null);
     setCreatedStickerSet(null);
+    setPreviewData(null);
     setCategories([]);
     setCategoriesError(null);
     setSelectedCategories([]);
@@ -65,6 +66,8 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     setSuggestionLoading(false);
     setSuggestionError(null);
     setSuggestionsFetched(false);
+    setIsPreviewLoading(false);
+    setActivePreviewIndex(0);
   };
 
   useEffect(() => {
@@ -98,30 +101,31 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     try {
       const payload = { name: link.trim() };
       setIsPreviewLoading(true);
-      const stickerSet = await apiClient.createStickerSet(payload);
+      const preview = await apiClient.previewStickerSet(payload.name);
 
-      let hydratedStickerSet = stickerSet;
-      try {
-        if (!stickerSet.telegramStickerSetInfo?.stickers?.length && stickerSet.id) {
-          hydratedStickerSet = await apiClient.getStickerSet(stickerSet.id);
-        }
-      } catch (fetchError) {
-        console.warn('⚠️ Не удалось загрузить полные данные стикерсета сразу после создания', fetchError);
-      }
+      const rawStickers = (preview as unknown as { stickers?: Sticker[] }).stickers;
+      const normalizedPreview: StickerSetPreviewResponse = {
+        ...preview,
+        telegramStickerSetInfo: preview.telegramStickerSetInfo ?? (rawStickers && rawStickers.length > 0
+          ? {
+              name: preview.name,
+              title: preview.title,
+              stickers: rawStickers
+            }
+          : preview.telegramStickerSetInfo ?? null)
+      };
 
-      setCreatedStickerSet(hydratedStickerSet);
-
-      const existingCategoryKeys = (hydratedStickerSet.categories || [])
-        .map((category) => category?.key)
-        .filter((key): key is string => Boolean(key));
-      setSelectedCategories(existingCategoryKeys);
+      setPreviewData(normalizedPreview);
+      setCreatedStickerSet(null);
+      setSelectedCategories([]);
+      setActivePreviewIndex(0);
 
       setStep('categories');
     } catch (error: any) {
       const message = error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
-        'Не удалось создать стикерсет. Проверьте ссылку и попробуйте снова.';
+        'Не удалось получить предпросмотр. Проверьте ссылку и попробуйте снова.';
       setLinkError(message);
     } finally {
       setIsPreviewLoading(false);
@@ -183,12 +187,22 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     }
   }, [open, step]);
 
+  const telegramInfoSource = useMemo(() => {
+    if (createdStickerSet?.telegramStickerSetInfo) {
+      return createdStickerSet.telegramStickerSetInfo;
+    }
+    if (previewData?.telegramStickerSetInfo) {
+      return previewData.telegramStickerSetInfo;
+    }
+    return null;
+  }, [createdStickerSet?.telegramStickerSetInfo, previewData?.telegramStickerSetInfo]);
+
   const normalizedTelegramInfo = useMemo<TelegramStickerSetInfo | null>(() => {
-    if (!createdStickerSet?.telegramStickerSetInfo) {
+    if (!telegramInfoSource) {
       return null;
     }
 
-    const info = createdStickerSet.telegramStickerSetInfo as unknown;
+    const info = telegramInfoSource as unknown;
     if (typeof info === 'string') {
       try {
         return JSON.parse(info) as TelegramStickerSetInfo;
@@ -199,21 +213,24 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     }
 
     return info as TelegramStickerSetInfo;
-  }, [createdStickerSet]);
+  }, [telegramInfoSource]);
 
   useEffect(() => {
-    if (!createdStickerSet || step !== 'categories') {
+    if (step !== 'categories' || suggestionsFetched) {
       return;
     }
 
-    const fallbackTitle = createdStickerSet.title || normalizedTelegramInfo?.title;
+    const fallbackTitle = createdStickerSet?.title
+      || previewData?.title
+      || normalizedTelegramInfo?.title;
+
     if (!fallbackTitle) {
       setSuggestionsFetched(true);
       return;
     }
 
     loadSuggestions(fallbackTitle);
-  }, [createdStickerSet, step, normalizedTelegramInfo]);
+  }, [step, suggestionsFetched, createdStickerSet?.title, previewData?.title, normalizedTelegramInfo?.title]);
 
   const previewStickers = useMemo(() => {
     const stickers = normalizedTelegramInfo?.stickers;
@@ -231,6 +248,31 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
     return previewStickers[activePreviewIndex] || previewStickers[0];
   }, [previewStickers, activePreviewIndex]);
+
+  const sanitizedLinkName = useMemo(() => {
+    const raw = link.trim();
+    if (!raw) {
+      return '';
+    }
+    return raw
+      .replace(/^https?:\/\/t\.me\/addstickers\//i, '')
+      .replace(/^https?:\/\/t\.me\//i, '')
+      .replace(/^@/, '');
+  }, [link]);
+
+  const displayTitle = useMemo(() => {
+    return createdStickerSet?.title
+      || previewData?.title
+      || normalizedTelegramInfo?.title
+      || 'Новый стикерсет';
+  }, [createdStickerSet?.title, previewData?.title, normalizedTelegramInfo?.title]);
+
+  const displayName = useMemo(() => {
+    return createdStickerSet?.name
+      || previewData?.name
+      || normalizedTelegramInfo?.name
+      || sanitizedLinkName;
+  }, [createdStickerSet?.name, previewData?.name, normalizedTelegramInfo?.name, sanitizedLinkName]);
 
   useEffect(() => {
     if (previewStickers.length === 0) {
@@ -262,7 +304,8 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   };
 
   const handleApplyCategories = async () => {
-    if (!createdStickerSet) {
+    if (!link.trim()) {
+      setCategoriesError('Ссылка на стикерсет недоступна. Вернитесь на предыдущий шаг.');
       return;
     }
 
@@ -270,11 +313,30 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     setCategoriesError(null);
 
     try {
-      const updatedStickerSet = await apiClient.updateStickerSetCategories(createdStickerSet.id, selectedCategories);
-      setCreatedStickerSet(updatedStickerSet);
+      const payload: CreateStickerSetRequest = {
+        name: link.trim(),
+        categoryKeys: selectedCategories
+      };
+
+      if (previewData?.title) {
+        payload.title = previewData.title;
+      }
+
+      const created = await apiClient.createStickerSet(payload);
+      let finalStickerSet = created;
+
+      if (selectedCategories.length > 0) {
+        try {
+          finalStickerSet = await apiClient.updateStickerSetCategories(created.id, selectedCategories);
+        } catch (updateError) {
+          console.warn('⚠️ Не удалось обновить категории сразу после создания', updateError);
+        }
+      }
+
+      setCreatedStickerSet(finalStickerSet);
 
       if (onComplete) {
-        await onComplete(updatedStickerSet);
+        await onComplete(finalStickerSet);
       }
 
       resetState();
@@ -283,7 +345,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       const message = error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
-        'Не удалось сохранить категории. Попробуйте позже.';
+        'Не удалось сохранить стикерсет. Попробуйте позже.';
       setCategoriesError(message);
     } finally {
       setIsApplyingCategories(false);
@@ -593,13 +655,15 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           <Box sx={{ width: '100%', height: 240, borderRadius: '12px', overflow: 'hidden' }}>
             {renderPreview()}
           </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
-              {createdStickerSet?.title || normalizedTelegramInfo?.title || 'Новый стикерсет'}
+              {displayTitle}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', wordBreak: 'break-word' }}>
-              @{createdStickerSet?.name || normalizedTelegramInfo?.name}
-            </Typography>
+            {displayName ? (
+              <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', wordBreak: 'break-word' }}>
+                @{displayName}
+              </Typography>
+            ) : null}
             {renderPreviewStrip()}
           </Box>
         </Box>

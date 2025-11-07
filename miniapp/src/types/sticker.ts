@@ -91,6 +91,12 @@ export interface StickerSetResponse {
   }>; // Категории стикерсета
 }
 
+export interface StickerSetPreviewResponse {
+  name?: string;
+  title?: string;
+  telegramStickerSetInfo?: TelegramStickerSetInfo | string | null;
+}
+
 // Доп. метаданные набора (загружаются отдельно)
 export interface StickerSetAuthorInfo {
   id: number;

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, StickerSetPreviewResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
@@ -216,6 +216,19 @@ class ApiClient {
       return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка при создании стикерсета:', error);
+      throw error;
+    }
+  }
+
+  // Предпросмотр стикерсета без создания записи в галерее
+  async previewStickerSet(name: string): Promise<StickerSetPreviewResponse> {
+    try {
+      const response = await this.client.get<StickerSetPreviewResponse>('/stickersets/preview', {
+        params: { name }
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка при предпросмотре стикерсета:', error);
       throw error;
     }
   }
