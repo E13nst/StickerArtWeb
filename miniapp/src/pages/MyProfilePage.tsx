@@ -1000,11 +1000,10 @@ export const MyProfilePage: React.FC = () => {
       <UploadStickerPackModal
         open={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onUpload={async (link: string) => {
-          await apiClient.uploadStickerPackByLink(link);
-          // Обновляем профиль и список стикерсетов после успешной загрузки
+        onComplete={async () => {
           if (currentUserId) {
             await loadMyProfile(currentUserId, true);
+            await loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes);
           }
         }}
       />

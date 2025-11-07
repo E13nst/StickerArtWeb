@@ -117,6 +117,26 @@ export interface StickerSetListResponse {
   numberOfElements: number;
 }
 
+export interface CreateStickerSetRequest {
+  userId?: number;
+  title?: string;
+  name: string;
+  categoryKeys?: string[];
+}
+
+export interface CategorySuggestion {
+  categoryKey: string;
+  categoryName: string;
+  confidence?: number;
+  reason?: string;
+}
+
+export interface CategorySuggestionResult {
+  analyzedTitle?: string;
+  suggestedCategories: CategorySuggestion[];
+  reasoning?: string;
+}
+
 export interface AuthResponse {
   authenticated: boolean;
   role?: string;

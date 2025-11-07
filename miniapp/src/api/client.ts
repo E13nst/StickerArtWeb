@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
@@ -209,6 +209,17 @@ class ApiClient {
     return response.data;
   }
 
+  // Создание нового стикерсета
+  async createStickerSet(payload: CreateStickerSetRequest): Promise<StickerSetResponse> {
+    try {
+      const response = await this.client.post<StickerSetResponse>('/stickersets', payload);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка при создании стикерсета:', error);
+      throw error;
+    }
+  }
+
   // Поиск стикерсетов по названию
   async searchStickerSets(query: string, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
     const response = await this.client.get<StickerSetListResponse>('/stickersets/search', {
@@ -264,6 +275,30 @@ class ApiClient {
         },
         likes: Math.floor(100 + Math.random() * 900)
       };
+    }
+  }
+
+  // Обновление категорий стикерсета
+  async updateStickerSetCategories(id: number, categoryKeys: string[]): Promise<StickerSetResponse> {
+    try {
+      const response = await this.client.put<StickerSetResponse>(`/stickersets/${id}/categories`, categoryKeys);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при обновлении категорий стикерсета ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // AI-подбор категорий по заголовку
+  async suggestCategoriesForTitle(title: string): Promise<CategorySuggestionResult> {
+    try {
+      const response = await this.client.get<CategorySuggestionResult>('/categories/ai/suggest', {
+        params: { title }
+      });
+      return response.data;
+    } catch (error: any) {
+      console.warn('⚠️ Не удалось получить рекомендации категорий от AI:', error?.response?.data || error?.message);
+      throw error;
     }
   }
 

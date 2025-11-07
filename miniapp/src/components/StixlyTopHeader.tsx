@@ -18,6 +18,7 @@ interface ProfileModeConfig {
 export interface StixlyTopHeaderProps {
   profileMode?: ProfileModeConfig | { enabled: false };
   onSlideChange?: (slideBg: string) => void;
+  fixedSlideId?: number;
 }
 
 type Slide = {
@@ -222,8 +223,16 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
   );
 };
 
-export default function StixlyTopHeader({ profileMode, onSlideChange }: StixlyTopHeaderProps = {}) {
-  const [index, setIndex] = useState(0);
+export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlideId }: StixlyTopHeaderProps = {}) {
+  const initialIndex = useMemo(() => {
+    if (typeof fixedSlideId === 'number') {
+      const rawIndex = RAW_SLIDES.findIndex((slide) => slide.id === fixedSlideId);
+      return rawIndex >= 0 ? rawIndex : 0;
+    }
+    return 0;
+  }, [fixedSlideId]);
+
+  const [index, setIndex] = useState(initialIndex);
 
   const slides: Slide[] = useMemo(
     () => RAW_SLIDES.map((s) => ({ ...s, img: img(s.img) })),
@@ -232,6 +241,16 @@ export default function StixlyTopHeader({ profileMode, onSlideChange }: StixlyTo
 
   // Режим работы
   const isProfileMode = profileMode?.enabled === true;
+  const isStaticSlide = !isProfileMode && typeof fixedSlideId === 'number';
+
+  useEffect(() => {
+    if (isStaticSlide) {
+      const staticIndex = slides.findIndex((slide) => slide.id === fixedSlideId);
+      if (staticIndex >= 0 && staticIndex !== index) {
+        setIndex(staticIndex);
+      }
+    }
+  }, [isStaticSlide, fixedSlideId, slides, index]);
 
   // Уведомляем о смене слайда
   useEffect(() => {
@@ -252,10 +271,10 @@ export default function StixlyTopHeader({ profileMode, onSlideChange }: StixlyTo
 
   // Autoplay (только для обычного режима)
   useEffect(() => {
-    if (isProfileMode) return;
+    if (isProfileMode || isStaticSlide) return;
     const t = setInterval(() => setIndex((v) => (v + 1) % slides.length), 5000);
     return () => clearInterval(t);
-  }, [slides.length, isProfileMode]);
+  }, [slides.length, isProfileMode, isStaticSlide]);
 
   const current = slides[index];
   const isMascot = current.img.includes("mascot");

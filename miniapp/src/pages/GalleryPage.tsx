@@ -474,10 +474,8 @@ export const GalleryPage: React.FC = () => {
       <UploadStickerPackModal
         open={uiState.isUploadModalOpen}
         onClose={() => setUiState(prev => ({ ...prev, isUploadModalOpen: false }))}
-        onUpload={async (link: string) => {
-          // Обновляем список стикерсетов после успешной загрузки
-          await fetchStickerSets();
-          setUiState(prev => ({ ...prev, isUploadModalOpen: false }));
+        onComplete={async () => {
+          await fetchStickerSets(0, false, uiState.selectedCategories);
         }}
       />
       <StickerPackModal 
@@ -486,15 +484,6 @@ export const GalleryPage: React.FC = () => {
         onClose={handleBackToList}
         onLike={(id, title) => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);
-        }}
-      />
-      <UploadStickerPackModal
-        open={uiState.isUploadModalOpen}
-        onClose={() => setUiState(prev => ({ ...prev, isUploadModalOpen: false }))}
-        onUpload={async (link: string) => {
-          await apiClient.uploadStickerPackByLink(link);
-          // Обновляем галерею после успешной загрузки
-          await fetchStickerSets(0, false, uiState.selectedCategories);
         }}
       />
     </>
