@@ -98,7 +98,12 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
     const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}`;
 
     if (adapterCache.has(cacheKey)) {
-      return adapterCache.get(cacheKey)!;
+      const cachedPack = adapterCache.get(cacheKey)!;
+      if (cachedPack.previewStickers && cachedPack.previewStickers.length > 0) {
+        return cachedPack;
+      }
+      // Удаляем пустой кэш, чтобы попытаться собрать превью повторно
+      adapterCache.delete(cacheKey);
     }
 
     const telegramInfo = parseTelegramInfo(stickerSet);
@@ -126,10 +131,14 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       previewStickers
     };
 
-    adapterCache.set(cacheKey, result);
-    if (adapterCache.size > 100) {
-      const firstKey = adapterCache.keys().next().value;
-      adapterCache.delete(firstKey);
+    if (previewStickers.length > 0) {
+      adapterCache.set(cacheKey, result);
+      if (adapterCache.size > 100) {
+        const firstKey = adapterCache.keys().next().value;
+        adapterCache.delete(firstKey);
+      }
+    } else {
+      adapterCache.delete(cacheKey);
     }
 
     return result;
