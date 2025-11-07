@@ -12,7 +12,7 @@ import {
 import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { AnimatedSticker } from './AnimatedSticker';
-import { getStickerImageUrl } from '@/utils/stickerUtils';
+import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
 import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
 
 interface UploadStickerPackModalProps {
@@ -49,6 +49,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [suggestionsFetched, setSuggestionsFetched] = useState(false);
+  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
 
   const resetState = () => {
     setStep('link');
@@ -201,14 +202,42 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     loadSuggestions(fallbackTitle);
   }, [createdStickerSet, step, normalizedTelegramInfo]);
 
-  const previewSticker = useMemo(() => {
+  const previewStickers = useMemo(() => {
     const stickers = normalizedTelegramInfo?.stickers;
     if (!stickers || stickers.length === 0) {
+      return [];
+    }
+
+    return stickers.filter((sticker): sticker is Sticker => Boolean(sticker));
+  }, [normalizedTelegramInfo?.stickers]);
+
+  const activePreviewSticker = useMemo(() => {
+    if (previewStickers.length === 0) {
       return null;
     }
 
-    return stickers.find((sticker) => sticker != null) || stickers[0];
-  }, [normalizedTelegramInfo]);
+    return previewStickers[activePreviewIndex] || previewStickers[0];
+  }, [previewStickers, activePreviewIndex]);
+
+  useEffect(() => {
+    if (previewStickers.length === 0) {
+      setActivePreviewIndex(0);
+      return;
+    }
+
+    setActivePreviewIndex((prev) => {
+      if (prev < previewStickers.length) {
+        return prev;
+      }
+      return previewStickers.length - 1;
+    });
+  }, [previewStickers.length]);
+
+  useEffect(() => {
+    if (!open) {
+      setActivePreviewIndex(0);
+    }
+  }, [open]);
 
   const handleCategoryToggle = (key: string) => {
     setSelectedCategories((prev) => {
@@ -374,7 +403,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       justifyContent: 'center'
     } as const;
 
-    if (!previewSticker) {
+    if (!activePreviewSticker) {
       return (
         <Box sx={frameSx}>
           <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
@@ -384,16 +413,16 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       );
     }
 
-    const imageUrl = getStickerImageUrl(previewSticker.file_id);
+    const imageUrl = getStickerImageUrl(activePreviewSticker.file_id);
 
-    if (previewSticker.is_animated) {
+    if (activePreviewSticker.is_animated) {
       return (
         <Box sx={frameSx}>
           <Box sx={mediaWrapperSx}>
             <AnimatedSticker
-              fileId={previewSticker.file_id}
+              fileId={activePreviewSticker.file_id}
               imageUrl={imageUrl}
-              emoji={previewSticker.emoji}
+              emoji={activePreviewSticker.emoji}
               className="pack-card-animated-sticker"
             />
           </Box>
@@ -401,7 +430,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       );
     }
 
-    if (previewSticker.is_video) {
+    if (activePreviewSticker.is_video) {
       return (
         <Box sx={frameSx}>
           <Box sx={mediaWrapperSx}>
@@ -423,9 +452,98 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         <Box sx={mediaWrapperSx}>
           <img
             src={imageUrl}
-            alt={previewSticker.emoji || 'Sticker preview'}
+            alt={activePreviewSticker.emoji || 'Sticker preview'}
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
+        </Box>
+      </Box>
+    );
+  };
+
+  const renderPreviewStrip = () => {
+    if (previewStickers.length === 0) {
+      return null;
+    }
+
+    return (
+      <Box sx={{ width: '100%' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1.25,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingY: 1,
+            paddingX: 0.5,
+            scrollBehavior: 'smooth',
+            maskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
+            WebkitMaskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            '&::-webkit-scrollbar': { display: 'none' }
+          }}
+        >
+          {previewStickers.map((sticker, index) => {
+            const isActive = index === activePreviewIndex;
+            const thumbFileId = (sticker as any)?.thumb?.file_id || sticker.file_id;
+            const thumbUrl = getStickerThumbnailUrl(thumbFileId, 128);
+
+            const handleSelect = () => setActivePreviewIndex(index);
+
+            const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setActivePreviewIndex(index);
+              }
+            };
+
+            return (
+              <Box
+                key={`${sticker.file_id}-${index}`}
+                role="button"
+                tabIndex={0}
+                onClick={handleSelect}
+                onKeyDown={handleKeyDown}
+                sx={{
+                  flex: '0 0 auto',
+                  width: 72,
+                  height: 72,
+                  borderRadius: '14px',
+                  border: isActive ? '2px solid var(--tg-theme-button-color, #2481cc)' : '1px solid var(--tg-theme-border-color, rgba(0,0,0,0.12))',
+                  backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  overflow: 'hidden',
+                  transition: 'transform 0.18s ease, border-color 0.18s ease',
+                  transform: isActive ? 'scale(1.04)' : 'scale(1)',
+                  boxShadow: isActive ? '0 6px 18px rgba(30, 72, 185, 0.18)' : '0 2px 8px rgba(0,0,0,0.08)',
+                  '&:hover': {
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              >
+                {sticker.is_video ? (
+                  <video
+                    src={thumbUrl || getStickerImageUrl(sticker.file_id)}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={thumbUrl || getStickerImageUrl(sticker.file_id)}
+                    alt={sticker.emoji || `Sticker ${index + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                )}
+              </Box>
+            );
+          })}
         </Box>
       </Box>
     );
@@ -454,13 +572,14 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           <Box sx={{ width: '100%', height: 240, borderRadius: '12px', overflow: 'hidden' }}>
             {renderPreview()}
           </Box>
-          <Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
               {createdStickerSet?.title || normalizedTelegramInfo?.title || 'Новый стикерсет'}
             </Typography>
             <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', wordBreak: 'break-word' }}>
               @{createdStickerSet?.name || normalizedTelegramInfo?.name}
             </Typography>
+            {renderPreviewStrip()}
           </Box>
         </Box>
       </Box>
