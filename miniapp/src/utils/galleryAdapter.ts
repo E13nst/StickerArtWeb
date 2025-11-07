@@ -24,16 +24,13 @@ type TelegramStickerInfo = {
   };
 };
 
-const parseStickerInfo = (stickerSet: StickerSetResponse): TelegramStickerInfo => {
-  const info = stickerSet.telegramStickerSetInfo as unknown;
+const parseTelegramInfo = (stickerSet: StickerSetResponse): TelegramStickerInfo => {
+  const raw = stickerSet.telegramStickerSetInfo as unknown;
+  if (!raw) return {};
 
-  if (!info) {
-    return {};
-  }
-
-  if (typeof info === 'string') {
+  if (typeof raw === 'string') {
     try {
-      const parsed = JSON.parse(info);
+      const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' ? parsed : {};
     } catch (error) {
       console.warn('⚠️ Не удалось распарсить telegramStickerSetInfo:', error, stickerSet.id);
@@ -41,109 +38,100 @@ const parseStickerInfo = (stickerSet: StickerSetResponse): TelegramStickerInfo =
     }
   }
 
-  return info as TelegramStickerInfo;
+  return raw as TelegramStickerInfo;
 };
 
-const resolveFileId = (sticker: any, fallback?: { file_id?: string; fileId?: string }) => {
+const pickFileId = (sticker: any): string | null => {
   return (
     sticker?.file_id ||
     sticker?.fileId ||
     sticker?.thumbnail?.file_id ||
     sticker?.thumbnail?.fileId ||
-    fallback?.file_id ||
-    fallback?.fileId ||
     null
   );
 };
 
-const normalizeSticker = (sticker: any, fallbackThumbnail?: { file_id?: string; fileId?: string }) => {
-  const fileId = resolveFileId(sticker, fallbackThumbnail);
-  if (!fileId) return null;
+const ensureStickers = (info: TelegramStickerInfo): any[] => {
+  const stickers = Array.isArray(info.stickers) ? info.stickers : [];
+  if (stickers.length > 0) return stickers;
 
-  return {
-    fileId,
-    isAnimated: Boolean(sticker?.is_animated ?? sticker?.isAnimated),
-    isVideo: Boolean(sticker?.is_video ?? sticker?.isVideo),
-    emoji: sticker?.emoji || '🎨'
-  };
+  const fallbackFileId = info.thumbnail?.file_id || info.thumbnail?.fileId;
+  if (fallbackFileId) {
+    return [{ file_id: fallbackFileId, emoji: '🎨', is_video: false, is_animated: false }];
+  }
+
+  return [];
 };
 
-const buildPreviewStickers = (stickers: any[], fallbackThumbnail?: { file_id?: string; fileId?: string }) => {
-  if (!Array.isArray(stickers) || stickers.length === 0) {
-    const fallbackFileId = resolveFileId(undefined, fallbackThumbnail);
-    if (fallbackFileId) {
-      return [{
-        fileId: fallbackFileId,
-        url: getStickerThumbnailUrl(fallbackFileId),
-        isAnimated: false,
-        isVideo: false,
-        emoji: '🎨'
-      }];
-    }
-    return [];
+const mapToPreview = (stickers: any[]): GalleryPack['previewStickers'] => {
+  return stickers
+    .map((sticker) => {
+      const fileId = pickFileId(sticker);
+      if (!fileId) return null;
+
+      const isVideo = Boolean(sticker?.is_video ?? sticker?.isVideo);
+      const isAnimated = Boolean(sticker?.is_animated ?? sticker?.isAnimated);
+
+      return {
+        fileId,
+        url: isVideo ? getStickerImageUrl(fileId) : getStickerThumbnailUrl(fileId),
+        isAnimated,
+        isVideo,
+        emoji: sticker?.emoji || '🎨'
+      };
+    })
+    .filter((sticker): sticker is GalleryPack['previewStickers'][number] => Boolean(sticker));
+};
+
+const getRandomSubset = <T,>(items: T[], count: number): T[] => {
+  if (items.length <= count) return items;
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-
-  const getRandomStickers = (source: any[], count: number) => {
-    if (source.length <= count) return source;
-    const shuffled = [...source];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled.slice(0, count);
-  };
-
-  const randomStickers = getRandomStickers(stickers, 3);
-  const normalized = randomStickers
-    .map(sticker => normalizeSticker(sticker, fallbackThumbnail))
-    .filter((sticker): sticker is { fileId: string; isAnimated: boolean; isVideo: boolean; emoji: string } => Boolean(sticker));
-
-  if (normalized.length === 0) {
-    const fallbackFileId = resolveFileId(undefined, fallbackThumbnail);
-    if (fallbackFileId) {
-      return [{
-        fileId: fallbackFileId,
-        url: getStickerThumbnailUrl(fallbackFileId),
-        isAnimated: false,
-        isVideo: false,
-        emoji: '🎨'
-      }];
-    }
-  }
-
-  return normalized.map(sticker => ({
-    fileId: sticker.fileId,
-    url: sticker.isVideo ? getStickerImageUrl(sticker.fileId) : getStickerThumbnailUrl(sticker.fileId),
-    isAnimated: sticker.isAnimated,
-    isVideo: sticker.isVideo,
-    emoji: sticker.emoji
-  }));
+  return shuffled.slice(0, count);
 };
 
 export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]): GalleryPack[] {
   return stickerSets.map(stickerSet => {
     const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}`;
-    
+
     if (adapterCache.has(cacheKey)) {
       return adapterCache.get(cacheKey)!;
     }
-    
-    const telegramInfo = parseStickerInfo(stickerSet);
-    const previewStickers = buildPreviewStickers(telegramInfo.stickers || [], telegramInfo.thumbnail);
-    
+
+    const telegramInfo = parseTelegramInfo(stickerSet);
+    const stickers = ensureStickers(telegramInfo);
+    const previewCandidates = getRandomSubset(stickers, 3);
+    let previewStickers = mapToPreview(previewCandidates);
+
+    if (previewStickers.length === 0) {
+      // Попробуем использовать thumbnail ещё раз, если он есть
+      const fallbackFileId = telegramInfo.thumbnail?.file_id || telegramInfo.thumbnail?.fileId;
+      if (fallbackFileId) {
+        previewStickers = [{
+          fileId: fallbackFileId,
+          url: getStickerThumbnailUrl(fallbackFileId),
+          isAnimated: false,
+          isVideo: false,
+          emoji: '🎨'
+        }];
+      }
+    }
+
     const result: GalleryPack = {
       id: stickerSet.id.toString(),
       title: stickerSet.title,
       previewStickers
     };
-    
+
     adapterCache.set(cacheKey, result);
-    
     if (adapterCache.size > 100) {
       const firstKey = adapterCache.keys().next().value;
       adapterCache.delete(firstKey);
     }
-    
+
     return result;
   });
 }
