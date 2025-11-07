@@ -1,0 +1,185 @@
+warning: in the working copy of 'miniapp/src/components/StixlyTopHeader.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/miniapp/src/components/StixlyTopHeader.tsx b/miniapp/src/components/StixlyTopHeader.tsx[m
+[1mindex 786a927..5015bce 100644[m
+[1m--- a/miniapp/src/components/StixlyTopHeader.tsx[m
+[1m+++ b/miniapp/src/components/StixlyTopHeader.tsx[m
+[36m@@ -1,5 +1,6 @@[m
+ import React, { useEffect, useMemo, useState } from "react";[m
+ import { motion, AnimatePresence } from "framer-motion";[m
+[32m+[m[32mimport { useStickerStore } from "../store/useStickerStore";[m
+ [m
+ // Build asset path respecting Vite base (/miniapp/)[m
+ const BASE = (import.meta as any).env?.BASE_URL || "/miniapp/";[m
+[36m@@ -28,7 +29,7 @@[m [mtype Slide = {[m
+   text: string;[m
+ };[m
+ [m
+[31m-const RAW_SLIDES: Omit<Slide, "img"> & { img: string }[] = [[m
+[32m+[m[32mconst RAW_SLIDES: (Omit<Slide, "img"> & { img: string })[] = [[m
+   {[m
+     id: 1,[m
+     bg: "linear-gradient(180deg, #000000 0%, #111111 100%)",[m
+[36m@@ -49,6 +50,8 @@[m [mconst RAW_SLIDES: Omit<Slide, "img"> & { img: string }[] = [[m
+   },[m
+ ];[m
+ [m
+[32m+[m[32mconst RU_NUMBER_FORMATTER = new Intl.NumberFormat('ru-RU');[m
+[32m+[m
+ // ============ Генератор SVG паттернов ============[m
+ const getPatternSVG = (pattern: ProfilePattern, color: string = 'rgba(255,255,255,0.1)'): string => {[m
+   switch (pattern) {[m
+[36m@@ -218,6 +221,25 @@[m [mconst StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {[m
+ };[m
+ [m
+ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlideId }: StixlyTopHeaderProps = {}) {[m
+[32m+[m[32m  const [totalElements, stickerSetsCount] = useStickerStore((state) => [[m
+[32m+[m[32m    state.totalElements,[m
+[32m+[m[32m    state.stickerSets.length,[m
+[32m+[m[32m  ]);[m
+[32m+[m
+[32m+[m[32m  const totalStickerPacks = useMemo(() => totalElements || stickerSetsCount, [totalElements, stickerSetsCount]);[m
+[32m+[m[32m  const dailyChange = useMemo([m
+[32m+[m[32m    () => (totalStickerPacks > 0 ? Math.max(0, Math.round(totalStickerPacks * 0.02)) : 0),[m
+[32m+[m[32m    [totalStickerPacks][m
+[32m+[m[32m  );[m
+[32m+[m[32m  const formattedTotalPacks = useMemo([m
+[32m+[m[32m    () => RU_NUMBER_FORMATTER.format(totalStickerPacks),[m
+[32m+[m[32m    [totalStickerPacks][m
+[32m+[m[32m  );[m
+[32m+[m[32m  const formattedDailyChange = useMemo([m
+[32m+[m[32m    () => `+${RU_NUMBER_FORMATTER.format(dailyChange)}`,[m
+[32m+[m[32m    [dailyChange][m
+[32m+[m[32m  );[m
+[32m+[m
+   const initialIndex = useMemo(() => {[m
+     if (typeof fixedSlideId === 'number') {[m
+       const rawIndex = RAW_SLIDES.findIndex((slide) => slide.id === fixedSlideId);[m
+[36m@@ -237,6 +259,7 @@[m [mexport default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide[m
+   const isProfileMode = profileMode?.enabled === true;[m
+   const activeProfileMode = isProfileMode ? (profileMode as ProfileModeConfig) : undefined;[m
+   const isStaticSlide = !isProfileMode && typeof fixedSlideId === 'number';[m
+[32m+[m[32m  const isDashboardMode = !isProfileMode && fixedSlideId === 2;[m
+ [m
+   useEffect(() => {[m
+     if (isStaticSlide) {[m
+[36m@@ -356,16 +379,113 @@[m [mexport default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide[m
+               inset: 0,[m
+               display: "flex",[m
+               alignItems: "center",[m
+[31m-              justifyContent: isMascot ? "space-between" : "center",[m
+[31m-              flexDirection: isMascot ? "row" : "column",[m
+[32m+[m[32m              justifyContent: isDashboardMode || isMascot ? "space-between" : "center",[m
+[32m+[m[32m              flexDirection: isDashboardMode || isMascot ? "row" : "column",[m
+               color: "#fff",[m
+[31m-              textAlign: "center",[m
+[31m-              paddingLeft: "8px", // минимальные отступы по золотым пропорциям[m
+[31m-              paddingRight: "8px",[m
+[31m-              paddingTop: "12px", // оптимизировано для меньшей высоты[m
+[32m+[m[32m              textAlign: isDashboardMode ? "left" : "center",[m
+[32m+[m[32m              paddingLeft: isDashboardMode ? "16px" : "8px", // минимальные отступы по золотым пропорциям[m
+[32m+[m[32m              paddingRight: isDashboardMode ? "16px" : "8px",[m
+[32m+[m[32m              paddingTop: isDashboardMode ? "10px" : "12px", // оптимизировано для меньшей высоты[m
+             }}[m
+           >[m
+[31m-            {isMascot ? ([m
+[32m+[m[32m            {isDashboardMode ? ([m
+[32m+[m[32m              <>[m
+[32m+[m[32m                <img[m
+[32m+[m[32m                  src={current.img}[m
+[32m+[m[32m                  alt="Stixly"[m
+[32m+[m[32m                  style={{[m
+[32m+[m[32m                    width: "clamp(80px, 22vw, 120px)",[m
+[32m+[m[32m                    height: "auto",[m
+[32m+[m[32m                    flexShrink: 0,[m
+[32m+[m[32m                    filter: "drop-shadow(0 0 12px rgba(255,255,255,0.28))",[m
+[32m+[m[32m                    transform: "translateY(6px)",[m
+[32m+[m[32m                  }}[m
+[32m+[m[32m                  loading="eager"[m
+[32m+[m[32m                  decoding="async"[m
+[32m+[m[32m                />[m
+[32m+[m[32m                <div[m
+[32m+[m[32m                  style={{[m
+[32m+[m[32m                    flex: "1 1 auto",[m
+[32m+[m[32m                    display: "flex",[m
+[32m+[m[32m                    flexDirection: "column",[m
+[32m+[m[32m                    alignItems: "flex-end",[m
+[32m+[m[32m                    justifyContent: "center",[m
+[32m+[m[32m                    gap: "6px",[m
+[32m+[m[32m                    textAlign: "right",[m
+[32m+[m[32m                  }}[m
+[32m+[m[32m                >[m
+[32m+[m[32m                  <span[m
+[32m+[m[32m                    style={{[m
+[32m+[m[32m                      fontSize: "clamp(18px, 5vw, 26px)",[m
+[32m+[m[32m                      fontWeight: 800,[m
+[32m+[m[32m                      letterSpacing: "2px",[m
+[32m+[m[32m                      color: "rgba(255,255,255,0.96)",[m
+[32m+[m[32m                      textTransform: "uppercase",[m
+[32m+[m[32m                      textShadow: "0 4px 18px rgba(0,0,0,0.28)",[m
+[32m+[m[32m                    }}[m
+[32m+[m[32m                  >[m
+[32m+[m[32m                    DASHBOARD[m
+[32m+[m[32m                  </span>[m
+[32m+[m[32m                  <div[m
+[32m+[m[32m                    style={{[m
+[32m+[m[32m                      display: "flex",[m
+[32m+[m[32m                      flexDirection: "column",[m
+[32m+[m[32m                      alignItems: "flex-end",[m
+[32m+[m[32m                      gap: "4px",[m
+[32m+[m[32m                      color: "rgba(255,255,255,0.88)",[m
+[32m+[m[32m                    }}[m
+[32m+[m[32m                  >[m
+[32m+[m[32m                    <div[m
+[32m+[m[32m                      style={{[m
+[32m+[m[32m                        display: "flex",[m
+[32m+[m[32m                        alignItems: "baseline",[m
+[32m+[m[32m                        gap: "8px",[m
+[32m+[m[32m                        flexWrap: "wrap",[m
+[32m+[m[32m                        justifyContent: "flex-end",[m
+[32m+[m[32m                      }}[m
+[32m+[m[32m                    >[m
+[32m+[m[32m                      <span[m
+[32m+[m[32m                        style={{[m
+[32m+[m[32m                          fontSize: "clamp(22px, 6vw, 32px)",[m
+[32m+[m[32m                          fontWeight: 700,[m
+[32m+[m[32m                          textShadow: "0 2px 12px rgba(0,0,0,0.3)",[m
+[32m+[m[32m                        }}[m
+[32m+[m[32m                      >[m
+[32m+[m[32m                        {formattedTotalPacks}[m
+[32m+[m[32m                      </span>[m
+[32m+[m[32m                      <span[m
+[32m+[m[32m                        style={{[m
+[32m+[m[32m                          fontSize: "clamp(12px, 3.2vw, 16px)",[m
+[32m+[m[32m                          fontWeight: 500,[m
+[32m+[m[32m                          textTransform: "uppercase",[m
+[32m+[m[32m                          letterSpacing: "1.4px",[m
+[32m+[m[32m                          color: "rgba(255,255,255,0.72)",[m
+[32m+[m[32m                        }}[m
+[32m+[m[32m                      >[m
+[32m+[m[32m                        наборов[m
+[32m+[m[32m                      </span>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                    <div[m
+[32m+[m[32m                      style={{[m
+[32m+[m[32m                        display: "inline-flex",[m
+[32m+[m[32m                        alignItems: "center",[m
+[32m+[m[32m                        gap: "6px",[m
+[32m+[m[32m                        padding: "4px 10px",[m
+[32m+[m[32m                        borderRadius: "999px",[m
+[32m+[m[32m                        background: "rgba(255,255,255,0.16)",[m
+[32m+[m[32m                        boxShadow: "0 4px 20px rgba(0,0,0,0.18)",[m
+[32m+[m[32m                        fontSize: "clamp(11px, 2.8vw, 14px)",[m
+[32m+[m[32m                        fontWeight: 600,[m
+[32m+[m[32m                        letterSpacing: "0.6px",[m
+[32m+[m[32m                      }}[m
+[32m+[m[32m                    >[m
+[32m+[m[32m                      <span style={{ fontSize: "1.1em" }}>📈</span>[m
+[32m+[m[32m                      <span>{formattedDailyChange} за день</span>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </>[m
+[32m+[m[32m            ) : isMascot ? ([m
+               <>[m
+                 <div[m
+                   style={{[m

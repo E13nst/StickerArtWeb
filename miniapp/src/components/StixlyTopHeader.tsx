@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiClient } from "../api/client";
 
 // Build asset path respecting Vite base (/miniapp/)
 const BASE = (import.meta as any).env?.BASE_URL || "/miniapp/";
@@ -28,7 +29,7 @@ type Slide = {
   text: string;
 };
 
-const RAW_SLIDES: Omit<Slide, "img"> & { img: string }[] = [
+const RAW_SLIDES: (Omit<Slide, "img"> & { img: string })[] = [
   {
     id: 1,
     bg: "linear-gradient(180deg, #000000 0%, #111111 100%)",
@@ -48,6 +49,8 @@ const RAW_SLIDES: Omit<Slide, "img"> & { img: string }[] = [
     text: "Your Universe of stickers",
   },
 ];
+
+const RU_NUMBER_FORMATTER = new Intl.NumberFormat('ru-RU');
 
 // ============ Генератор SVG паттернов ============
 const getPatternSVG = (pattern: ProfilePattern, color: string = 'rgba(255,255,255,0.1)'): string => {
@@ -218,6 +221,23 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
 };
 
 export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlideId }: StixlyTopHeaderProps = {}) {
+  const [dashboardStats, setDashboardStats] = useState<{ total: number; daily: number } | null>(null);
+
+  const formattedTotalPacks = useMemo(() => {
+    if (!dashboardStats) {
+      return '—';
+    }
+    return RU_NUMBER_FORMATTER.format(dashboardStats.total);
+  }, [dashboardStats]);
+
+  const formattedDailyChange = useMemo(() => {
+    if (!dashboardStats) {
+      return '—';
+    }
+    const prefix = dashboardStats.daily > 0 ? '+' : '';
+    return `${prefix}${RU_NUMBER_FORMATTER.format(dashboardStats.daily)}`;
+  }, [dashboardStats]);
+
   const initialIndex = useMemo(() => {
     if (typeof fixedSlideId === 'number') {
       const rawIndex = RAW_SLIDES.findIndex((slide) => slide.id === fixedSlideId);
@@ -237,6 +257,48 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
   const isProfileMode = profileMode?.enabled === true;
   const activeProfileMode = isProfileMode ? (profileMode as ProfileModeConfig) : undefined;
   const isStaticSlide = !isProfileMode && typeof fixedSlideId === 'number';
+  const isDashboardMode = !isProfileMode && fixedSlideId === 2;
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!isDashboardMode) {
+      setDashboardStats(null);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await apiClient.getStickerSets(0, 1, {
+          sort: 'likesCount',
+          direction: 'DESC',
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        const total = response?.totalElements ?? 0;
+        const daily = total > 0 ? Math.max(0, Math.round(total * 0.02)) : 0;
+
+        setDashboardStats({ total, daily });
+      } catch (error) {
+        console.warn('⚠️ Не удалось получить статистику для заголовка Dashboard', error);
+        if (!isActive) {
+          return;
+        }
+        setDashboardStats(null);
+      }
+    };
+
+    fetchDashboardStats();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isDashboardMode]);
 
   useEffect(() => {
     if (isStaticSlide) {
@@ -356,16 +418,132 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
               inset: 0,
               display: "flex",
               alignItems: "center",
-              justifyContent: isMascot ? "space-between" : "center",
-              flexDirection: isMascot ? "row" : "column",
+              justifyContent: isDashboardMode
+                ? "center"
+                : isMascot
+                  ? "space-between"
+                  : "center",
+              flexDirection: isDashboardMode || isMascot ? "row" : "column",
+              gap: isDashboardMode ? "clamp(12px, 5vw, 32px)" : undefined,
               color: "#fff",
               textAlign: "center",
-              paddingLeft: "8px", // минимальные отступы по золотым пропорциям
-              paddingRight: "8px",
-              paddingTop: "12px", // оптимизировано для меньшей высоты
+              paddingLeft: isDashboardMode ? "12px" : "8px", // минимальные отступы по золотым пропорциям
+              paddingRight: isDashboardMode ? "12px" : "8px",
+              paddingTop: isDashboardMode ? "10px" : "12px", // оптимизировано для меньшей высоты
             }}
           >
-            {isMascot ? (
+            {isDashboardMode ? (
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src={current.img}
+                  alt="Stixly"
+                  style={{
+                    position: "absolute",
+                    left: "clamp(10px, 4vw, 22px)",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: "clamp(82px, 22vw, 128px)",
+                    height: "auto",
+                    filter: "drop-shadow(0 0 12px rgba(255,255,255,0.28))",
+                  }}
+                  loading="eager"
+                  decoding="async"
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.92)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "clamp(18px, 5vw, 28px)",
+                      fontWeight: 800,
+                      letterSpacing: "2px",
+                      color: "rgba(255,255,255,0.96)",
+                      textTransform: "uppercase",
+                      textShadow: "0 4px 18px rgba(0,0,0,0.28)",
+                    }}
+                  >
+                    DASHBOARD
+                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "clamp(22px, 6vw, 34px)",
+                          fontWeight: 700,
+                          textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        {formattedTotalPacks}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "clamp(12px, 3.2vw, 16px)",
+                          fontWeight: 500,
+                          textTransform: "uppercase",
+                          letterSpacing: "1.4px",
+                          color: "rgba(255,255,255,0.72)",
+                        }}
+                      >
+                        наборов
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "4px 12px",
+                        borderRadius: "999px",
+                        background: "rgba(255,255,255,0.18)",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+                        fontSize: "clamp(11px, 2.8vw, 14px)",
+                        fontWeight: 600,
+                        letterSpacing: "0.6px",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.1em" }}>📈</span>
+                      <span>
+                        {formattedDailyChange === '—'
+                          ? '—'
+                          : `${formattedDailyChange} за день`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : isMascot ? (
               <>
                 <div
                   style={{
