@@ -14,6 +14,7 @@ interface Pack {
     fileId: string;
     url: string;
     isAnimated: boolean;
+    isVideo: boolean;
     emoji: string;
   }>;
 }
@@ -40,6 +41,12 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     if (pack.previewStickers.length > 0) {
       const firstSticker = pack.previewStickers[0];
       const priority = isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE;
+
+      if (firstSticker.isVideo) {
+        // Для видео пропускаем прелоадер изображений, сразу отмечаем готовность
+        setIsFirstStickerReady(true);
+        return;
+      }
       
       // Загружаем изображение и JSON если анимация
       imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority)
@@ -66,6 +73,10 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     if (pack.previewStickers.length > 0 && isNear) {
       for (let i = 1; i < pack.previewStickers.length; i++) {
         const sticker = pack.previewStickers[i];
+
+        if (sticker.isVideo) {
+          continue;
+        }
         imageLoader.loadImage(sticker.fileId, sticker.url, LoadPriority.TIER_4_BACKGROUND)
           .then(() => {
             // Prefetch JSON для анимаций
@@ -153,20 +164,27 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           
           // useStickerRotation гарантирует готовность перед переключением
           // Поэтому показываем стикер сразу по currentStickerIndex
+          const baseStyles: React.CSSProperties = {
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            opacity: 1,
+            willChange: 'opacity',
+            transition: 'opacity 0.2s ease-in-out',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            boxSizing: 'border-box'
+          };
+
           return (
             <div
               key={`${pack.id}-${activeSticker.fileId}-${currentStickerIndex}`}
               data-testid="sticker-preview"
-              style={{
-                width: '100%',
-                height: '100%',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                opacity: 1,
-                willChange: 'opacity',
-                transition: 'opacity 0.2s ease-in-out'
-              }}
+              style={baseStyles}
             >
               {activeSticker.isAnimated ? (
                 <AnimatedSticker
@@ -176,16 +194,20 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                   className="pack-card-animated-sticker"
                   hidePlaceholder={true}
                 />
+              ) : activeSticker.isVideo ? (
+                <video
+                  src={activeSticker.url}
+                  className="pack-card-video"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
               ) : (
                 <img
                   src={activeSticker.url}
                   alt={activeSticker.emoji}
                   className="pack-card-image"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
                 />
               )}
             </div>

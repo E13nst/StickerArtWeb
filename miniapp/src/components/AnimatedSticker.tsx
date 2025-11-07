@@ -210,15 +210,26 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   if (error || !animationData) {
     // Fallback - пробуем показать как обычное изображение
     return (
-      <div ref={containerRef}>
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
         <img
           src={imageUrl}
           alt={emoji || ''}
           className={className}
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
+            maxWidth: '100%',
+            maxHeight: '100%',
+            width: 'auto',
+            height: 'auto',
+            objectFit: 'contain'
           }}
           onLoad={() => {
             if (!readyCalledRef.current) {
@@ -246,7 +257,16 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   }
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       <Lottie
         lottieRef={animationRef}
         animationData={animationData}
@@ -256,6 +276,8 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         style={{
           width: '100%',
           height: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%'
         }}
       />
     </div>

@@ -1,5 +1,5 @@
 import { StickerSetResponse } from '../types/sticker';
-import { getStickerThumbnailUrl } from './stickerUtils';
+import { getStickerImageUrl, getStickerThumbnailUrl } from './stickerUtils';
 
 export interface GalleryPack {
   id: string;
@@ -8,6 +8,7 @@ export interface GalleryPack {
     fileId: string;
     url: string;
     isAnimated: boolean;
+    isVideo: boolean;
     emoji: string;
   }>;
 }
@@ -46,8 +47,9 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       title: stickerSet.title,
       previewStickers: randomStickers.map(sticker => ({
         fileId: sticker.file_id,
-        url: getStickerThumbnailUrl(sticker.file_id),
+        url: sticker.is_video ? getStickerImageUrl(sticker.file_id) : getStickerThumbnailUrl(sticker.file_id),
         isAnimated: sticker.is_animated || false,
+        isVideo: sticker.is_video || false,
         emoji: sticker.emoji || '🎨'
       }))
     };

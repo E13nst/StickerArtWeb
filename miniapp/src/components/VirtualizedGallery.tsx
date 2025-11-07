@@ -8,6 +8,7 @@ interface Pack {
     fileId: string;
     url: string;
     isAnimated: boolean;
+    isVideo: boolean;
     emoji: string;
   }>;
 }
