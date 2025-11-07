@@ -1,5 +1,5 @@
 import { StickerSetResponse } from '../types/sticker';
-import { getStickerImageUrl, getStickerThumbnailUrl } from './stickerUtils';
+import { getStickerImageUrl } from './stickerUtils';
 
 export interface GalleryPack {
   id: string;
@@ -74,7 +74,7 @@ const mapToPreview = (stickers: any[]): GalleryPack['previewStickers'] => {
 
       return {
         fileId,
-        url: isVideo ? getStickerImageUrl(fileId) : getStickerThumbnailUrl(fileId),
+        url: getStickerImageUrl(fileId),
         isAnimated,
         isVideo,
         emoji: sticker?.emoji || '🎨'
@@ -117,7 +117,7 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       if (fallbackFileId) {
         previewStickers = [{
           fileId: fallbackFileId,
-          url: getStickerThumbnailUrl(fallbackFileId),
+          url: getStickerImageUrl(fallbackFileId),
           isAnimated: false,
           isVideo: false,
           emoji: '🎨'

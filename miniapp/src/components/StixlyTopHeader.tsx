@@ -146,76 +146,70 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
       localStorage.setItem('stixly_tg_theme', JSON.stringify({ scheme, params }));
     } catch {}
   };
+  const topColor = isDark ? '#ffffff' : '#111111';
+  const bottomColor = isDark ? 'var(--tg-theme-bg-color, #111111)' : '#ffffff';
+  const hoverTopColor = isDark ? '#ffffff' : '#1a1a1a';
+  const hoverBottomColor = isDark ? 'var(--tg-theme-bg-color, #111111)' : '#f4f4f4';
 
-  // Определяем цвет границы в зависимости от фона
-  const getBorderColor = () => {
-    if (currentBg.includes('#000000') || currentBg.includes('#111111')) {
-      // Чёрный фон - белая граница
-      return 'rgba(255, 255, 255, 0.8)';
-    } else if (currentBg.includes('#FF6700') || currentBg.includes('#FF944D')) {
-      // Оранжевый фон - белая граница
-      return 'rgba(255, 255, 255, 0.8)';
-    } else if (currentBg.includes('#3B1D73') || currentBg.includes('#2CD9FF')) {
-      // Фиолетово-голубой фон - белая граница
-      return 'rgba(255, 255, 255, 0.8)';
-    }
-    return 'rgba(255, 255, 255, 0.8)';
-  };
-
-  const borderColor = getBorderColor();
+  const baseGradient = `linear-gradient(135deg, ${topColor} 0%, ${topColor} 50%, ${bottomColor} 50%, ${bottomColor} 100%)`;
+  const hoverGradient = `linear-gradient(135deg, ${hoverTopColor} 0%, ${hoverTopColor} 50%, ${hoverBottomColor} 50%, ${hoverBottomColor} 100%)`;
 
   return (
     <button
       onClick={handleToggle}
       style={{
         position: 'absolute',
-        bottom: 'calc(100vh * 0.015)', // ~1.5% от высоты viewport
-        right: 'calc(100vw * 0.03)', // ~3% от ширины viewport
+        bottom: '-1px',
+        right: '0px',
         width: 'calc(100vw * 0.084)', // ~8.4% от ширины viewport
         height: 'calc(100vw * 0.084)',
         minWidth: '28px',
         minHeight: '28px',
         maxWidth: '40px',
         maxHeight: '40px',
-        borderRadius: '50%',
-        border: `1px solid ${borderColor}`,
-        background: 'transparent',
-        color: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 0,
+        borderTopLeftRadius: '10px',
+        borderBottomRightRadius: '10px',
+        border: 'none',
+        background: baseGradient,
+        color: '#111111',
         fontSize: 'calc(100vw * 0.042)', // ~4.2% от ширины viewport
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
         backdropFilter: 'blur(4px)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+        boxShadow: 'none',
         zIndex: 10,
         padding: 0,
         margin: 0,
         outline: 'none',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 1)';
-        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+        e.currentTarget.style.background = hoverGradient;
         e.currentTarget.style.transform = 'scale(1.05)';
-        e.currentTarget.style.borderWidth = '1px';
+        e.currentTarget.style.boxShadow = 'none';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = borderColor;
-        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.background = baseGradient;
         e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.borderWidth = '1px';
+        e.currentTarget.style.boxShadow = 'none';
       }}
       aria-label={isDark ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
     >
       <span style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
         width: '100%',
         height: '100%',
+        paddingTop: '5px',
+        paddingLeft: '2px',
         lineHeight: 1,
-        transform: 'translateY(-1px)' // Небольшая корректировка для идеального центрирования
+        transform: 'translateY(-1px)',
+        fontSize: '0.8em'
       }}>
         {isDark ? '☀️' : '🌙'}
       </span>
@@ -241,6 +235,7 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
 
   // Режим работы
   const isProfileMode = profileMode?.enabled === true;
+  const activeProfileMode = isProfileMode ? (profileMode as ProfileModeConfig) : undefined;
   const isStaticSlide = !isProfileMode && typeof fixedSlideId === 'number';
 
   useEffect(() => {
@@ -279,50 +274,45 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
   const current = slides[index];
   const isMascot = current.img.includes("mascot");
 
-  // ============ Профильный режим ============
-  if (isProfileMode) {
-    const patternUrl = getPatternSVG(profileMode.pattern);
-    
-    return (
-      <div
-        className="stixly-top-header stixly-top-header--profile"
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "calc(100vh * 0.382)", // 38.2% от высоты viewport (золотая пропорция)
-          minHeight: "240px",
-          maxHeight: "320px",
-          zIndex: 1,
-          overflow: "visible",
-          borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
-          borderBottomRightRadius: "calc(100vw * 0.038)",
-          background: profileMode.backgroundColor,
-          backgroundImage: patternUrl ? `url(${patternUrl})` : undefined,
-          backgroundRepeat: 'repeat',
-        }}
-      >
-        {/* Контент профиля */}
-        {profileMode.content && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "calc(100vw * 0.05)", // ~5% от ширины viewport
-            }}
-          >
-            {profileMode.content}
-          </div>
-        )}
-      </div>
-    );
-  }
+  const profilePatternUrl = activeProfileMode
+    ? getPatternSVG(activeProfileMode.pattern)
+    : undefined;
 
-  // ============ Обычный режим (карусель) ============
-
-  return (
+  const headerContent = isProfileMode && activeProfileMode ? (
+    <div
+      className="stixly-top-header stixly-top-header--profile"
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "calc(100vh * 0.382)", // 38.2% от высоты viewport (золотая пропорция)
+        minHeight: "240px",
+        maxHeight: "320px",
+        zIndex: 1,
+        overflow: "visible",
+        borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
+        borderBottomRightRadius: "calc(100vw * 0.038)",
+        background: activeProfileMode.backgroundColor,
+        backgroundImage: profilePatternUrl ? `url(${profilePatternUrl})` : undefined,
+        backgroundRepeat: 'repeat',
+      }}
+    >
+      {/* Контент профиля */}
+      {activeProfileMode.content && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "calc(100vw * 0.05)", // ~5% от ширины viewport
+          }}
+        >
+          {activeProfileMode.content}
+        </div>
+      )}
+    </div>
+  ) : (
     <div
       className="stixly-top-header"
       style={{
@@ -453,9 +443,17 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
           </motion.div>
         </AnimatePresence>
       </div>
+    </div>
+  );
 
-      {/* Кнопка переключения тем */}
-      <StixlyThemeToggle currentBg={current.bg} />
+  const currentBgColor = activeProfileMode
+    ? activeProfileMode.backgroundColor
+    : current.bg;
+
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      {headerContent}
+      <StixlyThemeToggle currentBg={currentBgColor} />
     </div>
   );
 }
