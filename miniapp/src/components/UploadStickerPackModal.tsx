@@ -350,21 +350,36 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   );
 
   const renderPreview = () => {
+    const frameSx = {
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+      borderRadius: '12px',
+      position: 'relative',
+      overflow: 'hidden',
+      px: { xs: 2, sm: 3 },
+      py: { xs: 2, sm: 3 }
+    } as const;
+
+    const mediaWrapperSx = {
+      width: '100%',
+      height: '100%',
+      maxWidth: { xs: '180px', sm: '220px' },
+      maxHeight: { xs: '180px', sm: '220px' },
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    } as const;
+
     if (!previewSticker) {
       return (
-        <Box
-          sx={{
-            width: '100%',
-            height: '200px',
-            borderRadius: '12px',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--tg-theme-hint-color)'
-          }}
-        >
-          Превью недоступно
+        <Box sx={frameSx}>
+          <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+            Превью недоступно
+          </Typography>
         </Box>
       );
     }
@@ -373,34 +388,46 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
     if (previewSticker.is_animated) {
       return (
-        <AnimatedSticker
-          fileId={previewSticker.file_id}
-          imageUrl={imageUrl}
-          emoji={previewSticker.emoji}
-          className="sticker-preview"
-        />
+        <Box sx={frameSx}>
+          <Box sx={mediaWrapperSx}>
+            <AnimatedSticker
+              fileId={previewSticker.file_id}
+              imageUrl={imageUrl}
+              emoji={previewSticker.emoji}
+              className="pack-card-animated-sticker"
+            />
+          </Box>
+        </Box>
       );
     }
 
     if (previewSticker.is_video) {
       return (
-        <video
-          src={imageUrl}
-          style={{ width: '100%', height: '100%', borderRadius: '12px' }}
-          autoPlay
-          loop
-          playsInline
-          muted
-        />
+        <Box sx={frameSx}>
+          <Box sx={mediaWrapperSx}>
+            <video
+              src={imageUrl}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }}
+              autoPlay
+              loop
+              playsInline
+              muted
+            />
+          </Box>
+        </Box>
       );
     }
 
     return (
-      <img
-        src={imageUrl}
-        alt={previewSticker.emoji || 'Sticker preview'}
-        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '12px' }}
-      />
+      <Box sx={frameSx}>
+        <Box sx={mediaWrapperSx}>
+          <img
+            src={imageUrl}
+            alt={previewSticker.emoji || 'Sticker preview'}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        </Box>
+      </Box>
     );
   };
 
@@ -411,7 +438,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       </Typography>
 
       <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', mb: 2 }}>
-        Вы получите +10 ART после публикации набора. Проверьте данные, выберите категории и подтвердите. После сохранения окно закроется автоматически.
+        Вы получите +10 ART после публикации набора
       </Typography>
 
       <Box
@@ -424,7 +451,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', p: 2, gap: 2 }}>
-          <Box sx={{ width: '100%', height: 200, backgroundColor: 'var(--tg-theme-secondary-bg-color)', borderRadius: '12px', overflow: 'hidden' }}>
+          <Box sx={{ width: '100%', height: 240, borderRadius: '12px', overflow: 'hidden' }}>
             {renderPreview()}
           </Box>
           <Box>
@@ -540,12 +567,13 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       <Box
         sx={{
           width: '90%',
-          maxWidth: '420px',
-          maxHeight: '90vh',
+          maxWidth: '440px',
+          maxHeight: 'calc(100vh - 32px)',
           overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
           backgroundColor: 'var(--tg-theme-secondary-bg-color, #ffffff)',
           borderRadius: '16px',
-          padding: '24px',
+          padding: { xs: '20px 18px', sm: '24px' },
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
           display: 'flex',
           flexDirection: 'column',
