@@ -337,16 +337,15 @@ export const DashboardPage: React.FC = () => {
           <Box
             sx={{
               position: 'absolute',
-              inset: '-56px -140px',
+              inset: '-80px -220px',
               pointerEvents: 'none',
               zIndex: 0,
-              opacity: 0.62,
-              filter: 'blur(56px)',
+              opacity: 0.7,
               background:
-                'linear-gradient(180deg, rgba(8,11,18,0.82) 0%, rgba(8,11,18,0.52) 36%, rgba(8,11,18,0) 100%) ,\
-                 radial-gradient(circle at 18% 52%, rgba(79,70,229,0.22) 0%, rgba(16,18,26,0) 48%) ,\
-                 radial-gradient(circle at 50% 36%, rgba(236,72,153,0.22) 0%, rgba(16,18,26,0) 52%) ,\
-                 radial-gradient(circle at 80% 52%, rgba(16,185,129,0.24) 0%, rgba(16,18,26,0) 50%)',
+                'radial-gradient(circle at 15% 50%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 52%) ,\
+                 radial-gradient(circle at 50% 36%, rgba(236,72,153,0.28) 0%, rgba(16,18,26,0) 60%) ,\
+                 radial-gradient(circle at 78% 52%, rgba(16,185,129,0.32) 0%, rgba(16,18,26,0) 56%)',
+              filter: 'blur(58px)',
             }}
           />
           <Box
@@ -356,8 +355,8 @@ export const DashboardPage: React.FC = () => {
               flexDirection: 'row',
               flexWrap: 'nowrap',
               gap: 1.25,
-              overflowX: 'auto',
-              overflowY: 'hidden',
+              overflowX: 'visible',
+              overflowY: 'visible',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               '&::-webkit-scrollbar': {
