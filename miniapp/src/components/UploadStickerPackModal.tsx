@@ -45,6 +45,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isApplyingCategories, setIsApplyingCategories] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
@@ -96,10 +97,21 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
     try {
       const payload = { name: link.trim() };
+      setIsPreviewLoading(true);
       const stickerSet = await apiClient.createStickerSet(payload);
-      setCreatedStickerSet(stickerSet);
 
-      const existingCategoryKeys = (stickerSet.categories || [])
+      let hydratedStickerSet = stickerSet;
+      try {
+        if (!stickerSet.telegramStickerSetInfo?.stickers?.length && stickerSet.id) {
+          hydratedStickerSet = await apiClient.getStickerSet(stickerSet.id);
+        }
+      } catch (fetchError) {
+        console.warn('⚠️ Не удалось загрузить полные данные стикерсета сразу после создания', fetchError);
+      }
+
+      setCreatedStickerSet(hydratedStickerSet);
+
+      const existingCategoryKeys = (hydratedStickerSet.categories || [])
         .map((category) => category?.key)
         .filter((key): key is string => Boolean(key));
       setSelectedCategories(existingCategoryKeys);
@@ -112,6 +124,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         'Не удалось создать стикерсет. Проверьте ссылку и попробуйте снова.';
       setLinkError(message);
     } finally {
+      setIsPreviewLoading(false);
       setIsSubmittingLink(false);
     }
   };
@@ -402,6 +415,14 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       alignItems: 'center',
       justifyContent: 'center'
     } as const;
+
+    if (isPreviewLoading) {
+      return (
+        <Box sx={frameSx}>
+          <CircularProgress size={28} sx={{ color: 'var(--tg-theme-hint-color)' }} />
+        </Box>
+      );
+    }
 
     if (!activePreviewSticker) {
       return (
