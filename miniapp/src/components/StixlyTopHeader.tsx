@@ -51,6 +51,10 @@ const RAW_SLIDES: (Omit<Slide, "img"> & { img: string })[] = [
 ];
 
 const RU_NUMBER_FORMATTER = new Intl.NumberFormat('ru-RU');
+const RU_NUMBER_FORMATTER_WITH_DECIMALS = new Intl.NumberFormat('ru-RU', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 
 // ============ Генератор SVG паттернов ============
 const getPatternSVG = (pattern: ProfilePattern, color: string = 'rgba(255,255,255,0.1)'): string => {
@@ -220,22 +224,43 @@ const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
   );
 };
 
+type DashboardStats = {
+  totalSets: number;
+  setsDailyDelta: number;
+  totalLikes: number;
+  artTotal: number;
+};
+
 export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlideId }: StixlyTopHeaderProps = {}) {
-  const [dashboardStats, setDashboardStats] = useState<{ total: number; daily: number } | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
   const formattedTotalPacks = useMemo(() => {
     if (!dashboardStats) {
       return '—';
     }
-    return RU_NUMBER_FORMATTER.format(dashboardStats.total);
+    return RU_NUMBER_FORMATTER.format(dashboardStats.totalSets);
   }, [dashboardStats]);
 
   const formattedDailyChange = useMemo(() => {
     if (!dashboardStats) {
       return '—';
     }
-    const prefix = dashboardStats.daily > 0 ? '+' : '';
-    return `${prefix}${RU_NUMBER_FORMATTER.format(dashboardStats.daily)}`;
+    const prefix = dashboardStats.setsDailyDelta > 0 ? '+' : '';
+    return `${prefix}${RU_NUMBER_FORMATTER.format(dashboardStats.setsDailyDelta)}`;
+  }, [dashboardStats]);
+
+  const formattedTotalLikes = useMemo(() => {
+    if (!dashboardStats) {
+      return '—';
+    }
+    return RU_NUMBER_FORMATTER.format(dashboardStats.totalLikes);
+  }, [dashboardStats]);
+
+  const formattedArtTotal = useMemo(() => {
+    if (!dashboardStats) {
+      return '—';
+    }
+    return '—';
   }, [dashboardStats]);
 
   const initialIndex = useMemo(() => {
@@ -271,7 +296,7 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
 
     const fetchDashboardStats = async () => {
       try {
-        const response = await apiClient.getStickerSets(0, 1, {
+        const response = await apiClient.getStickerSets(0, 50, {
           sort: 'likesCount',
           direction: 'DESC',
         });
@@ -280,10 +305,20 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
           return;
         }
 
-        const total = response?.totalElements ?? 0;
-        const daily = total > 0 ? Math.max(0, Math.round(total * 0.02)) : 0;
+        const totalSets = response?.totalElements ?? 0;
+        const setsDailyDelta = totalSets > 0 ? Math.max(0, Math.round(totalSets * 0.02)) : 0;
+        const totalLikes = (response?.content ?? []).reduce((sum, set) => {
+          const likesCount = set.likesCount ?? set.likes ?? 0;
+          return sum + likesCount;
+        }, 0);
+        const artTotal = totalSets > 0 ? totalSets * 0.42 : 0; // временная эвристика
 
-        setDashboardStats({ total, daily });
+        setDashboardStats({
+          totalSets,
+          setsDailyDelta,
+          totalLikes,
+          artTotal,
+        });
       } catch (error) {
         console.warn('⚠️ Не удалось получить статистику для заголовка Dashboard', error);
         if (!isActive) {
@@ -435,38 +470,60 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
             {isDashboardMode ? (
               <div
                 style={{
-                  position: "relative",
                   width: "100%",
-                  height: "100%",
+                  maxWidth: "clamp(320px, 82%, 640px)",
+                  margin: "0 auto",
                   display: "flex",
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
+                  justifyContent: "space-between",
+                  gap: "clamp(16px, 5vw, 38px)",
+                  color: "rgba(255,255,255,0.92)",
+                  textAlign: "center",
+                  paddingLeft: "clamp(6px, 2vw, 14px)",
+                  paddingRight: "clamp(6px, 2vw, 14px)",
                 }}
               >
-                <img
-                  src={current.img}
-                  alt="Stixly"
-                  style={{
-                    position: "absolute",
-                    left: "clamp(10px, 4vw, 22px)",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: "clamp(82px, 22vw, 128px)",
-                    height: "auto",
-                    filter: "drop-shadow(0 0 12px rgba(255,255,255,0.28))",
-                  }}
-                  loading="eager"
-                  decoding="async"
-                />
                 <div
                   style={{
+                    flex: "0 1 21%",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "8px",
+                    gap: "6px",
                     textAlign: "center",
-                    color: "rgba(255,255,255,0.92)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "clamp(13px, 3.4vw, 16px)",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "1.2px",
+                      color: "rgba(255,255,255,0.7)",
+                    }}
+                  >
+                    Likes
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "clamp(18px, 5vw, 26px)",
+                      fontWeight: 700,
+                      textShadow: "0 2px 12px rgba(0,0,0,0.35)",
+                    }}
+                  >
+                    {formattedTotalLikes}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    flex: "0 1 34%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "10px",
                   }}
                 >
                   <span
@@ -516,7 +573,7 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
                           color: "rgba(255,255,255,0.72)",
                         }}
                       >
-                        наборов
+                        sets
                       </span>
                     </div>
                     <div
@@ -534,13 +591,41 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
                       }}
                     >
                       <span style={{ fontSize: "1.1em" }}>📈</span>
-                      <span>
-                        {formattedDailyChange === '—'
-                          ? '—'
-                          : `${formattedDailyChange} за день`}
-                      </span>
+                      <span>{formattedDailyChange}</span>
                     </div>
                   </div>
+                </div>
+                <div
+                  style={{
+                    flex: "0 1 21%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "clamp(13px, 3.4vw, 16px)",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "1.2px",
+                      color: "rgba(255,255,255,0.7)",
+                    }}
+                  >
+                    ART
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "clamp(18px, 5vw, 26px)",
+                      fontWeight: 700,
+                      textShadow: "0 2px 12px rgba(0,0,0,0.35)",
+                    }}
+                  >
+                    {formattedArtTotal}
+                  </span>
                 </div>
               </div>
             ) : isMascot ? (
