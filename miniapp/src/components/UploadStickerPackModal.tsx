@@ -5,6 +5,7 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Tooltip,
   TextField,
   Typography
 } from '@mui/material';
@@ -12,6 +13,7 @@ import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
 import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
+import { StickerPackModal } from './StickerPackModal';
 
 interface UploadStickerPackModalProps {
   open: boolean;
@@ -33,6 +35,41 @@ const normalizeStickerSetName = (raw: string): string => {
     .replace(/^https?:\/\/t\.me\//i, '')
     .replace(/^@/, '')
     .trim();
+};
+
+const extractErrorMessages = (error: any, defaultMessage: string): string[] => {
+  const messages: string[] = [];
+
+  const validation = error?.response?.data?.validationErrors;
+  if (validation && typeof validation === 'object') {
+    Object.values(validation).forEach((value: unknown) => {
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          if (typeof item === 'string') messages.push(item);
+        });
+      } else if (typeof value === 'string') {
+        messages.push(value);
+      }
+    });
+  }
+
+  const message = error?.response?.data?.message || error?.message;
+  if (message && typeof message === 'string') {
+    messages.push(message);
+  }
+
+  if (messages.length === 0) {
+    messages.push(defaultMessage);
+  }
+
+  return messages
+    .map((msg) => {
+      if (/No primary or single unique constructor/i.test(msg)) {
+        return 'Не удалось сохранить категории. Попробуйте ещё раз через пару секунд.';
+      }
+      return msg;
+    })
+    .filter(Boolean);
 };
 
 export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
@@ -57,15 +94,20 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [suggestionsFetched, setSuggestionsFetched] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [linkErrorDetails, setLinkErrorDetails] = useState<string[]>([]);
+  const [categoriesErrorDetails, setCategoriesErrorDetails] = useState<string[]>([]);
 
   const resetState = () => {
     setStep('link');
     setLink('');
     setIsSubmittingLink(false);
     setLinkError(null);
+    setLinkErrorDetails([]);
     setCreatedStickerSet(null);
     setCategories([]);
     setCategoriesError(null);
+    setCategoriesErrorDetails([]);
     setSelectedCategories([]);
     setIsApplyingCategories(false);
     setSuggestionLoading(false);
@@ -73,6 +115,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     setSuggestionsFetched(false);
     setIsPreviewLoading(false);
     setActivePreviewIndex(0);
+    setIsPreviewModalOpen(false);
   };
 
   useEffect(() => {
@@ -105,6 +148,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
     setIsSubmittingLink(true);
     setLinkError(null);
+    setLinkErrorDetails([]);
     setSuggestionError(null);
     setSuggestionsFetched(false);
     setSelectedCategories([]);
@@ -132,11 +176,9 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
       setStep('categories');
     } catch (error: any) {
-      const message = error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        'Не удалось создать стикерсет. Проверьте ссылку и попробуйте снова.';
-      setLinkError(message);
+      const messages = extractErrorMessages(error, 'Не удалось создать стикерсет. Проверьте ссылку и попробуйте снова.');
+      setLinkError(messages[0]);
+      setLinkErrorDetails(messages.slice(1));
     } finally {
       setIsPreviewLoading(false);
       setIsSubmittingLink(false);
@@ -215,29 +257,6 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     return info as TelegramStickerSetInfo;
   }, [createdStickerSet]);
 
-  useEffect(() => {
-    if (!createdStickerSet || step !== 'categories') {
-      return;
-    }
-
-    const fallbackTitle = createdStickerSet.title || normalizedTelegramInfo?.title;
-    if (!fallbackTitle) {
-      setSuggestionsFetched(true);
-      return;
-    }
-
-    loadSuggestions(fallbackTitle);
-  }, [createdStickerSet, step, normalizedTelegramInfo]);
-
-  const previewStickers = useMemo(() => {
-    const stickers = normalizedTelegramInfo?.stickers;
-    if (!stickers || stickers.length === 0) {
-      return [];
-    }
-
-    return stickers.filter((sticker): sticker is Sticker => Boolean(sticker));
-  }, [normalizedTelegramInfo?.stickers]);
-
   const displayTitle = useMemo(() => {
     return createdStickerSet?.title
       || normalizedTelegramInfo?.title
@@ -249,6 +268,32 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       || normalizedTelegramInfo?.name
       || normalizeStickerSetName(link);
   }, [createdStickerSet?.name, normalizedTelegramInfo?.name, link]);
+
+  const suggestionBaseTitle = useMemo(() => {
+    return createdStickerSet?.title || normalizedTelegramInfo?.title || '';
+  }, [createdStickerSet?.title, normalizedTelegramInfo?.title]);
+
+  useEffect(() => {
+    if (!createdStickerSet || step !== 'categories' || suggestionsFetched) {
+      return;
+    }
+
+    if (!suggestionBaseTitle) {
+      setSuggestionsFetched(true);
+      return;
+    }
+
+    loadSuggestions(suggestionBaseTitle);
+  }, [createdStickerSet, step, suggestionBaseTitle, suggestionsFetched]);
+
+  const previewStickers = useMemo(() => {
+    const stickers = normalizedTelegramInfo?.stickers;
+    if (!stickers || stickers.length === 0) {
+      return [];
+    }
+
+    return stickers.filter((sticker): sticker is Sticker => Boolean(sticker));
+  }, [normalizedTelegramInfo?.stickers]);
 
   useEffect(() => {
     if (previewStickers.length === 0) {
@@ -279,6 +324,14 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     });
   };
 
+  const handleRetrySuggestions = () => {
+    if (!suggestionBaseTitle) {
+      return;
+    }
+    setSuggestionsFetched(false);
+    loadSuggestions(suggestionBaseTitle);
+  };
+
   const handleApplyCategories = async () => {
     if (!createdStickerSet) {
       return;
@@ -286,6 +339,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
     setIsApplyingCategories(true);
     setCategoriesError(null);
+    setCategoriesErrorDetails([]);
 
     try {
       const updatedStickerSet = await apiClient.updateStickerSetCategories(createdStickerSet.id, selectedCategories);
@@ -298,11 +352,9 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       resetState();
       onClose();
     } catch (error: any) {
-      const message = error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        'Не удалось сохранить категории. Попробуйте позже.';
-      setCategoriesError(message);
+      const messages = extractErrorMessages(error, 'Не удалось сохранить категории. Попробуйте позже.');
+      setCategoriesError(messages[0]);
+      setCategoriesErrorDetails(messages.slice(1));
     } finally {
       setIsApplyingCategories(false);
     }
@@ -368,7 +420,16 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             }
           }}
         >
-          {linkError}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <span>{linkError}</span>
+            {linkErrorDetails.length > 0 && (
+              <Box component="ul" sx={{ pl: 3, m: 0 }}>
+                {linkErrorDetails.map((msg, index) => (
+                  <li key={index}>{msg}</li>
+                ))}
+              </Box>
+            )}
+          </Box>
         </Alert>
       )}
 
@@ -412,8 +473,11 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const renderPreviewStrip = () => {
     if (isPreviewLoading) {
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={28} sx={{ color: 'var(--tg-theme-hint-color)' }} />
+          <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+            Загружаем данные из Telegram…
+          </Typography>
         </Box>
       );
     }
@@ -422,7 +486,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       return (
         <Box sx={{ py: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
-            Превью недоступно
+            Telegram не передал превью. Попробуйте обновить позже.
           </Typography>
         </Box>
       );
@@ -542,6 +606,30 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
               @{displayName}
             </Typography>
           ) : null}
+          <Tooltip
+            title={createdStickerSet ? '' : 'Превью появится после загрузки данных из Telegram'}
+            disableHoverListener={Boolean(createdStickerSet)}
+          >
+            <span>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setIsPreviewModalOpen(true)}
+                disabled={!createdStickerSet}
+                sx={{
+                  alignSelf: 'flex-start',
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.8125rem',
+                  px: 1.5,
+                  py: 0.75
+                }}
+              >
+                Предпросмотр набора
+              </Button>
+            </span>
+          </Tooltip>
           {renderPreviewStrip()}
         </Box>
       </Box>
@@ -560,8 +648,17 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       )}
 
       {suggestionError && (
-        <Alert severity="info" sx={{ mb: 1 }}>
-          {suggestionError}
+        <Alert severity="info" sx={{ mb: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span>{suggestionError}</span>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleRetrySuggestions}
+            disabled={suggestionLoading}
+            sx={{ alignSelf: 'flex-start' }}
+          >
+            Попробовать снова
+          </Button>
         </Alert>
       )}
 
@@ -573,8 +670,24 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           </Typography>
         </Box>
       ) : categoriesError ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {categoriesError}
+        <Alert severity="error" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span>{categoriesError}</span>
+          {categoriesErrorDetails.length > 0 && (
+            <Box component="ul" sx={{ pl: 3, m: 0 }}>
+              {categoriesErrorDetails.map((msg, index) => (
+                <li key={index}>{msg}</li>
+              ))}
+            </Box>
+          )}
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => handleApplyCategories()}
+            disabled={isApplyingCategories}
+            sx={{ alignSelf: 'flex-start' }}
+          >
+            Повторить попытку
+          </Button>
         </Alert>
       ) : (
         <Box
@@ -591,27 +704,33 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             padding: '12px'
           }}
         >
-          {categories.map((category) => {
-            const isSelected = selectedCategories.includes(category.key);
-            return (
-              <Chip
-                key={category.key}
-                label={category.name}
-                onClick={() => handleCategoryToggle(category.key)}
-                color={isSelected ? 'primary' : 'default'}
-                variant={isSelected ? 'filled' : 'outlined'}
-                sx={{
-                  cursor: 'pointer',
-                  fontWeight: isSelected ? 600 : 400,
-                  transition: 'transform 0.15s ease',
-                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-                  '&:hover': {
-                    transform: 'scale(1.05)'
-                  }
-                }}
-              />
-            );
-          })}
+          {categories.length === 0 ? (
+            <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+              Категории не найдены. Попробуйте позже или обновите страницу.
+            </Typography>
+          ) : (
+            categories.map((category) => {
+              const isSelected = selectedCategories.includes(category.key);
+              return (
+                <Chip
+                  key={category.key}
+                  label={category.name}
+                  onClick={() => handleCategoryToggle(category.key)}
+                  color={isSelected ? 'primary' : 'default'}
+                  variant={isSelected ? 'filled' : 'outlined'}
+                  sx={{
+                    cursor: 'pointer',
+                    fontWeight: isSelected ? 600 : 400,
+                    transition: 'transform 0.15s ease',
+                    transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                    '&:hover': {
+                      transform: 'scale(1.05)'
+                    }
+                  }}
+                />
+              );
+            })
+          )}
         </Box>
       )}
 
@@ -644,7 +763,8 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   );
 
   return (
-    <ModalBackdrop open={open} onClose={handleClose}>
+    <>
+      <ModalBackdrop open={open} onClose={handleClose}>
       <Box
         sx={{
           width: '90%',
@@ -685,7 +805,14 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       >
         {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
       </Box>
-    </ModalBackdrop>
+      </ModalBackdrop>
+
+      <StickerPackModal
+        open={isPreviewModalOpen && Boolean(createdStickerSet)}
+        stickerSet={createdStickerSet}
+        onClose={() => setIsPreviewModalOpen(false)}
+      />
+    </>
   );
 };
 

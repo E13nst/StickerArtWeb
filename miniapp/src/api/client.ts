@@ -281,7 +281,28 @@ class ApiClient {
   // Обновление категорий стикерсета
   async updateStickerSetCategories(id: number, categoryKeys: string[]): Promise<StickerSetResponse> {
     try {
-      const response = await this.client.put<StickerSetResponse>(`/stickersets/${id}/categories`, categoryKeys);
+      const response = await this.client.put<StickerSetResponse>(
+        `/stickersets/${id}/categories`,
+        null,
+        {
+          params: { categoryKeys },
+          paramsSerializer: (params) => {
+            const searchParams = new URLSearchParams();
+            Object.entries(params).forEach(([key, value]) => {
+              if (Array.isArray(value)) {
+                value.forEach((item) => {
+                  if (item !== undefined && item !== null) {
+                    searchParams.append(key, String(item));
+                  }
+                });
+              } else if (value !== undefined && value !== null) {
+                searchParams.append(key, String(value));
+              }
+            });
+            return searchParams.toString();
+          }
+        }
+      );
       return response.data;
     } catch (error: any) {
       console.error(`❌ Ошибка при обновлении категорий стикерсета ${id}:`, error);
