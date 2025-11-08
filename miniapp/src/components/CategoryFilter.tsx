@@ -42,8 +42,8 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         overflowY: 'hidden',
         padding: 'calc(1rem * 0.382)',
         scrollbarWidth: 'none',
-        maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-        WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+        maskImage: 'none',
+        WebkitMaskImage: 'none',
       }}
       className="category-filter-scroller"
     >
@@ -81,7 +81,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                 ? 'var(--tg-theme-button-color, #2481cc)' 
                 : 'color-mix(in srgb, var(--tg-theme-hint-color) 40%, transparent)'}`,
               cursor: disabled ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
+              transition: 'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

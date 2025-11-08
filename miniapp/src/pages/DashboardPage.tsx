@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Container, Box, Typography, Grid, Card, CardContent, Skeleton, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -32,6 +32,7 @@ interface CategoryStats {
 }
 
 export const DashboardPage: React.FC = () => {
+  const MAX_TOP_STICKERS = 10;
   const navigate = useNavigate();
   const { isInTelegramApp, user } = useTelegram();
   const { totalElements, stickerSets } = useStickerStore();
@@ -44,50 +45,62 @@ export const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [categoryFilterOptions, setCategoryFilterOptions] = useState<CategoryFilterOption[]>([
-    { id: 'all', label: 'Все', title: 'Все категории' }
-  ]);
-  const [activeCategoryKey, setActiveCategoryKey] = useState<string>('all');
-  const [topStickersByCategory, setTopStickersByCategory] = useState<Record<string, StickerSetResponse[]>>({ all: [] });
+  const categoryFilterOptions = useMemo<CategoryFilterOption[]>(() => [
+    { id: 'official', label: 'Официальные', title: 'Официальные наборы' },
+    { id: 'user', label: 'Пользовательские', title: 'Пользовательские наборы' }
+  ], []);
+  const [activeCategoryKey, setActiveCategoryKey] = useState<string>('official');
+  const [topStickersByCategory, setTopStickersByCategory] = useState<Record<string, StickerSetResponse[]>>({
+    official: [],
+    user: [],
+    all: []
+  });
+  const pyramidPacks = useMemo(() => adaptStickerSetsToGalleryPacks(topStickerSets), [topStickerSets]);
+  const row1Pack = pyramidPacks[0];
+  const row2Packs = pyramidPacks.slice(1, 3);
+  const scrollPacks = pyramidPacks.slice(3, MAX_TOP_STICKERS);
+
+  const handlePackClick = (packId: string) => {
+    const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
+    if (stickerSet) {
+      setSelectedStickerSet(stickerSet);
+      setIsModalOpen(true);
+    }
+  };
 
   const quickActions = [
-    {
-      label: 'Roulette',
-      shadow: '0 10px 30px rgba(79, 70, 229, 0.25)',
-      glow: 'rgba(79, 70, 229, 0.45)',
-      minWidth: 132,
-    },
-    {
-      label: 'AI-Tools',
-      shadow: '0 10px 30px rgba(236, 72, 153, 0.25)',
-      glow: 'rgba(236, 72, 153, 0.45)',
-      minWidth: 148,
-    },
-    {
-      label: 'Earn ART',
-      shadow: '0 10px 30px rgba(16, 185, 129, 0.25)',
-      glow: 'rgba(16, 185, 129, 0.45)',
-      minWidth: 148,
-    },
-    {
-      label: 'NFT-Stickers',
-      shadow: '0 10px 30px rgba(59, 130, 246, 0.25)',
-      glow: 'rgba(59, 130, 246, 0.45)',
-      minWidth: 164,
-    },
-    {
-      label: 'Deepfake',
-      shadow: '0 10px 30px rgba(245, 158, 11, 0.25)',
-      glow: 'rgba(245, 158, 11, 0.45)',
-      minWidth: 150,
-    },
-    {
-      label: 'Battle',
-      shadow: '0 10px 30px rgba(239, 68, 68, 0.25)',
-      glow: 'rgba(239, 68, 68, 0.45)',
-      minWidth: 140,
-    },
+    { label: 'AI-Tools' },
+    { label: 'Earn ART' },
+    { label: 'NFT 2.0' },
   ];
+
+  const isOfficialStickerSet = useCallback((stickerSet: StickerSetResponse): boolean => {
+    const rawFlag = (stickerSet as any)?.isOfficial ?? (stickerSet as any)?.official ?? (stickerSet as any)?.officialStatus;
+
+    if (typeof rawFlag === 'boolean') {
+      return rawFlag;
+    }
+
+    if (typeof rawFlag === 'string') {
+      const normalized = rawFlag.toLowerCase();
+      if (['official', 'true', 'yes', '1'].includes(normalized)) {
+        return true;
+      }
+      if (['user', 'false', 'no', '0'].includes(normalized)) {
+        return false;
+      }
+    }
+
+    if (typeof rawFlag === 'number') {
+      return rawFlag === 1;
+    }
+
+    if (typeof stickerSet.userId === 'number') {
+      return false;
+    }
+
+    return true;
+  }, []);
 
   // Подсчет статистики с трендами
   useEffect(() => {
@@ -170,12 +183,24 @@ export const DashboardPage: React.FC = () => {
 
         const sortedSets = [...setsForStats]
           .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
-          .slice(0, 5);
+          .slice(0, MAX_TOP_STICKERS);
 
         console.log('📊 Отсортировано стикерсетов для топ-5:', sortedSets.length);
 
+        const officialTopSets = [...setsForStats]
+          .filter((set) => isOfficialStickerSet(set))
+          .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
+          .slice(0, MAX_TOP_STICKERS);
+
+        const userTopSets = [...setsForStats]
+          .filter((set) => !isOfficialStickerSet(set))
+          .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
+          .slice(0, MAX_TOP_STICKERS);
+
         const stickersByCategoryMap: Record<string, StickerSetResponse[]> = {
-          all: sortedSets
+          all: sortedSets,
+          official: officialTopSets,
+          user: userTopSets
         };
 
         // Получаем категории и сортируем по лайкам
@@ -241,30 +266,6 @@ export const DashboardPage: React.FC = () => {
             setTopCategories(topCategoriesList);
           }
 
-          const filterCategories = sortedCategoryEntries.slice(0, 8);
-          const filterOptions: CategoryFilterOption[] = [
-            { id: 'all', label: 'Все', title: 'Все категории' },
-            ...filterCategories.map(([key, data]) => {
-              const category = categories.find(c => c.key === key);
-              const label = category?.name || key;
-              return {
-                id: key,
-                label,
-                title: `${category?.name || key} — ${data.likes} лайков`
-              };
-            })
-          ];
-
-          setCategoryFilterOptions(filterOptions);
-
-          filterCategories.forEach(([key]) => {
-            const categorySets = setsForStats
-              .filter(set => set.categories?.some(cat => cat.key === key))
-              .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
-              .slice(0, 5);
-
-            stickersByCategoryMap[key] = categorySets;
-          });
         } catch (e) {
           console.warn('Не удалось загрузить категории');
           setTopCategories([
@@ -273,10 +274,6 @@ export const DashboardPage: React.FC = () => {
             { name: 'Мемы', count: 5, emoji: '😂' },
             { name: 'Премиум', count: 3, emoji: '🌟' },
             { name: 'Любовь', count: 2, emoji: '❤️' }
-          ]);
-
-          setCategoryFilterOptions([
-            { id: 'all', label: 'Все', title: 'Все категории' }
           ]);
         }
 
@@ -347,18 +344,10 @@ export const DashboardPage: React.FC = () => {
   }, [totalElements, userInfo]);
 
   useEffect(() => {
-    if (categoryFilterOptions.length === 0) {
-      return;
+    if (!categoryFilterOptions.some((option) => option.id === activeCategoryKey)) {
+      setActiveCategoryKey(categoryFilterOptions[0]?.id ?? 'official');
     }
-
-    setActiveCategoryKey((prev) => {
-      const exists = categoryFilterOptions.some((option) => option.id === prev);
-      if (exists) {
-        return prev;
-      }
-      return categoryFilterOptions[0].id;
-    });
-  }, [categoryFilterOptions]);
+  }, [activeCategoryKey, categoryFilterOptions]);
 
   useEffect(() => {
     const nextTopStickers = topStickersByCategory[activeCategoryKey] ?? topStickersByCategory.all ?? [];
@@ -373,165 +362,187 @@ export const DashboardPage: React.FC = () => {
       paddingBottom: 0
     }}>
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, py: 3 }}>
-        <Box
-          sx={{
-            position: 'relative',
-            mb: 3,
-            px: 1,
-            overflow: 'visible',
-          }}
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: '-80px -220px',
-              pointerEvents: 'none',
-              zIndex: 0,
-              opacity: 0.75,
-              filter: 'blur(60px)',
-              background:
-                'radial-gradient(circle at 15% 50%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 56%) ,\
-                 radial-gradient(circle at 50% 36%, rgba(236,72,153,0.24) 0%, rgba(16,18,26,0) 62%) ,\
-                 radial-gradient(circle at 78% 52%, rgba(16,185,129,0.28) 0%, rgba(16,18,26,0) 58%)',
-            }}
-          />
-          <Box
-            className="category-filter-scroller"
-            sx={{
-              display: 'flex',
-              flexDirection: 'row',
-              gap: 'calc(1rem * 0.382)',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              padding: 'calc(1rem * 0.382)',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              maskImage: 'linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent)',
-              WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent)',
-              width: '100vw',
-              marginLeft: 'calc(-50vw + 50%)',
-              paddingLeft: 'clamp(16px, 6vw, 36px)',
-              paddingRight: 'clamp(16px, 6vw, 36px)',
-              zIndex: 1,
-            }}
-          >
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                type="button"
-                disabled
-                style={{
-                  flexShrink: 0,
-                  minWidth: 'calc(1rem * 4.2)',
-                  padding: 'calc(1rem * 0.382) calc(1rem * 0.618)',
-                  borderRadius: 'calc(1rem * 0.618)',
-                  border: `1px solid color-mix(in srgb, ${action.glow} 60%, rgba(255,255,255,0.12))`,
-                  background: `linear-gradient(135deg, rgba(12,16,26,0.86) 0%, rgba(18,22,32,0.72) 60%)`,
-                  color: '#f1f5ff',
-                  fontSize: 'calc(1rem * 0.618)',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  cursor: 'default',
-                  outline: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 'calc(1rem * 0.236)',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
-                  backgroundBlendMode: 'soft-light',
-                  opacity: 0.92,
-                  filter: `drop-shadow(0 4px 16px ${action.glow})`,
-                }}
-              >
-                {action.label}
-              </button>
-            ))}
-          </Box>
-        </Box>
-
         {isLoading ? (
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            <Box sx={{ mt: 2, mb: 3 }}>
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-                sx={{
-                  color: 'var(--tg-theme-text-color)',
-                  mb: 1.5,
-                  fontSize: { xs: '1rem', sm: '1.25rem' }
-                }}
-              >
-                ТОП-5 СТИКЕРОВ
-              </Typography>
-
+            <Box sx={{ mt: 1, mb: 3 }}>
               {categoryFilterOptions.length > 0 && (
-                <CategoryFilter
-                  categories={categoryFilterOptions}
-                  selectedCategories={[activeCategoryKey]}
-                  onCategoryToggle={(categoryId) => setActiveCategoryKey(categoryId)}
-                  disabled={isLoading}
-                />
+                <Box
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    mb: 1.5,
+                  }}
+                >
+                  <CategoryFilter
+                    categories={categoryFilterOptions}
+                    selectedCategories={[activeCategoryKey]}
+                    onCategoryToggle={(categoryId) => setActiveCategoryKey(categoryId)}
+                    disabled={isLoading}
+                  />
+                </Box>
               )}
 
               {topStickerSets.length > 0 ? (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    overflowX: 'auto',
-                    overflowY: 'hidden',
-                    gap: 2,
-                    pb: 2,
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'var(--tg-theme-hint-color) transparent',
-                    '&::-webkit-scrollbar': {
-                      height: '8px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: 'transparent',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: 'var(--tg-theme-hint-color)',
-                      borderRadius: '4px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      background: 'var(--tg-theme-button-color)',
-                    },
-                  }}
-                >
-                  {adaptStickerSetsToGalleryPacks(topStickerSets).map((pack) => (
-                    <Box
-                      key={pack.id}
-                      sx={{
-                        flexShrink: 0,
-                        width: { xs: '144px', sm: '233px' },
-                      }}
-                    >
-                      <Box 
-                        sx={{ 
-                          width: '100%',
+                <Box sx={{ position: 'relative', width: '100%' }}>
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: { xs: '40vw', sm: '30vw', md: '18vw' },
+                      opacity: 0.23,
+                      pointerEvents: 'none',
+                      zIndex: 0,
+                      transform: 'translateY(-6%)',
+                    }}
+                    aria-hidden
+                  >
+                    🏆
+                  </Box>
+                  <Box
+                    sx={{
+                      '--base-size': 'clamp(110px, 28vw, 220px)',
+                      '--row-gap': 'calc(var(--base-size) * 0.18)',
+                      '--col-gap': 'calc(var(--base-size) * 0.2)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 'var(--row-gap)',
+                      width: '100%',
+                      pb: 2,
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      flexWrap: { xs: 'nowrap', sm: 'nowrap' },
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 'var(--col-gap)',
+                      width: '100%'
+                    }}
+                  >
+                    {row2Packs[0] && (
+                      <Box
+                        sx={{
+                          flex: {
+                            xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                            sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)'
+                          },
+                          maxWidth: {
+                            xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                            sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)'
+                          }
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: '100%',
+                            '& .pack-card': {
+                              width: '100% !important',
+                              height: 'auto !important',
+                              aspectRatio: '1 / 1.618'
+                            }
+                          }}
+                        >
+                          <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
+                        </Box>
+                      </Box>
+                    )}
+
+                    {row1Pack && (
+                      <Box
+                        sx={{
+                          width: 'min(var(--base-size), 100%)',
+                          transformOrigin: 'center',
                           '& .pack-card': {
                             width: '100% !important',
                             height: 'auto !important',
-                            aspectRatio: '1 / 1.618',
-                          },
+                            aspectRatio: '1 / 1.618'
+                          }
                         }}
                       >
-                        <PackCard
-                          pack={pack}
-                          onClick={(packId) => {
-                            const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
-                            if (stickerSet) {
-                              setSelectedStickerSet(stickerSet);
-                              setIsModalOpen(true);
+                        <PackCard pack={row1Pack} onClick={handlePackClick} />
+                      </Box>
+                    )}
+
+                    {row2Packs[1] && (
+                      <Box
+                        sx={{
+                          flex: {
+                            xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                            sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)'
+                          },
+                          maxWidth: {
+                            xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                            sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)'
+                          }
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: '100%',
+                            '& .pack-card': {
+                              width: '100% !important',
+                              height: 'auto !important',
+                              aspectRatio: '1 / 1.618'
                             }
                           }}
-                        />
+                        >
+                          <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
+                        </Box>
                       </Box>
+                    )}
+                  </Box>
+
+                  {scrollPacks.length > 0 && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        width: '100%',
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        gap: 'calc(var(--col-gap) * 0.6)',
+                        paddingBottom: '8px',
+                        scrollbarWidth: 'none',
+                        '&::-webkit-scrollbar': {
+                          display: 'none',
+                        }
+                      }}
+                    >
+                      {scrollPacks.map((pack) => (
+                        <Box
+                          key={pack.id}
+                          sx={{
+                            flex: '0 0 clamp(74px, calc(var(--base-size) * 0.45), 150px)',
+                            maxWidth: 'clamp(74px, calc(var(--base-size) * 0.45), 150px)'
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: '100%',
+                              '& .pack-card': {
+                                width: '100% !important',
+                                height: 'auto !important',
+                                aspectRatio: '1 / 1.618'
+                              }
+                            }}
+                          >
+                            <PackCard pack={pack} onClick={handlePackClick} />
+                          </Box>
+                        </Box>
+                      ))}
                     </Box>
-                  ))}
+                  )}
+                  </Box>
                 </Box>
               ) : (
                 <Card
@@ -557,6 +568,84 @@ export const DashboardPage: React.FC = () => {
                 </Card>
               )}
             </Box>
+
+            {quickActions.length > 0 && (
+              <Box
+                sx={{
+                  position: 'relative',
+                  mt: 1.5,
+                  mb: 3,
+                  px: 1,
+                  overflow: 'visible',
+                }}
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: '-60px -200px',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                    opacity: 0.65,
+                    filter: 'blur(50px)',
+                    background:
+                      'radial-gradient(circle at 20% 40%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 56%),\
+                       radial-gradient(circle at 60% 20%, rgba(236,72,153,0.24) 0%, rgba(16,18,26,0) 62%),\
+                       radial-gradient(circle at 80% 60%, rgba(16,185,129,0.28) 0%, rgba(16,18,26,0) 58%)',
+                  }}
+                />
+                <Box
+                  sx={{
+                    position: 'relative',
+                    zIndex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '100%',
+                    px: { xs: 0.5, md: 1 },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: 'repeat(3, minmax(0, 1fr))' },
+                      gap: '12px',
+                      width: '100%',
+                      maxWidth: '360px',
+                    }}
+                  >
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.label}
+                        type="button"
+                        disabled
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(18, 22, 32, 0.82)',
+                          color: '#f1f5ff',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          cursor: 'default',
+                          outline: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                          boxShadow: 'none',
+                          backgroundBlendMode: 'normal',
+                        }}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            )}
 
             {/* Топ-5 авторов */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
