@@ -25,7 +25,7 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
 
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
-  const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId) || userInfo.avatarUrl;
+  const avatarUrl = userInfo.avatarUrl || getAvatarUrl(userInfo.profilePhotoFileId);
   const initials = getInitials(firstName, lastName);
   const avatarBgColor = getAvatarColor(firstName);
 

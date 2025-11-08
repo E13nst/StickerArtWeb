@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Box, Typography, Card, CardContent, Alert } from '@mui/material';
-import StixlyTopHeader from '../components/StixlyTopHeader';
 import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
@@ -14,7 +13,8 @@ import { StickerSetResponse, ProfileResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { SearchBar } from '../components/SearchBar';
 import { SortButton } from '../components/SortButton';
-import { useLikesStore } from '../store/useLikesStore';
+
+type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
 const PAGE_SIZE = 24;
 
@@ -41,7 +41,7 @@ const computeStickerCount = (stickerSet: StickerSetResponse): number => {
   return Array.isArray(info?.stickers) ? info.stickers.length : 0;
 };
 
-const mapProfileToUserInfo = (profile: ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any }): UserInfo => ({
+const mapProfileToUserInfo = (profile: AuthorProfile): UserInfo => ({
   id: profile.userId,
   telegramId: profile.userId,
   username: profile.user?.username || undefined,
@@ -86,7 +86,7 @@ export const AuthorPage: React.FC = () => {
   const authorId = id ? Number(id) : null;
   const { tg, initData, user, isInTelegramApp } = useTelegram();
 
-  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [profile, setProfile] = useState<AuthorProfile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
@@ -103,6 +103,7 @@ export const AuthorPage: React.FC = () => {
 
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(null);
   
   const effectiveInitData = useMemo(() => initData || window.Telegram?.WebApp?.initData || '', [initData]);
 
@@ -227,7 +228,7 @@ export const AuthorPage: React.FC = () => {
             ...profileResponse,
             profilePhotoFileId: photo?.profilePhotoFileId,
             profilePhotos: photo?.profilePhotos
-          } as ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any });
+          });
         }
       } catch (error) {
         if (!cancelled) {
@@ -264,12 +265,60 @@ export const AuthorPage: React.FC = () => {
     fetchStickerSets(0, false);
   }, [authorId, sortByLikes, fetchStickerSets]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    const fileId = profile?.profilePhotoFileId;
+    if (!profile || !fileId) {
+      setAuthorAvatarUrl(null);
+      return () => {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+        }
+      };
+    }
+
+    const loadAvatar = async () => {
+      try {
+        if (effectiveInitData) {
+          apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
+        } else {
+          apiClient.checkExtensionHeaders();
+        }
+        const blob = await apiClient.getSticker(fileId);
+        if (cancelled) {
+          return;
+        }
+        objectUrl = URL.createObjectURL(blob);
+        setAuthorAvatarUrl(objectUrl);
+      } catch {
+        if (!cancelled) {
+          setAuthorAvatarUrl(null);
+        }
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [profile?.profilePhotoFileId, effectiveInitData, user?.language_code]);
+
   const avatarUserInfo = useMemo<UserInfo | null>(() => {
     if (!profile) {
       return null;
     }
-    return mapProfileToUserInfo(profile);
-  }, [profile]);
+    const base = mapProfileToUserInfo(profile);
+    return {
+      ...base,
+      avatarUrl: authorAvatarUrl ?? base.avatarUrl
+    };
+  }, [profile, authorAvatarUrl]);
 
   const displayName = useMemo(() => {
     if (!profile) {
@@ -285,7 +334,6 @@ export const AuthorPage: React.FC = () => {
     return combined || null;
   }, [profile]);
 
-  const authorRole = profile?.role ?? null;
   const isPremium = profile?.user?.isPremium ?? false;
 
   const totalStickers = useMemo(() => {
@@ -370,49 +418,11 @@ export const AuthorPage: React.FC = () => {
         overflowX: 'hidden'
       }}
     >
-      <StixlyTopHeader
-        profileMode={{
-          enabled: true,
-          backgroundColor: isPremium
-            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          pattern: isPremium ? 'waves' : 'dots',
-          content: isProfileLoading ? (
-            <LoadingSpinner message="Загрузка профиля..." />
-          ) : avatarUserInfo ? (
-            <Box
-              sx={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative'
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: '50%',
-                  transform: 'translate(-50%, 50%)',
-                  zIndex: 20
-                }}
-              >
-                <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
-              </Box>
-            </Box>
-          ) : null
-        }}
-      />
-
-      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 0 }}>
+      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 3 }}>
         {profileError && (
           <Alert
             severity="error"
             sx={{
-              mt: 2,
               mb: 2,
               backgroundColor: 'var(--tg-theme-secondary-bg-color)',
               color: 'var(--tg-theme-text-color)',
@@ -432,23 +442,26 @@ export const AuthorPage: React.FC = () => {
               backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
               border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
               boxShadow: 'none',
-              pt: 0,
-              pb: 2
+              pb: 3
             }}
           >
-            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
-              <Box sx={{ textAlign: 'center', mb: '0.618rem' }}>
-                {displayName && (
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {displayName}
-                  </Typography>
-                )}
-                {authorRole && (
-                  <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
-                    Role: {authorRole}
-                  </Typography>
-                )}
-              </Box>
+            <CardContent
+              sx={{
+                pt: 4,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.618rem',
+                color: 'var(--tg-theme-text-color, #000000)'
+              }}
+            >
+              <FloatingAvatar userInfo={avatarUserInfo!} size="large" overlap={0} />
+
+              {displayName && (
+                <Typography variant="h6" sx={{ fontWeight: 600, textAlign: 'center' }}>
+                  {displayName}
+                </Typography>
+              )}
 
               <Box
                 sx={{
@@ -456,15 +469,13 @@ export const AuthorPage: React.FC = () => {
                   justifyContent: 'space-around',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: 2
+                  gap: 2,
+                  width: '100%',
+                  maxWidth: 360
                 }}
               >
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography
-                    variant="h5"
-                    fontWeight="bold"
-                    sx={{ color: 'var(--tg-theme-button-color)' }}
-                  >
+                <Box sx={{ textAlign: 'center', minWidth: '120px' }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: 'var(--tg-theme-button-color)' }}>
                     {packCount}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
@@ -472,12 +483,8 @@ export const AuthorPage: React.FC = () => {
                   </Typography>
                 </Box>
 
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography
-                    variant="h5"
-                    fontWeight="bold"
-                    sx={{ color: 'var(--tg-theme-button-color)' }}
-                  >
+                <Box sx={{ textAlign: 'center', minWidth: '120px' }}>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: 'var(--tg-theme-button-color)' }}>
                     {totalStickers}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
@@ -490,12 +497,11 @@ export const AuthorPage: React.FC = () => {
         ) : null}
       </Container>
 
-      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2 }}>
+      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 3 }}>
         {setsError && !isSetsLoading && !isLoadingMore && (
           <Alert
             severity="error"
             sx={{
-              mt: 2,
               mb: 2,
               backgroundColor: 'var(--tg-theme-secondary-bg-color)',
               color: 'var(--tg-theme-text-color)',
@@ -535,9 +541,9 @@ export const AuthorPage: React.FC = () => {
           <LoadingSpinner message="Загрузка стикерсетов..." />
         ) : displayedStickerSets.length === 0 ? (
           <EmptyState
-            title={searchTerm.trim() ? 'Поиск не дал результатов' : '📁 Стикерсетов пока нет'}
+            title={isSearchActive ? 'Поиск не дал результатов' : '📁 Стикерсетов пока нет'}
             message={
-              searchTerm.trim()
+              isSearchActive
                 ? `По запросу «${searchTerm.trim()}» ничего не найдено`
                 : 'У этого автора пока нет опубликованных стикерсетов'
             }
