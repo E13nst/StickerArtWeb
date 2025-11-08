@@ -20,6 +20,7 @@ export interface StixlyTopHeaderProps {
   profileMode?: ProfileModeConfig | { enabled: false };
   onSlideChange?: (slideBg: string) => void;
   fixedSlideId?: number;
+  showThemeToggle?: boolean;
 }
 
 type Slide = {
@@ -231,7 +232,12 @@ type DashboardStats = {
   artTotal: number;
 };
 
-export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlideId }: StixlyTopHeaderProps = {}) {
+export default function StixlyTopHeader({
+  profileMode,
+  onSlideChange,
+  fixedSlideId,
+  showThemeToggle = true
+}: StixlyTopHeaderProps = {}) {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
   const formattedTotalPacks = useMemo(() => {
@@ -716,7 +722,7 @@ export default function StixlyTopHeader({ profileMode, onSlideChange, fixedSlide
   return (
     <div style={{ position: "relative", width: "100%" }}>
       {headerContent}
-      <StixlyThemeToggle currentBg={currentBgColor} />
+      {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
     </div>
   );
 }

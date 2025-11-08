@@ -418,6 +418,7 @@ export const AuthorPage: React.FC = () => {
       }}
     >
       <StixlyTopHeader
+        showThemeToggle={false}
         profileMode={{
           enabled: true,
           backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

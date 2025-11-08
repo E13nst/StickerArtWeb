@@ -24,7 +24,6 @@ import { EmptyState } from '@/components/EmptyState';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { TelegramThemeToggle } from '@/components/TelegramThemeToggle';
 import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { BottomNav } from '@/components/BottomNav';
@@ -362,6 +361,7 @@ export const ProfilePage: React.FC = () => {
     }}>
       {/* Профильный header */}
       <StixlyTopHeader
+        showThemeToggle={false}
         profileMode={{
           enabled: true,
           backgroundColor: isPremium 

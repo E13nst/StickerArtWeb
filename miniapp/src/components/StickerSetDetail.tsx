@@ -790,19 +790,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 'calc(var(--tg-spacing-2) * 0.618)',
                 marginBottom: 'calc(var(--tg-spacing-4) * 0.382)'
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'rgba(255,255,255,0.72)',
-                  fontSize: 'calc(var(--tg-font-size-s) * 0.9)'
-                }}
-              >
-                Author:
-              </Typography>
               <Typography
                 variant="body2"
                 component={Link}
