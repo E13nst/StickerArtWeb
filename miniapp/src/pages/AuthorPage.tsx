@@ -1,138 +1,404 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Box, Typography, Card, CardContent } from '@mui/material';
-import { apiClient } from '@/api/client';
-import { useTelegram } from '@/hooks/useTelegram';
-import { StickerSetResponse } from '@/types/sticker';
+import { Container, Box, Typography, Card, CardContent, Alert } from '@mui/material';
+import StixlyTopHeader from '../components/StixlyTopHeader';
+import { FloatingAvatar } from '../components/FloatingAvatar';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { EmptyState } from '../components/EmptyState';
+import { SimpleGallery } from '../components/SimpleGallery';
+import { StickerPackModal } from '../components/StickerPackModal';
+import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
+import { apiClient } from '../api/client';
+import { useTelegram } from '../hooks/useTelegram';
+import { StickerSetResponse, ProfileResponse } from '../types/sticker';
+import { UserInfo } from '../store/useProfileStore';
+
+const computeStickerCount = (stickerSet: StickerSetResponse): number => {
+  if (typeof (stickerSet as any).stickerCount === 'number') {
+    return (stickerSet as any).stickerCount;
+  }
+
+  const info = stickerSet.telegramStickerSetInfo as any;
+
+  if (!info) {
+    return 0;
+  }
+
+  if (typeof info === 'string') {
+    try {
+      const parsed = JSON.parse(info);
+      return Array.isArray(parsed?.stickers) ? parsed.stickers.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  return Array.isArray(info?.stickers) ? info.stickers.length : 0;
+};
+
+const mapProfileToUserInfo = (profile: ProfileResponse): UserInfo => ({
+  id: profile.userId,
+  telegramId: profile.userId,
+  username: profile.user?.username || undefined,
+  firstName: profile.user?.firstName || undefined,
+  lastName: profile.user?.lastName || undefined,
+  avatarUrl: undefined,
+  role: profile.role ?? 'USER',
+  artBalance: profile.artBalance ?? 0,
+  createdAt: profile.createdAt,
+  updatedAt: profile.updatedAt,
+  telegramUserInfo: profile.user
+    ? {
+        user: {
+          id: profile.user.id,
+          is_bot: false,
+          first_name: profile.user.firstName || '',
+          last_name: profile.user.lastName || '',
+          username: profile.user.username || '',
+          language_code: profile.user.languageCode || '',
+          is_premium: profile.user.isPremium ?? false
+        },
+        status: 'ok'
+      }
+    : undefined
+});
 
 export const AuthorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const authorId = id ? Number(id) : null;
-  const { initData, user } = useTelegram();
+  const { tg, initData, user, isInTelegramApp } = useTelegram();
 
-  const [authorName, setAuthorName] = useState<string | null>(null);
-  const [authorRole, setAuthorRole] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
   const [stickerSets, setStickerSets] = useState<StickerSetResponse[]>([]);
+  const [setsError, setSetsError] = useState<string | null>(null);
+  const [isSetsLoading, setIsSetsLoading] = useState(false);
+
+  const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!tg?.BackButton) {
+      return;
+    }
+
+    const handleBack = () => window.history.back();
+    tg.BackButton.onClick(handleBack);
+    tg.BackButton.show();
+
+    return () => {
+      if (tg?.BackButton) {
+        tg.BackButton.hide();
+      }
+    };
+  }, [tg]);
 
   useEffect(() => {
     if (!authorId || Number.isNaN(authorId)) {
-      setAuthorName(null);
-      setAuthorRole(null);
+      setProfile(null);
       setStickerSets([]);
+      setProfileError('Некорректный идентификатор автора');
+      setIsProfileLoading(false);
+      setIsSetsLoading(false);
       return;
     }
 
     const effectiveInitData = initData || window.Telegram?.WebApp?.initData || '';
-    apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
+    if (effectiveInitData) {
+      apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
+    } else {
+      apiClient.checkExtensionHeaders();
+    }
 
-    let isMounted = true;
+    let cancelled = false;
 
-    const loadAuthor = async () => {
-      const [userResult, profileResult, setsResult] = await Promise.allSettled([
-        apiClient.getTelegramUser(authorId),
-        apiClient.getProfileStrict(authorId),
-        apiClient.getStickerSetsByAuthor(authorId, 0, 24)
-      ]);
+    setIsProfileLoading(true);
+    setProfileError(null);
+    setProfile(null);
 
-      if (!isMounted) {
-        return;
+    setIsSetsLoading(true);
+    setSetsError(null);
+    setStickerSets([]);
+
+    const fetchData = async () => {
+      try {
+        const profileResponse = await apiClient.getProfileStrict(authorId);
+        if (!cancelled) {
+          setProfile(profileResponse);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProfileError('Не удалось загрузить профиль автора');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProfileLoading(false);
+        }
       }
 
-      if (userResult.status === 'fulfilled') {
-        const value = userResult.value;
-        const fromUsername = value.username?.trim();
-        const fallback = [value.firstName, value.lastName].filter(Boolean).join(' ').trim();
-        const display = fromUsername && fromUsername.length > 0 ? `@${fromUsername}` : fallback || null;
-        setAuthorName(display);
-      } else {
-        setAuthorName(null);
-      }
+      try {
+        const aggregated: StickerSetResponse[] = [];
+        let page = 0;
+        const pageSize = 50;
+        let continueFetching = true;
 
-      if (profileResult.status === 'fulfilled') {
-        setAuthorRole(profileResult.value.role ?? null);
-      } else {
-        setAuthorRole(null);
-      }
+        while (continueFetching && !cancelled) {
+          const response = await apiClient.getStickerSets(page, pageSize, { authorId });
+          const chunk = response.content || [];
+          aggregated.push(...chunk);
 
-      if (setsResult.status === 'fulfilled') {
-        setStickerSets(setsResult.value.content || []);
-      } else {
-        setStickerSets([]);
+          const totalPages = response.totalPages ?? null;
+          const isLast = response.last ?? (totalPages !== null ? page >= totalPages - 1 : chunk.length < pageSize);
+
+          if (isLast || chunk.length === 0) {
+            continueFetching = false;
+          } else {
+            page += 1;
+            if (page > 200) {
+              // защита от бесконечного цикла при некорректных данных сервера
+              continueFetching = false;
+            }
+          }
+        }
+
+        if (!cancelled) {
+          setStickerSets(aggregated);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSetsError('Не удалось загрузить стикерсеты автора');
+          setStickerSets([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSetsLoading(false);
+        }
       }
     };
 
-    loadAuthor();
+    fetchData();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
   }, [authorId, initData, user?.language_code]);
+
+  const avatarUserInfo = useMemo<UserInfo | null>(() => {
+    if (!profile) {
+      return null;
+    }
+    return mapProfileToUserInfo(profile);
+  }, [profile]);
+
+  const displayName = useMemo(() => {
+    if (!profile) {
+      return null;
+    }
+    const username = profile.user?.username?.trim();
+    if (username) {
+      return `@${username}`;
+    }
+    const first = profile.user?.firstName?.trim();
+    const last = profile.user?.lastName?.trim();
+    const combined = [first, last].filter(Boolean).join(' ');
+    return combined || null;
+  }, [profile]);
+
+  const authorRole = profile?.role ?? null;
+  const isPremium = profile?.user?.isPremium ?? false;
+
+  const totalStickers = useMemo(() => {
+    return stickerSets.reduce((sum, set) => sum + computeStickerCount(set), 0);
+  }, [stickerSets]);
+
+  const packs = useMemo(() => adaptStickerSetsToGalleryPacks(stickerSets), [stickerSets]);
+
+  const handlePackClick = (packId: string) => {
+    const stickerSet = stickerSets.find((set) => set.id.toString() === packId);
+    if (stickerSet) {
+      setSelectedStickerSet(stickerSet);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStickerSet(null);
+  };
 
   if (!authorId || Number.isNaN(authorId)) {
     return null;
   }
 
+  const packCount = stickerSets.length;
+
   return (
-    <Container maxWidth="sm" sx={{ py: 'calc(1rem * 0.618)' }}>
-      {authorName && (
-        <Box sx={{ marginBottom: 'calc(1rem * 0.5)' }}>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 600,
-              fontSize: 'calc(1rem * 1.0)'
-            }}
-          >
-            {authorName}
-          </Typography>
-          {authorRole && (
-            <Typography
-              variant="body2"
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: 'var(--tg-theme-bg-color)',
+        color: 'var(--tg-theme-text-color)',
+        paddingBottom: isInTelegramApp ? 0 : 8,
+        overflowX: 'hidden'
+      }}
+    >
+      <StixlyTopHeader
+        profileMode={{
+          enabled: true,
+          backgroundColor: isPremium
+            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          pattern: isPremium ? 'waves' : 'dots',
+          content: isProfileLoading ? (
+            <LoadingSpinner message="Загрузка профиля..." />
+          ) : avatarUserInfo ? (
+            <Box
               sx={{
-                marginTop: 'calc(1rem * 0.236)',
-                color: 'text.secondary'
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative'
               }}
             >
-              Role: {authorRole}
-            </Typography>
-          )}
-        </Box>
-      )}
-
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 'calc(1rem * 0.382)',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))'
-        }}
-      >
-        {stickerSets.map((set) => (
-          <Card
-            key={set.id}
-            elevation={0}
-            sx={{
-              borderRadius: 'calc(1rem * 0.382)',
-              border: '1px solid var(--tg-theme-border-color, rgba(0, 0, 0, 0.08))',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color, rgba(0, 0, 0, 0.04))'
-            }}
-          >
-            <CardContent sx={{ p: 'calc(1rem * 0.5)' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {set.title}
-              </Typography>
-              <Typography
-                variant="body2"
+              <Box
                 sx={{
-                  color: 'text.secondary',
-                  marginTop: 'calc(1rem * 0.236)'
+                  position: 'absolute',
+                  bottom: 0,
+                  left: '50%',
+                  transform: 'translate(-50%, 50%)',
+                  zIndex: 20
                 }}
               >
-                {set.name}
-              </Typography>
+                <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
+              </Box>
+            </Box>
+          ) : null
+        }}
+      />
+
+      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 0 }}>
+        {profileError && (
+          <Alert
+            severity="error"
+            sx={{
+              mt: 2,
+              mb: 2,
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              color: 'var(--tg-theme-text-color)',
+              border: '1px solid var(--tg-theme-border-color)'
+            }}
+          >
+            {profileError}
+          </Alert>
+        )}
+
+        {isProfileLoading ? (
+          <LoadingSpinner message="Загрузка профиля..." />
+        ) : profile ? (
+          <Card
+            sx={{
+              borderRadius: 3,
+              backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+              border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
+              boxShadow: 'none',
+              pt: 0,
+              pb: 2
+            }}
+          >
+            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
+              <Box sx={{ textAlign: 'center', mb: '0.618rem' }}>
+                {displayName && (
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {displayName}
+                  </Typography>
+                )}
+                {authorRole && (
+                  <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+                    Role: {authorRole}
+                  </Typography>
+                )}
+              </Box>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 2
+                }}
+              >
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography
+                    variant="h5"
+                    fontWeight="bold"
+                    sx={{ color: 'var(--tg-theme-button-color)' }}
+                  >
+                    {packCount}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+                    Наборов
+                  </Typography>
+                </Box>
+
+                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                  <Typography
+                    variant="h5"
+                    fontWeight="bold"
+                    sx={{ color: 'var(--tg-theme-button-color)' }}
+                  >
+                    {totalStickers}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+                    Стикеров
+                  </Typography>
+                </Box>
+              </Box>
             </CardContent>
           </Card>
-        ))}
-      </Box>
-    </Container>
+        ) : null}
+      </Container>
+
+      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2 }}>
+        {setsError && !isSetsLoading && (
+          <Alert
+            severity="error"
+            sx={{
+              mt: 2,
+              mb: 2,
+              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              color: 'var(--tg-theme-text-color)',
+              border: '1px solid var(--tg-theme-border-color)'
+            }}
+          >
+            {setsError}
+          </Alert>
+        )}
+
+        {isSetsLoading ? (
+          <LoadingSpinner message="Загрузка стикерсетов..." />
+        ) : stickerSets.length === 0 ? (
+          <EmptyState
+            title="📁 Стикерсетов пока нет"
+            message="У этого автора пока нет опубликованных стикерсетов"
+          />
+        ) : (
+          <div className="fade-in">
+            <SimpleGallery packs={packs} onPackClick={handlePackClick} enablePreloading={true} />
+          </div>
+        )}
+      </Container>
+
+      <StickerPackModal
+        open={isModalOpen}
+        stickerSet={selectedStickerSet}
+        onClose={handleCloseModal}
+      />
+    </Box>
   );
 };
