@@ -35,6 +35,8 @@ Your code is legendary for being functional, concise, and robust. You never incl
 
 Before implementing any solution, briefly analyze the requirements and confirm understanding if anything is ambiguous. Always aim for the perfect balance between **simplicity, functionality, and elegance.**
 
+* Interfaces should follow harmonious proportions based on Fibonacci ratios (**0.618 / 0.382 / 0.5**) — размеры элементов, отступов, кнопок и блоков соотносятся с родительскими по этим коэффициентам. Это гарантирует визуальную красоту и баланс без перегруженности.
+
 ### Применение и приоритет
 
 - По умолчанию применять эти принципы ко всем фронтенд‑задачам в этом репозитории.
@@ -50,78 +52,78 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 
 ### API Integration
 - **Base URL**: `https://stickerartgallery-e13nst.amvera.io`
-- **Аутентификация**: всегда используй `X-Telegram-Init-Data` заголовок с `window.Telegram.WebApp.initData`
-- **Локализация**: поддерживаем `ru` и `en` (по умолчанию `en`) через заголовок `X-Language`
-- **Кэширование**: стикеры кэшируются в Redis на 7 дней, API GET запросы кэшируются Nginx на 10 минут
+- **Аутентификация**: всегда передавай заголовок `X-Telegram-Init-Data` с `window.Telegram.WebApp.initData`
+- **Локализация**: поддерживаются `ru` / `en` через заголовок `X-Language` или auto из initData
+- **Кэширование**: Redis (стикеры) — 7 дней, Nginx для `GET` — 10 минут
 
-### API Endpoints
+### API Endpoints (Swagger: https://stickerartgallery-e13nst.amvera.io/swagger-ui/index.html)
 
-#### Категории (Categories)
-- `GET /api/categories` — список активных категорий (поддержка `X-Language` для локализации)
-  - Response: `CategoryResponse[]` (id, key, name, description, displayOrder, isActive)
+#### Categories
+- `GET /api/categories` — активные категории (локализация, сортировка по `displayOrder`)
+- `POST /api/categories` — создать категорию (`key`, `nameRu`, `nameEn`, локализованные описания, `displayOrder`, `iconUrl`)
+- `GET /api/categories/{key}` — получить категорию по ключу
+- `PUT /api/categories/{key}` — обновить категорию
+- `DELETE /api/categories/{key}` — деактивировать категорию (`204 No Content`)
+- `GET /api/categories/counts` — активные категории + счётчики; фильтры: `officialOnly`, `authorId`, `hasAuthorOnly`
+- `GET /api/categories/{key}/count` — количество стикерсетов в категории
+- `GET /api/categories/ai/suggest` — AI-подбор категорий по `title` (кеш 1 ч)
+- `GET /api/categories/ai/test-chatgpt` и `POST /api/categories/ai/test-chatgpt` — админские проверки интеграции с ChatGPT (`message`, `prompt`)
 
-#### Стикерсеты (StickerSets)
-- `GET /api/stickersets` — список стикерсетов с пагинацией
-  - Params: `page`, `size`, `categoryKeys` (через запятую), `likedOnly`, `sort`, `direction` (ASC/DESC)
-  - Response: `StickerSetListResponse` (content, totalElements, totalPages, size, number)
-  - Fields: `likesCount`, `isLikedByCurrentUser` (используй nullish coalescing)
-- `GET /api/stickersets/search` — поиск стикерсетов по названию
-  - Params: `name`, `page`, `size`
-  - Response: `StickerSetListResponse`
-- `GET /api/stickersets/{id}` — получение стикерсета по ID
-  - Response: `StickerSetResponse` (полная информация о стикерсете)
-- `DELETE /api/stickersets/{id}` — удаление стикерсета (требует аутентификации)
-- `GET /api/stickersets/user/{userId}` — стикерсеты пользователя
-  - Params: `page`, `size`, `sort`, `direction`
-  - Response: `StickerSetListResponse`
-- `GET /api/stickersets/user/{userId}/search` — поиск стикерсетов пользователя
-  - Params: `name`, `page`, `size`
-  - Response: `StickerSetListResponse`
+#### StickerSets
+- `GET /api/stickersets` — список стикерсетов; параметры: `page`, `size`, `sort`, `direction`, `categoryKeys`, `likedOnly`, `officialOnly`, `authorId`, `hasAuthorOnly`
+- `POST /api/stickersets` — регистрация стикерсета; query/body: `name` (обяз.), `title`, `categoryKeys[]`, `isPublic`
+- `GET /api/stickersets/{id}` — подробности стикерсета
+- `DELETE /api/stickersets/{id}` — удалить (владелец/админ)
+- `PUT /api/stickersets/{id}/categories` — заменить категории (`string[]`)
+- `PUT /api/stickersets/{id}/author` / `DELETE /api/stickersets/{id}/author` — задать/очистить `authorId` (админ)
+- `PUT /api/stickersets/{id}/block` / `PUT /api/stickersets/{id}/unblock` — блокировка/разблокировка (админ)
+- `PUT /api/stickersets/{id}/official` / `PUT /api/stickersets/{id}/unofficial` — управление статусом `isOfficial` (админ)
+- `POST /api/stickersets/{id}/publish` / `POST /api/stickersets/{id}/unpublish` — публиковать/скрывать (владелец/админ)
+- `POST /api/stickersets/{id}/ai/suggest-categories` — AI-подбор категорий по `apply`, `minConfidence`
+- `GET /api/stickersets/search` — поиск по `name`
+- `GET /api/stickersets/top-bylikes` — топ по лайкам с пагинацией и фильтрами (`officialOnly`, `authorId`, `hasAuthorOnly`)
+- `GET /api/stickersets/user/{userId}` — стикерсеты пользователя (`page`, `size`, `sort`, `direction`)
 
-#### Аутентификация (Auth)
-- `GET /api/auth/status` — проверка статуса аутентификации
-  - Headers: `X-Telegram-Init-Data` (обязательно)
-  - Response: `AuthResponse` (user, authenticated, role)
+#### Auth
+- `GET /api/auth/status` — статус авторизации
+- `POST /api/auth/validate` — валидация initData (`{ ...initData }`)
+- `POST /api/auth/user` — получить данные пользователя по initData
+- `POST /api/auth/register` — регистрация/поиск пользователя по initData
 
-#### Лайки (Likes)
-- `PUT /api/likes/stickersets/{id}/toggle` — переключение лайка (единственный метод для like/unlike)
-  - Response: `{ isLiked: boolean, totalLikes: number }`
-  - **Важно**: используй ТОЛЬКО этот endpoint для работы с лайками
-- `GET /api/likes/stickersets` — лайкнутые стикерсеты текущего пользователя
-  - Params: `page`, `size`
-  - Response: `StickerSetListResponse`
-- `GET /api/likes/top-stickersets` — топ стикерсетов по лайкам
-  - Params: `limit` (default: 10)
-  - Response: `StickerSetResponse[]`
+#### Likes
+- `PUT /api/likes/stickersets/{stickerSetId}/toggle` — переключить лайк; ответ: `{ totalLikes, liked | isLiked }`
+- `POST /api/likes/stickersets/{stickerSetId}` — поставить лайк
+- `DELETE /api/likes/stickersets/{stickerSetId}` — убрать лайк
+- `GET /api/likes/stickersets` — лайкнутые стикерсеты (`page`, `size`)
+- `GET /api/likes` — лайки текущего пользователя (`page`, `size`)
+- `GET /api/likes/top-stickersets` — топ стикерсетов по лайкам (пагинация)
+- `GET /api/likes/test-system` — диагностика системы лайков
 
-#### Профили (Profiles)
-- `GET /api/profiles/{userId}` — профиль пользователя по ID
-  - Response: `ProfileResponse` (userId, user, role, artBalance)
+#### Profiles
 - `GET /api/profiles/me` — профиль текущего пользователя
-  - Response: `{ role: string, artBalance: number, userId: number }`
+- `GET /api/profiles/{userId}` — профиль по Telegram ID
+- `PUT /api/profiles/{userId}/balance` — установить баланс (админ, body: новое значение)
+- `POST /api/profiles/{userId}/balance/add` — добавить к балансу (админ, body: delta)
 
-#### Пользователи (Users)
-- `GET /api/users/{userId}/photo` — фото профиля пользователя
-  - Response: `{ profilePhotoFileId?: string, profilePhotos?: any }` или `404` если нет фото
+#### Users
+- `GET /api/users/{id}` — данные пользователя Telegram
+- `GET /api/users/{id}/photo` — фото профиля (`profilePhotoFileId`, `profilePhotos`)
 
-#### Прокси (Proxy)
-- `GET /api/proxy/stickers/{fileId}` — проксирование стикера по file_id
-  - Query: `?file=true|1` для агрессивного кэширования (14 дней)
-  - Query: `?size={size}` для указания размера изображения
-  - Response: `Blob` (изображение стикера)
-  - **Кэширование**: только при `file=true|1`, иначе не кэшируется
+#### Proxy
+- `GET /api/proxy/stickers/{fileId}` — прокси-файл стикера (`file`, `size`)
+- `GET /api/proxy/stickers/cache/stats` — статистика локального Redis-кеша
+- `GET /api/proxy/stickers/cache/external-stats` — статистика внешнего кеша
 
-#### Конфигурация (Config)
-- `GET /api/config` — конфигурация приложения
-  - Response: `{ botName: string, miniAppUrl: string }`
+#### Config
+- `GET /api/config` — конфигурация (`botName`, `miniAppUrl`)
 
 ### Likes System (критично!)
-- **Store**: `useLikesStore` (Zustand) с optimistic updates, debounce (500ms), rollback
-- **API**: используй ТОЛЬКО `PUT /api/likes/stickersets/{id}/toggle` (см. раздел "Лайки" выше)
-- **Field Mapping**: API возвращает разные названия в разных endpoints — всегда используй nullish coalescing:
+- **Store**: `useLikesStore` (Zustand) с optimistic updates, debounce (500 мс), rollback
+- **API**: основная синхронизация через `PUT /api/likes/stickersets/{id}/toggle`; `POST`/`DELETE` доступны, но используем только при явной необходимости
+- **Field Mapping**: API возвращает разные названия — применяй nullish coalescing:
   - `GET /stickersets`: `likesCount`, `isLikedByCurrentUser`
-  - `PUT /toggle`: `totalLikes`, `isLiked`
-  - Маппинг: `likesCount ?? totalLikes`, `isLikedByCurrentUser ?? isLiked`
+  - `PUT /toggle`: `totalLikes`, `liked ?? isLiked`
+  - Маппинг: `likesCount ?? totalLikes`, `isLikedByCurrentUser ?? liked ?? isLiked`
 - **Защита от race condition**: `initializeLikes` НЕ должна перезаписывать локальные изменения:
   - Если `syncing: true` → игнорировать API
   - Если изменение < 3 сек назад и API вернул ДРУГОЕ значение → игнорировать API (старый кэш)

@@ -349,20 +349,18 @@ export const DashboardPage: React.FC = () => {
             }}
           />
           <Box
+            className="category-filter-scroller"
             sx={{
-              position: 'relative',
               display: 'flex',
               flexDirection: 'row',
-              flexWrap: 'nowrap',
-              gap: 1.25,
+              gap: 'calc(1rem * 0.382)',
               overflowX: 'auto',
               overflowY: 'hidden',
+              padding: 'calc(1rem * 0.382)',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
-              '&::-webkit-scrollbar': {
-                display: 'none',
-              },
-              py: 0.5,
+              maskImage: 'linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent)',
+              WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 12%, black 88%, transparent)',
               width: '100vw',
               marginLeft: 'calc(-50vw + 50%)',
               paddingLeft: 'clamp(16px, 6vw, 36px)',
@@ -371,47 +369,36 @@ export const DashboardPage: React.FC = () => {
             }}
           >
             {quickActions.map((action) => (
-              <Button
+              <button
                 key={action.label}
-                variant="contained"
-                color="inherit"
-                disableElevation
-                disableRipple
+                type="button"
                 disabled
-                sx={{
-                  flex: '0 0 auto',
-                  minWidth: action.minWidth,
-                  borderRadius: 3,
+                style={{
+                  flexShrink: 0,
+                  minWidth: 'calc(1rem * 4.2)',
+                  padding: 'calc(1rem * 0.382) calc(1rem * 0.618)',
+                  borderRadius: 'calc(1rem * 0.618)',
+                  border: `1px solid color-mix(in srgb, ${action.glow} 60%, rgba(255,255,255,0.12))`,
+                  background: `linear-gradient(135deg, rgba(12,16,26,0.86) 0%, rgba(18,22,32,0.72) 60%)`,
+                  color: '#f1f5ff',
+                  fontSize: 'calc(1rem * 0.618)',
+                  fontWeight: 600,
+                  letterSpacing: '0.06em',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  fontWeight: 700,
-                  px: 2,
-                  whiteSpace: 'nowrap',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  backgroundImage: `radial-gradient(circle at 50% 20%, ${action.glow} 0%, rgba(17, 20, 29, 0) 72%)`,
-                  backgroundColor: 'rgba(17, 20, 29, 0.6) !important',
-                  color: '#f5f8ff !important',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(94, 109, 136, 0.22)',
-                  transition: 'background-color 0.25s ease, transform 0.25s ease, opacity 0.25s ease',
-                  opacity: 0.94,
-                  '&:hover': {
-                    backgroundColor: 'rgba(26, 30, 42, 0.78) !important',
-                    transform: 'translateY(-1px)',
-                  },
-                  '&:active': {
-                    backgroundColor: 'rgba(12, 15, 22, 0.84) !important',
-                    transform: 'translateY(1px)',
-                  },
-                  '&:focus-visible': {
-                    outline: '2px solid rgba(94, 109, 136, 0.42)',
-                    outlineOffset: '2px',
-                  },
+                  cursor: 'default',
+                  outline: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 'calc(1rem * 0.236)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                  backgroundBlendMode: 'soft-light',
+                  opacity: 0.92,
+                  filter: `drop-shadow(0 4px 16px ${action.glow})`,
                 }}
               >
                 {action.label}
-              </Button>
+              </button>
             ))}
           </Box>
         </Box>
@@ -420,6 +407,78 @@ export const DashboardPage: React.FC = () => {
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
+            {topStickerSets.length > 0 && (
+              <Box sx={{ mt: 2, mb: 3 }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{
+                    color: 'var(--tg-theme-text-color)',
+                    mb: 2,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
+                  ТОП-5 СТИКЕРОВ
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    gap: 2,
+                    pb: 2,
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'var(--tg-theme-hint-color) transparent',
+                    '&::-webkit-scrollbar': {
+                      height: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: 'transparent',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: 'var(--tg-theme-hint-color)',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      background: 'var(--tg-theme-button-color)',
+                    },
+                  }}
+                >
+                  {adaptStickerSetsToGalleryPacks(topStickerSets).map((pack) => (
+                    <Box
+                      key={pack.id}
+                      sx={{
+                        flexShrink: 0,
+                        width: { xs: '144px', sm: '233px' },
+                      }}
+                    >
+                      <Box 
+                        sx={{ 
+                          width: '100%',
+                          '& .pack-card': {
+                            width: '100% !important',
+                            height: 'auto !important',
+                            aspectRatio: '1 / 1.618',
+                          },
+                        }}
+                      >
+                        <PackCard
+                          pack={pack}
+                          onClick={(packId) => {
+                            const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
+                            if (stickerSet) {
+                              setSelectedStickerSet(stickerSet);
+                              setIsModalOpen(true);
+                            }
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
+
             {/* Топ-5 авторов */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid 
@@ -468,80 +527,6 @@ export const DashboardPage: React.FC = () => {
             {/* Топ-5 категорий */}
             {topCategories.length > 0 && (
               <TopCategories categories={topCategories} />
-            )}
-
-
-            {/* Топ-5 стикерсетов с наибольшими лайками */}
-            {topStickerSets.length > 0 && (
-              <Box sx={{ mt: 4 }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{
-                    color: 'var(--tg-theme-text-color)',
-                    mb: 2,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  ТОП-5 СТИКЕРОВ
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    overflowX: 'auto',
-                    overflowY: 'hidden',
-                    gap: 2,
-                    pb: 2,
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'var(--tg-theme-hint-color) transparent',
-                    '&::-webkit-scrollbar': {
-                      height: '8px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: 'transparent',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: 'var(--tg-theme-hint-color)',
-                      borderRadius: '4px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      background: 'var(--tg-theme-button-color)',
-                    },
-                  }}
-                >
-                  {adaptStickerSetsToGalleryPacks(topStickerSets).map((pack) => (
-                    <Box
-                      key={pack.id}
-                      sx={{
-                        flexShrink: 0,
-                        width: { xs: '144px', sm: '233px' }, // Гармонические значения Фибоначчи: 144 (F12), 233 (F13)
-                      }}
-                    >
-                      <Box 
-                        sx={{ 
-                          width: '100%',
-                          '& .pack-card': {
-                            width: '100% !important',
-                            height: 'auto !important',
-                            aspectRatio: '1 / 1.618', // Золотое сечение
-                          },
-                        }}
-                      >
-                        <PackCard
-                          pack={pack}
-                          onClick={(packId) => {
-                            const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
-                            if (stickerSet) {
-                              setSelectedStickerSet(stickerSet);
-                              setIsModalOpen(true);
-                            }
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
             )}
           </>
         ) : (

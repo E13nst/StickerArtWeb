@@ -212,7 +212,7 @@ class ApiClient {
   // Создание нового стикерсета
   async createStickerSet(payload: CreateStickerSetRequest): Promise<StickerSetResponse> {
     try {
-      const response = await this.client.post<StickerSetResponse>('/stickersets', payload);
+      const response = await this.client.post<StickerSetResponse>('/stickersets', null, { params: payload });
       return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка при создании стикерсета:', error);
