@@ -283,7 +283,7 @@ class ApiClient {
   // Создание нового стикерсета
   async createStickerSet(payload: CreateStickerSetRequest): Promise<StickerSetResponse> {
     try {
-      const response = await this.client.post<StickerSetResponse>('/stickersets', null, { params: payload });
+      const response = await this.client.post<StickerSetResponse>('/stickersets', payload);
       return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка при создании стикерсета:', error);
@@ -352,28 +352,7 @@ class ApiClient {
   // Обновление категорий стикерсета
   async updateStickerSetCategories(id: number, categoryKeys: string[]): Promise<StickerSetResponse> {
     try {
-      const response = await this.client.put<StickerSetResponse>(
-        `/stickersets/${id}/categories`,
-        null,
-        {
-          params: { categoryKeys },
-          paramsSerializer: (params) => {
-            const searchParams = new URLSearchParams();
-            Object.entries(params).forEach(([key, value]) => {
-              if (Array.isArray(value)) {
-                value.forEach((item) => {
-                  if (item !== undefined && item !== null) {
-                    searchParams.append(key, String(item));
-                  }
-                });
-              } else if (value !== undefined && value !== null) {
-                searchParams.append(key, String(value));
-              }
-            });
-            return searchParams.toString();
-          }
-        }
-      );
+      const response = await this.client.put<StickerSetResponse>(`/stickersets/${id}/categories`, categoryKeys);
       return response.data;
     } catch (error: any) {
       console.error(`❌ Ошибка при обновлении категорий стикерсета ${id}:`, error);
