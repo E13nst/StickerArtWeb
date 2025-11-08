@@ -10,12 +10,14 @@ export const AuthorPage: React.FC = () => {
   const authorId = id ? Number(id) : null;
   const { initData, user } = useTelegram();
 
-  const [username, setUsername] = useState<string | null>(null);
+  const [authorName, setAuthorName] = useState<string | null>(null);
+  const [authorRole, setAuthorRole] = useState<string | null>(null);
   const [stickerSets, setStickerSets] = useState<StickerSetResponse[]>([]);
 
   useEffect(() => {
     if (!authorId || Number.isNaN(authorId)) {
-      setUsername(null);
+      setAuthorName(null);
+      setAuthorRole(null);
       setStickerSets([]);
       return;
     }
@@ -25,34 +27,41 @@ export const AuthorPage: React.FC = () => {
 
     let isMounted = true;
 
-    (async () => {
-      try {
-        const profile = await apiClient.getProfileStrict(authorId);
-        if (!isMounted) {
-          return;
-        }
-        const rawUsername = profile.user?.username?.trim();
-        setUsername(rawUsername && rawUsername.length > 0 ? rawUsername : null);
-      } catch {
-        if (isMounted) {
-          setUsername(null);
-        }
-      }
-    })();
+    const loadAuthor = async () => {
+      const [userResult, profileResult, setsResult] = await Promise.allSettled([
+        apiClient.getTelegramUser(authorId),
+        apiClient.getProfileStrict(authorId),
+        apiClient.getStickerSetsByAuthor(authorId, 0, 24)
+      ]);
 
-    (async () => {
-      try {
-        const response = await apiClient.getStickerSetsByAuthor(authorId, 0, 24);
-        if (!isMounted) {
-          return;
-        }
-        setStickerSets(response.content || []);
-      } catch {
-        if (isMounted) {
-          setStickerSets([]);
-        }
+      if (!isMounted) {
+        return;
       }
-    })();
+
+      if (userResult.status === 'fulfilled') {
+        const value = userResult.value;
+        const fromUsername = value.username?.trim();
+        const fallback = [value.firstName, value.lastName].filter(Boolean).join(' ').trim();
+        const display = fromUsername && fromUsername.length > 0 ? `@${fromUsername}` : fallback || null;
+        setAuthorName(display);
+      } else {
+        setAuthorName(null);
+      }
+
+      if (profileResult.status === 'fulfilled') {
+        setAuthorRole(profileResult.value.role ?? null);
+      } else {
+        setAuthorRole(null);
+      }
+
+      if (setsResult.status === 'fulfilled') {
+        setStickerSets(setsResult.value.content || []);
+      } else {
+        setStickerSets([]);
+      }
+    };
+
+    loadAuthor();
 
     return () => {
       isMounted = false;
@@ -65,17 +74,29 @@ export const AuthorPage: React.FC = () => {
 
   return (
     <Container maxWidth="sm" sx={{ py: 'calc(1rem * 0.618)' }}>
-      {username && (
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 600,
-            marginBottom: 'calc(1rem * 0.618)',
-            fontSize: 'calc(1rem * 1.0)'
-          }}
-        >
-          @{username}
-        </Typography>
+      {authorName && (
+        <Box sx={{ marginBottom: 'calc(1rem * 0.5)' }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              fontSize: 'calc(1rem * 1.0)'
+            }}
+          >
+            {authorName}
+          </Typography>
+          {authorRole && (
+            <Typography
+              variant="body2"
+              sx={{
+                marginTop: 'calc(1rem * 0.236)',
+                color: 'text.secondary'
+              }}
+            >
+              Role: {authorRole}
+            </Typography>
+          )}
+        </Box>
       )}
 
       <Box

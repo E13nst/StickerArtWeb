@@ -3,6 +3,15 @@ import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMet
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
+interface TelegramApiUser {
+  id: number;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  languageCode?: string;
+  isPremium?: boolean;
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private language: string;
@@ -263,6 +272,11 @@ class ApiClient {
     const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
       params: { page, size, sort, direction }
     });
+    return response.data;
+  }
+
+  async getTelegramUser(userId: number): Promise<TelegramApiUser> {
+    const response = await this.client.get<TelegramApiUser>(`/users/${userId}`);
     return response.data;
   }
 

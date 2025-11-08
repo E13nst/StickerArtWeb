@@ -226,12 +226,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
     (async () => {
       try {
-        const profile = await apiClient.getProfileStrict(targetAuthorId);
+        const userInfo = await apiClient.getTelegramUser(targetAuthorId);
         if (!isMounted) {
           return;
         }
-        const username = profile.user?.username?.trim();
-        setAuthorUsername(username && username.length > 0 ? username : null);
+        const fromUsername = userInfo.username?.trim();
+        const fallbackName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ').trim();
+        const displayName = fromUsername && fromUsername.length > 0 ? `@${fromUsername}` : fallbackName || null;
+        setAuthorUsername(displayName);
       } catch {
         if (isMounted) {
           setAuthorUsername(null);
