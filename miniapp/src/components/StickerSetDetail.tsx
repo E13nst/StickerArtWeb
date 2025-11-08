@@ -94,6 +94,8 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
   return (
     <Box
       ref={containerRef}
+      data-thumbnail-index={index}
+      data-active={index === activeIndex}
       onClick={() => onClick(index)}
       sx={{
         flex: '0 0 auto',
@@ -194,6 +196,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [authorUsername, setAuthorUsername] = useState<string | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchCurrentXRef = useRef<number | null>(null);
+  const touchHandledRef = useRef(false);
 
   // Используем глобальный store для лайков с селекторами для автоматического обновления
   const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
@@ -413,6 +418,84 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     setActiveIndex(idx);
   }, []);
 
+  const goToNextSticker = useCallback(() => {
+    if (stickerCount <= 1) return;
+    setActiveIndex((prev) => (prev + 1) % stickerCount);
+  }, [stickerCount]);
+
+  const goToPreviousSticker = useCallback(() => {
+    if (stickerCount <= 1) return;
+    setActiveIndex((prev) => (prev - 1 + stickerCount) % stickerCount);
+  }, [stickerCount]);
+
+  const handlePreviewClick = useCallback(() => {
+    if (touchHandledRef.current) {
+      touchHandledRef.current = false;
+      return;
+    }
+    goToNextSticker();
+  }, [goToNextSticker]);
+
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+    if (stickerCount <= 1) return;
+    const touch = event.touches[0];
+    touchStartXRef.current = touch.clientX;
+    touchCurrentXRef.current = touch.clientX;
+  }, [stickerCount]);
+
+  const handleTouchMove = useCallback((event: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return;
+    touchCurrentXRef.current = event.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (stickerCount <= 1) return;
+    const start = touchStartXRef.current;
+    const end = touchCurrentXRef.current ?? start;
+
+    if (start !== null && end !== null) {
+      const delta = end - start;
+      if (Math.abs(delta) > 40) {
+        if (delta > 0) {
+          goToPreviousSticker();
+        } else {
+          goToNextSticker();
+        }
+      } else {
+        goToNextSticker();
+      }
+    }
+
+    touchStartXRef.current = null;
+    touchCurrentXRef.current = null;
+    touchHandledRef.current = true;
+    window.setTimeout(() => {
+      touchHandledRef.current = false;
+    }, 0);
+  }, [goToNextSticker, goToPreviousSticker, stickerCount]);
+
+  const handleTouchCancel = useCallback(() => {
+    touchStartXRef.current = null;
+    touchCurrentXRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!scrollerRef.current) return;
+    const container = scrollerRef.current;
+    const activeThumbnail = container.querySelector<HTMLElement>(`[data-thumbnail-index="${activeIndex}"]`);
+    if (!activeThumbnail) return;
+
+    const containerWidth = container.clientWidth;
+    const elementWidth = activeThumbnail.offsetWidth;
+    const elementLeft = activeThumbnail.offsetLeft;
+
+    const targetLeft = elementLeft - (containerWidth - elementWidth) / 2;
+    container.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: 'smooth'
+    });
+  }, [activeIndex]);
+
   const handleLikeClick = async () => {
     const willLike = !liked;
     setLikeAnim(true);
@@ -559,13 +642,30 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             justifyContent: 'center',
             marginTop: 'var(--tg-spacing-3)'
           }}>
-            <AnimatedSticker
-              key={`sticker-${activeIndex}`}
-              fileId={stickers[activeIndex]?.file_id}
-              imageUrl={getStickerImageUrl(stickers[activeIndex]?.file_id)}
-              hidePlaceholder
-              className={''}
-            />
+            <Box
+              sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: stickerCount > 1 ? 'pointer' : 'default',
+                touchAction: 'pan-y'
+              }}
+              onClick={handlePreviewClick}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchCancel}
+            >
+              <AnimatedSticker
+                key={`sticker-${activeIndex}`}
+                fileId={stickers[activeIndex]?.file_id}
+                imageUrl={getStickerImageUrl(stickers[activeIndex]?.file_id)}
+                hidePlaceholder
+                className={''}
+              />
+            </Box>
             <IconButton
               aria-label="close"
               onClick={onBack}
