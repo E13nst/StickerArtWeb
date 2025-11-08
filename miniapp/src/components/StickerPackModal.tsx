@@ -8,9 +8,20 @@ interface StickerPackModalProps {
   stickerSet: StickerSetResponse | null;
   onClose: () => void;
   onLike?: (id: number, title: string) => void;
+  enableCategoryEditing?: boolean;
+  infoVariant?: 'default' | 'minimal';
+  onCategoriesUpdated?: (updated: StickerSetResponse) => void;
 }
 
-export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, stickerSet, onClose, onLike }) => {
+export const StickerPackModal: React.FC<StickerPackModalProps> = ({
+  open,
+  stickerSet,
+  onClose,
+  onLike,
+  enableCategoryEditing = false,
+  infoVariant = 'default',
+  onCategoriesUpdated
+}) => {
   if (!stickerSet) return null;
 
   return (
@@ -22,6 +33,9 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({ open, sticke
         onLike={onLike}
         isInTelegramApp={true}
         isModal={true}
+        enableCategoryEditing={enableCategoryEditing}
+        infoVariant={infoVariant}
+        onCategoriesUpdated={onCategoriesUpdated}
       />
     </ModalBackdrop>
   );

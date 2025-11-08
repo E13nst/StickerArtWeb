@@ -1,15 +1,23 @@
 import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   IconButton,
   Card,
-  CardContent
+  CardContent,
+  Button,
+  Chip,
+  CircularProgress,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
-import { StickerSetResponse } from '@/types/sticker';
+import { StickerSetResponse, CategoryResponse, CategorySuggestion } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
 import { AnimatedSticker } from './AnimatedSticker';
@@ -166,6 +174,9 @@ interface StickerSetDetailProps {
   onLike?: (id: number, title: string) => void;
   isInTelegramApp?: boolean;
   isModal?: boolean;
+  enableCategoryEditing?: boolean;
+  infoVariant?: 'default' | 'minimal';
+  onCategoriesUpdated?: (updated: StickerSetResponse) => void;
 }
 
 export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
@@ -174,7 +185,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   onShare,
   onLike,
   isInTelegramApp: _isInTelegramApp = false,
-  isModal = false
+  isModal = false,
+  enableCategoryEditing = false,
+  infoVariant = 'default',
+  onCategoriesUpdated
 }) => {
   const { initData, user } = useTelegram();
   // Оптимистичный UI: показываем данные из пропсов сразу, обновляем когда загрузятся полные данные
@@ -199,6 +213,34 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const touchStartXRef = useRef<number | null>(null);
   const touchCurrentXRef = useRef<number | null>(null);
   const touchHandledRef = useRef(false);
+  const [isCategoriesDialogOpen, setIsCategoriesDialogOpen] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<CategoryResponse[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
+  const [selectedCategoryKeys, setSelectedCategoryKeys] = useState<string[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<CategorySuggestion[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [isSavingCategories, setIsSavingCategories] = useState(false);
+  const [categorySaveError, setCategorySaveError] = useState<string | null>(null);
+  const canEditCategories = enableCategoryEditing;
+  const displayedCategories = useMemo(() => {
+    return fullStickerSet?.categories ?? stickerSet.categories ?? [];
+  }, [fullStickerSet?.categories, stickerSet.categories]);
+  const currentCategoryKeys = useMemo(() => {
+    return displayedCategories
+      .map((category) => category?.key)
+      .filter((key): key is string => Boolean(key));
+  }, [displayedCategories]);
+  const displayTitle = useMemo(() => {
+    return fullStickerSet?.title || stickerSet.title;
+  }, [fullStickerSet?.title, stickerSet.title]);
+
+  useEffect(() => {
+    if (!isCategoriesDialogOpen) {
+      setSelectedCategoryKeys(currentCategoryKeys);
+    }
+  }, [currentCategoryKeys, isCategoriesDialogOpen]);
 
   // Используем глобальный store для лайков с селекторами для автоматического обновления
   const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
@@ -478,6 +520,84 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     touchStartXRef.current = null;
     touchCurrentXRef.current = null;
   }, []);
+
+  const loadCategories = useCallback(async () => {
+    if (availableCategories.length > 0) {
+      return;
+    }
+    setCategoriesLoading(true);
+    setCategoriesLoadError(null);
+    try {
+      const data = await apiClient.getCategories();
+      setAvailableCategories(data);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Не удалось загрузить категории';
+      setCategoriesLoadError(message);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, [availableCategories.length]);
+
+  const fetchAiSuggestions = useCallback(async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const result = await apiClient.suggestCategoriesForStickerSet(stickerSet.id, { apply: false });
+      setAiSuggestions(result?.suggestedCategories ?? []);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Не удалось получить предложения AI';
+      setAiError(message);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [stickerSet.id]);
+
+  const handleOpenCategoriesDialog = useCallback(() => {
+    setSelectedCategoryKeys(currentCategoryKeys);
+    setCategorySaveError(null);
+    setAiError(null);
+    setCategoriesLoadError(null);
+    setIsCategoriesDialogOpen(true);
+    loadCategories();
+    fetchAiSuggestions();
+  }, [currentCategoryKeys, fetchAiSuggestions, loadCategories]);
+
+  const handleCloseCategoriesDialog = useCallback(() => {
+    if (isSavingCategories) return;
+    setIsCategoriesDialogOpen(false);
+  }, [isSavingCategories]);
+
+  const handleToggleCategory = useCallback((key: string) => {
+    setSelectedCategoryKeys((prev) => {
+      if (prev.includes(key)) {
+        return prev.filter((item) => item !== key);
+      }
+      return [...prev, key];
+    });
+  }, []);
+
+  const handleSaveCategories = useCallback(async () => {
+    setIsSavingCategories(true);
+    setCategorySaveError(null);
+    try {
+      const updated = await apiClient.updateStickerSetCategories(stickerSet.id, selectedCategoryKeys);
+      setFullStickerSet(updated);
+      onCategoriesUpdated?.(updated);
+      setIsCategoriesDialogOpen(false);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Не удалось сохранить категории. Попробуйте позже.';
+      setCategorySaveError(message);
+    } finally {
+      setIsSavingCategories(false);
+    }
+  }, [selectedCategoryKeys, stickerSet.id, onCategoriesUpdated]);
+
+  const handleApplySuggestionAll = useCallback(() => {
+    const suggestionKeys = aiSuggestions
+      .map((suggestion) => suggestion.categoryKey)
+      .filter((key): key is string => Boolean(key));
+    setSelectedCategoryKeys((prev) => Array.from(new Set([...prev, ...suggestionKeys])));
+  }, [aiSuggestions]);
 
   useEffect(() => {
     if (!scrollerRef.current) return;
@@ -774,17 +894,20 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
           color: 'white !important' // Белый цвет текста для контраста
         }}>
-          <Typography variant="h5" sx={{ 
-            textAlign: 'center', 
-            fontWeight: 700,
-            color: 'white !important', // Явно белый цвет для хорошей видимости
-            fontSize: 'var(--tg-font-size-xxl)',
-            textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)', // Усиленная тень для контраста
-            marginBottom: 'var(--tg-spacing-2)'
-          }}>
-            {stickerSet.title}
+          <Typography
+            variant="h5"
+            sx={{
+              textAlign: 'center',
+              fontWeight: 700,
+              color: 'white !important',
+              fontSize: 'var(--tg-font-size-xxl)',
+              textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)',
+              marginBottom: 'var(--tg-spacing-2)'
+            }}
+          >
+            {displayTitle}
           </Typography>
-          {authorUsername && stickerSet.authorId && (
+          {infoVariant === 'default' && authorUsername && stickerSet.authorId && (
             <Box
               sx={{
                 display: 'flex',
@@ -811,95 +934,237 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               </Typography>
             </Box>
           )}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>
-            <IconButton
-              aria-label="like"
-              onClick={handleLikeClick}
-              sx={{
-                width: 48,
-                height: 48,
-                backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.2)',
-                color: liked ? 'error.main' : 'white',
-                borderRadius: 'var(--tg-radius-l)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
-                transform: likeAnim ? 'scale(1.2)' : 'scale(1.0)',
-                '&:hover': { 
-                  backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)'
-                }
-              }}
-            >
-              <FavoriteIcon />
-            </IconButton>
-            <Typography variant="body2" sx={{ 
-              minWidth: 24, 
-              textAlign: 'center',
-              color: 'white !important', // Явно белый цвет
-              fontWeight: 600,
-              fontSize: 'var(--tg-font-size-m)',
-              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)' // Усиленная тень для контраста
-            }}>
-              {likes}
-            </Typography>
-            <IconButton
-              aria-label="share"
-              onClick={handleShareClick}
-              sx={{
-                width: 44,
-                height: 44,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                borderRadius: 'var(--tg-radius-l)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
-                '&:hover': { 
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  transform: 'scale(1.05)' 
-                }
-              }}
-            >
-              <ShareIcon />
-            </IconButton>
-          </Box>
-          {/* Категории горизонтальная скролл лента */}
-          {(fullStickerSet?.categories && fullStickerSet.categories.length > 0) && (
-            <Box sx={{ 
-              display: 'flex',
-              gap: '8px',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              padding: 'var(--tg-spacing-3)',
-              marginTop: 'var(--tg-spacing-3)',
-              scrollbarWidth: 'none',
-              '&::-webkit-scrollbar': { display: 'none' },
-              maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-              WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-            }}>
-              {fullStickerSet.categories.map((category) => (
-                <Box
-                  key={category.id}
-                  sx={{
-                    flexShrink: 0,
-                    padding: '4px 12px',
-                    borderRadius: '13px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.25)', // Более яркий фон для категорий
-                    color: 'white !important', // Явно белый цвет
-                    fontSize: '14px',
-                    fontWeight: 600, // Более жирный шрифт
-                    whiteSpace: 'nowrap',
-                    border: '1px solid rgba(255, 255, 255, 0.4)', // Более яркая рамка
-                    textShadow: '0 1px 2px rgba(0,0,0,0.8)', // Тень для текста
-                  }}
-                >
-                  {category.name}
-                </Box>
-              ))}
+          {infoVariant === 'default' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>
+              <IconButton
+                aria-label="like"
+                onClick={handleLikeClick}
+                sx={{
+                  width: 48,
+                  height: 48,
+                  backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.2)',
+                  color: liked ? 'error.main' : 'white',
+                  borderRadius: 'var(--tg-radius-l)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
+                  transform: likeAnim ? 'scale(1.2)' : 'scale(1.0)',
+                  '&:hover': {
+                    backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.5)'
+                  }
+                }}
+              >
+                <FavoriteIcon />
+              </IconButton>
+              <Typography variant="body2" sx={{
+                minWidth: 24,
+                textAlign: 'center',
+                color: 'white !important',
+                fontWeight: 600,
+                fontSize: 'var(--tg-font-size-m)',
+                textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)'
+              }}>
+                {likes}
+              </Typography>
+              <IconButton
+                aria-label="share"
+                onClick={handleShareClick}
+                sx={{
+                  width: 44,
+                  height: 44,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  borderRadius: 'var(--tg-radius-l)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              >
+                <ShareIcon />
+              </IconButton>
             </Box>
           )}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--tg-spacing-3)',
+              marginTop: 'var(--tg-spacing-3)',
+              flexWrap: 'wrap'
+            }}
+          >
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: 'flex',
+                gap: '8px',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                padding: 'var(--tg-spacing-3)',
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+                maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                minHeight: 44
+              }}
+            >
+              {displayedCategories.length > 0 ? (
+                displayedCategories.map((category) => (
+                  <Box
+                    key={category.id}
+                    sx={{
+                      flexShrink: 0,
+                      padding: '4px 12px',
+                      borderRadius: '13px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      color: 'white !important',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                    }}
+                  >
+                    {category.name}
+                  </Box>
+                ))
+              ) : (
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Категории не назначены
+                </Typography>
+              )}
+            </Box>
+            {canEditCategories && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleOpenCategoriesDialog}
+                sx={{
+                  whiteSpace: 'nowrap',
+                  alignSelf: 'center'
+                }}
+              >
+                Изменить
+              </Button>
+            )}
+          </Box>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={isCategoriesDialogOpen}
+        onClose={handleCloseCategoriesDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Изменить категории</DialogTitle>
+        <DialogContent dividers>
+          {categorySaveError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {categorySaveError}
+            </Alert>
+          )}
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+            Предложения AI
+          </Typography>
+          {aiLoading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <CircularProgress size={18} />
+              <Typography variant="body2">AI подбирает категории…</Typography>
+            </Box>
+          ) : aiError ? (
+            <Alert severity="info" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span>{aiError}</span>
+              <Button variant="outlined" size="small" onClick={fetchAiSuggestions}>
+                Повторить запрос
+              </Button>
+            </Alert>
+          ) : aiSuggestions.length > 0 ? (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
+              {aiSuggestions.map((suggestion) => {
+                if (!suggestion.categoryKey) return null;
+                const isSelected = selectedCategoryKeys.includes(suggestion.categoryKey);
+                return (
+                  <Chip
+                    key={`ai-${suggestion.categoryKey}`}
+                    label={`${suggestion.categoryName ?? suggestion.categoryKey}${suggestion.confidence ? ` · ${(suggestion.confidence * 100).toFixed(0)}%` : ''}`}
+                    color={isSelected ? 'primary' : 'default'}
+                    variant={isSelected ? 'filled' : 'outlined'}
+                    onClick={() => handleToggleCategory(suggestion.categoryKey!)}
+                  />
+                );
+              })}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+              AI не нашёл подходящих категорий для этого набора.
+            </Typography>
+          )}
+          {aiSuggestions.length > 0 && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleApplySuggestionAll}
+              sx={{ mb: 3 }}
+            >
+              Добавить все предложенные
+            </Button>
+          )}
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+            Доступные категории
+          </Typography>
+          {categoriesLoading && availableCategories.length === 0 ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <CircularProgress size={18} />
+              <Typography variant="body2">Загрузка категорий…</Typography>
+            </Box>
+          ) : categoriesLoadError ? (
+            <Alert severity="error" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span>{categoriesLoadError}</span>
+              <Button variant="outlined" size="small" onClick={loadCategories}>
+                Повторить загрузку
+              </Button>
+            </Alert>
+          ) : (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, mb: 2 }}>
+              {availableCategories.map((category) => {
+                const isSelected = selectedCategoryKeys.includes(category.key);
+                return (
+                  <Chip
+                    key={category.key}
+                    label={category.name}
+                    color={isSelected ? 'primary' : 'default'}
+                    variant={isSelected ? 'filled' : 'outlined'}
+                    onClick={() => handleToggleCategory(category.key)}
+                  />
+                );
+              })}
+            </Box>
+          )}
+
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Выбрано категорий: {selectedCategoryKeys.length}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseCategoriesDialog} disabled={isSavingCategories}>
+            Отмена
+          </Button>
+          <Button
+            onClick={handleSaveCategories}
+            variant="contained"
+            disabled={isSavingCategories}
+          >
+            {isSavingCategories ? 'Сохраняем…' : 'Сохранить'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

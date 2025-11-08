@@ -95,6 +95,8 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const [suggestionsFetched, setSuggestionsFetched] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isCreatedPackModalOpen, setIsCreatedPackModalOpen] = useState(false);
+  const [createdPackForDetail, setCreatedPackForDetail] = useState<StickerSetResponse | null>(null);
   const [linkErrorDetails, setLinkErrorDetails] = useState<string[]>([]);
   const [categoriesErrorDetails, setCategoriesErrorDetails] = useState<string[]>([]);
 
@@ -167,14 +169,13 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         console.warn('⚠️ Не удалось загрузить полные данные стикерсета сразу после создания', fetchError);
       }
 
-      setCreatedStickerSet(hydratedStickerSet);
+      if (onComplete) {
+        await onComplete(hydratedStickerSet);
+      }
 
-      const existingCategoryKeys = (hydratedStickerSet.categories || [])
-        .map((category) => category?.key)
-        .filter((key): key is string => Boolean(key));
-      setSelectedCategories(existingCategoryKeys);
-
-      setStep('categories');
+      resetState();
+      setCreatedPackForDetail(hydratedStickerSet);
+      setIsCreatedPackModalOpen(true);
     } catch (error: any) {
       const messages = extractErrorMessages(error, 'Не удалось создать стикерсет. Проверьте ссылку и попробуйте снова.');
       setLinkError(messages[0]);
@@ -764,53 +765,75 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   return (
     <>
-      <ModalBackdrop open={open} onClose={handleClose}>
-      <Box
-        sx={{
-          width: '90%',
-          maxWidth: '440px',
-          maxHeight: 'calc(100vh - 32px)',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color, #ffffff)',
-          borderRadius: '16px',
-          padding: { xs: '20px 18px', sm: '24px' },
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          animation: open ? 'modalSlideIn 0.3s ease-out' : 'modalSlideOut 0.2s ease-in',
-          '@keyframes modalSlideIn': {
-            '0%': {
-              opacity: 0,
-              transform: 'translateY(-20px) scale(0.95)'
-            },
-            '100%': {
-              opacity: 1,
-              transform: 'translateY(0) scale(1)'
-            }
-          },
-          '@keyframes modalSlideOut': {
-            '0%': {
-              opacity: 1,
-              transform: 'translateY(0) scale(1)'
-            },
-            '100%': {
-              opacity: 0,
-              transform: 'translateY(-20px) scale(0.95)'
-            }
-          }
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
-      </Box>
-      </ModalBackdrop>
+      {open && !isCreatedPackModalOpen && (
+        <ModalBackdrop open={open} onClose={handleClose}>
+          <Box
+            sx={{
+              width: '90%',
+              maxWidth: '440px',
+              maxHeight: 'calc(100vh - 32px)',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color, #ffffff)',
+              borderRadius: '16px',
+              padding: { xs: '20px 18px', sm: '24px' },
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              animation: open ? 'modalSlideIn 0.3s ease-out' : 'modalSlideOut 0.2s ease-in',
+              '@keyframes modalSlideIn': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateY(-20px) scale(0.95)'
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateY(0) scale(1)'
+                }
+              },
+              '@keyframes modalSlideOut': {
+                '0%': {
+                  opacity: 1,
+                  transform: 'translateY(0) scale(1)'
+                },
+                '100%': {
+                  opacity: 0,
+                  transform: 'translateY(-20px) scale(0.95)'
+                }
+              }
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
+          </Box>
+        </ModalBackdrop>
+      )}
 
       <StickerPackModal
         open={isPreviewModalOpen && Boolean(createdStickerSet)}
         stickerSet={createdStickerSet}
         onClose={() => setIsPreviewModalOpen(false)}
+      />
+
+      <StickerPackModal
+        open={isCreatedPackModalOpen && Boolean(createdPackForDetail)}
+        stickerSet={createdPackForDetail}
+        onClose={() => {
+          setIsCreatedPackModalOpen(false);
+          setCreatedPackForDetail(null);
+          resetState();
+          onClose();
+        }}
+        enableCategoryEditing
+        infoVariant="minimal"
+        onCategoriesUpdated={async (updated) => {
+          setCreatedPackForDetail(updated);
+          setCreatedStickerSet(updated);
+          if (onComplete) {
+            await onComplete(updated);
+          }
+        }}
       />
     </>
   );

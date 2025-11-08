@@ -394,6 +394,28 @@ class ApiClient {
     }
   }
 
+  async suggestCategoriesForStickerSet(
+    id: number,
+    options: { apply?: boolean; minConfidence?: number } = {}
+  ): Promise<CategorySuggestionResult> {
+    try {
+      const response = await this.client.post<CategorySuggestionResult>(
+        `/stickersets/${id}/ai/suggest-categories`,
+        null,
+        {
+          params: {
+            apply: options.apply ?? false,
+            minConfidence: options.minConfidence
+          }
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при запросе AI категорий для стикерсета ${id}:`, error);
+      throw error;
+    }
+  }
+
   // Удаление стикерсета
   async deleteStickerSet(id: number): Promise<void> {
     await this.client.delete(`/stickersets/${id}`);
