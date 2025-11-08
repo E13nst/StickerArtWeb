@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Avatar, Box } from '@mui/material';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { UserInfo } from '@/store/useProfileStore';
@@ -25,7 +25,17 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
 
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
-  const avatarUrl = userInfo.avatarUrl || getAvatarUrl(userInfo.profilePhotoFileId);
+  const avatarSrc = useMemo(() => {
+    if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('blob:')) {
+      return userInfo.avatarUrl;
+    }
+    return userInfo.avatarUrl || getAvatarUrl(userInfo.profilePhotoFileId);
+  }, [userInfo.avatarUrl, userInfo.profilePhotoFileId]);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarSrc]);
+
   const initials = getInitials(firstName, lastName);
   const avatarBgColor = getAvatarColor(firstName);
 
@@ -48,7 +58,7 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
       }}
     >
       <Avatar
-        src={!avatarError ? avatarUrl : undefined}
+        src={!avatarError ? avatarSrc : undefined}
         imgProps={{
           onError: () => setAvatarError(true),
           loading: 'lazy'

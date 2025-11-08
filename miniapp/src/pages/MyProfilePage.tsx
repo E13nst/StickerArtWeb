@@ -33,6 +33,7 @@ import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { SortButton } from '@/components/SortButton';
+import { StickerSetResponse } from '@/types/stickerSet';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -90,6 +91,18 @@ export const MyProfilePage: React.FC = () => {
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
+
+  const filterOwnSets = useCallback((sets: StickerSetResponse[] | undefined, ownerId: number) => {
+    if (!sets || !Array.isArray(sets)) {
+      return [];
+    }
+    return sets.filter((set) => {
+      if (typeof set.userId === 'number') {
+        return set.userId === ownerId;
+      }
+      return true;
+    });
+  }, []);
 
 
   // Получаем telegramId текущего пользователя
@@ -299,41 +312,37 @@ export const MyProfilePage: React.FC = () => {
       // Если есть поисковый запрос, используем специальный эндпоинт поиска
       if (searchQuery && searchQuery.trim()) {
         const response = await apiClient.searchUserStickerSets(userId, searchQuery, page, 20);
+        const filteredContent = filterOwnSets(response.content, userId);
         
         if (append) {
-          setUserStickerSets(response.number === 0 ? (response.content || []) : getUniqueAppended(userStickerSets, response.content || []));
+          setUserStickerSets(response.number === 0 ? filteredContent : getUniqueAppended(userStickerSets, filteredContent));
         } else {
-          setUserStickerSets(response.content || []);
+          setUserStickerSets(filteredContent);
         }
         
-        if (response.content && response.content.length > 0) {
-          initializeLikes(response.content);
+        if (filteredContent.length > 0) {
+          initializeLikes(filteredContent);
         }
         
         setPagination(response.number, response.totalPages, response.totalElements);
         return;
       }
       
-      // Загружаем стикерсеты пользователя
-      // При выключенной сортировке по лайкам: сортировка по createdAt DESC (последние добавленные)
-      // При включенной: загружаем как есть, затем сортируем локально по лайкам
-      // Используем 'createdAt' так как API поддерживает только 'createdAt' | 'title' | 'name'
       const response = await apiClient.getUserStickerSets(userId, page, 20, 'createdAt', 'DESC');
+      const filteredContent = filterOwnSets(response.content, userId);
       
-      console.log('✅ Стикерсеты загружены:', response.content?.length || 0, 'страница:', response.number, 'из', response.totalPages);
+      console.log('✅ Стикерсеты загружены:', filteredContent.length, 'страница:', response.number, 'из', response.totalPages);
       
-      // Инициализируем лайки из загруженных данных
-      if (response.content && response.content.length > 0) {
-        initializeLikes(response.content);
+      if (filteredContent.length > 0) {
+        initializeLikes(filteredContent);
       }
       
-      // Если включена сортировка по лайкам, сортируем локально по likesCount DESC
-      let finalContent = response.content || [];
+      let finalContent = filteredContent;
       if (sortByLikesParam && finalContent.length > 0) {
         finalContent = [...finalContent].sort((a, b) => {
           const likesA = a.likes || a.likesCount || 0;
           const likesB = b.likes || b.likesCount || 0;
-          return likesB - likesA; // DESC - от самых лайкнутых
+          return likesB - likesA;
         });
       }
       
@@ -343,7 +352,6 @@ export const MyProfilePage: React.FC = () => {
         setUserStickerSets(finalContent);
       }
       
-      // Обновляем пагинацию
       setPagination(response.number, response.totalPages, response.totalElements);
     } catch (error: any) {
       // В режиме разработки используем моковые данные вместо показа ошибки
