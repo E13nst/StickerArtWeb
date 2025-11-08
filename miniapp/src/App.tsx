@@ -4,6 +4,7 @@ import { GalleryPage } from '@/pages/GalleryPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { MyProfilePage } from '@/pages/MyProfilePage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { AuthorPage } from '@/pages/AuthorPage';
 import MainLayout from '@/layouts/MainLayout';
 import { useLikesStore } from '@/store/useLikesStore';
 import { NftSoonPage } from '@/pages/NftSoonPage';
@@ -33,6 +34,7 @@ const App: React.FC = () => {
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/profile" element={<MyProfilePage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />
+          <Route path="/author/:id" element={<AuthorPage />} />
           <Route path="/nft-soon" element={<NftSoonPage />} />
           {/* Fallback route */}
           <Route path="*" element={<DashboardPage />} />

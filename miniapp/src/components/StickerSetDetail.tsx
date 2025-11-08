@@ -9,7 +9,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
-import { StickerSetResponse, StickerSetMeta } from '@/types/sticker';
+import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
 import { AnimatedSticker } from './AnimatedSticker';
@@ -18,9 +18,8 @@ import { useLikesStore } from '@/store/useLikesStore';
 import { imageLoader } from '@/utils/imageLoader';
 import { LoadPriority } from '@/utils/imageLoader';
 import { prefetchSticker } from '@/utils/animationLoader';
-
-// Простое кеширование метаданных для мгновенного отображения при повторном открытии
-const metaCache = new Map<number, StickerSetMeta>();
+import { useTelegram } from '@/hooks/useTelegram';
+import { Link } from 'react-router-dom';
 
 // Кеш полных данных стикерсетов для оптимистичного UI
 interface CachedStickerSet {
@@ -175,6 +174,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   isInTelegramApp: _isInTelegramApp = false,
   isModal = false
 }) => {
+  const { initData, user } = useTelegram();
   // Оптимистичный UI: показываем данные из пропсов сразу, обновляем когда загрузятся полные данные
   const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(() => {
     // Проверяем кеш при инициализации
@@ -190,21 +190,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [error, setError] = useState<string | null>(null);
 
 
-  const [meta, setMeta] = useState<StickerSetMeta | null>(() => {
-    const cached = metaCache.get(stickerSet.id);
-    // Если есть кэш, убираем из него поле likes
-    if (cached) {
-      return { ...cached, likes: 0 };
-    }
-    return {
-      stickerSetId: stickerSet.id,
-      author: { id: 0, firstName: 'Автор', lastName: '', username: undefined, avatarUrl: undefined },
-      likes: 0
-    };
-  });
   const [likeAnim, setLikeAnim] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [authorUsername, setAuthorUsername] = useState<string | null>(null);
 
   // Используем глобальный store для лайков с селекторами для автоматического обновления
   const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
@@ -217,6 +206,43 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const toggleLike = useLikesStore((state) => state.toggleLike);
   const setLike = useLikesStore((state) => state.setLike);
   const getLikeState = useLikesStore((state) => state.getLikeState);
+  useEffect(() => {
+    let isMounted = true;
+
+    const targetAuthorId = stickerSet.authorId;
+
+    if (!targetAuthorId) {
+      setAuthorUsername(null);
+      return;
+    }
+
+    const effectiveInitData =
+      initData ||
+      window.Telegram?.WebApp?.initData ||
+      '';
+
+    apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
+    setAuthorUsername(null);
+
+    (async () => {
+      try {
+        const profile = await apiClient.getProfileStrict(targetAuthorId);
+        if (!isMounted) {
+          return;
+        }
+        const username = profile.user?.username?.trim();
+        setAuthorUsername(username && username.length > 0 ? username : null);
+      } catch {
+        if (isMounted) {
+          setAuthorUsername(null);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [stickerSet.authorId, initData, user?.language_code]);
 
   // Функция предзагрузки миниатюр
   const preloadThumbnails = useCallback(async (stickers: any[]) => {
@@ -268,16 +294,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             setLike(stickerSet.id.toString(), apiIsLiked ?? false, apiLikesCount);
           }
         }
-        // Загружаем метаданные отдельно если их нет в кеше
-        const cachedMeta = metaCache.get(stickerSet.id);
-        if (!cachedMeta && mounted) {
-          apiClient.getStickerSetMeta(stickerSet.id).then((m) => {
-            if (!mounted) return;
-            const metaWithoutLikes = { ...m, likes: 0 };
-            metaCache.set(stickerSet.id, metaWithoutLikes);
-            setMeta(metaWithoutLikes);
-          }).catch(() => {});
-        }
         return; // Не загружаем если есть свежий кеш
       }
       
@@ -291,11 +307,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         // Создаем AbortController для возможности отмены
         abortController = new AbortController();
         
-        // ПАРАЛЛЕЛЬНАЯ загрузка: полная информация и метаданные одновременно
-        const [fullData, metaData] = await Promise.all([
-          apiClient.getStickerSet(stickerSet.id),
-          apiClient.getStickerSetMeta(stickerSet.id).catch(() => null) // Метаданные не критичны
-        ]);
+        // Загружаем полную информацию о стикерсете
+        const fullData = await apiClient.getStickerSet(stickerSet.id);
         
         if (!mounted || abortController.signal.aborted) return;
         
@@ -305,15 +318,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           timestamp: Date.now(),
           ttl: CACHE_TTL
         });
-        
-        // Кешируем метаданные если они загрузились
-        if (metaData) {
-          const metaWithoutLikes = { ...metaData, likes: 0 };
-          metaCache.set(stickerSet.id, metaWithoutLikes);
-          if (mounted) {
-            setMeta(metaWithoutLikes);
-          }
-        }
         
         // Ограничиваем размер кеша (удаляем старые записи)
         if (stickerSetCache.size > 50) {
@@ -678,30 +682,41 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           }}>
             {stickerSet.title}
           </Typography>
-          {meta && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--tg-spacing-3)' }}>
-              <a 
-                href={`/miniapp/profile/${meta.author.id}`} 
-                style={{ 
-                  textDecoration: 'none', 
-                  fontWeight: 600,
-                  fontSize: 'var(--tg-font-size-s)',
-                  color: '#81d4fa', // Более яркий цвет для лучшей видимости
-                  textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)' // Усиленная тень
-                }}
-                onMouseEnter={(e) => {
-                  const target = e.target as HTMLElement;
-                  target.style.color = '#b3e5fc';
-                  target.style.textShadow = '0 1px 4px rgba(0,0,0,0.9), 0 2px 3px rgba(0,0,0,0.7)';
-                }}
-                onMouseLeave={(e) => {
-                  const target = e.target as HTMLElement;
-                  target.style.color = '#81d4fa';
-                  target.style.textShadow = '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)';
+          {authorUsername && stickerSet.authorId && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'calc(var(--tg-spacing-2) * 0.618)',
+                marginBottom: 'calc(var(--tg-spacing-4) * 0.382)'
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'rgba(255,255,255,0.72)',
+                  fontSize: 'calc(var(--tg-font-size-s) * 0.9)'
                 }}
               >
-                {meta.author.firstName} {meta.author.lastName || ''}
-              </a>
+                Author:
+              </Typography>
+              <Typography
+                variant="body2"
+                component={Link}
+                to={`/author/${stickerSet.authorId}`}
+                sx={{
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: 'var(--tg-font-size-s)',
+                  color: '#81d4fa',
+                  '&:hover': {
+                    color: '#b3e5fc'
+                  }
+                }}
+              >
+                {authorUsername}
+              </Typography>
             </Box>
           )}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>

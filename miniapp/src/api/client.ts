@@ -5,6 +5,7 @@ import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 
 class ApiClient {
   private client: AxiosInstance;
+  private language: string;
 
   constructor() {
     this.client = axios.create({
@@ -15,10 +16,28 @@ class ApiClient {
         'Accept': 'application/json'
       }
     });
+    this.language = this.detectLanguage();
 
     // Добавляем interceptor для логирования
     this.client.interceptors.request.use(
       (config) => {
+        const headers = config.headers ?? {};
+
+        if (!headers['X-Telegram-Init-Data']) {
+          const defaultInitData = this.client.defaults.headers.common['X-Telegram-Init-Data'];
+          if (defaultInitData) {
+            headers['X-Telegram-Init-Data'] = defaultInitData as string;
+          }
+        }
+
+        const effectiveLanguage =
+          (headers['X-Language'] as string | undefined) ||
+          this.language ||
+          this.detectLanguage();
+        headers['X-Language'] = effectiveLanguage;
+
+        config.headers = headers;
+
         console.log('🌐 API запрос:', config.method?.toUpperCase(), config.url);
         
         // Детальное логирование для авторизации
@@ -83,10 +102,17 @@ class ApiClient {
   }
 
   // Добавляем заголовки аутентификации (botName не отправляем)
-  setAuthHeaders(initData: string) {
+  setAuthHeaders(initData: string, language?: string) {
     this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
+    this.setLanguage(language);
     console.log('✅ Заголовки аутентификации установлены:');
     console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
+  }
+
+  setLanguage(language?: string) {
+    const normalized = (language || '').trim().split('-')[0]?.toLowerCase();
+    this.language = normalized || this.detectLanguage();
+    this.client.defaults.headers.common['X-Language'] = this.language;
   }
 
   // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
@@ -101,6 +127,7 @@ class ApiClient {
       
       // Используем заголовки от расширения
       this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
+      this.setLanguage();
       
       return true;
     }
@@ -139,7 +166,15 @@ class ApiClient {
   clearAuthHeaders() {
     delete this.client.defaults.headers.common['X-Telegram-Init-Data'];
     delete this.client.defaults.headers.common['X-Telegram-Bot-Name'];
+    delete this.client.defaults.headers.common['X-Language'];
     console.log('🧹 Заголовки аутентификации удалены');
+  }
+
+  private detectLanguage(): string {
+    if (typeof navigator !== 'undefined' && navigator.language) {
+      return navigator.language.split('-')[0]?.toLowerCase() || 'en';
+    }
+    return 'en';
   }
 
   // Получение категорий стикеров
@@ -181,6 +216,9 @@ class ApiClient {
     size: number = 20,
     options?: {
       categoryKeys?: string[]; // Фильтр по категориям (массив ключей)
+      authorId?: number;
+      hasAuthorOnly?: boolean;
+      officialOnly?: boolean;
       likedOnly?: boolean;     // Только лайкнутые
       sort?: string;           // Поле для сортировки
       direction?: 'ASC' | 'DESC'; // Направление сортировки
@@ -204,8 +242,27 @@ class ApiClient {
     if (options?.direction) {
       params.direction = options.direction;
     }
+
+    if (typeof options?.authorId === 'number') {
+      params.authorId = options.authorId;
+    }
+
+    if (typeof options?.hasAuthorOnly === 'boolean') {
+      params.hasAuthorOnly = options.hasAuthorOnly;
+    }
+
+    if (typeof options?.officialOnly === 'boolean') {
+      params.officialOnly = options.officialOnly;
+    }
     
     const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
+    return response.data;
+  }
+
+  async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC'): Promise<StickerSetListResponse> {
+    const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
+      params: { page, size, sort, direction }
+    });
     return response.data;
   }
 
@@ -445,6 +502,11 @@ class ApiClient {
         createdAt: new Date().toISOString()
       } as UserInfo;
     }
+  }
+
+  async getProfileStrict(userId: number): Promise<ProfileResponse> {
+    const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+    return response.data;
   }
 
   // Профиль текущего пользователя (роль, баланс): GET /api/profiles/me
