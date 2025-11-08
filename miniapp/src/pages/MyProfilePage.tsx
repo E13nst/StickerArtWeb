@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -92,24 +92,22 @@ export const MyProfilePage: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
 
-  const filterOwnSets = useCallback((sets: StickerSetResponse[] | undefined, ownerId: number) => {
-    if (!sets || !Array.isArray(sets)) {
-      return [];
-    }
-    return sets.filter((set) => {
-      if (typeof set.userId === 'number') {
-        return set.userId === ownerId;
-      }
-      return true;
-    });
-  }, []);
-
-
   // Получаем telegramId текущего пользователя
   const currentUserId = user?.id;
 
   // Моковые данные для разработки (когда нет валидной initData)
   const mockUserId = 123456789;
+
+  const effectiveUserId = useMemo(() => {
+    if (typeof userInfo?.id === 'number') {
+      return userInfo.id;
+    }
+    if (typeof currentUserId === 'number') {
+      return currentUserId;
+    }
+    return mockUserId;
+  }, [userInfo?.id, currentUserId]);
+
   const mockUserInfo = {
     id: mockUserId,
     firstName: 'Иван',
@@ -122,6 +120,7 @@ export const MyProfilePage: React.FC = () => {
   const mockStickerSets: any[] = [
     {
       id: 1,
+      userId: mockUserId,
       title: 'Мои первые стикеры',
       name: 'my_first_stickers',
       stickerCount: 12,
@@ -130,6 +129,7 @@ export const MyProfilePage: React.FC = () => {
     },
     {
       id: 2,
+      userId: mockUserId,
       title: 'Веселые котики',
       name: 'funny_cats',
       stickerCount: 8,
@@ -138,6 +138,7 @@ export const MyProfilePage: React.FC = () => {
     },
     {
       id: 3,
+      userId: mockUserId,
       title: 'Рабочие мемы',
       name: 'work_memes',
       stickerCount: 15,
@@ -220,36 +221,32 @@ export const MyProfilePage: React.FC = () => {
     try {
       console.log('🔍 Загрузка профиля пользователя с Telegram ID:', telegramId);
       
-      // Параллельная загрузка данных пользователя и стикерсетов
-      const [userResponse, stickerSetsResponse] = await Promise.allSettled([
-        loadUserInfo(telegramId),
-        loadUserStickerSets(telegramId, undefined, 0, false, sortByLikes)
-      ]);
-
-      // Проверяем результаты
-      if (userResponse.status === 'rejected') {
-        console.error('Ошибка загрузки пользователя:', userResponse.reason);
-      }
-      
-      if (stickerSetsResponse.status === 'rejected') {
-        console.error('Ошибка загрузки стикерсетов:', stickerSetsResponse.reason);
-      }
-      
-      // Сохраняем в кэш только если оба запроса успешны
-      if (userResponse.status === 'fulfilled' && stickerSetsResponse.status === 'fulfilled') {
-        const currentUserInfo = useProfileStore.getState().userInfo;
-        const currentStickerSets = useProfileStore.getState().userStickerSets;
-        const currentPagination = {
-          currentPage: useProfileStore.getState().currentPage,
-          totalPages: useProfileStore.getState().totalPages,
-          totalElements: useProfileStore.getState().totalElements
-        };
-        
-        if (currentUserInfo && currentStickerSets) {
-          setCachedProfile(telegramId, currentUserInfo, currentStickerSets, currentPagination);
-        }
+      let loadedProfile: any = null;
+      try {
+        loadedProfile = await loadUserInfo(telegramId);
+      } catch (profileError) {
+        console.error('Ошибка загрузки пользователя:', profileError);
       }
 
+      const targetUserId = (typeof loadedProfile?.id === 'number' ? loadedProfile.id : telegramId) || mockUserId;
+
+      try {
+        await loadUserStickerSets(targetUserId, undefined, 0, false, sortByLikes);
+      } catch (stickerError) {
+        console.error('Ошибка загрузки стикерсетов:', stickerError);
+      }
+
+      const currentUserInfo = useProfileStore.getState().userInfo;
+      const currentStickerSets = useProfileStore.getState().userStickerSets;
+      const currentPagination = {
+        currentPage: useProfileStore.getState().currentPage,
+        totalPages: useProfileStore.getState().totalPages,
+        totalElements: useProfileStore.getState().totalElements
+      };
+      
+      if (currentUserInfo && currentStickerSets) {
+        setCachedProfile(telegramId, currentUserInfo, currentStickerSets, currentPagination);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки профиля';
       setError(errorMessage);
@@ -279,12 +276,14 @@ export const MyProfilePage: React.FC = () => {
 
       console.log('✅ Информация о пользователе загружена:', combined);
       setUserInfo(combined as any);
+      return combined;
     } catch (error: any) {
       // В режиме разработки используем моковые данные вместо показа ошибки
       if (error?.response?.status === 401 || !isInTelegramApp) {
         console.log('🔧 Режим разработки: используем моковые данные профиля');
         setUserInfo(mockUserInfo as any);
         setUserError(null);
+        return mockUserInfo;
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки пользователя';
         setUserError(errorMessage);
@@ -293,26 +292,27 @@ export const MyProfilePage: React.FC = () => {
       if (isInTelegramApp) {
         throw error;
       }
+      return null;
     } finally {
       setUserLoading(false);
     }
   };
 
   // Загрузка стикерсетов пользователя
-  const loadUserStickerSets = async (telegramId: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
+  const loadUserStickerSets = async (userIdParam: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
     setStickerSetsLoading(true);
     setStickerSetsError(null);
 
+    const resolvedUserId =
+      typeof userIdParam === 'number' && !Number.isNaN(userIdParam) ? userIdParam : mockUserId;
+
     try {
-      // Используем userInfo.id если он уже загружен, иначе telegramId
-      const userId = userInfo?.id || telegramId;
-      
-      console.log('🔍 Загрузка стикерсетов для userId:', userId, 'telegramId:', telegramId, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam);
+      console.log('🔍 Загрузка стикерсетов для userId:', resolvedUserId, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam);
       
       // Если есть поисковый запрос, используем специальный эндпоинт поиска
       if (searchQuery && searchQuery.trim()) {
-        const response = await apiClient.searchUserStickerSets(userId, searchQuery, page, 20);
-        const filteredContent = filterOwnSets(response.content, userId);
+        const response = await apiClient.searchUserStickerSets(resolvedUserId, searchQuery, page, 20);
+        const filteredContent = response.content || [];
         
         if (append) {
           setUserStickerSets(response.number === 0 ? filteredContent : getUniqueAppended(userStickerSets, filteredContent));
@@ -328,8 +328,8 @@ export const MyProfilePage: React.FC = () => {
         return;
       }
       
-      const response = await apiClient.getUserStickerSets(userId, page, 20, 'createdAt', 'DESC');
-      const filteredContent = filterOwnSets(response.content, userId);
+      const response = await apiClient.getUserStickerSets(resolvedUserId, page, 20, 'createdAt', 'DESC');
+      const filteredContent = response.content || [];
       
       console.log('✅ Стикерсеты загружены:', filteredContent.length, 'страница:', response.number, 'из', response.totalPages);
       
@@ -357,9 +357,10 @@ export const MyProfilePage: React.FC = () => {
       // В режиме разработки используем моковые данные вместо показа ошибки
       if (error?.response?.status === 401 || !isInTelegramApp) {
         console.log('🔧 Режим разработки: используем моковые данные стикерсетов');
+        const fallbackSets = mockStickerSets;
         const filtered = searchQuery 
-          ? mockStickerSets.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
-          : mockStickerSets;
+          ? fallbackSets.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()) && String((s as any).userId) === String(resolvedUserId))
+          : fallbackSets.filter(s => String((s as any).userId) === String(resolvedUserId));
         setUserStickerSets(filtered);
         setPagination(0, 1, filtered.length);
         setStickerSetsError(null);
@@ -379,8 +380,8 @@ export const MyProfilePage: React.FC = () => {
 
   // Утилита для уникального добавления (без дубликатов)
   const getUniqueAppended = (existing: any[], incoming: any[]) => {
-    const ids = new Set(existing.map((s) => s.id));
-    const unique = incoming.filter((s) => !ids.has(s.id));
+    const ids = new Set(existing.map((s) => String(s.id)));
+    const unique = incoming.filter((s) => !ids.has(String(s.id)));
     return [...existing, ...unique];
   };
 
@@ -557,7 +558,7 @@ export const MyProfilePage: React.FC = () => {
 
   // Обработка поиска с отправкой
   const handleSearch = (searchTermValue: string) => {
-    const userId = currentUserId || mockUserId;
+    const userId = effectiveUserId;
     if (!userId) return;
     
     if (searchTermValue.trim()) {
@@ -571,7 +572,7 @@ export const MyProfilePage: React.FC = () => {
   const handleSortToggle = () => {
     const newSortByLikes = !sortByLikes;
     setSortByLikes(newSortByLikes);
-    const userId = currentUserId || mockUserId;
+    const userId = effectiveUserId;
     if (userId) {
       loadUserStickerSets(userId, searchTerm || undefined, 0, false, newSortByLikes);
     }
@@ -849,7 +850,7 @@ export const MyProfilePage: React.FC = () => {
               ) : stickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay 
                   error={stickerSetsError} 
-                  onRetry={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, searchTerm || undefined, 0, false, sortByLikes)} 
+                  onRetry={() => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, 0, false, sortByLikes)} 
                 />
               ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
                 <EmptyState
@@ -870,7 +871,7 @@ export const MyProfilePage: React.FC = () => {
                     onPackClick={handleViewStickerSet}
                     hasNextPage={setsFilter === 'liked' ? false : currentPage < totalPages - 1}
                     isLoadingMore={isStickerSetsLoading}
-                    onLoadMore={setsFilter === 'liked' ? undefined : () => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)}
+                    onLoadMore={setsFilter === 'liked' ? undefined : () => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)}
                     enablePreloading={true}
                     addButtonElement={setsFilter === 'published' ? (
                       <AddStickerPackButton
@@ -886,7 +887,7 @@ export const MyProfilePage: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                   <Button
                     variant="outlined"
-                    onClick={() => (currentUserId || mockUserId) && loadUserStickerSets(currentUserId || mockUserId, undefined, currentPage + 1, true)}
+                    onClick={() => effectiveUserId && loadUserStickerSets(effectiveUserId, undefined, currentPage + 1, true)}
                   >
                     Показать ещё
                   </Button>
@@ -1011,7 +1012,8 @@ export const MyProfilePage: React.FC = () => {
         onComplete={async () => {
           if (currentUserId) {
             await loadMyProfile(currentUserId, true);
-            await loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes);
+            const refreshedUserId = useProfileStore.getState().userInfo?.id ?? currentUserId;
+            await loadUserStickerSets(refreshedUserId, searchTerm || undefined, 0, false, sortByLikes);
           }
         }}
       />
