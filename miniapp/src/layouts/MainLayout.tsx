@@ -12,6 +12,7 @@ interface Props {
 export default function MainLayout({ children }: Props) {
   const location = useLocation();
   const isProfilePage = location.pathname.startsWith('/profile');
+  const isAuthorPage = location.pathname.startsWith('/author');
   const isDashboardPage = location.pathname === '/' || location.pathname.startsWith('/dashboard');
   const { updateHeaderColor } = useTelegram();
   const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
@@ -35,7 +36,7 @@ export default function MainLayout({ children }: Props) {
   
   return (
     <div className="stixly-main-layout" style={{ position: 'relative', minHeight: '100vh' }}>
-      {!isProfilePage && (
+      {!isProfilePage && !isAuthorPage && (
         <StixlyTopHeader
           onSlideChange={setCurrentSlideBg}
           fixedSlideId={isDashboardPage ? 2 : undefined}
