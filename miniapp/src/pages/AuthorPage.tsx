@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Box, Typography, Card, CardContent, Alert } from '@mui/material';
+import StixlyTopHeader from '../components/StixlyTopHeader';
 import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
@@ -418,7 +419,44 @@ export const AuthorPage: React.FC = () => {
         overflowX: 'hidden'
       }}
     >
-      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 3 }}>
+      <StixlyTopHeader
+        profileMode={{
+          enabled: true,
+          backgroundColor: isPremium
+            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
+            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          pattern: isPremium ? 'waves' : 'dots',
+          content: isProfileLoading ? (
+            <LoadingSpinner message="Загрузка профиля..." />
+          ) : avatarUserInfo ? (
+            <Box
+              sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative'
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: '50%',
+                  transform: 'translate(-50%, 50%)',
+                  zIndex: 20
+                }}
+              >
+                <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
+              </Box>
+            </Box>
+          ) : null
+        }}
+      />
+
+      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 0 }}>
         {profileError && (
           <Alert
             severity="error"
@@ -442,25 +480,22 @@ export const AuthorPage: React.FC = () => {
               backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
               border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
               boxShadow: 'none',
-              pb: 3
+              pt: 0,
+              pb: 2
             }}
           >
             <CardContent
               sx={{
-                pt: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.618rem',
+                pt: 6,
                 color: 'var(--tg-theme-text-color, #000000)'
               }}
             >
-              <FloatingAvatar userInfo={avatarUserInfo!} size="large" overlap={0} />
-
               {displayName && (
-                <Typography variant="h6" sx={{ fontWeight: 600, textAlign: 'center' }}>
-                  {displayName}
-                </Typography>
+                <Box sx={{ textAlign: 'center', mb: '0.618rem' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {displayName}
+                  </Typography>
+                </Box>
               )}
 
               <Box
@@ -469,9 +504,7 @@ export const AuthorPage: React.FC = () => {
                   justifyContent: 'space-around',
                   alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: 2,
-                  width: '100%',
-                  maxWidth: 360
+                  gap: 2
                 }}
               >
                 <Box sx={{ textAlign: 'center', minWidth: '120px' }}>
