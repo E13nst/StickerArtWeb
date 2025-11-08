@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { MetricCard } from '@/components/MetricCard';
 import { TopCategories } from '@/components/TopCategories';
 import { TopAuthors } from '@/components/TopAuthors';
+import { CategoryFilter, Category as CategoryFilterOption } from '@/components/CategoryFilter';
 import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { StickerSetResponse } from '@/types/sticker';
@@ -43,6 +44,11 @@ export const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [categoryFilterOptions, setCategoryFilterOptions] = useState<CategoryFilterOption[]>([
+    { id: 'all', label: 'Все', title: 'Все категории' }
+  ]);
+  const [activeCategoryKey, setActiveCategoryKey] = useState<string>('all');
+  const [topStickersByCategory, setTopStickersByCategory] = useState<Record<string, StickerSetResponse[]>>({ all: [] });
 
   const quickActions = [
     {
@@ -159,16 +165,28 @@ export const DashboardPage: React.FC = () => {
           artEarnedTrend: artTrend
         });
 
+        const getStickerLikes = (stickerSet: StickerSetResponse): number =>
+          likes[stickerSet.id.toString()]?.likesCount ?? stickerSet.likesCount ?? stickerSet.likes ?? 0;
+
+        const sortedSets = [...setsForStats]
+          .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
+          .slice(0, 5);
+
+        console.log('📊 Отсортировано стикерсетов для топ-5:', sortedSets.length);
+
+        const stickersByCategoryMap: Record<string, StickerSetResponse[]> = {
+          all: sortedSets
+        };
+
         // Получаем категории и сортируем по лайкам
         try {
           const categories = await apiClient.getCategories();
           console.log('📊 Загружено категорий:', categories.length);
-          
-          // Подсчитываем категории и их лайки из стикерсетов
+
           const categoryData = new Map<string, { count: number; likes: number }>();
-          
+
           setsForStats.forEach(set => {
-            const setLikes = likes[set.id.toString()]?.likesCount || set.likesCount || 0;
+            const setLikes = getStickerLikes(set);
             if (set.categories && set.categories.length > 0) {
               set.categories.forEach(cat => {
                 const current = categoryData.get(cat.key) || { count: 0, likes: 0 };
@@ -179,10 +197,9 @@ export const DashboardPage: React.FC = () => {
               });
             }
           });
-          
+
           console.log('📊 Категории с данными:', Array.from(categoryData.entries()));
 
-          // Маппинг эмодзи для категорий
           const categoryEmojis: Record<string, string> = {
             art: '🎨',
             animals: '🐱',
@@ -196,22 +213,21 @@ export const DashboardPage: React.FC = () => {
             music: '🎵'
           };
 
-          // Сортируем по лайкам и берем топ-5
-          const topCategoriesList = Array.from(categoryData.entries())
+          const sortedCategoryEntries = Array.from(categoryData.entries())
+            .sort((a, b) => b[1].likes - a[1].likes);
+
+          const topCategoriesList = sortedCategoryEntries
             .map(([key, data]) => {
               const category = categories.find(c => c.key === key);
               return {
                 name: category?.name || key,
-                count: data.likes, // Используем лайки вместо количества
+                count: data.likes,
                 emoji: categoryEmojis[key] || '📦'
               };
             })
-            .sort((a, b) => b.count - a.count) // Сортируем по лайкам
             .slice(0, 8);
 
           console.log('📊 Топ категорий:', topCategoriesList);
-          
-          // Если категорий нет, используем заглушку
           if (topCategoriesList.length === 0) {
             console.warn('⚠️ Нет категорий, используем заглушку');
             setTopCategories([
@@ -224,9 +240,33 @@ export const DashboardPage: React.FC = () => {
           } else {
             setTopCategories(topCategoriesList);
           }
+
+          const filterCategories = sortedCategoryEntries.slice(0, 8);
+          const filterOptions: CategoryFilterOption[] = [
+            { id: 'all', label: 'Все', title: 'Все категории' },
+            ...filterCategories.map(([key, data]) => {
+              const category = categories.find(c => c.key === key);
+              const label = category?.name || key;
+              return {
+                id: key,
+                label,
+                title: `${category?.name || key} — ${data.likes} лайков`
+              };
+            })
+          ];
+
+          setCategoryFilterOptions(filterOptions);
+
+          filterCategories.forEach(([key]) => {
+            const categorySets = setsForStats
+              .filter(set => set.categories?.some(cat => cat.key === key))
+              .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
+              .slice(0, 5);
+
+            stickersByCategoryMap[key] = categorySets;
+          });
         } catch (e) {
           console.warn('Не удалось загрузить категории');
-          // Заглушка
           setTopCategories([
             { name: 'Арт', count: 8, emoji: '🎨' },
             { name: 'Животные', count: 6, emoji: '🐱' },
@@ -234,25 +274,13 @@ export const DashboardPage: React.FC = () => {
             { name: 'Премиум', count: 3, emoji: '🌟' },
             { name: 'Любовь', count: 2, emoji: '❤️' }
           ]);
+
+          setCategoryFilterOptions([
+            { id: 'all', label: 'Все', title: 'Все категории' }
+          ]);
         }
 
-        // Получаем топ-5 стикерсетов по лайкам
-        try {
-          // Сортируем стикерсеты по лайкам (все, не только лайкнутые)
-          const sortedSets = [...setsForStats]
-            .sort((a, b) => {
-              const likesA = likes[a.id.toString()]?.likesCount || a.likesCount || 0;
-              const likesB = likes[b.id.toString()]?.likesCount || b.likesCount || 0;
-              return likesB - likesA;
-            })
-            .slice(0, 5);
-          
-          console.log('📊 Отсортировано стикерсетов для топ-5:', sortedSets.length);
-          setTopStickerSets(sortedSets);
-        } catch (e) {
-          console.warn('Не удалось загрузить топ стикеры:', e);
-          setTopStickerSets([]);
-        }
+        setTopStickersByCategory(stickersByCategoryMap);
 
         // Получаем топ-5 авторов по количеству стикеров
         try {
@@ -317,6 +345,25 @@ export const DashboardPage: React.FC = () => {
     calculateStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalElements, userInfo]);
+
+  useEffect(() => {
+    if (categoryFilterOptions.length === 0) {
+      return;
+    }
+
+    setActiveCategoryKey((prev) => {
+      const exists = categoryFilterOptions.some((option) => option.id === prev);
+      if (exists) {
+        return prev;
+      }
+      return categoryFilterOptions[0].id;
+    });
+  }, [categoryFilterOptions]);
+
+  useEffect(() => {
+    const nextTopStickers = topStickersByCategory[activeCategoryKey] ?? topStickersByCategory.all ?? [];
+    setTopStickerSets(nextTopStickers);
+  }, [activeCategoryKey, topStickersByCategory]);
 
   return (
     <Box sx={{ 
@@ -407,19 +454,29 @@ export const DashboardPage: React.FC = () => {
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            {topStickerSets.length > 0 && (
-              <Box sx={{ mt: 2, mb: 3 }}>
-                <Typography
-                  variant="h6"
-                  fontWeight="bold"
-                  sx={{
-                    color: 'var(--tg-theme-text-color)',
-                    mb: 2,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  ТОП-5 СТИКЕРОВ
-                </Typography>
+            <Box sx={{ mt: 2, mb: 3 }}>
+              <Typography
+                variant="h6"
+                fontWeight="bold"
+                sx={{
+                  color: 'var(--tg-theme-text-color)',
+                  mb: 1.5,
+                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+              >
+                ТОП-5 СТИКЕРОВ
+              </Typography>
+
+              {categoryFilterOptions.length > 0 && (
+                <CategoryFilter
+                  categories={categoryFilterOptions}
+                  selectedCategories={[activeCategoryKey]}
+                  onCategoryToggle={(categoryId) => setActiveCategoryKey(categoryId)}
+                  disabled={isLoading}
+                />
+              )}
+
+              {topStickerSets.length > 0 ? (
                 <Box
                   sx={{
                     display: 'flex',
@@ -476,8 +533,30 @@ export const DashboardPage: React.FC = () => {
                     </Box>
                   ))}
                 </Box>
-              </Box>
-            )}
+              ) : (
+                <Card
+                  sx={{
+                    mt: 2,
+                    borderRadius: 3,
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    border: '1px solid var(--tg-theme-border-color)',
+                    boxShadow: 'none',
+                  }}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'var(--tg-theme-hint-color)',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      В этой категории пока нет стикеров. Попробуйте выбрать другую.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
 
             {/* Топ-5 авторов */}
             <Grid container spacing={2} sx={{ mb: 3 }}>

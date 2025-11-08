@@ -39,7 +39,7 @@ const RAW_SLIDES: (Omit<Slide, "img"> & { img: string })[] = [
   },
   {
     id: 2,
-    bg: "linear-gradient(180deg, #FF6700 0%, #FF944D 100%)",
+    bg: "linear-gradient(180deg, #1D4ED8 0%, #38BDF8 100%)",
     img: "stixly-logo-orange.webp",
     text: "",
   },
