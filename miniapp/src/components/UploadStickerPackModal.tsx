@@ -27,6 +27,14 @@ type TelegramStickerSetInfo = {
   stickers?: Sticker[];
 };
 
+const normalizeStickerSetName = (raw: string): string => {
+  return raw.trim()
+    .replace(/^https?:\/\/t\.me\/addstickers\//i, '')
+    .replace(/^https?:\/\/t\.me\//i, '')
+    .replace(/^@/, '')
+    .trim();
+};
+
 export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   open,
   onClose,
@@ -89,6 +97,12 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       return;
     }
 
+    const normalizedName = normalizeStickerSetName(link);
+    if (!normalizedName) {
+      setLinkError('Пожалуйста, введите корректное имя или ссылку на стикерсет');
+      return;
+    }
+
     setIsSubmittingLink(true);
     setLinkError(null);
     setSuggestionError(null);
@@ -96,7 +110,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     setSelectedCategories([]);
 
     try {
-      const payload = { name: link.trim() };
+      const payload = { name: normalizedName };
       setIsPreviewLoading(true);
       const stickerSet = await apiClient.createStickerSet(payload);
 
@@ -232,8 +246,9 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   const displayName = useMemo(() => {
     return createdStickerSet?.name
-      || normalizedTelegramInfo?.name;
-  }, [createdStickerSet?.name, normalizedTelegramInfo?.name]);
+      || normalizedTelegramInfo?.name
+      || normalizeStickerSetName(link);
+  }, [createdStickerSet?.name, normalizedTelegramInfo?.name, link]);
 
   useEffect(() => {
     if (previewStickers.length === 0) {
