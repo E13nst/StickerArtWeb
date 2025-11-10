@@ -59,6 +59,11 @@ export const DashboardPage: React.FC = () => {
   const row1Pack = pyramidPacks[0];
   const row2Packs = pyramidPacks.slice(1, 3);
   const scrollPacks = pyramidPacks.slice(3, MAX_TOP_STICKERS);
+  const hasAdditionalTopPacks = scrollPacks.length > 0;
+
+  const handleViewFullTop = useCallback(() => {
+    navigate('/gallery?sort=likes');
+  }, [navigate]);
 
   const handlePackClick = (packId: string) => {
     const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
@@ -386,164 +391,181 @@ export const DashboardPage: React.FC = () => {
               )}
 
               {topStickerSets.length > 0 ? (
-                <Box sx={{ position: 'relative', width: '100%' }}>
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: { xs: '40vw', sm: '30vw', md: '18vw' },
-                      opacity: 0.23,
-                      pointerEvents: 'none',
-                      zIndex: 0,
-                      transform: 'translateY(-6%)',
-                    }}
-                    aria-hidden
-                  >
-                    🏆
-                  </Box>
-                  <Box
-                    sx={{
-                      '--base-size': 'clamp(110px, 28vw, 220px)',
-                      '--row-gap': 'calc(var(--base-size) * 0.18)',
-                      '--col-gap': 'calc(var(--base-size) * 0.2)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 'var(--row-gap)',
-                      width: '100%',
-                      pb: 2,
-                      position: 'relative',
-                      zIndex: 1,
-                    }}
-                  >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      flexWrap: { xs: 'nowrap', sm: 'nowrap' },
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 'var(--col-gap)',
-                      width: '100%'
-                    }}
-                  >
-                    {row2Packs[0] && (
-                      <Box
-                        sx={{
-                          flex: {
-                            xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                            sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)'
-                          },
-                          maxWidth: {
-                            xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                            sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)'
-                          }
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: '100%',
-                            '& .pack-card': {
-                              width: '100% !important',
-                              height: 'auto !important',
-                              aspectRatio: '1 / 1.618'
-                            }
-                          }}
-                        >
-                          <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
-                        </Box>
-                      </Box>
-                    )}
-
-                    {row1Pack && (
-                      <Box
-                        sx={{
-                          width: 'min(var(--base-size), 100%)',
-                          transformOrigin: 'center',
-                          '& .pack-card': {
-                            width: '100% !important',
-                            height: 'auto !important',
-                            aspectRatio: '1 / 1.618'
-                          }
-                        }}
-                      >
-                        <PackCard pack={row1Pack} onClick={handlePackClick} />
-                      </Box>
-                    )}
-
-                    {row2Packs[1] && (
-                      <Box
-                        sx={{
-                          flex: {
-                            xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                            sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)'
-                          },
-                          maxWidth: {
-                            xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                            sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)'
-                          }
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: '100%',
-                            '& .pack-card': {
-                              width: '100% !important',
-                              height: 'auto !important',
-                              aspectRatio: '1 / 1.618'
-                            }
-                          }}
-                        >
-                          <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
-                        </Box>
-                      </Box>
-                    )}
-                  </Box>
-
-                  {scrollPacks.length > 0 && (
+                <>
+                  <Box sx={{ position: 'relative', width: '100%' }}>
                     <Box
                       sx={{
+                        position: 'absolute',
+                        inset: 0,
                         display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: { xs: '40vw', sm: '30vw', md: '18vw' },
+                        opacity: 0.23,
+                        pointerEvents: 'none',
+                        zIndex: 0,
+                        transform: 'translateY(-6%)',
+                      }}
+                      aria-hidden
+                    >
+                      🏆
+                    </Box>
+                    <Box
+                      sx={{
+                        '--base-size': 'clamp(110px, 28vw, 220px)',
+                        '--row-gap': 'calc(var(--base-size) * 0.18)',
+                        '--col-gap': 'calc(var(--base-size) * 0.2)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 'var(--row-gap)',
                         width: '100%',
-                        overflowX: 'auto',
-                        overflowY: 'hidden',
-                        gap: 'calc(var(--col-gap) * 0.6)',
-                        paddingBottom: '8px',
-                        scrollbarWidth: 'none',
-                        '&::-webkit-scrollbar': {
-                          display: 'none',
-                        }
+                        pb: 2,
+                        position: 'relative',
+                        zIndex: 1,
                       }}
                     >
-                      {scrollPacks.map((pack) => (
-                        <Box
-                          key={pack.id}
-                          sx={{
-                            flex: '0 0 clamp(74px, calc(var(--base-size) * 0.45), 150px)',
-                            maxWidth: 'clamp(74px, calc(var(--base-size) * 0.45), 150px)'
-                          }}
-                        >
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          flexWrap: { xs: 'nowrap', sm: 'nowrap' },
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 'var(--col-gap)',
+                          width: '100%',
+                        }}
+                      >
+                        {row2Packs[0] && (
                           <Box
                             sx={{
-                              width: '100%',
+                              flex: {
+                                xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                                sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)',
+                              },
+                              maxWidth: {
+                                xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                                sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)',
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: '100%',
+                                '& .pack-card': {
+                                  width: '100% !important',
+                                  height: 'auto !important',
+                                  aspectRatio: '1 / 1.618',
+                                },
+                              }}
+                            >
+                              <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
+                            </Box>
+                          </Box>
+                        )}
+
+                        {row1Pack && (
+                          <Box
+                            sx={{
+                              width: 'min(var(--base-size), 100%)',
+                              transformOrigin: 'center',
                               '& .pack-card': {
                                 width: '100% !important',
                                 height: 'auto !important',
-                                aspectRatio: '1 / 1.618'
-                              }
+                                aspectRatio: '1 / 1.618',
+                              },
                             }}
                           >
-                            <PackCard pack={pack} onClick={handlePackClick} />
+                            <PackCard pack={row1Pack} onClick={handlePackClick} />
                           </Box>
+                        )}
+
+                        {row2Packs[1] && (
+                          <Box
+                            sx={{
+                              flex: {
+                                xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                                sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)',
+                              },
+                              maxWidth: {
+                                xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
+                                sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)',
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: '100%',
+                                '& .pack-card': {
+                                  width: '100% !important',
+                                  height: 'auto !important',
+                                  aspectRatio: '1 / 1.618',
+                                },
+                              }}
+                            >
+                              <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+
+                      {hasAdditionalTopPacks && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            width: '100%',
+                            mt: 0.5,
+                          }}
+                        >
+                          <Button
+                            onClick={handleViewFullTop}
+                            variant="text"
+                            sx={{
+                              textTransform: 'none',
+                              textDecoration: 'underline',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              color: 'var(--tg-theme-button-color, #6C63FF)',
+                              px: 0,
+                              py: 0.5,
+                              minWidth: 'auto',
+                              '&:hover': {
+                                backgroundColor: 'transparent',
+                                textDecoration: 'underline',
+                                color: 'var(--tg-theme-button-color, #5A48D0)',
+                              },
+                            }}
+                          >
+                            все стикеры
+                          </Button>
                         </Box>
-                      ))}
+                      )}
                     </Box>
-                  )}
                   </Box>
-                </Box>
+
+                  <Card
+                    sx={{
+                      mt: 2,
+                      borderRadius: 3,
+                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                      border: '1px solid var(--tg-theme-border-color)',
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--tg-theme-hint-color)',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        В этой категории пока нет стикеров. Попробуйте выбрать другую.
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </>
               ) : (
                 <Card
                   sx={{
@@ -559,7 +581,7 @@ export const DashboardPage: React.FC = () => {
                       variant="body2"
                       sx={{
                         color: 'var(--tg-theme-hint-color)',
-                        fontSize: '0.9rem'
+                        fontSize: '0.9rem',
                       }}
                     >
                       В этой категории пока нет стикеров. Попробуйте выбрать другую.
@@ -573,7 +595,7 @@ export const DashboardPage: React.FC = () => {
               <Box
                 sx={{
                   position: 'relative',
-                  mt: 1.5,
+                  mt: 0.75,
                   mb: 3,
                   px: 1,
                   overflow: 'visible',
@@ -649,8 +671,8 @@ export const DashboardPage: React.FC = () => {
 
             {/* Топ-5 авторов */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid 
-                item 
+              <Grid
+                item
                 xs={12}
               >
                 {topAuthors.length > 0 ? (
@@ -662,7 +684,7 @@ export const DashboardPage: React.FC = () => {
                       backgroundColor: 'var(--tg-theme-secondary-bg-color)',
                       border: '1px solid var(--tg-theme-border-color)',
                       boxShadow: 'none',
-                      height: '100%'
+                      height: '100%',
                     }}
                   >
                     <CardContent sx={{ p: 2 }}>
@@ -672,7 +694,7 @@ export const DashboardPage: React.FC = () => {
                           color: 'var(--tg-theme-hint-color)',
                           fontSize: '0.75rem',
                           fontWeight: 500,
-                          mb: 1.5
+                          mb: 1.5,
                         }}
                       >
                         Топ-5 авторов
@@ -681,7 +703,7 @@ export const DashboardPage: React.FC = () => {
                         variant="body2"
                         sx={{
                           color: 'var(--tg-theme-hint-color)',
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
                         }}
                       >
                         Загрузка...

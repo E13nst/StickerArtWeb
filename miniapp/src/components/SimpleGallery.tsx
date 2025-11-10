@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PackCard } from './PackCard';
 import { VirtualizedGallery } from './VirtualizedGallery';
 import { useSmartCache } from '../hooks/useSmartCache';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface Pack {
   id: string;
@@ -28,6 +29,8 @@ interface SimpleGalleryProps {
   addButtonElement?: React.ReactNode;
   // Верхние элементы управления (поиск, фильтр)
   controlsElement?: React.ReactNode;
+  // Спиннер во время обновления данных без скрытия панели
+  isRefreshing?: boolean;
 }
 
 export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
@@ -39,7 +42,8 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   isLoadingMore = false,
   onLoadMore,
   addButtonElement,
-  controlsElement
+  controlsElement,
+  isRefreshing = false
 }) => {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -269,7 +273,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         ref={containerRef}
         className="gallery-scroll"
         data-testid="gallery-container"
-        style={{ width: '100%', height: '80vh' }}
+        style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }}
       >
         {renderOverlay}
         <div className="gallery-items">
@@ -313,22 +317,20 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         className="gallery-scroll"
         style={{
           width: '100%',
-          height: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 200px)',
-          minHeight: '400px',
-          maxHeight: 'calc(100dvh - 200px)',
-          overflow: 'auto',
-          position: 'relative',
-          WebkitOverflowScrolling: 'touch'
+          flex: '1 1 auto',
+          minHeight: 0,
+          position: 'relative'
         }}
         data-testid="gallery-container"
       >
         {renderOverlay}
+        {isRefreshing && <LoadingSpinner message="Обновление..." />}
         <div
           className="gallery-items"
           style={{
           display: 'flex',
           gap: '8px',
-          padding: '0 calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382)',
+          padding: '0 calc(1rem * 0.382)',
           width: '100%',
           alignItems: 'flex-start'
         }}>
@@ -645,7 +647,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          padding: '20px',
+          padding: '8px 0',
           color: 'var(--tg-theme-hint-color)'
         }}>
           Загружено {visibleCount} из {packs.length} паков
@@ -657,12 +659,13 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         <div
           ref={sentinelRef}
           style={{
-            height: '20px',
+            height: '1px',
             width: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '20px 0'
+            padding: '0',
+            margin: 0
           }}
         >
           {isLoadingMore && (

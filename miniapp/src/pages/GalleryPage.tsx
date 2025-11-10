@@ -46,6 +46,20 @@ export const GalleryPage: React.FC = () => {
   // Категории стикеров (загружаются с API)
   const [categories, setCategories] = useState<Category[]>([]);
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('gallery-lock');
+      document.documentElement.classList.add('gallery-lock');
+    }
+
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('gallery-lock');
+        document.documentElement.classList.remove('gallery-lock');
+      }
+    };
+  }, []);
+
   // Адаптер для преобразования CategoryResponse в Category для UI
   const adaptCategoriesToUI = useCallback((apiCategories: typeof apiClient extends { getCategories(): Promise<infer T> } ? Awaited<T> : never): Category[] => {
     return apiCategories.map(cat => ({
@@ -55,8 +69,15 @@ export const GalleryPage: React.FC = () => {
     }));
   }, []);
 
+  const getInitialSortByLikes = () => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    return new URLSearchParams(window.location.search).get('sort') === 'likes';
+  };
+
   // Оптимизированное локальное состояние
-  const [uiState, setUiState] = useState({
+  const [uiState, setUiState] = useState(() => ({
     searchTerm: '',
     selectedStickerSet: null as StickerSetResponse | null,
     isDetailOpen: false,
@@ -64,8 +85,8 @@ export const GalleryPage: React.FC = () => {
     isLoadingMore: false,
     isUploadModalOpen: false,
     selectedCategories: [] as string[],
-    sortByLikes: false
-  });
+    sortByLikes: getInitialSortByLikes()
+  }));
 
   // Debounced search term для оптимизации поиска
   const debouncedSearchTerm = useDebounce(uiState.searchTerm, 500);
@@ -337,7 +358,7 @@ export const GalleryPage: React.FC = () => {
   // Храним последние значения фильтров для предотвращения лишних перезагрузок
   const lastFiltersRef = useRef<{ categories: string[], sortByLikes: boolean }>({
     categories: [],
-    sortByLikes: false
+    sortByLikes: uiState.sortByLikes
   });
 
   // Перезагрузка при изменении выбранных категорий или сортировки
@@ -399,12 +420,15 @@ export const GalleryPage: React.FC = () => {
 
   // Детальная модалка поверх списка
 
+  const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
+  const isRefreshing = isLoading && stickerSets.length > 0;
+
   return (
     <>
       <TelegramLayout>
 
         {/* Content */}
-        {isLoading ? (
+        {isInitialLoading ? (
           <LoadingSpinner message="Загрузка стикеров..." />
         ) : error ? (
           <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
@@ -430,7 +454,7 @@ export const GalleryPage: React.FC = () => {
             <SimpleGallery
               controlsElement={
                 <>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
                     <Box sx={{ flex: 1 }}>
                       <SearchBar
                         value={uiState.searchTerm}
@@ -470,6 +494,7 @@ export const GalleryPage: React.FC = () => {
                   onClick={() => setUiState(prev => ({ ...prev, isUploadModalOpen: true }))}
                 />
               }
+              isRefreshing={isRefreshing}
             />
           </div>
         )}

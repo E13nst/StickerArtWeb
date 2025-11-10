@@ -59,7 +59,7 @@ const styles = `
 .tg-layout {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   width: 100%;
   overflow: hidden;
 }
@@ -81,17 +81,22 @@ const styles = `
 
 .tg-layout__content {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding: var(--tg-spacing-3) var(--tg-spacing-4);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  position: relative;
 }
 
-/* Для iOS safe areas */
-@supports (padding: max(0px)) {
-  .tg-layout__content {
-    padding-bottom: max(var(--tg-spacing-3), env(safe-area-inset-bottom));
-  }
+.tg-layout__content > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 `;
 

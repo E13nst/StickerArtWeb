@@ -23,11 +23,10 @@ import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerThumbnail } from './StickerThumbnail';
 import { useLikesStore } from '@/store/useLikesStore';
-import { imageLoader } from '@/utils/imageLoader';
-import { LoadPriority } from '@/utils/imageLoader';
-import { prefetchSticker } from '@/utils/animationLoader';
+import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAsGallerySticker } from '@/utils/animationLoader';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
+import { imageCache } from '@/utils/galleryUtils';
 
 // Кеш полных данных стикерсетов для оптимистичного UI
 interface CachedStickerSet {
@@ -45,65 +44,86 @@ interface LazyThumbnailProps {
   index: number;
   activeIndex: number;
   onClick: (idx: number) => void;
-  shouldLoadImmediately: boolean;
 }
+
+const renderStickerMedia = (
+  sticker: any,
+  opts: {
+    size?: number | string;
+    width?: number | string;
+    height?: number | string;
+    className?: string;
+    onLoad?: () => void;
+  } = {}
+) => {
+  if (!sticker) return null;
+  const { size, width: widthProp, height: heightProp, className, onLoad } = opts;
+  const computedWidth = widthProp ?? size ?? '100%';
+  const computedHeight = heightProp ?? size ?? '100%';
+  const width = typeof computedWidth === 'number' ? `${computedWidth}px` : computedWidth;
+  const height = typeof computedHeight === 'number' ? `${computedHeight}px` : computedHeight;
+  const cachedUrl = getCachedStickerUrl(sticker.file_id);
+  const cachedType = getCachedStickerMediaType(sticker.file_id);
+
+  if (sticker.is_video || sticker.isVideo || cachedType === 'video') {
+    return (
+      <video
+        src={cachedUrl || getStickerImageUrl(sticker.file_id)}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className={className}
+        style={{
+          width,
+          height,
+          objectFit: 'contain'
+        }}
+        onLoadedData={onLoad}
+      />
+    );
+  }
+
+  if (sticker.is_animated || sticker.isAnimated) {
+    return (
+      <AnimatedSticker
+        fileId={sticker.file_id}
+        imageUrl={getStickerImageUrl(sticker.file_id)}
+        hidePlaceholder
+        className={className}
+        onReady={onLoad}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={cachedUrl || getStickerImageUrl(sticker.file_id)}
+      alt={sticker.emoji || ''}
+      className={className}
+      style={{
+        width,
+        height,
+        objectFit: 'contain'
+      }}
+      loading="eager"
+      onLoad={onLoad}
+    />
+  );
+};
 
 const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
   sticker,
   index,
   activeIndex,
-  onClick,
-  shouldLoadImmediately
+  onClick
 }) => {
-  const [isInView, setIsInView] = useState(shouldLoadImmediately);
-  const [shouldRender, setShouldRender] = useState(shouldLoadImmediately);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Если уже загружаем сразу или это активный стикер - рендерим
-    if (shouldLoadImmediately || index === activeIndex) {
-      setShouldRender(true);
-      setIsInView(true);
-      return;
-    }
-
-    // Используем IntersectionObserver для lazy loading
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          setShouldRender(true);
-          observer.disconnect();
-        }
-      },
-      {
-        rootMargin: '200px', // Предзагружаем за 200px до появления
-        threshold: 0.01
-      }
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [shouldLoadImmediately, index, activeIndex]);
-
-  // Всегда рендерим активный стикер
-  useEffect(() => {
-    if (index === activeIndex) {
-      setShouldRender(true);
-      setIsInView(true);
-    }
-  }, [index, activeIndex]);
+  const isActive = index === activeIndex;
 
   return (
     <Box
-      ref={containerRef}
       data-thumbnail-index={index}
-      data-active={index === activeIndex}
+      data-active={isActive}
       onClick={() => onClick(index)}
       sx={{
         flex: '0 0 auto',
@@ -113,7 +133,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
         minHeight: 128,
         borderRadius: 'var(--tg-radius-m)',
         border: '1px solid',
-        borderColor: index === activeIndex ? 'primary.main' : 'rgba(255,255,255,0.2)',
+        borderColor: isActive ? 'primary.main' : 'rgba(255,255,255,0.2)',
         backgroundColor: 'rgba(0,0,0,0.6)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
@@ -126,8 +146,6 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
         position: 'relative'
       }}
     >
-      {shouldRender ? (
-        <>
           <StickerThumbnail
             fileId={sticker.file_id}
             thumbFileId={sticker.thumb?.file_id}
@@ -144,21 +162,6 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
               textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
             }}>
               {sticker.emoji}
-            </Box>
-          )}
-        </>
-      ) : (
-        // Skeleton placeholder пока не загрузили
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '100%',
-          fontSize: '24px',
-          backgroundColor: 'rgba(0,0,0,0.3)'
-        }}>
-          {sticker.emoji || '🎨'}
         </Box>
       )}
     </Box>
@@ -210,6 +213,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [authorUsername, setAuthorUsername] = useState<string | null>(null);
+  const [isMainLoaded, setIsMainLoaded] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchCurrentXRef = useRef<number | null>(null);
   const touchHandledRef = useRef(false);
@@ -293,29 +297,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     };
   }, [stickerSet.authorId, initData, user?.language_code]);
 
-  // Функция предзагрузки миниатюр
-  const preloadThumbnails = useCallback(async (stickers: any[]) => {
-    if (!isModal) return; // Предзагружаем только в модальном окне
-    console.log('🔄 Preloading thumbnails with MODAL priority...');
-    
-    const promises = stickers.map((sticker, index) => {
-      const actualFileId = sticker.thumb?.file_id || sticker.file_id;
-      const imageUrl = getStickerThumbnailUrl(actualFileId, 128);
-      return imageLoader.loadImage(actualFileId, imageUrl, LoadPriority.TIER_0_MODAL, stickerSet.id.toString(), index);
-    });
-    
-    await Promise.allSettled(promises);
-    console.log('✅ All thumbnails preloaded');
-  }, [isModal, stickerSet.id]);
-
   // Функция предзагрузки больших стикеров
   const preloadLargeStickers = useCallback(async (stickers: any[]) => {
     if (!isModal) return; // Предзагружаем только в модальном окне
     console.log('🔄 Preloading large stickers with MODAL priority...');
     
-    const promises = stickers.map((sticker, index) => {
+    const promises = stickers.map((sticker) => {
       const imageUrl = getStickerImageUrl(sticker.file_id);
-      return prefetchSticker(sticker.file_id, imageUrl);
+      return prefetchSticker(sticker.file_id, imageUrl, {
+        isAnimated: Boolean(sticker.is_animated || sticker.isAnimated),
+        isVideo: Boolean(sticker.is_video || sticker.isVideo),
+        markForGallery: true
+      });
     });
     
     await Promise.allSettled(promises);
@@ -400,14 +393,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           
           // Умная предзагрузка: только первые 15 стикеров для миниатюр
           const stickers = fullData.telegramStickerSetInfo?.stickers || [];
-          const thumbnailsToPreload = stickers.slice(0, 15);
-          await preloadThumbnails(thumbnailsToPreload);
-          
+          stickers.forEach((sticker) => {
+            if (sticker?.file_id) {
+              markAsGallerySticker(sticker.file_id);
+            }
+          });
+ 
           if (!mounted || abortController.signal.aborted) return;
           
-          // Предзагружаем только первые 3 больших стикера (для плавного UX)
-          const largeStickersToPreload = stickers.slice(0, 3);
-          preloadLargeStickers(largeStickersToPreload);
+          await preloadLargeStickers(stickers);
         }
       } catch (err) {
         if (!mounted || abortController?.signal.aborted) return;
@@ -433,17 +427,42 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       mounted = false;
       abortController?.abort();
     };
-  }, [stickerSet.id, getLikeState, setLike, preloadThumbnails, preloadLargeStickers]);
+  }, [stickerSet.id, getLikeState, setLike, preloadLargeStickers]);
 
   // Мемоизируем список стикеров для оптимизации рендеринга
   const stickers = useMemo(() => {
     return fullStickerSet?.telegramStickerSetInfo?.stickers || stickerSet.telegramStickerSetInfo?.stickers || [];
   }, [fullStickerSet?.telegramStickerSetInfo?.stickers, stickerSet.telegramStickerSetInfo?.stickers]);
   
+  useEffect(() => {
+    if (!isModal) return;
+    const currentSticker = stickers[activeIndex];
+    if (currentSticker?.file_id) {
+      prefetchSticker(currentSticker.file_id, getStickerImageUrl(currentSticker.file_id), {
+        isAnimated: Boolean(currentSticker.is_animated || currentSticker.isAnimated),
+        isVideo: Boolean(currentSticker.is_video || currentSticker.isVideo),
+        markForGallery: true
+      }).catch(() => {});
+    }
+  }, [activeIndex, stickers, isModal]);
+  
   // Мемоизируем количество стикеров
   const stickerCount = useMemo(() => {
     return stickers.length;
   }, [stickers.length]);
+
+  useEffect(() => {
+    setIsMainLoaded(false);
+    const currentSticker = stickers[activeIndex];
+    if (
+      currentSticker &&
+      !Boolean(currentSticker.is_animated || currentSticker.isAnimated) &&
+      !Boolean(currentSticker.is_video || currentSticker.isVideo) &&
+      (imageCache.get(currentSticker.file_id) || getCachedStickerUrl(currentSticker.file_id))
+    ) {
+      setIsMainLoaded(true);
+    }
+  }, [activeIndex, stickers]);
   
   // Отладочная информация (только в dev режиме)
   if ((import.meta as any).env?.DEV) {
@@ -456,27 +475,25 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     });
   }
 
-  const handleStickerClick = useCallback((idx: number) => {
-    setActiveIndex(idx);
-  }, []);
-
   const goToNextSticker = useCallback(() => {
     if (stickerCount <= 1) return;
     setActiveIndex((prev) => (prev + 1) % stickerCount);
   }, [stickerCount]);
 
-  const goToPreviousSticker = useCallback(() => {
+  const goToPrevSticker = useCallback(() => {
     if (stickerCount <= 1) return;
     setActiveIndex((prev) => (prev - 1 + stickerCount) % stickerCount);
   }, [stickerCount]);
 
-  const handlePreviewClick = useCallback(() => {
-    if (touchHandledRef.current) {
-      touchHandledRef.current = false;
-      return;
+  const handleStickerClick = useCallback((index: number) => {
+    setActiveIndex(index);
+    if (scrollerRef.current) {
+      const node = scrollerRef.current.querySelector(`[data-thumbnail-index="${index}"]`);
+      if (node) {
+        (node as HTMLElement).scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
     }
-    goToNextSticker();
-  }, [goToNextSticker]);
+  }, []);
 
   const handleTouchStart = useCallback((event: React.TouchEvent) => {
     if (stickerCount <= 1) return;
@@ -494,27 +511,32 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     if (stickerCount <= 1) return;
     const start = touchStartXRef.current;
     const end = touchCurrentXRef.current ?? start;
+    let handled = false;
 
     if (start !== null && end !== null) {
       const delta = end - start;
       if (Math.abs(delta) > 40) {
         if (delta > 0) {
-          goToPreviousSticker();
+          goToPrevSticker();
         } else {
           goToNextSticker();
         }
-      } else {
-        goToNextSticker();
+        handled = true;
       }
     }
 
     touchStartXRef.current = null;
     touchCurrentXRef.current = null;
-    touchHandledRef.current = true;
-    window.setTimeout(() => {
+
+    if (handled) {
+      touchHandledRef.current = true;
+      window.setTimeout(() => {
+        touchHandledRef.current = false;
+      }, 0);
+    } else {
       touchHandledRef.current = false;
-    }, 0);
-  }, [goToNextSticker, goToPreviousSticker, stickerCount]);
+    }
+  }, [goToNextSticker, goToPrevSticker, stickerCount]);
 
   const handleTouchCancel = useCallback(() => {
     touchStartXRef.current = null;
@@ -744,7 +766,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       {stickerCount > 0 && (
         <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <Box 
-            key="sticker-container"
+            key={stickers[activeIndex]?.file_id || `preview-${activeIndex}`}
             sx={{
             position: 'relative',
             width: 'min(82vw, 44vh)',
@@ -772,19 +794,57 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 cursor: stickerCount > 1 ? 'pointer' : 'default',
                 touchAction: 'pan-y'
               }}
-              onClick={handlePreviewClick}
+              onClick={(event) => {
+                if (touchHandledRef.current) {
+                  touchHandledRef.current = false;
+                  return;
+                }
+                if (stickerCount <= 1) return;
+                const rect = event.currentTarget.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                if (clickX < rect.width / 2) {
+                  goToPrevSticker();
+                } else {
+                  goToNextSticker();
+                }
+              }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onTouchCancel={handleTouchCancel}
             >
-              <AnimatedSticker
-                key={`sticker-${activeIndex}`}
-                fileId={stickers[activeIndex]?.file_id}
-                imageUrl={getStickerImageUrl(stickers[activeIndex]?.file_id)}
-                hidePlaceholder
-                className={''}
-              />
+              {!isMainLoaded && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.08)',
+                    pointerEvents: 'none',
+                    transition: 'opacity 120ms ease',
+                    opacity: isMainLoaded ? 0 : 1
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      border: '3px solid rgba(255,255,255,0.35)',
+                      borderTopColor: 'rgba(255,255,255,0.9)',
+                      animation: 'spin 1s linear infinite'
+                    }}
+                  />
+                </Box>
+              )}
+              {renderStickerMedia(stickers[activeIndex], {
+                className: '',
+                width: '100%',
+                height: '100%',
+                onLoad: () => setIsMainLoaded(true)
+              })}
             </Box>
             <IconButton
               aria-label="close"
@@ -846,9 +906,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             </Box>
           ) : (
             stickers.map((s, idx) => {
-              // Оптимизация: загружаем только первые 20 миниатюр сразу, остальные lazy
-              const shouldLoadImmediately = idx < 20 || idx === activeIndex;
-              
               return (
                 <LazyThumbnail
                   key={s.file_id}
@@ -856,7 +913,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   index={idx}
                   activeIndex={activeIndex}
                   onClick={handleStickerClick}
-                  shouldLoadImmediately={shouldLoadImmediately}
                 />
               );
             })

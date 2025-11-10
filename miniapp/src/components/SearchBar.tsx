@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import { useTelegram } from '../hooks/useTelegram';
 
 interface SearchBarProps {
   value: string;
@@ -22,6 +23,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   placeholder = "Поиск стикеров...",
   disabled = false
 }) => {
+  const { tg } = useTelegram();
+  const scheme = tg?.colorScheme;
+  const isLight = scheme ? scheme === 'light' : true;
+
+  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
+  const textColor = isLight ? 'rgba(13,27,42,0.64)' : 'var(--tg-theme-hint-color, rgba(255,255,255,0.64))';
+  const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
+  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
+  const glassBase = isLight ? 'rgba(164, 206, 255, 0.32)' : 'rgba(88, 138, 255, 0.24)';
+  const glassHover = isLight ? 'rgba(148, 198, 255, 0.42)' : 'rgba(98, 150, 255, 0.38)';
+  const accentShadow = isLight ? '0 6px 18px rgba(30, 72, 185, 0.14)' : '0 6px 18px rgba(28, 48, 108, 0.28)';
+  const accentShadowHover = isLight ? '0 10px 26px rgba(30, 72, 185, 0.18)' : '0 10px 26px rgba(28, 48, 108, 0.34)';
+
   const handleClear = () => {
     onChange('');
     onSearch?.('');
@@ -34,7 +48,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleSearchClick = () => {
-    if (onSearch) {
+    if (onSearch && !disabled) {
       onSearch(value);
     }
   };
@@ -61,7 +75,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 padding: 0,
-                color: 'var(--tg-theme-hint-color)',
+                color: disabled ? 'var(--tg-theme-hint-color)' : textColorResolved,
                 opacity: disabled ? 0.5 : 1
               }}
               aria-label="Поиск"
@@ -69,7 +83,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             >
               <SearchIcon 
                 sx={{ 
-                  color: disabled ? 'var(--tg-theme-hint-color)' : 'var(--tg-theme-hint-color)',
+                  color: disabled ? 'var(--tg-theme-hint-color)' : textColorResolved,
                   opacity: disabled ? 0.5 : 1,
                   fontSize: '0.955rem' // 0.382 * 2.5rem ≈ 0.955rem
                 }} 
@@ -89,45 +103,61 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 padding: 0,
-                color: 'var(--tg-theme-hint-color)'
+                color: textColorResolved
               }}
               aria-label="Очистить поиск"
             >
-              <ClearIcon sx={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.955rem' }} />
+              <ClearIcon sx={{ color: textColorResolved, fontSize: '0.955rem', opacity: 0.72 }} />
             </Box>
           </InputAdornment>
         ) : null,
       }}
       sx={{
         '& .MuiOutlinedInput-root': {
-          borderRadius: '0.59rem', // 0.236 * 2.5rem ≈ 0.59rem
-          backgroundColor: 'color-mix(in srgb, var(--tg-theme-button-color, #2481cc) 16%, transparent)',
-          color: 'var(--tg-theme-text-color)',
-          height: '2.5rem', // Высота по пропорции
-          fontSize: '0.875rem', // 14px
-          paddingLeft: '0.618rem', // Отступы по горизонтали
+          borderRadius: '0.75rem',
+          background: glassBase,
+          backgroundColor: glassSolid,
+          color: textColorResolved,
+          height: '2.5rem',
+          fontSize: '0.875rem',
+          paddingLeft: '0.618rem',
           paddingRight: '0.618rem',
+          border: `1px solid ${borderColor}`,
+          boxShadow: accentShadow,
+          backdropFilter: 'blur(18px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+          transition: 'all 0.2s ease',
           '&:hover': {
+            background: glassHover,
+            backgroundColor: glassHover,
+            transform: 'scale(0.99)',
+            boxShadow: accentShadowHover,
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'var(--tg-theme-button-color)',
+              borderColor,
+              borderWidth: 1,
             },
           },
           '&.Mui-focused': {
+            background: glassHover,
+            backgroundColor: glassHover,
+            boxShadow: accentShadowHover,
+            transform: 'scale(0.99)',
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'var(--tg-theme-button-color)',
-              borderWidth: 2,
+              borderColor,
+              borderWidth: 1,
             },
           },
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'var(--tg-theme-border-color)',
+            borderColor,
+            borderWidth: 1,
           },
         },
         '& .MuiInputBase-input': {
-          color: 'var(--tg-theme-text-color)',
+          color: textColorResolved,
           fontSize: '0.875rem',
           '&::placeholder': {
-            color: 'var(--tg-theme-hint-color)',
-            opacity: 1,
+            color: textColor,
+            opacity: 0.64,
           },
         },
       }}

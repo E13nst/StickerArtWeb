@@ -675,6 +675,7 @@ export const MyProfilePage: React.FC = () => {
             </Box>
           ) : null
         }}
+        showThemeToggle={false}
       />
 
       {/* Карточка с достижениями под аватаром */}

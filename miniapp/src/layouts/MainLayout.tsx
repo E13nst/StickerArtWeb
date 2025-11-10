@@ -40,6 +40,7 @@ export default function MainLayout({ children }: Props) {
         <StixlyTopHeader
           onSlideChange={setCurrentSlideBg}
           fixedSlideId={isDashboardPage ? 2 : undefined}
+          showThemeToggle={false}
         />
       )}
       <div style={{ 

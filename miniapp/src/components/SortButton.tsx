@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useGlassEffect } from '../hooks/useGlassEffect';
+import { useTelegram } from '../hooks/useTelegram';
 
 interface SortButtonProps {
   sortByLikes: boolean;
@@ -11,39 +13,107 @@ export const SortButton: React.FC<SortButtonProps> = ({
   onToggle,
   disabled = false
 }) => {
+  const {
+    glassBase,
+    glassSolid,
+    glassHover,
+    borderColor,
+    textColorResolved,
+    accentShadow,
+    accentShadowHover,
+  } = useGlassEffect();
+  const { tg } = useTelegram();
+
+  const handleClick = useCallback(() => {
+    if (disabled) return;
+    tg?.HapticFeedback?.impactOccurred('light');
+    onToggle();
+  }, [disabled, onToggle, tg?.HapticFeedback]);
+
+  const baseBackground = sortByLikes ? glassHover : glassBase;
+  const baseSolid = sortByLikes ? glassHover : glassSolid;
+  const baseShadow = sortByLikes ? accentShadowHover : accentShadow;
+  const baseTransform = sortByLikes ? 'scale(0.98)' : 'scale(1)';
+
+  const baseStyles: React.CSSProperties = {
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 0.75rem',
+    borderRadius: '0.75rem',
+    background: baseBackground,
+    backgroundColor: baseSolid,
+    color: textColorResolved,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.52 : 1,
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    transition: 'all 0.2s ease',
+    outline: 'none',
+    border: `1px solid ${borderColor}`,
+    boxShadow: baseShadow,
+    height: '2.2rem',
+    minWidth: '2.8rem',
+    userSelect: 'none',
+    gap: '0.42rem',
+    transform: baseTransform,
+  };
+
+  const applyHoverStyles = (element: HTMLButtonElement) => {
+    Object.assign(element.style, {
+      background: glassHover,
+      backgroundColor: glassHover,
+      transform: 'scale(0.98)',
+      boxShadow: accentShadowHover,
+    });
+  };
+
+  const applyBaseStyles = (element: HTMLButtonElement) => {
+    Object.assign(element.style, {
+      background: baseBackground,
+      backgroundColor: baseSolid,
+      transform: baseTransform,
+      boxShadow: baseShadow,
+    });
+  };
+
+  const handleMouseEnter = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    applyHoverStyles(event.currentTarget);
+  };
+
+  const handleMouseLeave = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    applyBaseStyles(event.currentTarget);
+  };
+
+  const handleFocus = (event: React.FocusEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    applyHoverStyles(event.currentTarget);
+  };
+
+  const handleBlur = (event: React.FocusEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    applyBaseStyles(event.currentTarget);
+  };
+
   return (
     <button
-      onClick={onToggle}
+      onClick={handleClick}
       disabled={disabled}
       aria-label={sortByLikes ? 'Сортировать по умолчанию' : 'Сортировать по лайкам'}
       data-testid="sort-button"
-      style={{
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 0.618rem', // Отступы по горизонтали
-        borderRadius: '0.59rem', // 0.236 * 2.5rem ≈ 0.59rem
-        background: sortByLikes 
-          ? 'var(--tg-theme-button-color, #2481cc)' 
-          : 'var(--tg-theme-secondary-bg-color, #ffffff)',
-        color: sortByLikes 
-          ? 'var(--tg-theme-button-text-color, #ffffff)' 
-          : 'var(--tg-theme-text-color, #000000)',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        fontSize: '0.955rem', // 0.382 * 2.5rem ≈ 0.955rem
-        fontWeight: 400,
-        transition: 'all 0.2s',
-        outline: 'none',
-        border: 'none',
-        boxShadow: 'none',
-        height: '2.5rem', // Высота по пропорции
-        minWidth: '2.5rem',
-        userSelect: 'none'
-      }}
+      style={baseStyles}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
     >
-      {sortByLikes ? '❤️' : '🤍'}
+      <span style={{ fontSize: '0.875rem', lineHeight: 1 }}>{sortByLikes ? '❤️' : '🔥'}</span>
+      <span style={{ fontSize: '0.75rem', opacity: 0.86 }}>
+        {sortByLikes ? 'Топ' : 'Новые'}
+      </span>
     </button>
   );
 };
