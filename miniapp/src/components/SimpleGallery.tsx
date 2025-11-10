@@ -26,8 +26,8 @@ interface SimpleGalleryProps {
   onLoadMore?: () => void;
   // Кнопка добавления как первый элемент сетки
   addButtonElement?: React.ReactNode;
-  // Фильтр категорий
-  categoryFilter?: React.ReactNode;
+  // Верхние элементы управления (поиск, фильтр)
+  controlsElement?: React.ReactNode;
 }
 
 export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
@@ -39,11 +39,12 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   isLoadingMore = false,
   onLoadMore,
   addButtonElement,
-  categoryFilter
+  controlsElement
 }) => {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
+  const [hideControls, setHideControls] = useState(false);
   
   // Случайные амплитуды для колонок (8-16px)
   const [floatAmplitudes] = useState(() => ({
@@ -143,6 +144,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef<number>(0);
+  const lastScrollTopRef = useRef(0);
 
   // Сохраняем позицию скролла перед обновлением данных
   useEffect(() => {
@@ -191,6 +193,29 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     };
   }, [hasNextPage, isLoadingMore, onLoadMore]);
 
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) {
+      return;
+    }
+
+    const onScrollDirection = () => {
+      const current = node.scrollTop;
+      if (current > lastScrollTopRef.current && current > 40) {
+        setHideControls(true);
+      } else if (current < lastScrollTopRef.current) {
+        setHideControls(false);
+      }
+      lastScrollTopRef.current = current;
+    };
+
+    node.addEventListener('scroll', onScrollDirection, { passive: true });
+
+    return () => {
+      node.removeEventListener('scroll', onScrollDirection);
+    };
+  }, []);
+
   // Ленивая загрузка при скролле (для локального отображения)
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -231,20 +256,34 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   }, []);
 
   // Если нужно использовать виртуализацию
+  const renderOverlay = controlsElement || addButtonElement ? (
+    <div className={`gallery-overlay ${hideControls ? 'hidden' : ''}`}>
+      {controlsElement}
+      {addButtonElement}
+    </div>
+  ) : null;
+
   if (shouldUseVirtualization) {
     return (
-      <div style={{ width: '100%', height: '80vh' }}>
-        
-        <VirtualizedGallery
-          packs={packs}
-          onPackClick={onPackClick}
-          itemHeight={200}
-          containerHeight={600}
-          overscan={6}
-          hasNextPage={hasNextPage}
-          isLoadingMore={isLoadingMore}
-          onLoadMore={onLoadMore}
-        />
+      <div
+        ref={containerRef}
+        className="gallery-scroll"
+        data-testid="gallery-container"
+        style={{ width: '100%', height: '80vh' }}
+      >
+        {renderOverlay}
+        <div className="gallery-items">
+          <VirtualizedGallery
+            packs={packs}
+            onPackClick={onPackClick}
+            itemHeight={200}
+            containerHeight={600}
+            overscan={6}
+            hasNextPage={hasNextPage}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={onLoadMore}
+          />
+        </div>
       </div>
     );
   }
@@ -260,10 +299,6 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(${floatAmplitudes.right}px); }
         }
-        @keyframes compensateButtonFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(${floatAmplitudes.left}px); }
-        }
         .gallery-column-float-1 {
           animation: floatColumn1 6.18s ease-in-out infinite;
         }
@@ -271,13 +306,11 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
           animation: floatColumn2 7.64s ease-in-out infinite;
           animation-delay: 1.18s;
         }
-        .add-button-fixed {
-          animation: compensateButtonFloat 6.18s ease-in-out infinite;
-        }
       `}</style>
       <div
         ref={containerRef}
         onScroll={handleScroll}
+        className="gallery-scroll"
         style={{
           width: '100%',
           height: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 200px)',
@@ -289,19 +322,10 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         }}
         data-testid="gallery-container"
       >
-        {/* Category Filter - зафиксирован в верхней части */}
-        {categoryFilter && (
-          <div style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-            width: '100%',
-            padding: 'calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382)'
-          }}>
-            {categoryFilter}
-          </div>
-        )}
-        <div style={{
+        {renderOverlay}
+        <div
+          className="gallery-items"
+          style={{
           display: 'flex',
           gap: '8px',
           padding: '0 calc(1rem * 0.382) calc(1rem * 0.382) calc(1rem * 0.382)',
@@ -322,28 +346,6 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
             overflow: 'visible'
           }}
         >
-          {/* Кнопка добавления как первый элемент левой колонки */}
-          {!showSkeleton && addButtonElement && (
-            <div 
-              className="add-button-fixed"
-              style={{
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box',
-                overflow: 'hidden',
-                flexShrink: 0,
-                marginTop: '0',
-                marginBottom: 'calc(1rem * 0.382)',
-                position: 'sticky',
-                top: categoryFilter ? 'calc(1rem * 3.382)' : '0',
-                zIndex: 11,
-                paddingBottom: 'calc(1rem * 0.382)'
-              }}
-            >
-              {addButtonElement}
-            </div>
-          )}
-
           {/* Skeleton Loading - левая колонка */}
           {showSkeleton && (
             <>

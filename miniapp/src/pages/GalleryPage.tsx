@@ -403,24 +403,6 @@ export const GalleryPage: React.FC = () => {
     <>
       <TelegramLayout>
 
-        {/* Search Bar with Sort Button */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', mb: '0.382rem', px: '0.618rem' }}>
-          <Box sx={{ flex: 1 }}>
-            <SearchBar
-              value={uiState.searchTerm}
-              onChange={handleSearchChange}
-              onSearch={handleSearch}
-              placeholder="Поиск стикеров..."
-              disabled={isLoading}
-            />
-          </Box>
-          <SortButton
-            sortByLikes={uiState.sortByLikes}
-            onToggle={handleSortToggle}
-            disabled={isLoading || !!uiState.searchTerm || categories.length === 0}
-          />
-        </Box>
-
         {/* Content */}
         {isLoading ? (
           <LoadingSpinner message="Загрузка стикеров..." />
@@ -446,14 +428,36 @@ export const GalleryPage: React.FC = () => {
         ) : (
           <div className="fade-in">
             <SimpleGallery
-              categoryFilter={categories.length > 0 ? (
-                <CategoryFilter
-                  categories={categories}
-                  selectedCategories={uiState.selectedCategories}
-                  onCategoryToggle={handleCategoryToggle}
-                  disabled={isLoading}
-                />
-              ) : null}
+              controlsElement={
+                <>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%' }}>
+                    <Box sx={{ flex: 1 }}>
+                      <SearchBar
+                        value={uiState.searchTerm}
+                        onChange={handleSearchChange}
+                        onSearch={handleSearch}
+                        placeholder="Поиск стикеров..."
+                        disabled={isLoading}
+                      />
+                    </Box>
+                    <SortButton
+                      sortByLikes={uiState.sortByLikes}
+                      onToggle={handleSortToggle}
+                      disabled={isLoading || !!uiState.searchTerm || categories.length === 0}
+                    />
+                  </Box>
+                  {categories.length > 0 ? (
+                    <div className="gallery-controls__filter">
+                      <CategoryFilter
+                        categories={categories}
+                        selectedCategories={uiState.selectedCategories}
+                        onCategoryToggle={handleCategoryToggle}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              }
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
               hasNextPage={currentPage < totalPages - 1}

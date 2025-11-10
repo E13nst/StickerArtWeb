@@ -68,11 +68,9 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               flexShrink: 0,
               padding: '4px 8px',
               borderRadius: '13px',
-              backgroundColor: isSelected
-                ? 'var(--tg-theme-button-color, #2481cc)'
-                : 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 25%, transparent)',
+              backgroundColor: 'transparent',
               color: isSelected
-                ? 'var(--tg-theme-button-text-color, #ffffff)'
+                ? 'var(--tg-theme-button-color, #2481cc)'
                 : 'var(--tg-theme-text-color, #000000)',
               fontSize: '14px',
               fontWeight: 600,

@@ -101,7 +101,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       sx={{
         '& .MuiOutlinedInput-root': {
           borderRadius: '0.59rem', // 0.236 * 2.5rem ≈ 0.59rem
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          backgroundColor: 'color-mix(in srgb, var(--tg-theme-button-color, #2481cc) 16%, transparent)',
           color: 'var(--tg-theme-text-color)',
           height: '2.5rem', // Высота по пропорции
           fontSize: '0.875rem', // 14px
