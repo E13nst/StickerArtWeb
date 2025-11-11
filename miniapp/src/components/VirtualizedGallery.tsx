@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatedPackCard } from './AnimatedPackCard';
 
 interface Pack {
@@ -23,6 +23,7 @@ interface VirtualizedGalleryProps {
   hasNextPage?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
+  scrollContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
@@ -33,25 +34,40 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   overscan = 6,
   hasNextPage = false,
   isLoadingMore = false,
-  onLoadMore
+  onLoadMore,
+  scrollContainerRef
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const localContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerWidth, setContainerWidth] = useState(400);
+  const [measuredHeight, setMeasuredHeight] = useState(containerHeight);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const getContainerNode = useCallback(() => {
+    return scrollContainerRef?.current ?? localContainerRef.current;
+  }, [scrollContainerRef]);
 
   // Обновление ширины контейнера
   useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.clientWidth);
-      }
+    const node = getContainerNode();
+    if (!node) return;
+
+    const updateMetrics = () => {
+      setContainerWidth(node.clientWidth || 400);
+      setMeasuredHeight(node.clientHeight || containerHeight);
     };
 
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
+    updateMetrics();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(updateMetrics);
+      ro.observe(node);
+      return () => ro.disconnect();
+    }
+
+    window.addEventListener('resize', updateMetrics);
+    return () => window.removeEventListener('resize', updateMetrics);
+  }, [containerHeight, getContainerNode]);
 
   // Вычисляем видимые элементы
   const visibleRange = useMemo(() => {
@@ -61,7 +77,7 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     
     const startRow = Math.floor(scrollTop / rowHeight);
     const endRow = Math.min(
-      startRow + Math.ceil(containerHeight / rowHeight) + overscan,
+      startRow + Math.ceil(measuredHeight / rowHeight) + overscan,
       totalRows
     );
     
@@ -69,16 +85,22 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     const endIndex = Math.min(endRow * itemsPerRow, packs.length);
     
     return { startIndex, endIndex, itemsPerRow, totalRows };
-  }, [scrollTop, packs.length, itemHeight, containerHeight, overscan, containerWidth]);
+  }, [scrollTop, packs.length, itemHeight, overscan, containerWidth, measuredHeight]);
 
-  // Обработчик скролла
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  };
+  useEffect(() => {
+    const node = getContainerNode();
+    if (!node) return;
+
+    const handleScroll = () => setScrollTop(node.scrollTop);
+
+    handleScroll();
+    node.addEventListener('scroll', handleScroll, { passive: true });
+    return () => node.removeEventListener('scroll', handleScroll);
+  }, [getContainerNode]);
 
   // Пагинация: sentinel внутри scroll-контейнера
   useEffect(() => {
-    const root = containerRef.current;
+    const root = getContainerNode();
     const sentinel = sentinelRef.current;
     if (!root || !sentinel || !hasNextPage || isLoadingMore) return;
 
@@ -93,57 +115,60 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     );
     io.observe(sentinel);
     return () => io.disconnect();
-  }, [hasNextPage, isLoadingMore, onLoadMore]);
+  }, [getContainerNode, hasNextPage, isLoadingMore, onLoadMore]);
 
   // Рендерим только видимые элементы
   const visiblePacks = packs.slice(visibleRange.startIndex, visibleRange.endIndex);
   const offsetY = Math.floor(visibleRange.startIndex / visibleRange.itemsPerRow) * (itemHeight + 8);
 
+  const content = (
+    <div style={{ 
+      height: visibleRange.totalRows * (itemHeight + 8),
+      position: 'relative'
+    }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: offsetY,
+          left: 0,
+          right: 0,
+          display: 'grid',
+          gridTemplateColumns: `repeat(${visibleRange.itemsPerRow}, 1fr)`,
+          gap: '8px',
+          padding: '8px'
+        }}
+      >
+        {visiblePacks.map((pack, index) => (
+          <AnimatedPackCard
+            key={pack.id}
+            pack={pack}
+            isHighPriority={visibleRange.startIndex + index < 6}
+            onClick={onPackClick}
+            delay={index * 50} // Поочередное появление
+          />
+        ))}
+      </div>
+      {hasNextPage && (
+        <div ref={sentinelRef} style={{ position: 'absolute', bottom: 0, height: 1, width: '100%' }} />
+      )}
+    </div>
+  );
+
+  if (scrollContainerRef) {
+    return content;
+  }
+
   return (
     <div
-      ref={containerRef}
+      ref={localContainerRef}
       style={{
         height: containerHeight,
         overflow: 'auto',
         width: '100%',
         position: 'relative'
       }}
-      onScroll={handleScroll}
     >
-      {/* Общая высота для правильного скролла */}
-      <div style={{ 
-        height: visibleRange.totalRows * (itemHeight + 8),
-        position: 'relative'
-      }}>
-        {/* Видимые элементы */}
-        <div
-          style={{
-            position: 'absolute',
-            top: offsetY,
-            left: 0,
-            right: 0,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${visibleRange.itemsPerRow}, 1fr)`,
-            gap: '8px',
-            padding: '8px'
-          }}
-        >
-          {visiblePacks.map((pack, index) => (
-            <AnimatedPackCard
-              key={pack.id}
-              pack={pack}
-              isHighPriority={visibleRange.startIndex + index < 6}
-              onClick={onPackClick}
-              delay={index * 50} // Поочередное появление
-            />
-          ))}
-        </div>
-        {hasNextPage && (
-          <div ref={sentinelRef} style={{ position: 'absolute', bottom: 0, height: 1, width: '100%' }} />
-        )}
-      </div>
-
-      {/* Индикатор отключен в прод-сборке */}
+      {content}
     </div>
   );
 };

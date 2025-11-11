@@ -276,16 +276,17 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }}
       >
         {renderOverlay}
+        {isRefreshing && <LoadingSpinner message="Обновление..." />}
         <div className="gallery-items">
           <VirtualizedGallery
             packs={packs}
             onPackClick={onPackClick}
             itemHeight={200}
-            containerHeight={600}
             overscan={6}
             hasNextPage={hasNextPage}
             isLoadingMore={isLoadingMore}
             onLoadMore={onLoadMore}
+            scrollContainerRef={containerRef}
           />
         </div>
       </div>
