@@ -9,11 +9,14 @@ import MainLayout from '@/layouts/MainLayout';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { NftSoonPage } from '@/pages/NftSoonPage';
+import { useTelegram } from '@/hooks/useTelegram';
+import { apiClient } from '@/api/client';
 
 const App: React.FC = () => {
   const { clearStorage } = useLikesStore();
   const initializeCurrentUser = useProfileStore((state) => state.initializeCurrentUser);
   const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
+  const { initData, user } = useTelegram();
 
   // Принудительная очистка старых данных при первом запуске приложения
   useEffect(() => {
@@ -29,10 +32,20 @@ const App: React.FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    if (!hasMyProfileLoaded) {
-      initializeCurrentUser().catch(() => undefined);
+    if (!initData) {
+      return;
     }
-  }, [hasMyProfileLoaded, initializeCurrentUser]);
+
+    apiClient.setAuthHeaders(initData, user?.language_code);
+  }, [initData, user?.language_code]);
+
+  useEffect(() => {
+    if (!initData || hasMyProfileLoaded) {
+      return;
+    }
+
+    initializeCurrentUser(user?.id ?? null).catch(() => undefined);
+  }, [initData, user?.id, hasMyProfileLoaded, initializeCurrentUser]);
 
   return (
     <Router basename="/miniapp">

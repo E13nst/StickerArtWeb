@@ -329,9 +329,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   useEffect(() => {
     if (!hasMyProfileLoaded) {
-      initializeCurrentUser().catch(() => undefined);
+      const fallbackId =
+        userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
+      initializeCurrentUser(fallbackId).catch(() => undefined);
     }
-  }, [hasMyProfileLoaded, initializeCurrentUser]);
+  }, [hasMyProfileLoaded, initializeCurrentUser, userInfo?.telegramId, userInfo?.id, user?.id]);
 
   const viewerUserId = storeUserId ?? userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
   const viewerRole = storeUserRole ?? userInfo?.role ?? null;
@@ -1348,17 +1350,17 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     </IconButton>
                   </Tooltip>
                 )}
-                {canEditCategories && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={handleOpenCategoriesDialog}
-                    sx={{
+            {canEditCategories && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleOpenCategoriesDialog}
+                sx={{
                       whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Изменить
-                  </Button>
+                }}
+              >
+                Изменить
+              </Button>
                 )}
               </Box>
             )}

@@ -106,7 +106,7 @@ interface ProfileState {
   reset: () => void;
 
   // Инициализация текущего пользователя
-  initializeCurrentUser: () => Promise<void>;
+  initializeCurrentUser: (fallbackUserId?: number | null) => Promise<void>;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -135,7 +135,12 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   setStickerSetsLoading: (loading: boolean) => set({ isStickerSetsLoading: loading }),
   
   // Действия для пользователя
-  setUserInfo: (userInfo: UserInfo) => set({ userInfo }),
+  setUserInfo: (userInfo: UserInfo) =>
+    set((state) => ({
+      userInfo,
+      currentUserId: userInfo.telegramId ?? userInfo.id ?? state.currentUserId,
+      currentUserRole: userInfo.role ?? state.currentUserRole,
+    })),
   clearUserInfo: () => set({ userInfo: null }),
   
   // Действия для стикерсетов
@@ -233,7 +238,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     currentUserRole: null,
   }),
 
-  initializeCurrentUser: async () => {
+  initializeCurrentUser: async (fallbackUserId?: number | null) => {
     const {
       isMyProfileLoading,
       hasMyProfileLoaded,
@@ -248,36 +253,61 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
     set({ isMyProfileLoading: true, userError: null });
 
+    const candidateIds: Array<number | null | undefined> = [
+      currentUserId,
+      userInfo?.telegramId,
+      userInfo?.id,
+      fallbackUserId,
+    ];
+
+    const resolveCandidateId = (...extra: Array<number | null | undefined>) => {
+      const all = [...extra, ...candidateIds];
+      const valid = all.find((value) => typeof value === 'number' && !Number.isNaN(value));
+      return typeof valid === 'number' ? valid : null;
+    };
+
     try {
       const me = await apiClient.getMyProfile();
 
       if (!me) {
+        const fallbackId = resolveCandidateId();
+        if (fallbackId !== null) {
+          try {
+            const profile = await apiClient.getProfile(fallbackId);
+            set({
+              userInfo: profile,
+              currentUserId: profile.telegramId ?? profile.id ?? fallbackId,
+              currentUserRole: profile.role ?? currentUserRole ?? null,
+            });
+          } catch (profileError) {
+            console.warn('Не удалось загрузить профиль пользователя (fallback):', profileError);
+          }
+        }
+      } else {
+        const nextUserId = resolveCandidateId(me.userId);
+        const nextRole = me.role ?? currentUserRole ?? null;
+
         set({
-          isMyProfileLoading: false,
-          hasMyProfileLoaded: true,
+          currentUserId: nextUserId,
+          currentUserRole: nextRole,
         });
-        return;
-      }
 
-      const nextUserId = typeof me.userId === 'number' ? me.userId : currentUserId;
-      const nextRole = me.role ?? currentUserRole ?? null;
+        const needsFullProfile =
+          !userInfo ||
+          typeof userInfo.id !== 'number' ||
+          (typeof me.userId === 'number' && userInfo.id !== me.userId);
 
-      set({
-        currentUserId: nextUserId ?? null,
-        currentUserRole: nextRole,
-      });
-
-      const needsFullProfile =
-        !userInfo ||
-        typeof userInfo.id !== 'number' ||
-        (typeof me.userId === 'number' && userInfo.id !== me.userId);
-
-      if (needsFullProfile && typeof me.userId === 'number') {
-        try {
-          const profile = await apiClient.getProfile(me.userId);
-          set({ userInfo: profile });
-        } catch (profileError) {
-          console.warn('Не удалось загрузить полный профиль пользователя:', profileError);
+        if (needsFullProfile && typeof me.userId === 'number') {
+          try {
+            const profile = await apiClient.getProfile(me.userId);
+            set({
+              userInfo: profile,
+              currentUserId: profile.telegramId ?? profile.id ?? nextUserId,
+              currentUserRole: profile.role ?? nextRole ?? null,
+            });
+          } catch (profileError) {
+            console.warn('Не удалось загрузить полный профиль пользователя:', profileError);
+          }
         }
       }
     } catch (error: any) {
@@ -286,6 +316,19 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         error?.message ||
         'Не удалось загрузить профиль пользователя';
       set({ userError: message });
+      const fallbackId = resolveCandidateId(fallbackUserId);
+      if (fallbackId !== null) {
+        try {
+          const profile = await apiClient.getProfile(fallbackId);
+          set({
+            userInfo: profile,
+            currentUserId: profile.telegramId ?? profile.id ?? fallbackId,
+            currentUserRole: profile.role ?? currentUserRole ?? null,
+          });
+        } catch (profileError) {
+          console.warn('Не удалось загрузить профиль пользователя после ошибки:', profileError);
+        }
+      }
     } finally {
       set({
         isMyProfileLoading: false,
