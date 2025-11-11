@@ -184,6 +184,8 @@ const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
   disabled = false,
   dirty = false
 }) => {
+  const statusLabel = isPublic ? 'Публичный' : 'Приватный';
+
   const handleClick = () => {
     if (disabled) return;
     onToggle();
@@ -195,21 +197,21 @@ const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '6px',
-        minWidth: 80
+        gap: '4px',
+        minWidth: 72
       }}
     >
       <Typography
         variant="caption"
         sx={{
-          fontSize: '12px',
-          fontWeight: isPublic ? 700 : 500,
-          color: isPublic ? '#81d4fa' : 'rgba(255,255,255,0.6)',
+          fontSize: '11px',
+          fontWeight: 700,
+          color: isPublic ? '#81d4fa' : '#ffab91',
           textTransform: 'uppercase',
           letterSpacing: '0.08em'
         }}
       >
-        Публичный
+        {statusLabel}
       </Typography>
       <Box
         component="button"
@@ -220,10 +222,10 @@ const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
         onClick={handleClick}
         sx={{
           position: 'relative',
-          width: 42,
-          height: 104,
+          width: 64,
+          height: 26,
           border: 'none',
-          borderRadius: 24,
+          borderRadius: 15,
           padding: 0,
           cursor: disabled ? 'not-allowed' : 'pointer',
           outline: 'none',
@@ -241,11 +243,11 @@ const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
           sx={{
             position: 'absolute',
             inset: 0,
-            borderRadius: 24,
-            border: '1px solid rgba(255,255,255,0.18)',
+            borderRadius: 15,
+            border: '1px solid rgba(255,255,255,0.2)',
             background: isPublic
-              ? 'linear-gradient(180deg, rgba(129,212,250,0.55) 0%, rgba(41,121,255,0.45) 100%)'
-              : 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)',
+              ? 'linear-gradient(90deg, rgba(129,212,250,0.6) 0%, rgba(41,121,255,0.45) 100%)'
+              : 'linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)',
             opacity: disabled ? 0.4 : 1,
             transition: 'background 220ms ease, opacity 160ms ease'
           }}
@@ -253,51 +255,39 @@ const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
         <Box
           sx={{
             position: 'absolute',
-            left: '50%',
-            top: isPublic ? 6 : 'calc(100% - 38px)',
-            transform: 'translate(-50%, 0)',
-            width: 30,
-            height: 30,
+            top: '50%',
+            left: isPublic ? 'calc(100% - 18px)' : '4px',
+            transform: 'translate(-50%, -50%)',
+            width: 18,
+            height: 18,
             borderRadius: '50%',
             backgroundColor: '#ffffff',
-            boxShadow: '0 6px 16px rgba(0,0,0,0.35)',
-            transition: 'top 180ms ease, background-color 200ms ease',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+            transition: 'left 180ms ease, background-color 200ms ease',
             opacity: disabled ? 0.6 : 1
           }}
         />
         <Box
           sx={{
             position: 'absolute',
-            left: '50%',
-            bottom: isPublic ? 10 : 60,
-            transform: 'translateX(-50%)',
-            width: 6,
-            height: 28,
-            borderRadius: 3,
-            background: 'rgba(255,255,255,0.25)',
-            filter: 'blur(8px)',
-            transition: 'bottom 180ms ease, opacity 200ms ease',
-            opacity: isPublic ? 0 : 0.35
+            top: '50%',
+            left: isPublic ? 'calc(100% - 18px)' : '18px',
+            transform: 'translate(-50%, -50%)',
+            width: 24,
+            height: 12,
+            borderRadius: 12,
+            background: isPublic ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)',
+            filter: 'blur(6px)',
+            transition: 'left 180ms ease, opacity 200ms ease',
+            opacity: isPublic ? 0.4 : 0.25
           }}
         />
       </Box>
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: '12px',
-          fontWeight: isPublic ? 500 : 700,
-          color: !isPublic ? '#ffab91' : 'rgba(255,255,255,0.6)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em'
-        }}
-      >
-        Приватный
-      </Typography>
       {dirty && (
         <Typography
           variant="caption"
           sx={{
-            fontSize: '10px',
+            fontSize: '9px',
             textAlign: 'center',
             color: 'rgba(255,255,255,0.65)',
             opacity: 0.85

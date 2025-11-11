@@ -909,7 +909,6 @@ export const MyProfilePage: React.FC = () => {
                     isLoadingMore={isStickerSetsLoading}
                     onLoadMore={setsFilter === 'liked' ? undefined : () => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)}
                     enablePreloading={true}
-                    includeUnpublished={setsFilter === 'published'}
                     addButtonElement={setsFilter === 'published' ? (
                       <AddStickerPackButton
                         variant="gallery"
