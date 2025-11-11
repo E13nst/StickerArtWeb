@@ -51,11 +51,15 @@ class ImageLoader {
   private queue: LoaderQueue = {
     inFlight: new Map(),
     queue: [],
-    maxConcurrency: 10,
+    maxConcurrency: 16, // Увеличено для лучшей параллельной загрузки (браузеры поддерживают ~6-8 на домен, но через прокси можно больше)
     activeCount: 0
   };
   
   private processing = false;
+  private lastLoadTime = 0; // Для интервалов между загрузками
+  private failureCount = 0; // Счетчик последовательных неудач для адаптивного увеличения интервалов
+  private baseInterval = 30; // Базовый интервал в мс
+  private maxInterval = 5000; // Максимальный интервал при rate limiting (5 секунд)
 
   async loadImage(
     fileId: string, 
@@ -122,7 +126,44 @@ class ImageLoader {
         continue;
       }
 
+      // Адаптивные интервалы между стартом загрузок:
+      // - При rate limiting (неудачи) интервалы увеличиваются экспоненциально
+      // - Базовые интервалы по приоритетам:
+      //   * Высокий приоритет (TIER_0, TIER_1): 15мс
+      //   * Средний приоритет (TIER_2): 25мс
+      //   * Низкий приоритет (TIER_3, TIER_4): 40мс
+      const now = Date.now();
+      const timeSinceLastLoad = now - this.lastLoadTime;
+      
+      // Вычисляем адаптивный интервал с учетом неудач
+      // При неудачах увеличиваем интервал: baseInterval * (2 ^ failureCount)
+      const adaptiveMultiplier = Math.min(Math.pow(2, Math.floor(this.failureCount / 3)), this.maxInterval / this.baseInterval);
+      const adaptiveInterval = Math.min(this.baseInterval * adaptiveMultiplier, this.maxInterval);
+      
+      let minInterval = adaptiveInterval; // Базовый интервал с учетом rate limiting
+      
+      if (item.priority >= LoadPriority.TIER_1_FIRST_6_PACKS) {
+        minInterval = Math.max(15, adaptiveInterval * 0.5); // Высокий приоритет - быстрее, но не меньше адаптивного
+      } else if (item.priority >= LoadPriority.TIER_2_FIRST_IMAGE) {
+        minInterval = Math.max(25, adaptiveInterval * 0.7); // Средний приоритет
+      } else {
+        minInterval = Math.max(40, adaptiveInterval); // Низкий приоритет - полный адаптивный интервал
+      }
+      
+      if (timeSinceLastLoad < minInterval) {
+        // Добавляем обратно в начало очереди с тем же приоритетом
+        this.queue.queue.unshift(item);
+        // Планируем повторную обработку через нужное время
+        setTimeout(() => {
+          if (!this.processing) {
+            this.processQueue();
+          }
+        }, minInterval - timeSinceLastLoad);
+        break; // Прерываем цикл, чтобы не обрабатывать остальные элементы
+      }
+
       this.queue.activeCount++;
+      this.lastLoadTime = now;
       
       try {
         const promise = this.loadImageFromUrl(item.fileId, item.url);
@@ -156,9 +197,9 @@ class ImageLoader {
       console.log(`🔄 Prefetching image for ${fileId}:`, normalizedUrl);
     }
     
-    // Retry логика с экспоненциальным backoff
-    const maxRetries = 6;
-    let delay = 1000; // Начинаем с 1 секунды
+    // Retry логика с экспоненциальным backoff (оптимизировано для скорости)
+    const maxRetries = 4; // Уменьшено с 6 до 4 для быстрейшей загрузки
+    let delay = 300; // Уменьшено с 1000мс до 300мс для первой попытки
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
@@ -184,25 +225,34 @@ class ImageLoader {
           img.src = normalizedUrl;
         });
         
+        // Успешная загрузка - сбрасываем счетчик неудач
+        if (this.failureCount > 0) {
+          this.failureCount = Math.max(0, this.failureCount - 1);
+        }
         return result;
       } catch (error) {
         const isLastAttempt = attempt === maxRetries - 1;
         
+        // Увеличиваем счетчик неудач при ошибках (возможный rate limiting)
+        this.failureCount++;
+        
         if (isLastAttempt) {
           // Логируем только в dev режиме, чтобы не засорять консоль в production
           if (import.meta.env.DEV) {
-            console.warn(`❌ Failed to load image for ${fileId} after ${maxRetries} attempts`);
+            console.warn(`❌ Failed to load image for ${fileId} after ${maxRetries} attempts. Failure count: ${this.failureCount}`);
           }
           throw new Error(`Failed to load image after ${maxRetries} attempts: ${normalizedUrl}`);
         }
         
         // Логируем только в dev режиме
         if (import.meta.env.DEV) {
-          console.warn(`⚠️ Retry ${attempt + 1}/${maxRetries} for ${fileId} after ${delay}ms delay`);
+          console.warn(`⚠️ Retry ${attempt + 1}/${maxRetries} for ${fileId} after ${delay}ms delay (failures: ${this.failureCount})`);
         }
         
         // Ждем перед следующей попыткой с экспоненциальным backoff
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // При большом количестве неудач увеличиваем задержку дополнительно
+        const adaptiveDelay = delay * (1 + Math.min(this.failureCount / 10, 2)); // До 3x при множественных неудачах
+        await new Promise(resolve => setTimeout(resolve, adaptiveDelay));
         
         // Удваиваем задержку для следующей попытки
         delay *= 2;
@@ -259,6 +309,8 @@ class ImageLoader {
     this.queue.queue = [];
     this.queue.activeCount = 0;
     this.processing = false;
+    this.lastLoadTime = 0;
+    this.failureCount = 0; // Сбрасываем счетчик неудач
     imageCache.clear();
   }
 

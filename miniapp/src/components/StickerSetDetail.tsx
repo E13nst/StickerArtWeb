@@ -431,22 +431,48 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     };
   }, [stickerSet.authorId, initData, user?.language_code]);
 
-  // Функция предзагрузки больших стикеров
+  // Функция предзагрузки больших стикеров (ОСТОРОЖНО: загружает ВСЕ стикеры из набора)
+  // Загружает батчами с интервалами для предотвращения rate limiting от Telegram Bot API
   const preloadLargeStickers = useCallback(async (stickers: any[]) => {
     if (!isModal) return; // Предзагружаем только в модальном окне
-    console.log('🔄 Preloading large stickers with MODAL priority...');
     
-    const promises = stickers.map((sticker) => {
-      const imageUrl = getStickerImageUrl(sticker.file_id);
-      return prefetchSticker(sticker.file_id, imageUrl, {
-        isAnimated: Boolean(sticker.is_animated || sticker.isAnimated),
-        isVideo: Boolean(sticker.is_video || sticker.isVideo),
-        markForGallery: true
+    // Ограничиваем количество стикеров для предзагрузки - только первые 20
+    // Остальные загружаются по требованию при прокрутке
+    const stickersToPreload = stickers.slice(0, 20);
+    
+    if (stickersToPreload.length === 0) return;
+    
+    console.log(`🔄 Preloading ${stickersToPreload.length} large stickers with MODAL priority (batched)...`);
+    
+    // Загружаем батчами по 3 стикера с интервалом 200мс между батчами
+    // Это предотвращает перегрузку Telegram Bot API
+    const batchSize = 3;
+    const batchInterval = 200; // 200мс между батчами
+    
+    for (let i = 0; i < stickersToPreload.length; i += batchSize) {
+      const batch = stickersToPreload.slice(i, i + batchSize);
+      
+      // Загружаем батч параллельно
+      const batchPromises = batch.map((sticker) => {
+        const imageUrl = getStickerImageUrl(sticker.file_id);
+        return prefetchSticker(sticker.file_id, imageUrl, {
+          isAnimated: Boolean(sticker.is_animated || sticker.isAnimated),
+          isVideo: Boolean(sticker.is_video || sticker.isVideo),
+          markForGallery: true
+        }).catch(() => {
+          // Игнорируем ошибки отдельных стикеров
+        });
       });
-    });
+      
+      await Promise.allSettled(batchPromises);
+      
+      // Ждем перед следующим батчем (кроме последнего)
+      if (i + batchSize < stickersToPreload.length) {
+        await new Promise(resolve => setTimeout(resolve, batchInterval));
+      }
+    }
     
-    await Promise.allSettled(promises);
-    console.log('✅ All large stickers preloaded');
+    console.log(`✅ Preloaded ${stickersToPreload.length} large stickers`);
   }, [isModal]);
 
   // Не инициализируем лайки из пропсов - только из API данных
