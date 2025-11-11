@@ -156,31 +156,61 @@ class ImageLoader {
       console.log(`🔄 Prefetching image for ${fileId}:`, normalizedUrl);
     }
     
-    // Реальная загрузка изображения через браузер
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      
-      img.onload = () => {
+    // Retry логика с экспоненциальным backoff
+    const maxRetries = 6;
+    let delay = 1000; // Начинаем с 1 секунды
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Реальная загрузка изображения через браузер
+        const result = await new Promise<string>((resolve, reject) => {
+          const img = new Image();
+          
+          img.onload = () => {
+            // Логируем только в dev режиме
+            if (import.meta.env.DEV) {
+              console.log(`✅ Image loaded for ${fileId}${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
+            }
+            // Сохранить URL в кеш после успешной загрузки
+            imageCache.set(fileId, normalizedUrl, 0.1);
+            resolve(normalizedUrl);
+          };
+          
+          img.onerror = () => {
+            reject(new Error(`Failed to load image: ${normalizedUrl}`));
+          };
+          
+          // Запускаем загрузку
+          img.src = normalizedUrl;
+        });
+        
+        return result;
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries - 1;
+        
+        if (isLastAttempt) {
+          // Логируем только в dev режиме, чтобы не засорять консоль в production
+          if (import.meta.env.DEV) {
+            console.warn(`❌ Failed to load image for ${fileId} after ${maxRetries} attempts`);
+          }
+          throw new Error(`Failed to load image after ${maxRetries} attempts: ${normalizedUrl}`);
+        }
+        
         // Логируем только в dev режиме
         if (import.meta.env.DEV) {
-          console.log(`✅ Image loaded for ${fileId}`);
+          console.warn(`⚠️ Retry ${attempt + 1}/${maxRetries} for ${fileId} after ${delay}ms delay`);
         }
-        // Сохранить URL в кеш после успешной загрузки
-        imageCache.set(fileId, normalizedUrl, 0.1);
-        resolve(normalizedUrl);
-      };
-      
-      img.onerror = () => {
-        // Логируем только в dev режиме, чтобы не засорять консоль в production
-        if (import.meta.env.DEV) {
-          console.warn(`❌ Failed to load image for ${fileId}`);
-        }
-        reject(new Error(`Failed to load image: ${normalizedUrl}`));
-      };
-      
-      // Запускаем загрузку
-      img.src = normalizedUrl;
-    });
+        
+        // Ждем перед следующей попыткой с экспоненциальным backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Удваиваем задержку для следующей попытки
+        delay *= 2;
+      }
+    }
+    
+    // Этот код не должен выполниться, но TypeScript требует возврат
+    throw new Error(`Failed to load image: ${normalizedUrl}`);
   }
 
   async reloadImage(
