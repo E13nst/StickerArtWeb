@@ -34,7 +34,6 @@ import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { SortButton } from '@/components/SortButton';
-import { StickerSetResponse } from '@/types/stickerSet';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();

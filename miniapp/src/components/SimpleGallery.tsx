@@ -171,12 +171,33 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNextPage || isLoadingMore) return;
+    const container = containerRef.current;
+    if (!sentinel || !container || !hasNextPage || isLoadingMore) {
+      if (!sentinel) console.log('🔍 InfiniteScroll: sentinel не найден');
+      if (!container) console.log('🔍 InfiniteScroll: container не найден');
+      if (!hasNextPage) console.log('🔍 InfiniteScroll: нет следующей страницы');
+      if (isLoadingMore) console.log('🔍 InfiniteScroll: уже загружается');
+      return;
+    }
+
+    console.log('🔍 InfiniteScroll: настройка IntersectionObserver', {
+      hasNextPage,
+      isLoadingMore,
+      containerHeight: container.clientHeight,
+      containerScrollHeight: container.scrollHeight
+    });
 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
+        console.log('🔍 InfiniteScroll: IntersectionObserver callback', {
+          isIntersecting: entry.isIntersecting,
+          intersectionRatio: entry.intersectionRatio,
+          hasNextPage,
+          isLoadingMore
+        });
         if (entry.isIntersecting && hasNextPage && !isLoadingMore && onLoadMore) {
+          console.log('✅ InfiniteScroll: загрузка следующей страницы');
           // Сохраняем позицию скролла перед загрузкой
           if (containerRef.current) {
             scrollPositionRef.current = containerRef.current.scrollTop;
@@ -185,6 +206,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         }
       },
       {
+        root: container, // Важно: указываем контейнер как root для наблюдения внутри скроллируемой области
         rootMargin: '100px',
         threshold: 0.1
       }
@@ -660,12 +682,13 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         <div
           ref={sentinelRef}
           style={{
-            height: '1px',
+            height: '20px',
+            minHeight: '20px',
             width: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0',
+            padding: '10px 0',
             margin: 0
           }}
         >
