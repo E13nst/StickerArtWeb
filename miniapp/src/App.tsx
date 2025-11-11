@@ -7,10 +7,13 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { AuthorPage } from '@/pages/AuthorPage';
 import MainLayout from '@/layouts/MainLayout';
 import { useLikesStore } from '@/store/useLikesStore';
+import { useProfileStore } from '@/store/useProfileStore';
 import { NftSoonPage } from '@/pages/NftSoonPage';
 
 const App: React.FC = () => {
   const { clearStorage } = useLikesStore();
+  const initializeCurrentUser = useProfileStore((state) => state.initializeCurrentUser);
+  const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
 
   // Принудительная очистка старых данных при первом запуске приложения
   useEffect(() => {
@@ -24,6 +27,12 @@ const App: React.FC = () => {
       console.log('🧹 Очищены старые данные о лайках из localStorage (версия обновлена)');
     }
   }, [clearStorage]);
+
+  useEffect(() => {
+    if (!hasMyProfileLoaded) {
+      initializeCurrentUser().catch(() => undefined);
+    }
+  }, [hasMyProfileLoaded, initializeCurrentUser]);
 
   return (
     <Router basename="/miniapp">

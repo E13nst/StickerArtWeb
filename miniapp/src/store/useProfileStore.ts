@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { StickerSetResponse } from '@/types/sticker';
+import { apiClient } from '@/api/client';
 
 // Тип для Telegram пользователя
 export interface TelegramUserData {
@@ -55,6 +56,8 @@ interface ProfileState {
   isLoading: boolean;
   isUserLoading: boolean;
   isStickerSetsLoading: boolean;
+  isMyProfileLoading: boolean;
+  hasMyProfileLoaded: boolean;
   
   // Данные
   userInfo: UserInfo | null;
@@ -62,6 +65,8 @@ interface ProfileState {
   currentPage: number;
   totalPages: number;
   totalElements: number;
+  currentUserId: number | null;
+  currentUserRole: string | null;
   
   // Ошибки
   error: string | null;
@@ -99,6 +104,9 @@ interface ProfileState {
   
   // Сброс состояния
   reset: () => void;
+
+  // Инициализация текущего пользователя
+  initializeCurrentUser: () => Promise<void>;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -108,6 +116,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   isLoading: false,
   isUserLoading: false,
   isStickerSetsLoading: false,
+  isMyProfileLoading: false,
+  hasMyProfileLoaded: false,
   userInfo: null,
   userStickerSets: [],
   currentPage: 0,
@@ -116,6 +126,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   error: null,
   userError: null,
   stickerSetsError: null,
+  currentUserId: null,
+  currentUserRole: null,
 
   // Действия для загрузки
   setLoading: (loading: boolean) => set({ isLoading: loading }),
@@ -207,6 +219,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     isLoading: false,
     isUserLoading: false,
     isStickerSetsLoading: false,
+    isMyProfileLoading: false,
+    hasMyProfileLoaded: false,
     userInfo: null,
     userStickerSets: [],
     currentPage: 0,
@@ -215,5 +229,68 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     error: null,
     userError: null,
     stickerSetsError: null,
+    currentUserId: null,
+    currentUserRole: null,
   }),
+
+  initializeCurrentUser: async () => {
+    const {
+      isMyProfileLoading,
+      hasMyProfileLoaded,
+      currentUserId,
+      currentUserRole,
+      userInfo,
+    } = get();
+
+    if (isMyProfileLoading || hasMyProfileLoaded) {
+      return;
+    }
+
+    set({ isMyProfileLoading: true, userError: null });
+
+    try {
+      const me = await apiClient.getMyProfile();
+
+      if (!me) {
+        set({
+          isMyProfileLoading: false,
+          hasMyProfileLoaded: true,
+        });
+        return;
+      }
+
+      const nextUserId = typeof me.userId === 'number' ? me.userId : currentUserId;
+      const nextRole = me.role ?? currentUserRole ?? null;
+
+      set({
+        currentUserId: nextUserId ?? null,
+        currentUserRole: nextRole,
+      });
+
+      const needsFullProfile =
+        !userInfo ||
+        typeof userInfo.id !== 'number' ||
+        (typeof me.userId === 'number' && userInfo.id !== me.userId);
+
+      if (needsFullProfile && typeof me.userId === 'number') {
+        try {
+          const profile = await apiClient.getProfile(me.userId);
+          set({ userInfo: profile });
+        } catch (profileError) {
+          console.warn('Не удалось загрузить полный профиль пользователя:', profileError);
+        }
+      }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Не удалось загрузить профиль пользователя';
+      set({ userError: message });
+    } finally {
+      set({
+        isMyProfileLoading: false,
+        hasMyProfileLoaded: true,
+      });
+    }
+  },
 }));

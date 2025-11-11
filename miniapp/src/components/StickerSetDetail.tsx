@@ -261,7 +261,19 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   onCategoriesUpdated
 }) => {
   const { initData, user } = useTelegram();
-  const userInfo = useProfileStore((state) => state.userInfo);
+  const {
+    userInfo,
+    currentUserId: storeUserId,
+    currentUserRole: storeUserRole,
+    hasMyProfileLoaded,
+    initializeCurrentUser,
+  } = useProfileStore((state) => ({
+    userInfo: state.userInfo,
+    currentUserId: state.currentUserId,
+    currentUserRole: state.currentUserRole,
+    hasMyProfileLoaded: state.hasMyProfileLoaded,
+    initializeCurrentUser: state.initializeCurrentUser,
+  }));
   // Оптимистичный UI: показываем данные из пропсов сразу, обновляем когда загрузятся полные данные
   const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(() => {
     // Проверяем кеш при инициализации
@@ -314,12 +326,21 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const displayTitle = useMemo(() => {
     return fullStickerSet?.title || stickerSet.title;
   }, [fullStickerSet?.title, stickerSet.title]);
-  const currentUserId = user?.id ?? userInfo?.telegramId ?? userInfo?.id ?? null;
+
+  useEffect(() => {
+    if (!hasMyProfileLoaded) {
+      initializeCurrentUser().catch(() => undefined);
+    }
+  }, [hasMyProfileLoaded, initializeCurrentUser]);
+
+  const viewerUserId = storeUserId ?? userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
+  const viewerRole = storeUserRole ?? userInfo?.role ?? null;
+  const currentUserId = viewerUserId;
   const ownerId = useMemo(() => {
     const primary = fullStickerSet?.authorId ?? stickerSet.authorId;
     return primary ?? null;
   }, [fullStickerSet?.authorId, stickerSet.authorId]);
-  const normalizedRole = (userInfo?.role ?? '').toUpperCase();
+  const normalizedRole = (viewerRole ?? '').toUpperCase();
   const isAdmin = normalizedRole.includes('ADMIN');
   const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
   const canToggleVisibility = (isAuthor || isAdmin) && Boolean(stickerSet.id);
