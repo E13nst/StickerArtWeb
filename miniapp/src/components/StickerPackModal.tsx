@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerSetDetail } from './StickerSetDetail';
 import { ModalBackdrop } from './ModalBackdrop';
 import { imageCache } from '@/utils/galleryUtils';
 import { animationCache, clearStickerBlobsExcept } from '@/utils/animationLoader';
-import { apiClient } from '@/api/client';
 
 interface StickerPackModalProps {
   open: boolean;
@@ -14,7 +13,6 @@ interface StickerPackModalProps {
   enableCategoryEditing?: boolean;
   infoVariant?: 'default' | 'minimal';
   onCategoriesUpdated?: (updated: StickerSetResponse) => void;
-  onStickerSetUpdated?: (updated: StickerSetResponse) => void;
 }
 
 export const StickerPackModal: React.FC<StickerPackModalProps> = ({
@@ -24,12 +22,9 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
   onLike,
   enableCategoryEditing = false,
   infoVariant = 'default',
-  onCategoriesUpdated,
-  onStickerSetUpdated
+  onCategoriesUpdated
 }) => {
   const cleanupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialVisibilityRef = useRef<boolean | null>(null);
-  const [pendingVisibility, setPendingVisibility] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -89,83 +84,13 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
     };
   }, [open, stickerSet]);
 
-  useEffect(() => {
-    if (!stickerSet) {
-      initialVisibilityRef.current = null;
-      setPendingVisibility(null);
-      return;
-    }
-
-    const currentVisibility =
-      typeof stickerSet.isPublic === 'boolean' ? stickerSet.isPublic : true;
-    initialVisibilityRef.current = currentVisibility;
-    setPendingVisibility(null);
-  }, [stickerSet?.id, stickerSet?.isPublic]);
-
-  const effectiveVisibility = useMemo(() => {
-    if (pendingVisibility !== null) {
-      return pendingVisibility;
-    }
-    if (initialVisibilityRef.current !== null) {
-      return initialVisibilityRef.current;
-    }
-    return stickerSet?.isPublic ?? true;
-  }, [pendingVisibility, stickerSet?.isPublic]);
-
-  const hasVisibilityChange =
-    pendingVisibility !== null &&
-    initialVisibilityRef.current !== null &&
-    pendingVisibility !== initialVisibilityRef.current;
-
-  const handleVisibilityToggle = useCallback((next: boolean) => {
-    setPendingVisibility(() => {
-      const initial = initialVisibilityRef.current;
-      if (initial === null) {
-        // Если по какой-то причине не инициализировано - считаем текущее значением по умолчанию
-        initialVisibilityRef.current = next;
-        return null;
-      }
-      return next === initial ? null : next;
-    });
-  }, []);
-
-  const handleClose = useCallback(() => {
-    const currentSticker = stickerSet;
-    const nextVisibility =
-      hasVisibilityChange && pendingVisibility !== null
-        ? pendingVisibility
-        : initialVisibilityRef.current ?? currentSticker?.isPublic ?? true;
-
-    const shouldUpdate =
-      Boolean(currentSticker) &&
-      hasVisibilityChange &&
-      pendingVisibility !== null &&
-      initialVisibilityRef.current !== null;
-
-    onClose();
-
-    if (shouldUpdate && currentSticker) {
-      const action = nextVisibility
-        ? apiClient.publishStickerSet(currentSticker.id)
-        : apiClient.unpublishStickerSet(currentSticker.id);
-
-      action
-        .then((updated) => {
-          onStickerSetUpdated?.(updated);
-        })
-        .catch((error) => {
-          console.error('❌ Ошибка обновления видимости стикерсета:', error);
-        });
-    }
-  }, [hasVisibilityChange, onClose, onStickerSetUpdated, pendingVisibility, stickerSet]);
-
   if (!stickerSet) return null;
 
   return (
-    <ModalBackdrop open={open} onClose={handleClose}>
+    <ModalBackdrop open={open} onClose={onClose}>
       <StickerSetDetail
         stickerSet={stickerSet}
-        onBack={handleClose}
+        onBack={onClose}
         onShare={() => {}}
         onLike={onLike}
         isInTelegramApp={true}
@@ -173,9 +98,6 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
         enableCategoryEditing={enableCategoryEditing}
         infoVariant={infoVariant}
         onCategoriesUpdated={onCategoriesUpdated}
-        visibilityOverride={effectiveVisibility}
-        onVisibilityToggle={handleVisibilityToggle}
-        visibilityDirty={hasVisibilityChange}
       />
     </ModalBackdrop>
   );

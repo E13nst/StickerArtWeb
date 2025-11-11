@@ -377,29 +377,6 @@ export const AuthorPage: React.FC = () => {
     setSelectedStickerSet(null);
   };
 
-  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
-    setStickerSets((prev) => {
-      if (!prev.some((set) => set.id === updated.id)) {
-        return prev;
-      }
-      if (updated.isPublic === false) {
-        return prev.filter((set) => set.id !== updated.id);
-      }
-      return prev.map((set) => (set.id === updated.id ? { ...set, ...updated } : set));
-    });
-
-    setSelectedStickerSet((prev) => {
-      if (prev && prev.id === updated.id) {
-        if (updated.isPublic === false) {
-          setIsModalOpen(false);
-          return null;
-        }
-        return { ...prev, ...updated };
-      }
-      return prev;
-    });
-  }, []);
-
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
   }, []);
@@ -624,7 +601,6 @@ export const AuthorPage: React.FC = () => {
         open={isModalOpen}
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
-        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </Box>
   );

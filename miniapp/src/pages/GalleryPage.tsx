@@ -37,7 +37,6 @@ export const GalleryPage: React.FC = () => {
     setLoading,
     setStickerSets,
     addStickerSets,
-    updateStickerSet,
     setError,
     setPagination,
   } = useStickerStore();
@@ -284,22 +283,6 @@ export const GalleryPage: React.FC = () => {
     }));
   }, [tg]);
 
-  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
-    updateStickerSet(updated.id, updated);
-    setUiState((prev) => {
-      const isCurrent = prev.selectedStickerSet?.id === updated.id;
-      const nextSelected = isCurrent && prev.selectedStickerSet
-        ? { ...prev.selectedStickerSet, ...updated }
-        : prev.selectedStickerSet;
-      const shouldClose = isCurrent && updated.isPublic === false;
-      return {
-        ...prev,
-        selectedStickerSet: nextSelected,
-        isDetailOpen: shouldClose ? false : prev.isDetailOpen
-      };
-    });
-  }, [updateStickerSet]);
-
   const handleSearchChange = useCallback((newSearchTerm: string) => {
     setUiState(prev => ({ ...prev, searchTerm: newSearchTerm }));
   }, []);
@@ -531,7 +514,6 @@ export const GalleryPage: React.FC = () => {
         onLike={(id, title) => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);
         }}
-        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </>
   );

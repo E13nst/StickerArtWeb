@@ -66,15 +66,14 @@ export interface StickerSetResponse {
   telegramStickerSetInfo: TelegramStickerSetInfo;
   // Дополнительные поля для метаданных
   userId?: number;
+  authorId?: number;
   username?: string;
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
-  authorId?: number;
-  isPublic?: boolean;
-  isBlocked?: boolean;
-  blockReason?: string | null;
-  isOfficial?: boolean;
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'HIDDEN' | 'VISIBLE' | string;
+  isPublished?: boolean;
+  isPrivate?: boolean;
   
   // Лайки - API использует разные названия полей в разных endpoints:
   // GET /stickersets возвращает:

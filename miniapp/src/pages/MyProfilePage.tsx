@@ -33,7 +33,7 @@ import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { SortButton } from '@/components/SortButton';
-import { StickerSetResponse } from '@/types/sticker';
+import { StickerSetResponse } from '@/types/stickerSet';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -417,42 +417,7 @@ export const MyProfilePage: React.FC = () => {
       clearCache(currentUserId);
     }
   };
-
-  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
-    const updateList = (list: StickerSetResponse[]) => {
-      let changed = false;
-      const next = list.map((set) => {
-        if (set.id === updated.id) {
-          changed = true;
-          return { ...set, ...updated };
-        }
-        return set;
-      });
-      return changed ? next : list;
-    };
-
-    const nextUserSets = updateList(userStickerSets);
-    if (nextUserSets !== userStickerSets) {
-      setUserStickerSets(nextUserSets);
-    }
-
-    setLikedStickerSets((prev) => {
-      let changed = false;
-      const next = prev.map((set) => {
-        if (set.id === updated.id) {
-          changed = true;
-          return { ...set, ...updated };
-        }
-        return set;
-      });
-      return changed ? next : prev;
-    });
-
-    setSelectedStickerSet((prev) =>
-      prev && prev.id === updated.id ? { ...prev, ...updated } : prev
-    );
-  }, [setUserStickerSets, userStickerSets, setLikedStickerSets]);
- 
+  
 
   const handleShareStickerSet = (name: string, _title: string) => {
     if (tg) {
@@ -1036,7 +1001,6 @@ export const MyProfilePage: React.FC = () => {
           // Настоящее переключение лайка через store
           useLikesStore.getState().toggleLike(String(id));
         }}
-        onStickerSetUpdated={handleStickerSetUpdated}
       />
 
       {/* Debug панель */}

@@ -12,7 +12,10 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Tooltip,
+  Popover,
+  SvgIcon
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -28,6 +31,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
 import { imageCache } from '@/utils/galleryUtils';
 import { useProfileStore } from '@/store/useProfileStore';
+import type { SvgIconProps } from '@mui/material/SvgIcon';
 
 // Кеш полных данных стикерсетов для оптимистичного UI
 interface CachedStickerSet {
@@ -38,6 +42,68 @@ interface CachedStickerSet {
 
 const stickerSetCache = new Map<number, CachedStickerSet>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 минут
+
+type VisibilityState = 'public' | 'private';
+
+const deriveVisibilityState = (data?: StickerSetResponse | null): VisibilityState => {
+  if (!data) return 'public';
+  const visibility = (data as any)?.visibility ?? (data as any)?.status ?? (data as any)?.publishedStatus;
+  const isPrivate = (data as any)?.isPrivate;
+  const isPublished = (data as any)?.isPublished;
+
+  if (typeof isPrivate === 'boolean') {
+    return isPrivate ? 'private' : 'public';
+  }
+
+  if (typeof isPublished === 'boolean') {
+    return isPublished ? 'public' : 'private';
+  }
+
+  if (typeof visibility === 'string') {
+    const normalized = visibility.toLowerCase();
+    if (['private', 'hidden', 'invisible'].includes(normalized)) {
+      return 'private';
+    }
+    if (['public', 'visible', 'published'].includes(normalized)) {
+      return 'public';
+    }
+  }
+
+  return 'public';
+};
+
+const applyVisibilityToStickerSet = (data: StickerSetResponse, visibility: VisibilityState): StickerSetResponse => ({
+  ...data,
+  isPublished: visibility === 'public',
+  isPrivate: visibility === 'private',
+  visibility: visibility === 'public' ? 'PUBLIC' : 'PRIVATE'
+});
+
+const EyePublishedIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props} viewBox="0 0 16 16">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M0 8L3.07945 4.30466C4.29638 2.84434 6.09909 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8L12.9206 11.6953C11.7036 13.1557 9.90091 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8ZM8 11C9.65685 11 11 9.65685 11 8C11 6.34315 9.65685 5 8 5C6.34315 5 5 6.34315 5 8C5 9.65685 6.34315 11 8 11Z"
+      fill="currentColor"
+    />
+  </SvgIcon>
+);
+
+const EyeUnpublishedIcon: React.FC<SvgIconProps> = (props) => (
+  <SvgIcon {...props} viewBox="0 0 16 16">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M16 16H13L10.8368 13.3376C9.96488 13.7682 8.99592 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8L3.07945 4.30466C3.14989 4.22013 3.22229 4.13767 3.29656 4.05731L0 0H3L16 16ZM5.35254 6.58774C5.12755 7.00862 5 7.48941 5 8C5 9.65685 6.34315 11 8 11C8.29178 11 8.57383 10.9583 8.84053 10.8807L5.35254 6.58774Z"
+      fill="currentColor"
+    />
+    <path
+      d="M16 8L14.2278 10.1266L7.63351 2.01048C7.75518 2.00351 7.87739 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8Z"
+      fill="currentColor"
+    />
+  </SvgIcon>
+);
 
 // Компонент для ленивой загрузки миниатюр
 interface LazyThumbnailProps {
@@ -171,135 +237,6 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
 
 LazyThumbnail.displayName = 'LazyThumbnail';
 
-interface VisibilitySwitchProps {
-  isPublic: boolean;
-  onToggle: () => void;
-  disabled?: boolean;
-  dirty?: boolean;
-}
-
-const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
-  isPublic,
-  onToggle,
-  disabled = false,
-  dirty = false
-}) => {
-  const statusLabel = isPublic ? 'Публичный' : 'Приватный';
-
-  const handleClick = () => {
-    if (disabled) return;
-    onToggle();
-  };
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-        minWidth: 72
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: '11px',
-          fontWeight: 700,
-          color: isPublic ? '#81d4fa' : '#ffab91',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em'
-        }}
-      >
-        {statusLabel}
-      </Typography>
-      <Box
-        component="button"
-        type="button"
-        role="switch"
-        aria-checked={isPublic}
-        disabled={disabled}
-        onClick={handleClick}
-        sx={{
-          position: 'relative',
-          width: 64,
-          height: 26,
-          border: 'none',
-          borderRadius: 15,
-          padding: 0,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          outline: 'none',
-          background: 'transparent',
-          transition: 'transform 160ms ease',
-          '&:hover': {
-            transform: disabled ? 'none' : 'translateY(-2px)'
-          },
-          '&:active': {
-            transform: disabled ? 'none' : 'scale(0.98)'
-          }
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 15,
-            border: '1px solid rgba(255,255,255,0.2)',
-            background: isPublic
-              ? 'linear-gradient(90deg, rgba(129,212,250,0.6) 0%, rgba(41,121,255,0.45) 100%)'
-              : 'linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)',
-            opacity: disabled ? 0.4 : 1,
-            transition: 'background 220ms ease, opacity 160ms ease'
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: isPublic ? 'calc(100% - 18px)' : '4px',
-            transform: 'translate(-50%, -50%)',
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
-            transition: 'left 180ms ease, background-color 200ms ease',
-            opacity: disabled ? 0.6 : 1
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: isPublic ? 'calc(100% - 18px)' : '18px',
-            transform: 'translate(-50%, -50%)',
-            width: 24,
-            height: 12,
-            borderRadius: 12,
-            background: isPublic ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)',
-            filter: 'blur(6px)',
-            transition: 'left 180ms ease, opacity 200ms ease',
-            opacity: isPublic ? 0.4 : 0.25
-          }}
-        />
-      </Box>
-      {dirty && (
-        <Typography
-          variant="caption"
-          sx={{
-            fontSize: '9px',
-            textAlign: 'center',
-            color: 'rgba(255,255,255,0.65)',
-            opacity: 0.85
-          }}
-        >
-          Сохранится после закрытия
-        </Typography>
-      )}
-    </Box>
-  );
-};
-
 interface StickerSetDetailProps {
   stickerSet: StickerSetResponse;
   onBack: () => void;
@@ -310,9 +247,6 @@ interface StickerSetDetailProps {
   enableCategoryEditing?: boolean;
   infoVariant?: 'default' | 'minimal';
   onCategoriesUpdated?: (updated: StickerSetResponse) => void;
-  visibilityOverride?: boolean;
-  onVisibilityToggle?: (next: boolean) => void;
-  visibilityDirty?: boolean;
 }
 
 export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
@@ -324,13 +258,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   isModal = false,
   enableCategoryEditing = false,
   infoVariant = 'default',
-  onCategoriesUpdated,
-  visibilityOverride,
-  onVisibilityToggle,
-  visibilityDirty = false
+  onCategoriesUpdated
 }) => {
   const { initData, user } = useTelegram();
-  const profileUser = useProfileStore((state) => state.userInfo);
+  const userInfo = useProfileStore((state) => state.userInfo);
   // Оптимистичный UI: показываем данные из пропсов сразу, обновляем когда загрузятся полные данные
   const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(() => {
     // Проверяем кеш при инициализации
@@ -365,9 +296,17 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [isSavingCategories, setIsSavingCategories] = useState(false);
   const [categorySaveError, setCategorySaveError] = useState<string | null>(null);
   const canEditCategories = enableCategoryEditing;
+  const effectiveStickerSet = fullStickerSet ?? stickerSet;
+  const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() => deriveVisibilityState(stickerSet));
+  const initialVisibilityRef = useRef<VisibilityState>(deriveVisibilityState(stickerSet));
+  const draftVisibilityRef = useRef<VisibilityState>(initialVisibilityRef.current);
+  const visibilityDirtyRef = useRef(false);
+  const [visibilityInfoAnchor, setVisibilityInfoAnchor] = useState<HTMLElement | null>(null);
+  const visibilityInfoTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const stickerSetIdRef = useRef<number>(stickerSet.id);
   const displayedCategories = useMemo(() => {
-    return fullStickerSet?.categories ?? stickerSet.categories ?? [];
-  }, [fullStickerSet?.categories, stickerSet.categories]);
+    return effectiveStickerSet?.categories ?? stickerSet.categories ?? [];
+  }, [effectiveStickerSet?.categories, stickerSet.categories]);
   const currentCategoryKeys = useMemo(() => {
     return displayedCategories
       .map((category) => category?.key)
@@ -376,75 +315,90 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const displayTitle = useMemo(() => {
     return fullStickerSet?.title || stickerSet.title;
   }, [fullStickerSet?.title, stickerSet.title]);
-  const effectiveOwnerId = useMemo(() => {
-    return (
-      fullStickerSet?.userId ??
-      stickerSet.userId ??
-      fullStickerSet?.authorId ??
-      stickerSet.authorId ??
-      null
-    );
-  }, [fullStickerSet?.authorId, fullStickerSet?.userId, stickerSet.authorId, stickerSet.userId]);
-  const effectiveIsPublic = useMemo(() => {
-    if (typeof visibilityOverride === 'boolean') {
-      return visibilityOverride;
-    }
-    if (typeof fullStickerSet?.isPublic === 'boolean') {
-      return fullStickerSet.isPublic;
-    }
-    if (typeof stickerSet.isPublic === 'boolean') {
-      return stickerSet.isPublic;
-    }
-    return true;
-  }, [visibilityOverride, fullStickerSet?.isPublic, stickerSet.isPublic]);
-
-  useEffect(() => {
-    if (typeof visibilityOverride !== 'boolean') {
-      return;
-    }
-    setFullStickerSet((prev) => {
-      if (!prev || prev.isPublic === visibilityOverride) {
-        return prev;
-      }
-      return { ...prev, isPublic: visibilityOverride };
-    });
-  }, [visibilityOverride]);
-
-  const currentUserId = profileUser?.id ?? user?.id ?? null;
-  const isAdmin = (profileUser?.role || '').toUpperCase() === 'ADMIN';
-  const isOwner =
-    currentUserId !== null && effectiveOwnerId !== null
-      ? Number(currentUserId) === Number(effectiveOwnerId)
-      : false;
-  const canToggleVisibility = isAdmin || isOwner;
-
-  const handleVisibilityToggle = useCallback(() => {
-    if (!canToggleVisibility) return;
-    const next = !effectiveIsPublic;
-    onVisibilityToggle?.(next);
-    setFullStickerSet((prev) => {
-      if (!prev) return prev;
-      if (prev.isPublic === next) return prev;
-      return { ...prev, isPublic: next };
-    });
-
-    const cached = stickerSetCache.get(stickerSet.id);
-    if (cached) {
-      stickerSetCache.set(stickerSet.id, {
-        ...cached,
-        data: {
-          ...cached.data,
-          isPublic: next
-        }
-      });
-    }
-  }, [canToggleVisibility, effectiveIsPublic, onVisibilityToggle, stickerSet.id]);
+  const currentUserId = user?.id ?? userInfo?.telegramId ?? userInfo?.id ?? null;
+  const ownerId = fullStickerSet?.authorId ?? stickerSet.authorId ?? null;
+  const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
+  const canToggleVisibility = isAuthor && Boolean(stickerSet.id);
 
   useEffect(() => {
     if (!isCategoriesDialogOpen) {
       setSelectedCategoryKeys(currentCategoryKeys);
     }
   }, [currentCategoryKeys, isCategoriesDialogOpen]);
+
+  useEffect(() => {
+    stickerSetIdRef.current = stickerSet.id;
+  }, [stickerSet.id]);
+
+  useEffect(() => {
+    const derived = deriveVisibilityState(fullStickerSet ?? stickerSet);
+    initialVisibilityRef.current = derived;
+    draftVisibilityRef.current = derived;
+    visibilityDirtyRef.current = false;
+    setDraftVisibility(derived);
+  }, [stickerSet.id]);
+
+  useEffect(() => {
+    if (visibilityDirtyRef.current) return;
+    const derived = deriveVisibilityState(fullStickerSet ?? stickerSet);
+    initialVisibilityRef.current = derived;
+    draftVisibilityRef.current = derived;
+    setDraftVisibility(derived);
+  }, [
+    fullStickerSet?.id,
+    fullStickerSet?.isPublished,
+    fullStickerSet?.isPrivate,
+    fullStickerSet?.visibility,
+    fullStickerSet?.updatedAt
+  ]);
+
+  useEffect(() => {
+    draftVisibilityRef.current = draftVisibility;
+  }, [draftVisibility]);
+
+  useEffect(() => {
+    return () => {
+      if (visibilityInfoTimeoutRef.current) {
+        window.clearTimeout(visibilityInfoTimeoutRef.current);
+        visibilityInfoTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (!canToggleVisibility) return;
+      if (!visibilityDirtyRef.current) return;
+      const initialVisibility = initialVisibilityRef.current;
+      const finalVisibility = draftVisibilityRef.current;
+      if (initialVisibility === finalVisibility) return;
+
+      const run = async () => {
+        try {
+          const stickerId = stickerSetIdRef.current;
+          const apiResponse =
+            finalVisibility === 'private'
+              ? await apiClient.unpublishStickerSet(stickerId)
+              : await apiClient.publishStickerSet(stickerId);
+
+          const cached = stickerSetCache.get(stickerId);
+          if (cached) {
+            stickerSetCache.set(stickerId, {
+              ...cached,
+              data: applyVisibilityToStickerSet(apiResponse ?? cached.data, finalVisibility),
+              timestamp: Date.now()
+            });
+          }
+        } catch (error) {
+          console.error(`❌ Ошибка при обновлении приватности стикерсета ${stickerSetIdRef.current}:`, error);
+        } finally {
+          visibilityDirtyRef.current = false;
+        }
+      };
+
+      window.setTimeout(run, 0);
+    };
+  }, [canToggleVisibility]);
 
   // Используем глобальный store для лайков с селекторами для автоматического обновления
   const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
@@ -631,8 +585,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   // Мемоизируем список стикеров для оптимизации рендеринга
   const stickers = useMemo(() => {
-    return fullStickerSet?.telegramStickerSetInfo?.stickers || stickerSet.telegramStickerSetInfo?.stickers || [];
-  }, [fullStickerSet?.telegramStickerSetInfo?.stickers, stickerSet.telegramStickerSetInfo?.stickers]);
+    return effectiveStickerSet?.telegramStickerSetInfo?.stickers ?? [];
+  }, [effectiveStickerSet?.telegramStickerSetInfo?.stickers]);
   
   useEffect(() => {
     if (!isModal) return;
@@ -820,6 +774,50 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       .filter((key): key is string => Boolean(key));
     setSelectedCategoryKeys((prev) => Array.from(new Set([...prev, ...suggestionKeys])));
   }, [aiSuggestions]);
+
+  const handleVisibilityInfoClose = useCallback(() => {
+    if (visibilityInfoTimeoutRef.current) {
+      window.clearTimeout(visibilityInfoTimeoutRef.current);
+      visibilityInfoTimeoutRef.current = null;
+    }
+    setVisibilityInfoAnchor(null);
+  }, []);
+
+  const handleVisibilityToggle = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (!canToggleVisibility) {
+        return;
+      }
+
+      const next: VisibilityState = draftVisibility === 'public' ? 'private' : 'public';
+      visibilityDirtyRef.current = true;
+      draftVisibilityRef.current = next;
+      setDraftVisibility(next);
+
+      setFullStickerSet((prev) => {
+        if (!prev) return prev;
+        return applyVisibilityToStickerSet(prev, next);
+      });
+
+      const cached = stickerSetCache.get(stickerSet.id);
+      if (cached) {
+        stickerSetCache.set(stickerSet.id, {
+          ...cached,
+          data: applyVisibilityToStickerSet(cached.data, next)
+        });
+      }
+
+      setVisibilityInfoAnchor(event.currentTarget as HTMLElement);
+      if (visibilityInfoTimeoutRef.current) {
+        window.clearTimeout(visibilityInfoTimeoutRef.current);
+      }
+      visibilityInfoTimeoutRef.current = window.setTimeout(() => {
+        setVisibilityInfoAnchor(null);
+        visibilityInfoTimeoutRef.current = null;
+      }, 2800);
+    },
+    [canToggleVisibility, draftVisibility, setFullStickerSet, stickerSet.id]
+  );
 
   useEffect(() => {
     if (!scrollerRef.current) return;
@@ -1247,88 +1245,132 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           <Box
             sx={{
               display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               gap: 'var(--tg-spacing-3)',
               marginTop: 'var(--tg-spacing-3)',
-              flexWrap: 'wrap',
-              alignItems: 'stretch',
-              justifyContent: 'space-between'
+              flexWrap: 'wrap'
             }}
           >
             <Box
               sx={{
-                flex: '1 1 0%',
-                minWidth: 0,
+                flexGrow: 1,
                 display: 'flex',
-                gap: 'var(--tg-spacing-3)',
-                alignItems: 'center',
-                flexWrap: 'wrap'
+                gap: '8px',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                padding: 'var(--tg-spacing-3)',
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+                maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                minHeight: 44
               }}
             >
-              <Box
-                sx={{
-                  flexGrow: 1,
-                  display: 'flex',
-                  gap: '8px',
-                  overflowX: 'auto',
-                  overflowY: 'hidden',
-                  padding: 'var(--tg-spacing-3)',
-                  scrollbarWidth: 'none',
-                  '&::-webkit-scrollbar': { display: 'none' },
-                  maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-                  WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-                  minHeight: 44
-                }}
-              >
-                {displayedCategories.length > 0 ? (
-                  displayedCategories.map((category) => (
-                    <Box
-                      key={category.id}
-                      sx={{
-                        flexShrink: 0,
-                        padding: '4px 12px',
-                        borderRadius: '13px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                        color: 'white !important',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                        border: '1px solid rgba(255, 255, 255, 0.4)',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                      }}
-                    >
-                      {category.name}
-                    </Box>
-                  ))
-                ) : (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Категории не назначены
-                  </Typography>
-                )}
-              </Box>
-              {canEditCategories && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={handleOpenCategoriesDialog}
-                  sx={{
-                    whiteSpace: 'nowrap',
-                    alignSelf: 'center'
-                  }}
-                >
-                  Изменить
-                </Button>
+              {displayedCategories.length > 0 ? (
+                displayedCategories.map((category) => (
+                  <Box
+                    key={category.id}
+                    sx={{
+                      flexShrink: 0,
+                      padding: '4px 12px',
+                      borderRadius: '13px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      color: 'white !important',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                    }}
+                  >
+                    {category.name}
+                  </Box>
+                ))
+              ) : (
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Категории не назначены
+                </Typography>
               )}
             </Box>
-            {canToggleVisibility && (
-              <VisibilitySwitch
-                isPublic={effectiveIsPublic}
-                onToggle={handleVisibilityToggle}
-                dirty={visibilityDirty}
-              />
+            {(canToggleVisibility || canEditCategories) && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--tg-spacing-2)',
+                  flexShrink: 0
+                }}
+              >
+                {canToggleVisibility && (
+                  <Tooltip title={draftVisibility === 'public' ? 'Публичный набор' : 'Приватный набор'}>
+                    <IconButton
+                      aria-label="toggle-visibility"
+                      onClick={handleVisibilityToggle}
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        padding: 0,
+                        color: 'rgba(255, 255, 255, 0.85)',
+                        backgroundColor: 'transparent',
+                        borderRadius: '50%',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.12)'
+                        },
+                        '&:active': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.18)'
+                        }
+                      }}
+                    >
+                      {draftVisibility === 'public' ? (
+                        <EyePublishedIcon sx={{ fontSize: 18 }} />
+                      ) : (
+                        <EyeUnpublishedIcon sx={{ fontSize: 18 }} />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {canEditCategories && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleOpenCategoriesDialog}
+                    sx={{
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Изменить
+                  </Button>
+                )}
+              </Box>
             )}
           </Box>
         </CardContent>
       </Card>
+      <Popover
+        open={Boolean(visibilityInfoAnchor)}
+        anchorEl={visibilityInfoAnchor}
+        onClose={handleVisibilityInfoClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        disableRestoreFocus
+        PaperProps={{
+          sx: {
+            backgroundColor: 'rgba(10, 12, 16, 0.92)',
+            color: 'rgba(255,255,255,0.9)',
+            px: 2,
+            py: 1.5,
+            maxWidth: 260,
+            borderRadius: 'var(--tg-radius-m)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.45)'
+          }
+        }}
+      >
+        <Typography variant="caption" sx={{ lineHeight: 1.45, display: 'block' }}>
+          Публичные стикеры — видны всем. <br />Приватные — только вам.
+        </Typography>
+      </Popover>
 
       <Dialog
         open={isCategoriesDialogOpen}
