@@ -247,6 +247,42 @@ export const ProfilePage: React.FC = () => {
     setSelectedStickerSet(null);
   };
 
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    const updateList = (list: StickerSetResponse[]) => {
+      let changed = false;
+      const next = list.map((set) => {
+        if (set.id === updated.id) {
+          changed = true;
+          return { ...set, ...updated };
+        }
+        return set;
+      });
+      if (!changed) {
+        return list;
+      }
+      if (updated.isPublic === false) {
+        return next.filter((set) => set.id !== updated.id);
+      }
+      return next;
+    };
+
+    const nextUserSets = updateList(userStickerSets);
+    if (nextUserSets !== userStickerSets) {
+      setUserStickerSets(nextUserSets);
+    }
+
+    setSelectedStickerSet((prev) => {
+      if (prev && prev.id === updated.id) {
+        if (updated.isPublic === false) {
+          setIsModalOpen(false);
+          return null;
+        }
+        return { ...prev, ...updated };
+      }
+      return prev;
+    });
+  }, [setUserStickerSets, userStickerSets]);
+
   const handleShareStickerSet = (name: string, _title: string) => {
     if (tg) {
       tg.openTelegramLink(`https://t.me/addstickers/${name}`);
@@ -614,6 +650,7 @@ export const ProfilePage: React.FC = () => {
         onLike={(id) => {
           useLikesStore.getState().toggleLike(String(id));
         }}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </Box>
   );

@@ -73,6 +73,28 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    const updateList = (list: StickerSetResponse[]) => {
+      if (!list.some((set) => set.id === updated.id)) {
+        return list;
+      }
+      if (updated.isPublic === false) {
+        return list.filter((set) => set.id !== updated.id);
+      }
+      return list.map((set) => (set.id === updated.id ? { ...set, ...updated } : set));
+    };
+
+    setTopStickerSets((prev) => updateList(prev));
+    setTopStickersByCategory((prev) => {
+      const next: Record<string, StickerSetResponse[]> = {};
+      Object.keys(prev).forEach((key) => {
+        next[key] = updateList(prev[key]);
+      });
+      return next;
+    });
+    setSelectedStickerSet((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+  }, []);
+
   const quickActions = [
     { label: 'AI-Tools' },
     { label: 'Earn ART' },
@@ -740,6 +762,7 @@ export const DashboardPage: React.FC = () => {
           // Переключение лайка через store
           useLikesStore.getState().toggleLike(String(id));
         }}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </Box>
   );

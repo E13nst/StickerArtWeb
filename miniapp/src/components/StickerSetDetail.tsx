@@ -27,6 +27,7 @@ import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAs
 import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
 import { imageCache } from '@/utils/galleryUtils';
+import { useProfileStore } from '@/store/useProfileStore';
 
 // Кеш полных данных стикерсетов для оптимистичного UI
 interface CachedStickerSet {
@@ -170,6 +171,145 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
 
 LazyThumbnail.displayName = 'LazyThumbnail';
 
+interface VisibilitySwitchProps {
+  isPublic: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  dirty?: boolean;
+}
+
+const VisibilitySwitch: React.FC<VisibilitySwitchProps> = ({
+  isPublic,
+  onToggle,
+  disabled = false,
+  dirty = false
+}) => {
+  const handleClick = () => {
+    if (disabled) return;
+    onToggle();
+  };
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '6px',
+        minWidth: 80
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{
+          fontSize: '12px',
+          fontWeight: isPublic ? 700 : 500,
+          color: isPublic ? '#81d4fa' : 'rgba(255,255,255,0.6)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em'
+        }}
+      >
+        Публичный
+      </Typography>
+      <Box
+        component="button"
+        type="button"
+        role="switch"
+        aria-checked={isPublic}
+        disabled={disabled}
+        onClick={handleClick}
+        sx={{
+          position: 'relative',
+          width: 42,
+          height: 104,
+          border: 'none',
+          borderRadius: 24,
+          padding: 0,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          outline: 'none',
+          background: 'transparent',
+          transition: 'transform 160ms ease',
+          '&:hover': {
+            transform: disabled ? 'none' : 'translateY(-2px)'
+          },
+          '&:active': {
+            transform: disabled ? 'none' : 'scale(0.98)'
+          }
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 24,
+            border: '1px solid rgba(255,255,255,0.18)',
+            background: isPublic
+              ? 'linear-gradient(180deg, rgba(129,212,250,0.55) 0%, rgba(41,121,255,0.45) 100%)'
+              : 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)',
+            opacity: disabled ? 0.4 : 1,
+            transition: 'background 220ms ease, opacity 160ms ease'
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            top: isPublic ? 6 : 'calc(100% - 38px)',
+            transform: 'translate(-50%, 0)',
+            width: 30,
+            height: 30,
+            borderRadius: '50%',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.35)',
+            transition: 'top 180ms ease, background-color 200ms ease',
+            opacity: disabled ? 0.6 : 1
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            bottom: isPublic ? 10 : 60,
+            transform: 'translateX(-50%)',
+            width: 6,
+            height: 28,
+            borderRadius: 3,
+            background: 'rgba(255,255,255,0.25)',
+            filter: 'blur(8px)',
+            transition: 'bottom 180ms ease, opacity 200ms ease',
+            opacity: isPublic ? 0 : 0.35
+          }}
+        />
+      </Box>
+      <Typography
+        variant="caption"
+        sx={{
+          fontSize: '12px',
+          fontWeight: isPublic ? 500 : 700,
+          color: !isPublic ? '#ffab91' : 'rgba(255,255,255,0.6)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em'
+        }}
+      >
+        Приватный
+      </Typography>
+      {dirty && (
+        <Typography
+          variant="caption"
+          sx={{
+            fontSize: '10px',
+            textAlign: 'center',
+            color: 'rgba(255,255,255,0.65)',
+            opacity: 0.85
+          }}
+        >
+          Сохранится после закрытия
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
 interface StickerSetDetailProps {
   stickerSet: StickerSetResponse;
   onBack: () => void;
@@ -180,6 +320,9 @@ interface StickerSetDetailProps {
   enableCategoryEditing?: boolean;
   infoVariant?: 'default' | 'minimal';
   onCategoriesUpdated?: (updated: StickerSetResponse) => void;
+  visibilityOverride?: boolean;
+  onVisibilityToggle?: (next: boolean) => void;
+  visibilityDirty?: boolean;
 }
 
 export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
@@ -191,9 +334,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   isModal = false,
   enableCategoryEditing = false,
   infoVariant = 'default',
-  onCategoriesUpdated
+  onCategoriesUpdated,
+  visibilityOverride,
+  onVisibilityToggle,
+  visibilityDirty = false
 }) => {
   const { initData, user } = useTelegram();
+  const profileUser = useProfileStore((state) => state.userInfo);
   // Оптимистичный UI: показываем данные из пропсов сразу, обновляем когда загрузятся полные данные
   const [fullStickerSet, setFullStickerSet] = useState<StickerSetResponse | null>(() => {
     // Проверяем кеш при инициализации
@@ -239,6 +386,69 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const displayTitle = useMemo(() => {
     return fullStickerSet?.title || stickerSet.title;
   }, [fullStickerSet?.title, stickerSet.title]);
+  const effectiveOwnerId = useMemo(() => {
+    return (
+      fullStickerSet?.userId ??
+      stickerSet.userId ??
+      fullStickerSet?.authorId ??
+      stickerSet.authorId ??
+      null
+    );
+  }, [fullStickerSet?.authorId, fullStickerSet?.userId, stickerSet.authorId, stickerSet.userId]);
+  const effectiveIsPublic = useMemo(() => {
+    if (typeof visibilityOverride === 'boolean') {
+      return visibilityOverride;
+    }
+    if (typeof fullStickerSet?.isPublic === 'boolean') {
+      return fullStickerSet.isPublic;
+    }
+    if (typeof stickerSet.isPublic === 'boolean') {
+      return stickerSet.isPublic;
+    }
+    return true;
+  }, [visibilityOverride, fullStickerSet?.isPublic, stickerSet.isPublic]);
+
+  useEffect(() => {
+    if (typeof visibilityOverride !== 'boolean') {
+      return;
+    }
+    setFullStickerSet((prev) => {
+      if (!prev || prev.isPublic === visibilityOverride) {
+        return prev;
+      }
+      return { ...prev, isPublic: visibilityOverride };
+    });
+  }, [visibilityOverride]);
+
+  const currentUserId = profileUser?.id ?? user?.id ?? null;
+  const isAdmin = (profileUser?.role || '').toUpperCase() === 'ADMIN';
+  const isOwner =
+    currentUserId !== null && effectiveOwnerId !== null
+      ? Number(currentUserId) === Number(effectiveOwnerId)
+      : false;
+  const canToggleVisibility = isAdmin || isOwner;
+
+  const handleVisibilityToggle = useCallback(() => {
+    if (!canToggleVisibility) return;
+    const next = !effectiveIsPublic;
+    onVisibilityToggle?.(next);
+    setFullStickerSet((prev) => {
+      if (!prev) return prev;
+      if (prev.isPublic === next) return prev;
+      return { ...prev, isPublic: next };
+    });
+
+    const cached = stickerSetCache.get(stickerSet.id);
+    if (cached) {
+      stickerSetCache.set(stickerSet.id, {
+        ...cached,
+        data: {
+          ...cached.data,
+          isPublic: next
+        }
+      });
+    }
+  }, [canToggleVisibility, effectiveIsPublic, onVisibilityToggle, stickerSet.id]);
 
   useEffect(() => {
     if (!isCategoriesDialogOpen) {
@@ -1047,65 +1257,84 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'center',
               gap: 'var(--tg-spacing-3)',
               marginTop: 'var(--tg-spacing-3)',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              alignItems: 'stretch',
+              justifyContent: 'space-between'
             }}
           >
             <Box
               sx={{
-                flexGrow: 1,
+                flex: '1 1 0%',
+                minWidth: 0,
                 display: 'flex',
-                gap: '8px',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                padding: 'var(--tg-spacing-3)',
-                scrollbarWidth: 'none',
-                '&::-webkit-scrollbar': { display: 'none' },
-                maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-                minHeight: 44
+                gap: 'var(--tg-spacing-3)',
+                alignItems: 'center',
+                flexWrap: 'wrap'
               }}
             >
-              {displayedCategories.length > 0 ? (
-                displayedCategories.map((category) => (
-                  <Box
-                    key={category.id}
-                    sx={{
-                      flexShrink: 0,
-                      padding: '4px 12px',
-                      borderRadius: '13px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                      color: 'white !important',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      border: '1px solid rgba(255, 255, 255, 0.4)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                    }}
-                  >
-                    {category.name}
-                  </Box>
-                ))
-              ) : (
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Категории не назначены
-                </Typography>
-              )}
-            </Box>
-            {canEditCategories && (
-              <Button
-                variant="contained"
-                size="small"
-                onClick={handleOpenCategoriesDialog}
+              <Box
                 sx={{
-                  whiteSpace: 'nowrap',
-                  alignSelf: 'center'
+                  flexGrow: 1,
+                  display: 'flex',
+                  gap: '8px',
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  padding: 'var(--tg-spacing-3)',
+                  scrollbarWidth: 'none',
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                  WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                  minHeight: 44
                 }}
               >
-                Изменить
-              </Button>
+                {displayedCategories.length > 0 ? (
+                  displayedCategories.map((category) => (
+                    <Box
+                      key={category.id}
+                      sx={{
+                        flexShrink: 0,
+                        padding: '4px 12px',
+                        borderRadius: '13px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                        color: 'white !important',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        border: '1px solid rgba(255, 255, 255, 0.4)',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      {category.name}
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Категории не назначены
+                  </Typography>
+                )}
+              </Box>
+              {canEditCategories && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleOpenCategoriesDialog}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    alignSelf: 'center'
+                  }}
+                >
+                  Изменить
+                </Button>
+              )}
+            </Box>
+            {canToggleVisibility && (
+              <VisibilitySwitch
+                isPublic={effectiveIsPublic}
+                onToggle={handleVisibilityToggle}
+                dirty={visibilityDirty}
+              />
             )}
           </Box>
         </CardContent>

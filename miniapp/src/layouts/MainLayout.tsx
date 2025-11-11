@@ -14,6 +14,7 @@ export default function MainLayout({ children }: Props) {
   const isProfilePage = location.pathname.startsWith('/profile');
   const isAuthorPage = location.pathname.startsWith('/author');
   const isDashboardPage = location.pathname === '/' || location.pathname.startsWith('/dashboard');
+  const isNftSoonPage = location.pathname.startsWith('/nft-soon');
   const { updateHeaderColor } = useTelegram();
   const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
   
@@ -35,7 +36,16 @@ export default function MainLayout({ children }: Props) {
   }, [headerColor, updateHeaderColor]);
   
   return (
-    <div className="stixly-main-layout" style={{ position: 'relative', minHeight: '100vh' }}>
+    <div
+      className="stixly-main-layout"
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: isNftSoonPage ? 'hidden' : 'visible'
+      }}
+    >
       {!isProfilePage && !isAuthorPage && (
         <StixlyTopHeader
           onSlideChange={setCurrentSlideBg}
@@ -43,9 +53,15 @@ export default function MainLayout({ children }: Props) {
           showThemeToggle={false}
         />
       )}
-      <div style={{ 
-        paddingBottom: 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)' // высота навигации + отступ снизу + дополнительное пространство
-      }}>
+      <div
+        style={{
+          flex: '1 1 auto',
+          paddingBottom: isNftSoonPage
+            ? 0
+            : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
+          overflow: isNftSoonPage ? 'hidden' : 'visible'
+        }}
+      >
         {children}
       </div>
       <BottomNav />

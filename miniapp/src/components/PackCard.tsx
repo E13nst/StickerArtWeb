@@ -17,6 +17,7 @@ interface Pack {
     isVideo: boolean;
     emoji: string;
   }>;
+  isPublic?: boolean;
 }
 
 interface PackCardProps {

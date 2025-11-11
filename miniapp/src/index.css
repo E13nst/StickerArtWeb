@@ -182,9 +182,18 @@ html, body {
   min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE & Edge */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 body {
@@ -243,24 +252,11 @@ a {
   text-decoration: none;
 }
 
-/* Кастомный scrollbar для webkit */
+/* Глобально скрываем стандартные scrollbars */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--tg-theme-hint-color, #999999);
-  border-radius: 2px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--tg-theme-text-color, #000000);
-  opacity: 0.5;
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* Оптимизированные анимации */

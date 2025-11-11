@@ -11,6 +11,8 @@ export interface GalleryPack {
     isVideo: boolean;
     emoji: string;
   }>;
+  isPublic?: boolean;
+  ownerId?: number;
 }
 
 // Кэш для избежания повторных вычислений
@@ -95,7 +97,7 @@ const getRandomSubset = <T,>(items: T[], count: number): T[] => {
 
 export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]): GalleryPack[] {
   return stickerSets.map(stickerSet => {
-    const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}`;
+    const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}-${String(stickerSet.isPublic)}`;
 
     if (adapterCache.has(cacheKey)) {
       const cachedPack = adapterCache.get(cacheKey)!;
@@ -128,7 +130,9 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
     const result: GalleryPack = {
       id: stickerSet.id.toString(),
       title: stickerSet.title,
-      previewStickers
+      previewStickers,
+      isPublic: stickerSet.isPublic !== false,
+      ownerId: stickerSet.userId ?? stickerSet.authorId
     };
 
     if (previewStickers.length > 0) {

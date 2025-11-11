@@ -373,38 +373,40 @@ export const useTelegram = () => {
   }, []);
 
   const checkInitDataExpiry = (initDataString: string) => {
-    if (!initDataString) return { valid: false, reason: 'initData отсутствует' };
-    
+    if (!initDataString) {
+      return { valid: false, reason: 'initData отсутствует' };
+    }
+
     try {
       const params = new URLSearchParams(initDataString);
-      const authDate = parseInt(params.get('auth_date') || '0');
-      
+      const authDate = parseInt(params.get('auth_date') || '0', 10);
+
       if (!authDate) {
         return { valid: false, reason: 'auth_date отсутствует' };
       }
-      
+
       const now = Math.floor(Date.now() / 1000);
       const age = now - authDate;
-      const maxAge = 600; // 10 минут
-      
-      console.log('🕐 Проверка срока действия initData:');
-      console.log('auth_date:', authDate, `(${new Date(authDate * 1000).toLocaleString()})`);
-      console.log('current time:', now, `(${new Date(now * 1000).toLocaleString()})`);
-      console.log('age:', age, 'секунд');
-      console.log('max age:', maxAge, 'секунд');
-      
+      const maxAge = 86400; // 24 часа — актуальный TTL на бэкенде
+
+      console.log('🕐 Проверка initData:', {
+        authDate,
+        authDateISO: new Date(authDate * 1000).toISOString(),
+        currentTimeISO: new Date(now * 1000).toISOString(),
+        ageSeconds: age,
+        backendTtlSeconds: maxAge
+      });
+
+      // Фронт доверяет бэкенду: всегда возвращаем valid, но логируем возможное устаревание.
       if (age > maxAge) {
-        return { 
-          valid: false, 
-          reason: `initData устарел (возраст: ${age} сек, максимум: ${maxAge} сек)`,
-          age: age,
-          maxAge: maxAge
-        };
+        console.warn(
+          '⚠️ initData старше 24 часов. Окончательное решение принимает бэкенд.'
+        );
       }
-      
-      return { valid: true, age: age, maxAge: maxAge };
+
+      return { valid: true, age, maxAge };
     } catch (error) {
-      console.error('❌ Ошибка при проверке срока действия initData:', error);
+      console.error('❌ Ошибка при проверке initData:', error);
       return { valid: false, reason: `Ошибка парсинга initData: ${error}` };
     }
   };

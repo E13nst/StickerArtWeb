@@ -11,6 +11,7 @@ interface Pack {
     isVideo: boolean;
     emoji: string;
   }>;
+  isPublic?: boolean;
 }
 
 interface VirtualizedGalleryProps {

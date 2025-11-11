@@ -70,6 +70,11 @@ export interface StickerSetResponse {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
+  authorId?: number;
+  isPublic?: boolean;
+  isBlocked?: boolean;
+  blockReason?: string | null;
+  isOfficial?: boolean;
   
   // Лайки - API использует разные названия полей в разных endpoints:
   // GET /stickersets возвращает:

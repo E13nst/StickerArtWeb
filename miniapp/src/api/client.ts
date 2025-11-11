@@ -360,6 +360,26 @@ class ApiClient {
     }
   }
 
+  async publishStickerSet(id: number): Promise<StickerSetResponse> {
+    try {
+      const response = await this.client.post<StickerSetResponse>(`/stickersets/${id}/publish`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при публикации стикерсета ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async unpublishStickerSet(id: number): Promise<StickerSetResponse> {
+    try {
+      const response = await this.client.post<StickerSetResponse>(`/stickersets/${id}/unpublish`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при скрытии стикерсета ${id}:`, error);
+      throw error;
+    }
+  }
+
   // AI-подбор категорий по заголовку
   async suggestCategoriesForTitle(title: string): Promise<CategorySuggestionResult> {
     try {

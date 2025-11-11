@@ -14,6 +14,7 @@ interface Pack {
     isVideo: boolean;
     emoji: string;
   }>;
+  isPublic?: boolean;
 }
 
 interface SimpleGalleryProps {
@@ -31,6 +32,7 @@ interface SimpleGalleryProps {
   controlsElement?: React.ReactNode;
   // Спиннер во время обновления данных без скрытия панели
   isRefreshing?: boolean;
+  includeUnpublished?: boolean;
 }
 
 export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
@@ -43,8 +45,13 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   onLoadMore,
   addButtonElement,
   controlsElement,
-  isRefreshing = false
+  isRefreshing = false,
+  includeUnpublished = false
 }) => {
+  const dataPacks = useMemo(
+    () => (includeUnpublished ? packs : packs.filter((pack) => pack.isPublic !== false)),
+    [packs, includeUnpublished]
+  );
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
@@ -87,7 +94,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   useEffect(() => {
     // Если количество элементов резко уменьшилось (более чем на 50%), это полная перезагрузка
     const isFullReload = lastPacksLengthRef.current > 0 && 
-                         packs.length < lastPacksLengthRef.current * 0.5;
+                         dataPacks.length < lastPacksLengthRef.current * 0.5;
     
     if (isFullReload) {
       // Сбрасываем решение при полной перезагрузке
@@ -95,14 +102,14 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     }
     
     // Определяем виртуализацию только если решение еще не принято
-    if (virtualizationDecisionRef.current === null && packs.length > 0) {
+    if (virtualizationDecisionRef.current === null && dataPacks.length > 0) {
       const virtualizationThreshold = getVirtualizationThreshold();
-      virtualizationDecisionRef.current = packs.length > virtualizationThreshold;
+      virtualizationDecisionRef.current = dataPacks.length > virtualizationThreshold;
     }
     
     // Сохраняем текущее количество для следующей проверки
-    lastPacksLengthRef.current = packs.length;
-  }, [packs.length, getVirtualizationThreshold]);
+    lastPacksLengthRef.current = dataPacks.length;
+  }, [dataPacks.length, getVirtualizationThreshold]);
   
   // Используем виртуализацию только если она была определена при первой загрузке
   // Если packs пустой, используем обычный режим
@@ -110,16 +117,16 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
 
   // Показываем skeleton при пустом списке
   useEffect(() => {
-    setShowSkeleton(packs.length === 0);
-  }, [packs.length]);
+    setShowSkeleton(dataPacks.length === 0);
+  }, [dataPacks.length]);
 
   // Кэширование паков
   useEffect(() => {
-    if (packs.length > 0) {
-      const cacheKey = `packs_${packs.length}`;
-      setCachedData(cacheKey, packs);
+    if (dataPacks.length > 0) {
+      const cacheKey = `packs_${dataPacks.length}`;
+      setCachedData(cacheKey, dataPacks);
     }
-  }, [packs, setCachedData]);
+  }, [dataPacks, setCachedData]);
 
   // Предзагрузка следующей страницы
   useEffect(() => {
@@ -167,7 +174,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         }
       });
     }
-  }, [isLoadingMore, packs.length]);
+  }, [isLoadingMore, dataPacks.length]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -226,15 +233,15 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
     
     // Если нет пагинации, используем локальную ленивую загрузку
-    if (!hasNextPage && isNearBottom && visibleCount < packs.length) {
-      setVisibleCount(prev => Math.min(prev + batchSize, packs.length));
+    if (!hasNextPage && isNearBottom && visibleCount < dataPacks.length) {
+      setVisibleCount(prev => Math.min(prev + batchSize, dataPacks.length));
     }
-  }, [visibleCount, packs.length, batchSize, hasNextPage]);
+  }, [visibleCount, dataPacks.length, batchSize, hasNextPage]);
 
   // Видимые паки - показываем все если есть пагинация
   const visiblePacks = useMemo(() => 
-    hasNextPage ? packs : packs.slice(0, visibleCount), 
-    [packs, visibleCount, hasNextPage]
+    hasNextPage ? dataPacks : dataPacks.slice(0, visibleCount), 
+    [dataPacks, visibleCount, hasNextPage]
   );
 
 
@@ -278,7 +285,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         {renderOverlay}
         <div className="gallery-items">
           <VirtualizedGallery
-            packs={packs}
+            packs={dataPacks}
             onPackClick={onPackClick}
             itemHeight={200}
             containerHeight={600}
@@ -643,14 +650,14 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
       </div>
 
       {/* Индикатор загрузки */}
-      {!hasNextPage && visibleCount < packs.length && (
+      {!hasNextPage && visibleCount < dataPacks.length && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           padding: '8px 0',
           color: 'var(--tg-theme-hint-color)'
         }}>
-          Загружено {visibleCount} из {packs.length} паков
+          Загружено {visibleCount} из {dataPacks.length} паков
         </div>
       )}
 
