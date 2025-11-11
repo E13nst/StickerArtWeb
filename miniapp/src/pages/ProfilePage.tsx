@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -13,6 +13,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 import { getUserUsername, isUserPremium } from '@/utils/userUtils';
+import { StickerSetResponse } from '@/types/sticker';
 
 // Компоненты
 import StixlyTopHeader from '@/components/StixlyTopHeader';
@@ -70,6 +71,10 @@ export const ProfilePage: React.FC = () => {
   // BottomNav теперь глобальный в MainLayout
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: стикеры, 2: поделиться
   const [sortByLikes, setSortByLikes] = useState(false);
+
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    setSelectedStickerSet(updated);
+  }, []);
 
   // Валидация userId
   const userIdNumber = userId ? parseInt(userId, 10) : null;
@@ -614,6 +619,7 @@ export const ProfilePage: React.FC = () => {
         onLike={(id) => {
           useLikesStore.getState().toggleLike(String(id));
         }}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </Box>
   );

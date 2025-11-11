@@ -31,6 +31,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
 import { imageCache } from '@/utils/galleryUtils';
 import { useProfileStore } from '@/store/useProfileStore';
+import { useStickerStore } from '@/store/useStickerStore';
 import type { SvgIconProps } from '@mui/material/SvgIcon';
 
 // Кеш полных данных стикерсетов для оптимистичного UI
@@ -247,6 +248,7 @@ interface StickerSetDetailProps {
   enableCategoryEditing?: boolean;
   infoVariant?: 'default' | 'minimal';
   onCategoriesUpdated?: (updated: StickerSetResponse) => void;
+  onStickerSetUpdated?: (updated: StickerSetResponse) => void;
 }
 
 export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
@@ -258,7 +260,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   isModal = false,
   enableCategoryEditing = false,
   infoVariant = 'default',
-  onCategoriesUpdated
+  onCategoriesUpdated,
+  onStickerSetUpdated
 }) => {
   const { initData, user } = useTelegram();
   const {
@@ -803,6 +806,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           timestamp: Date.now(),
           ttl: CACHE_TTL
         });
+
+        useStickerStore.getState().updateStickerSet(stickerSet.id, finalData);
+        useProfileStore.getState().updateUserStickerSet(stickerSet.id, finalData);
+
+        onStickerSetUpdated?.(finalData);
 
         setVisibilityInfoAnchor(anchor);
         visibilityInfoTimeoutRef.current = setTimeout(() => {

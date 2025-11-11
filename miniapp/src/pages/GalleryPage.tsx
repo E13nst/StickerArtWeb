@@ -270,6 +270,16 @@ export const GalleryPage: React.FC = () => {
     }
   }, [tg, stickerSets]);
 
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    setUiState((prev) => ({
+      ...prev,
+      selectedStickerSet:
+        prev.selectedStickerSet && prev.selectedStickerSet.id === updated.id
+          ? { ...prev.selectedStickerSet, ...updated }
+          : prev.selectedStickerSet,
+    }));
+  }, []);
+
   const handleBackToList = useCallback(() => {
     // Haptic feedback
     if (tg?.HapticFeedback) {
@@ -514,6 +524,7 @@ export const GalleryPage: React.FC = () => {
         onLike={(id, title) => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);
         }}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </>
   );

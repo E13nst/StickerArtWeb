@@ -372,6 +372,13 @@ export const AuthorPage: React.FC = () => {
     }
   };
 
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    setSelectedStickerSet(updated);
+    setStickerSets((prev) =>
+      prev.map((set) => (set.id === updated.id ? { ...set, ...updated } : set))
+    );
+  }, []);
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedStickerSet(null);
@@ -601,6 +608,7 @@ export const AuthorPage: React.FC = () => {
         open={isModalOpen}
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </Box>
   );

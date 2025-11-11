@@ -86,6 +86,7 @@ interface ProfileState {
   setUserStickerSets: (stickerSets: StickerSetResponse[]) => void;
   addUserStickerSets: (stickerSets: StickerSetResponse[]) => void;
   removeUserStickerSet: (id: number) => void;
+  updateUserStickerSet: (id: number, updates: Partial<StickerSetResponse>) => void;
   
   // Действия для ошибок
   setError: (error: string | null) => void;
@@ -157,6 +158,17 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   removeUserStickerSet: (id: number) => {
     const { userStickerSets } = get();
     const updatedStickerSets = userStickerSets.filter(stickerSet => stickerSet.id !== id);
+    set({ userStickerSets: updatedStickerSets });
+  },
+
+  updateUserStickerSet: (id: number, updates: Partial<StickerSetResponse>) => {
+    const { userStickerSets } = get();
+    if (!userStickerSets || userStickerSets.length === 0) {
+      return;
+    }
+    const updatedStickerSets = userStickerSets.map((stickerSet) =>
+      stickerSet.id === id ? { ...stickerSet, ...updates } : stickerSet
+    );
     set({ userStickerSets: updatedStickerSets });
   },
   

@@ -13,6 +13,7 @@ interface StickerPackModalProps {
   enableCategoryEditing?: boolean;
   infoVariant?: 'default' | 'minimal';
   onCategoriesUpdated?: (updated: StickerSetResponse) => void;
+  onStickerSetUpdated?: (updated: StickerSetResponse) => void;
 }
 
 export const StickerPackModal: React.FC<StickerPackModalProps> = ({
@@ -22,7 +23,8 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
   onLike,
   enableCategoryEditing = false,
   infoVariant = 'default',
-  onCategoriesUpdated
+  onCategoriesUpdated,
+  onStickerSetUpdated
 }) => {
   const cleanupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -98,6 +100,7 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
         enableCategoryEditing={enableCategoryEditing}
         infoVariant={infoVariant}
         onCategoriesUpdated={onCategoriesUpdated}
+        onStickerSetUpdated={onStickerSetUpdated}
       />
     </ModalBackdrop>
   );

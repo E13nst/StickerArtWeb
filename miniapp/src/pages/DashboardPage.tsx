@@ -73,6 +73,22 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    setSelectedStickerSet(updated);
+
+    setTopStickerSets((prev) =>
+      prev.map((set) => (set.id === updated.id ? { ...set, ...updated } : set))
+    );
+
+    setTopStickersByCategory((prev) => {
+      const next: typeof prev = {};
+      Object.entries(prev).forEach(([key, list]) => {
+        next[key] = list.map((set) => (set.id === updated.id ? { ...set, ...updated } : set));
+      });
+      return next;
+    });
+  }, []);
+
   const quickActions = [
     { label: 'AI-Tools' },
     { label: 'Earn ART' },
@@ -740,6 +756,7 @@ export const DashboardPage: React.FC = () => {
           // Переключение лайка через store
           useLikesStore.getState().toggleLike(String(id));
         }}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
     </Box>
   );

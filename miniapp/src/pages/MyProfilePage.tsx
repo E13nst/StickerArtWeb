@@ -15,6 +15,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
+import { StickerSetResponse } from '@/types/sticker';
 
 // Компоненты
 import StixlyTopHeader from '@/components/StixlyTopHeader';
@@ -79,6 +80,9 @@ export const MyProfilePage: React.FC = () => {
   // Локальное состояние
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
+  const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
+    setSelectedStickerSet(updated);
+  }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
   const [setsFilter, setSetsFilter] = useState<'published' | 'liked'>('published');
@@ -1001,6 +1005,7 @@ export const MyProfilePage: React.FC = () => {
           // Настоящее переключение лайка через store
           useLikesStore.getState().toggleLike(String(id));
         }}
+        onStickerSetUpdated={handleStickerSetUpdated}
       />
 
       {/* Debug панель */}
