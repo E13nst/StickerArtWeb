@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import ShareIcon from '@mui/icons-material/Share';
+import DownloadIcon from '@mui/icons-material/Download';
 import { StickerSetResponse, CategoryResponse, CategorySuggestion } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
@@ -297,13 +297,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [categorySaveError, setCategorySaveError] = useState<string | null>(null);
   const canEditCategories = enableCategoryEditing;
   const effectiveStickerSet = fullStickerSet ?? stickerSet;
-  const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() => deriveVisibilityState(stickerSet));
-  const initialVisibilityRef = useRef<VisibilityState>(deriveVisibilityState(stickerSet));
-  const draftVisibilityRef = useRef<VisibilityState>(initialVisibilityRef.current);
-  const visibilityDirtyRef = useRef(false);
+  const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() =>
+    deriveVisibilityState(fullStickerSet ?? stickerSet)
+  );
+  const [isVisibilityUpdating, setIsVisibilityUpdating] = useState(false);
   const [visibilityInfoAnchor, setVisibilityInfoAnchor] = useState<HTMLElement | null>(null);
-  const visibilityInfoTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
-  const stickerSetIdRef = useRef<number>(stickerSet.id);
+  const visibilityInfoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const displayedCategories = useMemo(() => {
     return effectiveStickerSet?.categories ?? stickerSet.categories ?? [];
   }, [effectiveStickerSet?.categories, stickerSet.categories]);
@@ -316,9 +315,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     return fullStickerSet?.title || stickerSet.title;
   }, [fullStickerSet?.title, stickerSet.title]);
   const currentUserId = user?.id ?? userInfo?.telegramId ?? userInfo?.id ?? null;
-  const ownerId = fullStickerSet?.authorId ?? stickerSet.authorId ?? null;
+  const ownerId = useMemo(() => {
+    const primary = fullStickerSet?.authorId ?? stickerSet.authorId;
+    return primary ?? null;
+  }, [fullStickerSet?.authorId, stickerSet.authorId]);
+  const normalizedRole = (userInfo?.role ?? '').toUpperCase();
+  const isAdmin = normalizedRole.includes('ADMIN');
   const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
-  const canToggleVisibility = isAuthor && Boolean(stickerSet.id);
+  const canToggleVisibility = (isAuthor || isAdmin) && Boolean(stickerSet.id);
 
   useEffect(() => {
     if (!isCategoriesDialogOpen) {
@@ -327,78 +331,28 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   }, [currentCategoryKeys, isCategoriesDialogOpen]);
 
   useEffect(() => {
-    stickerSetIdRef.current = stickerSet.id;
-  }, [stickerSet.id]);
-
-  useEffect(() => {
-    const derived = deriveVisibilityState(fullStickerSet ?? stickerSet);
-    initialVisibilityRef.current = derived;
-    draftVisibilityRef.current = derived;
-    visibilityDirtyRef.current = false;
-    setDraftVisibility(derived);
-  }, [stickerSet.id]);
-
-  useEffect(() => {
-    if (visibilityDirtyRef.current) return;
-    const derived = deriveVisibilityState(fullStickerSet ?? stickerSet);
-    initialVisibilityRef.current = derived;
-    draftVisibilityRef.current = derived;
-    setDraftVisibility(derived);
+    setDraftVisibility(deriveVisibilityState(fullStickerSet ?? stickerSet));
   }, [
     fullStickerSet?.id,
     fullStickerSet?.isPublished,
     fullStickerSet?.isPrivate,
     fullStickerSet?.visibility,
-    fullStickerSet?.updatedAt
+    fullStickerSet?.updatedAt,
+    stickerSet.id,
+    stickerSet.isPublished,
+    stickerSet.isPrivate,
+    stickerSet.visibility,
+    stickerSet.updatedAt
   ]);
-
-  useEffect(() => {
-    draftVisibilityRef.current = draftVisibility;
-  }, [draftVisibility]);
 
   useEffect(() => {
     return () => {
       if (visibilityInfoTimeoutRef.current) {
-        window.clearTimeout(visibilityInfoTimeoutRef.current);
+        clearTimeout(visibilityInfoTimeoutRef.current);
         visibilityInfoTimeoutRef.current = null;
       }
     };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (!canToggleVisibility) return;
-      if (!visibilityDirtyRef.current) return;
-      const initialVisibility = initialVisibilityRef.current;
-      const finalVisibility = draftVisibilityRef.current;
-      if (initialVisibility === finalVisibility) return;
-
-      const run = async () => {
-        try {
-          const stickerId = stickerSetIdRef.current;
-          const apiResponse =
-            finalVisibility === 'private'
-              ? await apiClient.unpublishStickerSet(stickerId)
-              : await apiClient.publishStickerSet(stickerId);
-
-          const cached = stickerSetCache.get(stickerId);
-          if (cached) {
-            stickerSetCache.set(stickerId, {
-              ...cached,
-              data: applyVisibilityToStickerSet(apiResponse ?? cached.data, finalVisibility),
-              timestamp: Date.now()
-            });
-          }
-        } catch (error) {
-          console.error(`❌ Ошибка при обновлении приватности стикерсета ${stickerSetIdRef.current}:`, error);
-        } finally {
-          visibilityDirtyRef.current = false;
-        }
-      };
-
-      window.setTimeout(run, 0);
-    };
-  }, [canToggleVisibility]);
 
   // Используем глобальный store для лайков с селекторами для автоматического обновления
   const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
@@ -784,39 +738,72 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   }, []);
 
   const handleVisibilityToggle = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      if (!canToggleVisibility) {
+    async (event: React.MouseEvent<HTMLElement>) => {
+      if (!canToggleVisibility || isVisibilityUpdating) {
         return;
       }
 
+      const anchor = event.currentTarget as HTMLElement;
+      const previousVisibility = draftVisibility;
+      const previousFull = fullStickerSet;
       const next: VisibilityState = draftVisibility === 'public' ? 'private' : 'public';
-      visibilityDirtyRef.current = true;
-      draftVisibilityRef.current = next;
+
       setDraftVisibility(next);
+      setFullStickerSet((prev) =>
+        prev ? applyVisibilityToStickerSet(prev, next) : applyVisibilityToStickerSet(stickerSet, next)
+      );
 
-      setFullStickerSet((prev) => {
-        if (!prev) return prev;
-        return applyVisibilityToStickerSet(prev, next);
-      });
-
-      const cached = stickerSetCache.get(stickerSet.id);
-      if (cached) {
-        stickerSetCache.set(stickerSet.id, {
-          ...cached,
-          data: applyVisibilityToStickerSet(cached.data, next)
-        });
-      }
-
-      setVisibilityInfoAnchor(event.currentTarget as HTMLElement);
       if (visibilityInfoTimeoutRef.current) {
-        window.clearTimeout(visibilityInfoTimeoutRef.current);
-      }
-      visibilityInfoTimeoutRef.current = window.setTimeout(() => {
-        setVisibilityInfoAnchor(null);
+        clearTimeout(visibilityInfoTimeoutRef.current);
         visibilityInfoTimeoutRef.current = null;
-      }, 2800);
+      }
+      setVisibilityInfoAnchor(null);
+
+      setIsVisibilityUpdating(true);
+      try {
+        const response =
+          next === 'public'
+            ? await apiClient.publishStickerSet(stickerSet.id)
+            : await apiClient.unpublishStickerSet(stickerSet.id);
+
+        const responseVisibility = deriveVisibilityState(response);
+        const finalVisibilityState = response ? responseVisibility : next;
+        const finalData = response
+          ? applyVisibilityToStickerSet(response, finalVisibilityState)
+          : applyVisibilityToStickerSet(previousFull ?? stickerSet, finalVisibilityState);
+
+        setFullStickerSet(finalData);
+        setDraftVisibility(finalVisibilityState);
+
+        stickerSetCache.set(stickerSet.id, {
+          data: finalData,
+          timestamp: Date.now(),
+          ttl: CACHE_TTL
+        });
+
+        setVisibilityInfoAnchor(anchor);
+        visibilityInfoTimeoutRef.current = setTimeout(() => {
+          setVisibilityInfoAnchor(null);
+          visibilityInfoTimeoutRef.current = null;
+        }, 2800);
+      } catch (error: any) {
+        console.error('❌ Ошибка при обновлении приватности стикерсета:', error);
+        setFullStickerSet(previousFull ?? stickerSet);
+        setDraftVisibility(previousVisibility);
+
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          'Не удалось обновить видимость стикерсета. Попробуйте позже.';
+
+        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+          window.alert(message);
+        }
+      } finally {
+        setIsVisibilityUpdating(false);
+      }
     },
-    [canToggleVisibility, draftVisibility, setFullStickerSet, stickerSet.id]
+    [canToggleVisibility, draftVisibility, fullStickerSet, isVisibilityUpdating, stickerSet]
   );
 
   useEffect(() => {
@@ -868,15 +855,19 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }
   };
 
-  const handleShareClick = async () => {
-    const url = getStickerThumbnailUrl(stickers[activeIndex]?.file_id);
-    try {
-      await navigator.clipboard.writeText(url);
-      window.alert(url);
-    } catch {
-      window.alert(url);
+  const handleShareClick = useCallback(() => {
+    const targetUrl =
+      fullStickerSet?.url ?? stickerSet.url ?? getStickerThumbnailUrl(stickers[activeIndex]?.file_id);
+
+    if (!targetUrl) {
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Ссылка недоступна');
+      }
+      return;
     }
-  };
+
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  }, [activeIndex, fullStickerSet?.url, stickers, stickerSet.url]);
 
   // НЕ блокируем отображение - показываем оптимистичный UI сразу
   // Индикатор загрузки показываем только если данных совсем нет
@@ -1238,7 +1229,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   }
                 }}
               >
-                <ShareIcon />
+                <DownloadIcon />
               </IconButton>
             </Box>
           )}
@@ -1307,6 +1298,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     <IconButton
                       aria-label="toggle-visibility"
                       onClick={handleVisibilityToggle}
+                      disabled={isVisibilityUpdating}
                       sx={{
                         width: 32,
                         height: 32,
@@ -1319,6 +1311,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                         },
                         '&:active': {
                           backgroundColor: 'rgba(255, 255, 255, 0.18)'
+                        },
+                        '&.Mui-disabled': {
+                          color: 'rgba(255, 255, 255, 0.32)',
+                          backgroundColor: 'transparent',
+                          cursor: 'not-allowed'
                         }
                       }}
                     >
