@@ -1,5 +1,12 @@
 import { imageCache } from './galleryUtils';
 
+interface LoaderQueue {
+  inFlight: Map<string, Promise<string>>;
+  queue: Array<{ fileId: string; url: string; priority: number; packId: string; imageIndex: number }>;
+  maxConcurrency: number;
+  activeCount: number;
+}
+
 // Приоритеты загрузки
 export enum LoadPriority {
   TIER_0_MODAL = 5,            // Стикеры в модальном окне (наивысший)
@@ -40,60 +47,15 @@ function normalizeToLocalProxy(url: string): string {
   return url;
 }
 
-interface PriorityQueue {
-  queue: Array<{ 
-    fileId: string; 
-    url: string; 
-    packId: string; 
-    imageIndex: number;
-    resolve?: (value: string) => void;
-    reject?: (error: Error) => void;
-  }>;
-  maxConcurrency: number;
-  activeCount: number;
-  lastLoadTime: number;
-  failureCount: number; // Локальный счетчик неудач для этого приоритета
-}
-
 class ImageLoader {
-  // Раздельные очереди по приоритетам для лучшего распараллеливания
-  private priorityQueues: Map<number, PriorityQueue> = new Map();
-  private inFlight: Map<string, Promise<string>> = new Map();
-  private processingQueues: Set<number> = new Set(); // Отслеживание обрабатываемых очередей
-  
-  // Настройки параллельности по приоритетам
-  private readonly CONCURRENCY_CONFIG = {
-    [LoadPriority.TIER_0_MODAL]: 8,        // Модальное окно - высокая параллельность
-    [LoadPriority.TIER_1_FIRST_6_PACKS]: 6, // Первые 6 паков - средняя параллельность
-    [LoadPriority.TIER_2_FIRST_IMAGE]: 4,   // Первые изображения - средняя параллельность
-    [LoadPriority.TIER_3_ADDITIONAL]: 3,    // Дополнительные - низкая параллельность
-    [LoadPriority.TIER_4_BACKGROUND]: 2    // Фоновые - минимальная параллельность
+  private queue: LoaderQueue = {
+    inFlight: new Map(),
+    queue: [],
+    maxConcurrency: 10,
+    activeCount: 0
   };
   
-  // Базовые интервалы по приоритетам (без адаптации)
-  private readonly BASE_INTERVALS = {
-    [LoadPriority.TIER_0_MODAL]: 10,
-    [LoadPriority.TIER_1_FIRST_6_PACKS]: 15,
-    [LoadPriority.TIER_2_FIRST_IMAGE]: 25,
-    [LoadPriority.TIER_3_ADDITIONAL]: 40,
-    [LoadPriority.TIER_4_BACKGROUND]: 60
-  };
-  
-  private readonly MAX_INTERVAL = 5000; // Максимальный интервал при rate limiting
-
-  constructor() {
-    // Инициализируем очереди для каждого приоритета
-    Object.keys(this.CONCURRENCY_CONFIG).forEach(priority => {
-      const prio = Number(priority);
-      this.priorityQueues.set(prio, {
-        queue: [],
-        maxConcurrency: this.CONCURRENCY_CONFIG[prio],
-        activeCount: 0,
-        lastLoadTime: 0,
-        failureCount: 0
-      });
-    });
-  }
+  private processing = false;
 
   async loadImage(
     fileId: string, 
@@ -108,143 +70,79 @@ class ImageLoader {
       return cached;
     }
 
-    // Проверить in-flight запросы (глобально для всех приоритетов)
-    const existingPromise = this.inFlight.get(fileId);
+    // Проверить in-flight запросы
+    const existingPromise = this.queue.inFlight.get(fileId);
     if (existingPromise) {
       return existingPromise;
     }
 
-    // Получить очередь для этого приоритета
-    const priorityQueue = this.priorityQueues.get(priority);
-    if (!priorityQueue) {
-      throw new Error(`Invalid priority: ${priority}`);
-    }
+    // Добавить в очередь с приоритетом
+    this.addToQueue(fileId, url, priority, packId, imageIndex);
+    
+    // Создать новый запрос
+    const promise = this.loadImageFromUrl(fileId, url);
+    this.queue.inFlight.set(fileId, promise);
 
-    // Создать промис для этого запроса
-    const promise = new Promise<string>((resolve, reject) => {
-      // Добавить в очередь приоритета с колбэками
-      priorityQueue.queue.push({ 
-        fileId, 
-        url, 
-        packId: packId || '', 
-        imageIndex: imageIndex || 0,
-        resolve,
-        reject
-      } as any);
-      
-      // Запустить обработку очереди этого приоритета
-      this.processPriorityQueue(priority);
-    });
-    
-    this.inFlight.set(fileId, promise);
-    
     try {
       const result = await promise;
       return result;
     } finally {
-      this.inFlight.delete(fileId);
+      this.queue.inFlight.delete(fileId);
+      this.processQueue();
     }
   }
 
-  // Обработка очереди конкретного приоритета
-  private async processPriorityQueue(priority: number): Promise<void> {
-    const priorityQueue = this.priorityQueues.get(priority);
-    if (!priorityQueue) return;
+  // Добавить в очередь с приоритетом
+  private addToQueue(fileId: string, url: string, priority: number, packId?: string, imageIndex?: number): void {
+    const queueItem = { fileId, url, priority, packId: packId || '', imageIndex: imageIndex || 0 };
+    
+    // Вставить в очередь с учетом приоритета
+    const insertIndex = this.queue.queue.findIndex(item => item.priority < priority);
+    if (insertIndex === -1) {
+      this.queue.queue.push(queueItem);
+    } else {
+      this.queue.queue.splice(insertIndex, 0, queueItem);
+    }
+  }
 
-    // Защита от одновременной обработки одной очереди
-    if (this.processingQueues.has(priority)) {
+  // Обработка очереди
+  private async processQueue(): Promise<void> {
+    if (this.processing || this.queue.activeCount >= this.queue.maxConcurrency) {
       return;
     }
 
-    if (priorityQueue.activeCount >= priorityQueue.maxConcurrency) {
-      return;
-    }
+    this.processing = true;
 
-    this.processingQueues.add(priority);
+    while (this.queue.queue.length > 0 && this.queue.activeCount < this.queue.maxConcurrency) {
+      const item = this.queue.queue.shift();
+      if (!item) break;
 
-    try {
-      while (priorityQueue.queue.length > 0 && priorityQueue.activeCount < priorityQueue.maxConcurrency) {
-        const item = priorityQueue.queue.shift();
-        if (!item) break;
-
-        // Проверить, не загружается ли уже
-        if (this.inFlight.has(item.fileId)) {
-          continue;
-        }
-
-        // Вычисляем адаптивный интервал с учетом локальных неудач этого приоритета
-        const now = Date.now();
-        const timeSinceLastLoad = now - priorityQueue.lastLoadTime;
-        
-        const adaptiveMultiplier = Math.min(
-          Math.pow(2, Math.floor(priorityQueue.failureCount / 3)), 
-          this.MAX_INTERVAL / this.BASE_INTERVALS[priority]
-        );
-        const adaptiveInterval = Math.min(
-          this.BASE_INTERVALS[priority] * adaptiveMultiplier, 
-          this.MAX_INTERVAL
-        );
-        
-        if (timeSinceLastLoad < adaptiveInterval) {
-          // Добавляем обратно в начало очереди
-          priorityQueue.queue.unshift(item);
-          // Планируем повторную обработку через нужное время
-          setTimeout(() => {
-            this.processingQueues.delete(priority);
-            this.processPriorityQueue(priority);
-          }, adaptiveInterval - timeSinceLastLoad);
-          return;
-        }
-
-        priorityQueue.activeCount++;
-        priorityQueue.lastLoadTime = now;
-        
-        try {
-          const promise = this.loadImageFromUrl(item.fileId, item.url, priority);
-          this.inFlight.set(item.fileId, promise);
-          
-          promise
-            .then((result) => {
-              // Успешная загрузка - уменьшаем счетчик неудач этого приоритета
-              if (priorityQueue.failureCount > 0) {
-                priorityQueue.failureCount = Math.max(0, priorityQueue.failureCount - 1);
-              }
-              // Вызываем resolve колбэк если есть
-              if (item.resolve) {
-                item.resolve(result);
-              }
-            })
-            .catch((error) => {
-              // Ошибка - увеличиваем счетчик неудач только для этого приоритета
-              priorityQueue.failureCount++;
-              // Вызываем reject колбэк если есть
-              if (item.reject) {
-                item.reject(error);
-              }
-            })
-            .finally(() => {
-              priorityQueue.activeCount--;
-              this.inFlight.delete(item.fileId);
-              // Продолжаем обработку очереди
-              if (!this.processingQueues.has(priority)) {
-                this.processPriorityQueue(priority);
-              }
-            });
-        } catch (error) {
-          priorityQueue.activeCount--;
-          priorityQueue.failureCount++;
-          if (item.reject) {
-            item.reject(error as Error);
-          }
-          console.warn('Failed to process queue item:', error);
-        }
+      // Проверить, не загружается ли уже
+      if (this.queue.inFlight.has(item.fileId)) {
+        continue;
       }
-    } finally {
-      this.processingQueues.delete(priority);
+
+      this.queue.activeCount++;
+      
+      try {
+        const promise = this.loadImageFromUrl(item.fileId, item.url);
+        this.queue.inFlight.set(item.fileId, promise);
+        
+        promise.finally(() => {
+          this.queue.activeCount--;
+          this.queue.inFlight.delete(item.fileId);
+          this.processQueue();
+        });
+      } catch (error) {
+        this.queue.activeCount--;
+        console.warn('Failed to process queue item:', error);
+      }
     }
+
+    this.processing = false;
   }
 
-  private async loadImageFromUrl(fileId: string, url: string, priority: number): Promise<string> {
+  private async loadImageFromUrl(fileId: string, url: string): Promise<string> {
     // Нормализуем URL к локальному прокси (если был абсолютный на бекенд)
     const normalizedUrl = normalizeToLocalProxy(url);
 
@@ -258,9 +156,9 @@ class ImageLoader {
       console.log(`🔄 Prefetching image for ${fileId}:`, normalizedUrl);
     }
     
-    // Retry логика с экспоненциальным backoff (оптимизировано для скорости)
-    const maxRetries = 4;
-    let delay = 300;
+    // Retry логика с экспоненциальным backoff
+    const maxRetries = 6;
+    let delay = 1000; // Начинаем с 1 секунды
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
@@ -293,25 +191,18 @@ class ImageLoader {
         if (isLastAttempt) {
           // Логируем только в dev режиме, чтобы не засорять консоль в production
           if (import.meta.env.DEV) {
-            const priorityQueue = this.priorityQueues.get(priority);
-            const failureCount = priorityQueue?.failureCount || 0;
-            console.warn(`❌ Failed to load image for ${fileId} after ${maxRetries} attempts. Priority: ${priority}, Failures: ${failureCount}`);
+            console.warn(`❌ Failed to load image for ${fileId} after ${maxRetries} attempts`);
           }
           throw new Error(`Failed to load image after ${maxRetries} attempts: ${normalizedUrl}`);
         }
         
         // Логируем только в dev режиме
         if (import.meta.env.DEV) {
-          const priorityQueue = this.priorityQueues.get(priority);
-          const failureCount = priorityQueue?.failureCount || 0;
-          console.warn(`⚠️ Retry ${attempt + 1}/${maxRetries} for ${fileId} after ${delay}ms delay (priority: ${priority}, failures: ${failureCount})`);
+          console.warn(`⚠️ Retry ${attempt + 1}/${maxRetries} for ${fileId} after ${delay}ms delay`);
         }
         
         // Ждем перед следующей попыткой с экспоненциальным backoff
-        // При большом количестве неудач этого приоритета увеличиваем задержку дополнительно
-        const priorityQueue = this.priorityQueues.get(priority);
-        const adaptiveDelay = delay * (1 + Math.min((priorityQueue?.failureCount || 0) / 10, 2));
-        await new Promise(resolve => setTimeout(resolve, adaptiveDelay));
+        await new Promise(resolve => setTimeout(resolve, delay));
         
         // Удваиваем задержку для следующей попытки
         delay *= 2;
@@ -357,46 +248,28 @@ class ImageLoader {
 
   abort(fileId: string): void {
     // Удалить из in-flight запросов
-    this.inFlight.delete(fileId);
+    this.queue.inFlight.delete(fileId);
     
-    // Удалить из всех очередей приоритетов
-    this.priorityQueues.forEach(queue => {
-      queue.queue = queue.queue.filter(item => item.fileId !== fileId);
-    });
+    // Удалить из очереди
+    this.queue.queue = this.queue.queue.filter(item => item.fileId !== fileId);
   }
 
   clear(): void {
-    this.inFlight.clear();
-    this.processingQueues.clear();
-    this.priorityQueues.forEach(queue => {
-      queue.queue = [];
-      queue.activeCount = 0;
-      queue.lastLoadTime = 0;
-      queue.failureCount = 0;
-    });
+    this.queue.inFlight.clear();
+    this.queue.queue = [];
+    this.queue.activeCount = 0;
+    this.processing = false;
     imageCache.clear();
   }
 
   // Получить статистику очереди
   getQueueStats() {
-    const stats: any = {
-      inFlight: this.inFlight.size,
-      totalQueued: 0,
-      totalActive: 0
+    return {
+      inFlight: this.queue.inFlight.size,
+      queued: this.queue.queue.length,
+      active: this.queue.activeCount,
+      maxConcurrency: this.queue.maxConcurrency
     };
-    
-    this.priorityQueues.forEach((queue, priority) => {
-      stats[`priority_${priority}`] = {
-        queued: queue.queue.length,
-        active: queue.activeCount,
-        maxConcurrency: queue.maxConcurrency,
-        failures: queue.failureCount
-      };
-      stats.totalQueued += queue.queue.length;
-      stats.totalActive += queue.activeCount;
-    });
-    
-    return stats;
   }
 }
 
