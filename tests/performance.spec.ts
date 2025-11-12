@@ -51,6 +51,9 @@ interface PerformanceMetrics {
   concurrencySpikes: Array<{ time: number; count: number; cause: string }>;
 }
 
+const isStickerAssetUrl = (url: string): boolean =>
+  url.includes('/stickers/');
+
 test.describe('Performance Metrics Collection', () => {
   test('Сбор метрик производительности галереи стикеров @mobile', async ({ page }) => {
     // Увеличиваем таймаут для этого теста до 3 минут
@@ -117,7 +120,7 @@ test.describe('Performance Metrics Collection', () => {
       
       // Определение типа ресурса
       const resourceType = request.resourceType();
-      const isImage = resourceType === 'image' || url.includes('/api/proxy/stickers/') || url.endsWith('.webp') || url.endsWith('.png');
+      const isImage = resourceType === 'image' || isStickerAssetUrl(url) || url.endsWith('.webp') || url.endsWith('.png');
       const isJson = url.endsWith('.json') || resourceType === 'fetch';
       
       networkRequests.push({
@@ -347,7 +350,7 @@ test.describe('Performance Metrics Collection', () => {
     
     // Separate image vs JSON
     networkRequests.forEach(req => {
-      if (req.resourceType === 'image' || req.url.includes('/api/proxy/stickers/')) {
+      if (req.resourceType === 'image' || isStickerAssetUrl(req.url)) {
         metrics.loadingMetrics.imageRequests++;
       } else if (req.url.endsWith('.json')) {
         metrics.loadingMetrics.jsonRequests++;

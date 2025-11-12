@@ -82,6 +82,7 @@ RUN chmod +x /docker-entrypoint.sh
 
 # Переменная окружения по умолчанию
 ENV BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
+ENV STICKER_PROCESSOR_ORIGIN=https://sticker-processor-e13nst.amvera.io
 
 # Открываем порт 80
 EXPOSE 80

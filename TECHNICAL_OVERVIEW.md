@@ -251,9 +251,7 @@ Routes:
   - Поддержка локализации через `X-Language` (ru/en)
 
 #### Прокси стикеров:
-- `GET /api/proxy/stickers/{fileId}` — получение файла стикера
-  - Кэширование: 14 дней, до 5GB
-  - Параметр `?file=true` для кэширования
+- `GET /stickers/{fileId}` — прямой прокси через Nginx в sticker-processor (кэш 14 дней, до 5GB; поддерживает `?file=true`)
 
 #### Конфигурация:
 - `GET /api/config` — конфигурация приложения (botName, miniAppUrl)
@@ -386,7 +384,7 @@ Routes:
 
 **Стикеры:**
 - Хранятся в Telegram (через `file_id`)
-- Проксируются через бэкенд: `/api/proxy/stickers/{fileId}`
+- Проксируются через Nginx: `/stickers/{fileId}` (прямой прокси в sticker-processor)
 - Кэшируются в Nginx: `/data/cache/nginx/stickers` (14 дней, до 5GB)
 
 **S3/внешнее хранилище:**

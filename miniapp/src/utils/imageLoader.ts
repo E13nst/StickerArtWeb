@@ -1,4 +1,5 @@
 import { imageCache } from './galleryUtils';
+import { getStickerBaseUrl } from './stickerUtils';
 
 interface LoaderQueue {
   inFlight: Map<string, Promise<string>>;
@@ -16,34 +17,33 @@ export enum LoadPriority {
   TIER_4_BACKGROUND = 1       // Фоновые паки
 }
 
-// Бэкенд-оригин (для нормализации абсолютных URL в относительные прокси-URL)
-const VITE_BACKEND_URL: string | undefined = (import.meta as any)?.env?.VITE_BACKEND_URL;
-let BACKEND_HOST: string | null = null;
-try {
-  if (VITE_BACKEND_URL) {
-    BACKEND_HOST = new URL(VITE_BACKEND_URL).host;
-  }
-} catch {
-  BACKEND_HOST = null;
-}
+const STICKER_BASE_URL = getStickerBaseUrl();
+const STICKER_BASE_IS_ABSOLUTE = /^https?:\/\//i.test(STICKER_BASE_URL);
 
-// Приводим внешние абсолютные URL к локальному прокси пути, чтобы трафик шёл через Nginx
-function normalizeToLocalProxy(url: string): string {
-  try {
-    if (!url || url.startsWith('blob:') || url.startsWith('/')) return url; // уже относительный/blob
-    const parsed = new URL(url);
-    // Если URL указывает на наш backend host (из VITE_BACKEND_URL) — переводим на относительный путь
-    if (BACKEND_HOST && parsed.hostname === BACKEND_HOST) {
-      // используем только путь и query, чтобы попасть под location /api/proxy/stickers/
-      return `${parsed.pathname}${parsed.search}`;
-    }
-    // Если это абсолютный URL, но путь уже /api/proxy/stickers — тоже переводим на относительный
-    if (parsed.pathname.startsWith('/api/proxy/stickers/')) {
-      return `${parsed.pathname}${parsed.search}`;
-    }
-  } catch {
-    // не валидный абсолютный URL — возвращаем как есть
+const CURRENT_ORIGIN = typeof window !== 'undefined' ? window.location.origin : null;
+
+// Приводим внешние абсолютные URL к целевому пути (локальный /stickers или прямой URL)
+function normalizeToStickerEndpoint(url: string): string {
+  if (!url || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
   }
+
+  // Для абсолютной конфигурации ничего не нормализуем
+  if (STICKER_BASE_IS_ABSOLUTE) {
+    return url;
+  }
+
+  if (!STICKER_BASE_IS_ABSOLUTE && url.startsWith('http')) {
+    try {
+      const parsed = new URL(url);
+      if (CURRENT_ORIGIN && parsed.origin === CURRENT_ORIGIN) {
+        return `${parsed.pathname}${parsed.search}`;
+      }
+    } catch {
+      // игнорируем ошибки парсинга
+    }
+  }
+
   return url;
 }
 
@@ -336,8 +336,8 @@ class ImageLoader {
   }
 
   private async loadImageFromUrl(fileId: string, url: string): Promise<string> {
-    // Нормализуем URL к локальному прокси (если был абсолютный на бекенд)
-    const normalizedUrl = normalizeToLocalProxy(url);
+    // Нормализуем URL к целевому эндпоинту (устраняем абсолютные backend-URL)
+    const normalizedUrl = normalizeToStickerEndpoint(url);
 
     // Проверяем валидность URL
     if (!normalizedUrl || (!normalizedUrl.startsWith('http') && !normalizedUrl.startsWith('blob:') && !normalizedUrl.startsWith('/'))) {

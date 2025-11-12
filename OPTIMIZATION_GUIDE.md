@@ -20,7 +20,7 @@
 
 #### **Сервер:**
 - Запросы к БД при пагинации (SELECT с LIMIT/OFFSET)
-- Проксирование запросов к Telegram Bot API (`/api/proxy/stickers/{fileId}`)
+- Проксирование запросов к Telegram Bot API (`/stickers/{fileId}` через Nginx)
 - Отсутствие кеширования на уровне сервера
 
 #### **Сеть:**

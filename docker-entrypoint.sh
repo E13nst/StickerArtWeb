@@ -36,7 +36,7 @@ fi
 echo "=== STARTING NGINX ==="
 
 # Подставляем переменные окружения в nginx конфиг
-envsubst '$BACKEND_URL' < /etc/nginx/conf.d/app.conf.tpl > /etc/nginx/conf.d/default.conf
+envsubst '$BACKEND_URL $STICKER_PROCESSOR_ORIGIN' < /etc/nginx/conf.d/app.conf.tpl > /etc/nginx/conf.d/default.conf
 
 # Проверяем конфигурацию nginx
 nginx -t

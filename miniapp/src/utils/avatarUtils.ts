@@ -1,3 +1,5 @@
+import { buildStickerUrl } from './stickerUtils';
+
 /**
  * Утилиты для работы с аватарами пользователей
  */
@@ -11,7 +13,7 @@ export const getAvatarUrl = (fileId: string | undefined): string | undefined => 
   if (!fileId || fileId.trim() === '') {
     return undefined;
   }
-  return `/api/proxy/stickers/${fileId}`;
+  return buildStickerUrl(fileId);
 };
 
 /**

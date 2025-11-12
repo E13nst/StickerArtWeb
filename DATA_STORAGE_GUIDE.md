@@ -96,7 +96,7 @@ amvera logs run stickerartgallery | grep "/data"
 
 **DevTools → Network:**
 ```
-GET /api/proxy/stickers/xxx
+GET /stickers/xxx
 Status: 200
 X-Cache-Status: MISS          ← Нет в кэше, загрузка с бэкенда
 Time: 500ms
@@ -112,7 +112,7 @@ Cached files: 0
 
 **DevTools → Network:**
 ```
-GET /api/proxy/stickers/xxx
+GET /stickers/xxx
 Status: 200
 X-Cache-Status: HIT           ← Из кэша!
 Time: 10ms                    ← 50x быстрее!
@@ -135,7 +135,7 @@ Cached files: 89
 
 **DevTools → Network:**
 ```
-GET /api/proxy/stickers/xxx
+GET /stickers/xxx
 Status: 200
 X-Cache-Status: HIT           ← Все еще из кэша!
 Time: 10ms

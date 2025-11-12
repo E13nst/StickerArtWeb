@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
+import { buildStickerUrl } from '@/utils/stickerUtils';
 
 interface TelegramApiUser {
   id: number;
@@ -436,7 +437,7 @@ class ApiClient {
 
   // Получение стикера по file_id
   async getSticker(fileId: string): Promise<Blob> {
-    const response = await this.client.get(`/proxy/stickers/${fileId}`, {
+    const response = await axios.get(buildStickerUrl(fileId), {
       responseType: 'blob'
     });
     return response.data;
@@ -444,7 +445,7 @@ class ApiClient {
 
   // Создание URL для стикера
   getStickerUrl(fileId: string): string {
-    return `/api/proxy/stickers/${fileId}`;
+    return buildStickerUrl(fileId);
   }
 
   // ============ МЕТОДЫ ДЛЯ ЛАЙКОВ ============

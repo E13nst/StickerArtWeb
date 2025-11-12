@@ -2,17 +2,84 @@
  * Утилиты для работы со стикерами
  */
 
-// Получаем BACKEND_URL из переменных окружения или используем пустую строку (относительный /api)
-const getBackendUrl = (): string => {
+const readEnv = (key: string): string | undefined => {
   try {
     // @ts-ignore
-    return import.meta.env.VITE_BACKEND_URL || '';
+    const value = import.meta.env[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
   } catch {
-    return '';
+    return undefined;
   }
 };
 
-const BACKEND_URL = getBackendUrl();
+const STICKER_PROCESSOR_URL = readEnv('VITE_STICKER_PROCESSOR_URL');
+const STICKER_PROCESSOR_PATH = readEnv('VITE_STICKER_PROCESSOR_PATH') || '/stickers';
+
+const normalizeAbsoluteBase = (value: string): string => {
+  if (!value) {
+    return '';
+  }
+  try {
+    const url = new URL(value);
+    url.pathname = url.pathname.replace(/\/+$/, '');
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    return value.replace(/\/+$/, '');
+  }
+};
+
+const normalizeRelativeBase = (value: string): string => {
+  if (!value) {
+    return '';
+  }
+  const trimmed = value.replace(/\/+$/, '').trim();
+  if (trimmed === '') {
+    return '';
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
+
+let cachedStickerBaseUrl: string | null = null;
+
+export const getStickerBaseUrl = (): string => {
+  if (cachedStickerBaseUrl) {
+    return cachedStickerBaseUrl;
+  }
+
+  if (STICKER_PROCESSOR_URL) {
+    cachedStickerBaseUrl = normalizeAbsoluteBase(STICKER_PROCESSOR_URL);
+    return cachedStickerBaseUrl;
+  }
+
+  cachedStickerBaseUrl = normalizeRelativeBase(STICKER_PROCESSOR_PATH);
+  return cachedStickerBaseUrl;
+};
+
+const serializeQueryParams = (params: Record<string, string | number | boolean | undefined>): string => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) {
+      return;
+    }
+    searchParams.append(key, String(value));
+  });
+  const serialized = searchParams.toString();
+  return serialized ? `?${serialized}` : '';
+};
+
+export const buildStickerUrl = (
+  fileId: string,
+  params: Record<string, string | number | boolean | undefined> = {}
+): string => {
+  if (!fileId) {
+    return '';
+  }
+
+  const base = getStickerBaseUrl();
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const query = serializeQueryParams(params);
+  return `${normalizedBase}/${encodeURIComponent(fileId)}${query}`;
+};
 
 /**
  * Получить URL изображения стикера по file_id
@@ -23,11 +90,7 @@ export function getStickerImageUrl(fileId: string): string {
   if (!fileId) {
     return '';
   }
-  
-  // Эндпоинт для получения файла стикера через наш backend
-  // Добавляем параметр для получения файла, а не метаданных
-  const base = BACKEND_URL ? BACKEND_URL.replace(/\/$/, '') : '';
-  return `${base}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true`;
+  return buildStickerUrl(fileId, { file: true });
 }
 
 /**
@@ -40,11 +103,7 @@ export function getStickerThumbnailUrl(fileId: string, size: number = 128): stri
   if (!fileId) {
     return '';
   }
-  
-  // Используем параметр file=true для получения изображения
-  // Добавляем параметр размера для миниатюр
-  const base = BACKEND_URL ? BACKEND_URL.replace(/\/$/, '') : '';
-  return `${base}/api/proxy/stickers/${encodeURIComponent(fileId)}?file=true&size=${size}`;
+  return buildStickerUrl(fileId, { file: true, size });
 }
 
 /**

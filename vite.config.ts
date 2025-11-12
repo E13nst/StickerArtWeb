@@ -6,6 +6,7 @@ import path from 'path'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const backendUrl = env.VITE_BACKEND_URL || 'http://localhost:8080';
+  const stickerProcessorProxyTarget = env.VITE_STICKER_PROCESSOR_PROXY_TARGET || 'https://sticker-processor-e13nst.amvera.io';
   
   return {
     plugins: [
@@ -63,6 +64,11 @@ export default defineConfig(({ mode }) => {
         },
         '/auth': {
           target: backendUrl,
+          changeOrigin: true,
+          secure: true
+        },
+        '/stickers': {
+          target: stickerProcessorProxyTarget,
           changeOrigin: true,
           secure: true
         }
