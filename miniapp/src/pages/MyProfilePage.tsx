@@ -24,7 +24,6 @@ import { SearchBar } from '@/components/SearchBar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
-import { BottomNav } from '@/components/BottomNav';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
@@ -90,7 +89,6 @@ export const MyProfilePage: React.FC = () => {
   const [isLikedListLoaded, setIsLikedListLoaded] = useState(false);
   // Сохраняем исходный список для защиты от удаления карточек до инициализации в store
   const [originalLikedSetIds, setOriginalLikedSetIds] = useState<Set<string>>(new Set());
-  const [activeBottomTab, setActiveBottomTab] = useState(3); // Профиль = индекс 3
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
@@ -989,12 +987,6 @@ export const MyProfilePage: React.FC = () => {
       </Container>
 
       {/* Нижняя навигация */}
-      <BottomNav
-        activeTab={activeBottomTab}
-        onChange={setActiveBottomTab}
-        isInTelegramApp={isInTelegramApp}
-      />
-
       {/* Модалка деталей стикерсета */}
       <StickerPackModal
         open={isModalOpen}

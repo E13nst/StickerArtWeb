@@ -3,13 +3,28 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   BottomNavigation, 
   BottomNavigationAction, 
-  Paper,
-  Typography
+  Paper
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+
+const SOFT_ACCENT_COLORS = [
+  'hsl(200 60% 70%)', // нежно-голубой
+  'hsl(160 55% 68%)', // мятный
+  'hsl(280 45% 72%)', // лавандовый
+  'hsl(30 60% 72%)',  // персиковый
+  'hsl(340 50% 72%)', // нежно-розовый
+  'hsl(90 45% 65%)',  // пастельно-зелёный
+  'hsl(220 40% 68%)', // серо-голубой
+  'hsl(10 55% 70%)',  // дымчато-коралловый
+];
+
+const getRandomAccentColor = () => {
+  const index = Math.floor(Math.random() * SOFT_ACCENT_COLORS.length);
+  return SOFT_ACCENT_COLORS[index];
+};
 
 interface BottomNavProps {
   activeTab?: number;
@@ -24,6 +39,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [internalTab, setInternalTab] = React.useState<number>(0);
+  const [activeColor, setActiveColor] = React.useState<string>(() => getRandomAccentColor());
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
@@ -57,6 +73,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         break;
     }
   };
+
+  React.useEffect(() => {
+    setActiveColor(getRandomAccentColor());
+  }, [location.pathname]);
 
   return (
     <Paper 
@@ -98,23 +118,31 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             overflow: 'hidden', // Обрезаем ripple эффект
             color: 'var(--tg-theme-hint-color)',
             minWidth: 'auto',
-            padding: 'calc(100vh * 0.004) calc(100vw * 0.02)', // padding из пропорций (уменьшено)
+            padding: 'calc(100vh * 0.004) clamp(12px, 4vw, 20px)', // адаптивный горизонтальный отступ
             backgroundColor: 'transparent !important',
+            flex: '1 1 0',
             '&.Mui-selected': {
-              color: 'var(--tg-theme-button-color)',
+              color: activeColor,
               backgroundColor: 'transparent !important',
               '& .MuiSvgIcon-root': {
-                color: 'var(--tg-theme-button-color)',
-                filter: 'drop-shadow(0 0 8px color-mix(in srgb, var(--tg-theme-button-color) 35%, transparent))',
+                color: activeColor,
+                filter: `drop-shadow(0 0 8px ${activeColor})`,
               },
             },
             '&:hover': {
               backgroundColor: 'rgba(0, 0, 0, 0.04)',
             },
             '& .MuiSvgIcon-root': {
-              fontSize: 'calc(100vw * 0.055)', // ~5.5% от ширины viewport для иконок (уменьшено)
-              minFontSize: '20px',
-              maxFontSize: '26px',
+              fontSize: 'clamp(22px, 5vw, 28px)',
+            },
+            '@media (min-width: 768px)': {
+              padding: 'calc(100vh * 0.003) clamp(14px, 3vw, 18px)',
+            },
+            '@media (min-width: 1200px)': {
+              padding: 'calc(100vh * 0.0025) 16px',
+              '& .MuiSvgIcon-root': {
+                fontSize: 'clamp(20px, 2vw, 26px)',
+              },
             },
           },
         }}

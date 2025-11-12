@@ -27,7 +27,6 @@ import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
-import { BottomNav } from '@/components/BottomNav';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { SortButton } from '@/components/SortButton';
 
@@ -68,7 +67,6 @@ export const ProfilePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedStickerSet, setSelectedStickerSet] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // BottomNav теперь глобальный в MainLayout
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: стикеры, 2: поделиться
   const [sortByLikes, setSortByLikes] = useState(false);
 
@@ -598,18 +596,6 @@ export const ProfilePage: React.FC = () => {
 
       {/* Debug панель */}
       {initData && <DebugPanel initData={initData} />}
-
-      {/* Нижняя навигация */}
-      <BottomNav
-        activeTab={3} // Профиль
-        onChange={(newTab) => {
-          if (newTab === 0) navigate('/');
-          else if (newTab === 1) navigate('/explore');
-          else if (newTab === 2) navigate('/create');
-          else if (newTab === 3) navigate('/profile');
-        }}
-        isInTelegramApp={isInTelegramApp}
-      />
 
       {/* Модалка деталей стикерсета (мок) */}
       <StickerPackModal
