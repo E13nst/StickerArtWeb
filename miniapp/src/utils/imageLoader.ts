@@ -86,24 +86,98 @@ class ImageLoader {
       return existingPromise;
     }
 
+    // Проверить, не находится ли уже в очереди (защита от дублирования)
+    const alreadyInQueue = this.queue.queue.some(item => item.fileId === fileId);
+    if (alreadyInQueue) {
+      // Если уже в очереди, создаем промис который будет разрешен когда элемент обработается
+      return new Promise<string>((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          const cached = imageCache.get(fileId);
+          if (cached) {
+            clearInterval(checkInterval);
+            resolve(cached);
+            return;
+          }
+          
+          const inFlight = this.queue.inFlight.get(fileId);
+          if (inFlight) {
+            clearInterval(checkInterval);
+            inFlight.then(resolve).catch(reject);
+            return;
+          }
+          
+          // Если элемент исчез из очереди и нет в кеше - ошибка
+          const stillInQueue = this.queue.queue.some(item => item.fileId === fileId);
+          if (!stillInQueue && !cached) {
+            clearInterval(checkInterval);
+            reject(new Error('Image load failed'));
+          }
+        }, 100);
+        
+        // Таймаут на случай зависания
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error('Timeout waiting for image load'));
+        }, 30000);
+      });
+    }
+
     // Добавить в очередь с приоритетом
     this.addToQueue(fileId, url, priority, packId, imageIndex);
     
-    // Создать новый запрос
-    const promise = this.loadImageFromUrl(fileId, url);
-    this.queue.inFlight.set(fileId, promise);
-
-    try {
-      const result = await promise;
-      return result;
-    } finally {
-      this.queue.inFlight.delete(fileId);
-      this.processQueue();
-    }
+    // Запустить обработку очереди (она создаст промис и добавит в inFlight)
+    this.processQueue();
+    
+    // Ждем пока элемент будет обработан и появится в inFlight
+    // Используем промис из inFlight когда он появится
+    return new Promise<string>((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 100; // Максимум 5 секунд (100 * 50ms)
+      
+      const checkInterval = setInterval(() => {
+        attempts++;
+        
+        // Проверяем кеш
+        const cached = imageCache.get(fileId);
+        if (cached) {
+          clearInterval(checkInterval);
+          resolve(cached);
+          return;
+        }
+        
+        // Проверяем in-flight
+        const inFlight = this.queue.inFlight.get(fileId);
+        if (inFlight) {
+          clearInterval(checkInterval);
+          inFlight.then(resolve).catch(reject);
+          return;
+        }
+        
+        // Если элемент исчез из очереди и нет в кеше - возможно ошибка
+        const stillInQueue = this.queue.queue.some(item => item.fileId === fileId);
+        if (!stillInQueue && !cached && attempts > 10) {
+          clearInterval(checkInterval);
+          reject(new Error('Image load failed or removed from queue'));
+          return;
+        }
+        
+        // Таймаут
+        if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          reject(new Error('Timeout waiting for image load'));
+        }
+      }, 50);
+    });
   }
 
   // Добавить в очередь с приоритетом
   private addToQueue(fileId: string, url: string, priority: number, packId?: string, imageIndex?: number): void {
+    // Проверка на дублирование перед добавлением
+    const exists = this.queue.queue.some(item => item.fileId === fileId);
+    if (exists) {
+      return; // Уже в очереди, не добавляем дубликат
+    }
+    
     const queueItem = { fileId, url, priority, packId: packId || '', imageIndex: imageIndex || 0 };
     
     // Вставить в очередь с учетом приоритета
@@ -315,8 +389,8 @@ class ImageLoader {
           throw new Error(`Failed to load image after ${maxRetries} attempts: ${normalizedUrl}`);
         }
         
-        // Логируем только в dev режиме
-        if (import.meta.env.DEV) {
+        // Логируем только финальную попытку в dev режиме (чтобы не засорять консоль)
+        if (import.meta.env.DEV && attempt === maxRetries - 2) {
           console.warn(`⚠️ Retry ${attempt + 1}/${maxRetries} for ${fileId} after ${delay}ms delay`);
         }
         
