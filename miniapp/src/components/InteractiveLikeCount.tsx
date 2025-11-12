@@ -149,8 +149,8 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
           transform: 'translate(-50%, 0)'
         }
       : {
-          top: '1px',
-          right: '1px',
+          top: 'clamp(2px, 1vw, 1px)',
+          right: 'clamp(2px, 1vw, 1px)'
         };
 
   const transformValue = isAnimating ? 'scale(1.18)' : 'scale(1)';
