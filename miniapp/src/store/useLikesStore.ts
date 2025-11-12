@@ -28,6 +28,7 @@ interface LikesStore {
   isLiked: (packId: string) => boolean;
   getLikesCount: (packId: string) => number;
   syncPendingLikes: () => Promise<void>;
+  resetPendingSync: () => void;
   clearStorage: () => void;
 }
 
@@ -40,7 +41,7 @@ const MAX_RETRIES = 3; // Максимум попыток повтора при 
 const DEBOUNCE_DELAY = 500; // Задержка debounce перед отправкой на сервер
 
 // Таймеры debounce для каждого стикерсета
-const debounceTimers: Record<string, NodeJS.Timeout> = {};
+const debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
 export const useLikesStore = create<LikesStore>()(
   persist(
@@ -286,24 +287,49 @@ export const useLikesStore = create<LikesStore>()(
             continue;
           }
 
-          try {
-            // PUT /toggle автоматически переключает состояние на сервере
-            const response = await apiClient.toggleLike(parseInt(packId));
+          const currentState = get().likes[packId];
 
-            // Обновляем с РЕАЛЬНЫМИ данными от сервера
+          // Если текущее состояние уже соответствует желаемому, просто очищаем очередь
+          if (currentState?.isLiked === isLiked) {
             set((state) => ({
               likes: {
                 ...state.likes,
                 [packId]: {
                   packId,
-                  isLiked: response.isLiked,        // От сервера
-                  likesCount: response.totalLikes,  // От сервера
+                  isLiked: state.likes[packId]?.isLiked ?? false,
+                  likesCount: state.likes[packId]?.likesCount ?? 0,
                   syncing: false,
                   error: undefined
                 }
               },
-              // Удаляем из очереди после успешной синхронизации
-              pendingSync: state.pendingSync.filter(p => p.packId !== packId)
+              pendingSync: state.pendingSync.filter((p) => p.packId !== packId)
+            }));
+            continue;
+          }
+
+          try {
+            const response = isLiked
+              ? await apiClient.likeStickerSet(parseInt(packId))
+              : await apiClient.unlikeStickerSet(parseInt(packId));
+
+            const finalIsLiked = response.isLiked ?? isLiked;
+
+            set((state) => ({
+              likes: {
+                ...state.likes,
+                [packId]: {
+                  packId,
+                  isLiked: finalIsLiked,
+                  likesCount: Math.max(0, response.totalLikes),
+                  syncing: false,
+                  error: undefined
+                }
+              },
+              pendingSync: state.pendingSync.filter((p) => p.packId !== packId),
+              lastSyncTime: {
+                ...state.lastSyncTime,
+                [packId]: Date.now()
+              }
             }));
 
             console.log(`✅ Отложенный лайк синхронизирован для ${packId}`);
@@ -316,7 +342,17 @@ export const useLikesStore = create<LikesStore>()(
                 p.packId === packId
                   ? { ...p, retries: p.retries + 1 }
                   : p
-              )
+              ),
+              likes: {
+                ...state.likes,
+                [packId]: {
+                  packId,
+                  isLiked: state.likes[packId]?.isLiked ?? false,
+                  likesCount: state.likes[packId]?.likesCount ?? 0,
+                  syncing: false,
+                  error: error instanceof Error ? error.message : 'Ошибка синхронизации'
+                }
+              }
             }));
           }
 
@@ -325,6 +361,27 @@ export const useLikesStore = create<LikesStore>()(
         }
 
         console.log('✅ Синхронизация отложенных лайков завершена');
+      },
+
+      resetPendingSync: () => {
+        set((state) => {
+          const sanitizedLikes = Object.fromEntries(
+            Object.entries(state.likes).map(([id, likeState]) => [
+              id,
+              {
+                ...likeState,
+                syncing: false,
+                error: undefined
+              }
+            ])
+          );
+
+          return {
+            likes: sanitizedLikes,
+            pendingSync: [],
+            lastSyncTime: {}
+          };
+        });
       },
 
       clearStorage: () => {

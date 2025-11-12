@@ -443,7 +443,7 @@ class ApiClient {
 
   // ============ МЕТОДЫ ДЛЯ ЛАЙКОВ ============
 
-  // Переключить лайк стикерсета (единственный метод для работы с лайками)
+  // Переключить лайк стикерсета (только для fallback-сценариев)
   // API endpoint: PUT /api/likes/stickersets/{stickerSetId}/toggle
   // Если лайк есть - убирает, если нет - ставит
   // Response: { isLiked: boolean, totalLikes: number }
@@ -457,6 +457,36 @@ class ApiClient {
     } catch (error: any) {
       console.error(`❌ Ошибка при переключении лайка стикерсета ${stickerSetId}:`, error);
       throw new Error('Не удалось изменить лайк. Попробуйте позже.');
+    }
+  }
+
+  // Поставить лайк стикерсету (явная установка isLiked=true)
+  // API endpoint: POST /api/likes/stickersets/{stickerSetId}
+  async likeStickerSet(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }> {
+    try {
+      const response = await this.client.post<{ isLiked: boolean; totalLikes: number }>(
+        `/likes/stickersets/${stickerSetId}`
+      );
+      console.log(`✅ Лайк установлен для стикерсета ${stickerSetId}:`, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при установке лайка для стикерсета ${stickerSetId}:`, error);
+      throw new Error('Не удалось поставить лайк. Попробуйте позже.');
+    }
+  }
+
+  // Убрать лайк стикерсета (явная установка isLiked=false)
+  // API endpoint: DELETE /api/likes/stickersets/{stickerSetId}
+  async unlikeStickerSet(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }> {
+    try {
+      const response = await this.client.delete<{ isLiked: boolean; totalLikes: number }>(
+        `/likes/stickersets/${stickerSetId}`
+      );
+      console.log(`✅ Лайк снят для стикерсета ${stickerSetId}:`, response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при снятии лайка для стикерсета ${stickerSetId}:`, error);
+      throw new Error('Не удалось убрать лайк. Попробуйте позже.');
     }
   }
 
