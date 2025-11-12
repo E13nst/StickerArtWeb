@@ -229,7 +229,50 @@ type DashboardStats = {
   totalSets: number;
   setsDailyDelta: number;
   totalLikes: number;
-  artTotal: number;
+  likesDailyDelta: number;
+  artTotal: number | null;
+  artDailyDelta?: number | null;
+};
+
+const coerceNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric) && Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+  return null;
+};
+
+const pickFirstNumber = (values: unknown[], visited: WeakSet<object> = new WeakSet()): number | null => {
+  for (const value of values) {
+    const numeric = coerceNumber(value);
+    if (numeric !== null) {
+      return numeric;
+    }
+    if (value && typeof value === 'object') {
+      if (visited.has(value as object)) {
+        continue;
+      }
+      visited.add(value as object);
+      const candidate = pickFirstNumber(
+        [
+          (value as any)?.total,
+          (value as any)?.value,
+          (value as any)?.amount,
+          (value as any)?.sum
+        ],
+        visited
+      );
+      if (candidate !== null) {
+        return candidate;
+      }
+    }
+  }
+  return null;
 };
 
 export default function StixlyTopHeader({
@@ -255,6 +298,14 @@ export default function StixlyTopHeader({
     return `${prefix}${RU_NUMBER_FORMATTER.format(dashboardStats.setsDailyDelta)}`;
   }, [dashboardStats]);
 
+  const formattedLikesDailyChange = useMemo(() => {
+    if (!dashboardStats) {
+      return '—';
+    }
+    const prefix = dashboardStats.likesDailyDelta > 0 ? '+' : '';
+    return `${prefix}${RU_NUMBER_FORMATTER.format(dashboardStats.likesDailyDelta)}`;
+  }, [dashboardStats]);
+
   const formattedTotalLikes = useMemo(() => {
     if (!dashboardStats) {
       return '—';
@@ -266,7 +317,29 @@ export default function StixlyTopHeader({
     if (!dashboardStats) {
       return '—';
     }
+  const value = dashboardStats.artTotal;
+  if (value === null || typeof value !== 'number' || Number.isNaN(value)) {
     return '—';
+  }
+  if (Math.abs(value) < 1000 && value !== Math.trunc(value)) {
+    return RU_NUMBER_FORMATTER_WITH_DECIMALS.format(value);
+  }
+  return RU_NUMBER_FORMATTER.format(Math.round(value));
+  }, [dashboardStats]);
+
+  const formattedArtDailyChange = useMemo(() => {
+    if (!dashboardStats) {
+      return '—';
+    }
+    const value = dashboardStats.artDailyDelta;
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '—';
+    }
+    const prefix = value > 0 ? '+' : '';
+    const absValue = Math.abs(value) < 1000 && value !== Math.trunc(value)
+      ? RU_NUMBER_FORMATTER_WITH_DECIMALS.format(value)
+      : RU_NUMBER_FORMATTER.format(Math.round(value));
+    return `${prefix}${absValue}`;
   }, [dashboardStats]);
 
   const initialIndex = useMemo(() => {
@@ -302,28 +375,42 @@ export default function StixlyTopHeader({
 
     const fetchDashboardStats = async () => {
       try {
-        const response = await apiClient.getStickerSets(0, 50, {
-          sort: 'likesCount',
-          direction: 'DESC',
+        const statisticsResponse = await apiClient.getStatistics().catch((error) => {
+          console.warn('⚠️ Не удалось получить общую статистику с /api/statistics', error);
+          return null;
         });
 
-        if (!isActive) {
+        if (!isActive || !statisticsResponse) {
           return;
         }
 
-        const totalSets = response?.totalElements ?? 0;
-        const setsDailyDelta = totalSets > 0 ? Math.max(0, Math.round(totalSets * 0.02)) : 0;
-        const totalLikes = (response?.content ?? []).reduce((sum, set) => {
-          const likesCount = set.likesCount ?? set.likes ?? 0;
-          return sum + likesCount;
-        }, 0);
-        const artTotal = totalSets > 0 ? totalSets * 0.42 : 0; // временная эвристика
+        const totalSets =
+          coerceNumber((statisticsResponse as any)?.stickerSets?.total) ?? 0;
+        const setsDailyDelta =
+          coerceNumber((statisticsResponse as any)?.stickerSets?.daily) ?? 0;
+        const totalLikes =
+          coerceNumber((statisticsResponse as any)?.likes?.total) ?? 0;
+        const likesDailyDelta =
+          coerceNumber((statisticsResponse as any)?.likes?.daily) ?? 0;
+
+        const artTotal = pickFirstNumber([
+          (statisticsResponse as any)?.art?.earned?.total,
+          (statisticsResponse as any)?.art?.total,
+          (statisticsResponse as any)?.art?.balance,
+        ]);
+
+        const artDelta = pickFirstNumber([
+          (statisticsResponse as any)?.art?.earned?.daily,
+          (statisticsResponse as any)?.art?.daily,
+        ]);
 
         setDashboardStats({
           totalSets,
           setsDailyDelta,
           totalLikes,
+          likesDailyDelta,
           artTotal,
+          artDailyDelta: artDelta,
         });
       } catch (error) {
         console.warn('⚠️ Не удалось получить статистику для заголовка Dashboard', error);
@@ -521,6 +608,23 @@ export default function StixlyTopHeader({
                   >
                     {formattedTotalLikes}
                   </span>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      background: "rgba(255,255,255,0.12)",
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
+                      fontSize: "clamp(11px, 2.6vw, 14px)",
+                      fontWeight: 600,
+                      letterSpacing: "0.6px",
+                    }}
+                  >
+                    <span style={{ fontSize: "1.05em" }}>❤️</span>
+                    <span>{formattedLikesDailyChange}</span>
+                  </div>
                 </div>
                 <div
                   style={{
@@ -632,6 +736,23 @@ export default function StixlyTopHeader({
                   >
                     {formattedArtTotal}
                   </span>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "4px 10px",
+                      borderRadius: "999px",
+                      background: "rgba(255,255,255,0.12)",
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
+                      fontSize: "clamp(11px, 2.6vw, 14px)",
+                      fontWeight: 600,
+                      letterSpacing: "0.6px",
+                    }}
+                  >
+                    <span style={{ fontSize: "1.05em" }}>🪙</span>
+                    <span>{formattedArtDailyChange}</span>
+                  </div>
                 </div>
               </div>
             ) : isMascot ? (

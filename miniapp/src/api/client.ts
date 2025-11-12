@@ -171,6 +171,12 @@ class ApiClient {
     return `${url}?${queryString}`;
   }
 
+  // Общая статистика платформы
+  async getStatistics(): Promise<any> {
+    const response = await this.client.get('/statistics');
+    return response.data;
+  }
+
   // Удаляем заголовки аутентификации
   clearAuthHeaders() {
     delete this.client.defaults.headers.common['X-Telegram-Init-Data'];

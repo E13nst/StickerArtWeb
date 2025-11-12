@@ -5,6 +5,8 @@ import { useTelegram } from '../hooks/useTelegram';
 interface InteractiveLikeCountProps {
   packId: string;
   size?: 'small' | 'medium' | 'large';
+  placement?: 'top-right' | 'bottom-center';
+  showCount?: boolean;
 }
 
 // SVG компонент для иконки лайка с обрезкой по контуру сердца
@@ -41,7 +43,9 @@ const LikeIcon: React.FC<{
 
 export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
   packId,
-  size = 'medium'
+  size = 'medium',
+  placement = 'top-right',
+  showCount = true
 }) => {
   const { tg } = useTelegram();
   const [isAnimating, setIsAnimating] = useState(false);
@@ -56,20 +60,23 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
 
   const sizeStyles = {
     small: {
-      iconSize: 34,
+      iconSize: 36,
       fontSize: '10px'
     },
     medium: {
-      iconSize: 55,
+      iconSize: 68,
       fontSize: '11px'
     },
     large: {
-      iconSize: 89,
+      iconSize: 96,
       fontSize: '12px'
     }
   };
 
   const currentSize = sizeStyles[size];
+  const baseIconSize = currentSize.iconSize;
+  const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize;
+  const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize;
   
   const getThemeColor = () => {
     const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-bg-color').trim();
@@ -134,25 +141,48 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
     }
   }, [packId, toggleLike, tg]);
 
+  const positionStyles: React.CSSProperties =
+    placement === 'bottom-center'
+      ? {
+          bottom: 'clamp(12px, 4vw, 22px)',
+          left: '50%',
+          transform: 'translate(-50%, 0)'
+        }
+      : {
+          top: '1px',
+          right: '1px',
+        };
+
+  const transformValue = isAnimating ? 'scale(1.18)' : 'scale(1)';
+
   return (
     <div
       data-testid="interactive-like-button"
       onClick={handleLikeClick}
       style={{
         position: 'absolute',
-        top: '1px',
-        right: '1px',
+        ...positionStyles,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: `${currentSize.iconSize}px`,
-        height: `${currentSize.iconSize}px`,
-        zIndex: 3,
+        width: `${visualIconSize}px`,
+        height: `${visualIconSize}px`,
+        zIndex: 4,
         transition: 'all 0.233s ease',
         pointerEvents: 'auto', // Делаем кликабельным!
         cursor: 'pointer',
-        transform: isAnimating ? 'scale(1.15)' : 'scale(1)',
-        filter: isAnimating ? 'brightness(1.2)' : 'brightness(1)'
+        transform: placement === 'bottom-center'
+          ? `${positionStyles.transform ?? ''} ${transformValue}`.trim()
+          : transformValue,
+        transformOrigin: 'center',
+        filter: placement === 'bottom-center'
+          ? `drop-shadow(0 4px 12px rgba(9, 14, 26, 0.55)) drop-shadow(0 18px 36px rgba(9, 14, 26, 0.62)) ${isAnimating ? 'brightness(1.18)' : 'brightness(1)'}`
+          : isAnimating ? 'brightness(1.15)' : 'brightness(1)',
+        boxShadow: placement === 'bottom-center'
+          ? 'none'
+          : '0 8px 20px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.18)',
+        background: 'transparent',
+        borderRadius: '50%'
       }}
       title={isLiked ? `${likesCount} лайков (нажмите чтобы убрать)` : `${likesCount} лайков (нажмите чтобы лайкнуть)`}
     >
@@ -171,29 +201,36 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
         transform: isAnimating ? 'rotate(15deg)' : 'rotate(0deg)'
       }}>
         <LikeIcon 
-          color={getThemeColor()} 
-          size={currentSize.iconSize} 
+          color={placement === 'bottom-center' ? '#ffffff' : getThemeColor()}
+          size={heartIconSize}
           isLiked={isLiked}
         />
       </div>
       
       {/* Число лайков поверх иконки */}
-      <span style={{
-        position: 'relative',
-        fontSize: currentSize.fontSize,
-        color: getTextColor(),
-        fontWeight: '600',
-        lineHeight: 1,
-        textAlign: 'center',
-        zIndex: 2,
-        textShadow: isLiked 
-          ? '0 1px 2px rgba(255, 255, 255, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3)' 
-          : '0 1px 2px rgba(0, 0, 0, 0.3)',
-        transform: 'translateY(-2px)',
-        transition: 'color 0.233s ease'
-      }}>
-        {likesCount}
-      </span>
+      {showCount && (
+        <span style={{
+          position: 'relative',
+          fontSize: currentSize.fontSize,
+          color: placement === 'bottom-center'
+            ? '#ffffff'
+            : getTextColor(),
+          fontWeight: '600',
+          lineHeight: 1,
+          textAlign: 'center',
+          zIndex: 2,
+          textShadow: placement === 'bottom-center'
+            ? '0 3px 8px rgba(3, 7, 18, 0.75)'
+            : isLiked 
+              ? '0 1px 3px rgba(0, 0, 0, 0.4)'
+              : '0 1px 3px rgba(0, 0, 0, 0.45)',
+          transform: placement === 'bottom-center' ? 'translateY(0)' : 'translateY(-2px)',
+          transition: 'color 0.233s ease',
+          padding: placement === 'bottom-center' ? '0 2px' : 0
+        }}>
+          {likesCount}
+        </span>
+      )}
 
       {/* Анимация пульсации при лайке */}
       {isAnimating && (

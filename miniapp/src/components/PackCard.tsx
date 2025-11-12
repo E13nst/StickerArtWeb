@@ -122,14 +122,14 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       style={{
         width: '100%',
-        aspectRatio: '1 / 1.618', // Золотое сечение (φ = 1.618)
+        aspectRatio: '1 / 1.55', // Чуть более компактная высота (≈ -4% от φ)
         borderRadius: '13px', // Число Фибоначчи
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: '0 3px 13px var(--tg-theme-shadow-color)', // 3 и 13 - числа Фибоначчи
+        backgroundColor: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
         touchAction: 'manipulation',
         transition: 'transform 0.233s ease, box-shadow 0.233s ease' // 0.233 ≈ 1/φ
       }}
@@ -152,8 +152,10 @@ const PackCardComponent: React.FC<PackCardProps> = ({
               justifyContent: 'center',
               fontSize: '48px',
               color: 'var(--tg-theme-hint-color)',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              animation: 'pulse 1.5s ease-in-out infinite'
+              backgroundColor: 'transparent',
+              animation: 'pulse 1.5s ease-in-out infinite',
+              transform: 'translateY(-4%)',
+              paddingBottom: 'clamp(34px, 6vw, 52px)'
             }}
           >
             {pack.previewStickers[0]?.emoji || '🎨'}
@@ -176,8 +178,10 @@ const PackCardComponent: React.FC<PackCardProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            boxSizing: 'border-box'
+            backgroundColor: 'transparent',
+            boxSizing: 'border-box',
+            transform: 'translateY(-4%)',
+            paddingBottom: 'clamp(34px, 6vw, 52px)'
           };
 
           return (
@@ -215,34 +219,11 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         })()}
       </div>
       
-      {/* Заголовок пака */}
-      <div
-        data-testid="pack-title"
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: `linear-gradient(transparent, var(--tg-theme-overlay-color))`,
-          color: 'white',
-          padding: '13px 8px 8px', // 13 - число Фибоначчи
-          fontSize: '13px', // Число Фибоначчи
-          fontWeight: '500',
-          textAlign: 'center',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          zIndex: 3,
-          lineHeight: '1.618' // Золотое сечение для межстрочного интервала
-        }}
-      >
-        {pack.title}
-      </div>
-
-      {/* Интерактивный лайк */}
+      {/* Интерактивный лайк внизу карточки */}
       <InteractiveLikeCount
         packId={pack.id}
         size="medium"
+        placement="bottom-center"
       />
     </div>
   );

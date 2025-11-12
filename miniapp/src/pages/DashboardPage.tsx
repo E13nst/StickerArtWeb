@@ -8,9 +8,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { MetricCard } from '@/components/MetricCard';
-import { TopCategories } from '@/components/TopCategories';
 import { TopAuthors } from '@/components/TopAuthors';
-import { CategoryFilter, Category as CategoryFilterOption } from '@/components/CategoryFilter';
 import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { StickerSetResponse } from '@/types/sticker';
@@ -25,11 +23,11 @@ interface DashboardStats {
   artEarnedTrend: string;
 }
 
-interface CategoryStats {
-  name: string;
-  count: number;
-  emoji: string;
-}
+type CategoryFilterOption = {
+  id: string;
+  label: string;
+  title?: string;
+};
 
 export const DashboardPage: React.FC = () => {
   const MAX_TOP_STICKERS = 10;
@@ -39,7 +37,6 @@ export const DashboardPage: React.FC = () => {
   const { likes } = useLikesStore();
   const { userInfo, userStickerSets } = useProfileStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [topCategories, setTopCategories] = useState<CategoryStats[]>([]);
   const [topStickerSets, setTopStickerSets] = useState<StickerSetResponse[]>([]);
   const [topAuthors, setTopAuthors] = useState<Array<{ id: number; username?: string; firstName?: string; lastName?: string; avatarUrl?: string; stickerCount: number; packCount: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +57,10 @@ export const DashboardPage: React.FC = () => {
   const row2Packs = pyramidPacks.slice(1, 3);
   const scrollPacks = pyramidPacks.slice(3, MAX_TOP_STICKERS);
   const hasAdditionalTopPacks = scrollPacks.length > 0;
+
+  const toggleCategory = useCallback(() => {
+    setActiveCategoryKey((prev) => (prev === 'official' ? 'user' : 'official'));
+  }, []);
 
   const handleViewFullTop = useCallback(() => {
     navigate('/gallery?sort=likes');
@@ -224,80 +225,6 @@ export const DashboardPage: React.FC = () => {
           user: userTopSets
         };
 
-        // Получаем категории и сортируем по лайкам
-        try {
-          const categories = await apiClient.getCategories();
-          console.log('📊 Загружено категорий:', categories.length);
-
-          const categoryData = new Map<string, { count: number; likes: number }>();
-
-          setsForStats.forEach(set => {
-            const setLikes = getStickerLikes(set);
-            if (set.categories && set.categories.length > 0) {
-              set.categories.forEach(cat => {
-                const current = categoryData.get(cat.key) || { count: 0, likes: 0 };
-                categoryData.set(cat.key, {
-                  count: current.count + 1,
-                  likes: current.likes + setLikes
-                });
-              });
-            }
-          });
-
-          console.log('📊 Категории с данными:', Array.from(categoryData.entries()));
-
-          const categoryEmojis: Record<string, string> = {
-            art: '🎨',
-            animals: '🐱',
-            memes: '😂',
-            premium: '🌟',
-            love: '❤️',
-            nature: '🌿',
-            food: '🍕',
-            travel: '✈️',
-            sports: '⚽',
-            music: '🎵'
-          };
-
-          const sortedCategoryEntries = Array.from(categoryData.entries())
-            .sort((a, b) => b[1].likes - a[1].likes);
-
-          const topCategoriesList = sortedCategoryEntries
-            .map(([key, data]) => {
-              const category = categories.find(c => c.key === key);
-              return {
-                name: category?.name || key,
-                count: data.likes,
-                emoji: categoryEmojis[key] || '📦'
-              };
-            })
-            .slice(0, 8);
-
-          console.log('📊 Топ категорий:', topCategoriesList);
-          if (topCategoriesList.length === 0) {
-            console.warn('⚠️ Нет категорий, используем заглушку');
-            setTopCategories([
-              { name: 'Арт', count: 0, emoji: '🎨' },
-              { name: 'Животные', count: 0, emoji: '🐱' },
-              { name: 'Мемы', count: 0, emoji: '😂' },
-              { name: 'Премиум', count: 0, emoji: '🌟' },
-              { name: 'Любовь', count: 0, emoji: '❤️' }
-            ]);
-          } else {
-            setTopCategories(topCategoriesList);
-          }
-
-        } catch (e) {
-          console.warn('Не удалось загрузить категории');
-          setTopCategories([
-            { name: 'Арт', count: 8, emoji: '🎨' },
-            { name: 'Животные', count: 6, emoji: '🐱' },
-            { name: 'Мемы', count: 5, emoji: '😂' },
-            { name: 'Премиум', count: 3, emoji: '🌟' },
-            { name: 'Любовь', count: 2, emoji: '❤️' }
-          ]);
-        }
-
         setTopStickersByCategory(stickersByCategoryMap);
 
         // Получаем топ-5 авторов по количеству стикеров
@@ -387,27 +314,40 @@ export const DashboardPage: React.FC = () => {
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            <Box sx={{ mt: 1, mb: 3 }}>
-              {categoryFilterOptions.length > 0 && (
-                <Box
+            <Box sx={{ mt: 1, mb: 2 }}>
+              <Box
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  mb: 1,
+                }}
+              >
+                <Button
+                  onClick={toggleCategory}
+                  variant="contained"
+                  disableElevation
                   sx={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    mb: 1.5,
+                    borderRadius: '999px',
+                    px: 3,
+                    py: 1,
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    background: 'var(--tg-theme-button-color, #2563eb)',
+                    color: 'var(--tg-theme-button-text-color, #ffffff)',
+                    '&:hover': {
+                      background: 'var(--tg-theme-button-color, #2563eb)',
+                      filter: 'brightness(1.08)',
+                    },
                   }}
                 >
-                  <CategoryFilter
-                    categories={categoryFilterOptions}
-                    selectedCategories={[activeCategoryKey]}
-                    onCategoryToggle={(categoryId) => setActiveCategoryKey(categoryId)}
-                    disabled={isLoading}
-                  />
-                </Box>
-              )}
+                  {activeCategoryKey === 'official' ? 'Официальные' : 'Пользовательские'}
+                </Button>
+              </Box>
 
-              {topStickerSets.length > 0 ? (
-                <>
+              {topStickerSets.length > 0 && (
                   <Box sx={{ position: 'relative', width: '100%' }}>
                     <Box
                       sx={{
@@ -428,182 +368,120 @@ export const DashboardPage: React.FC = () => {
                     </Box>
                     <Box
                       sx={{
-                        '--base-size': 'clamp(110px, 28vw, 220px)',
-                        '--row-gap': 'calc(var(--base-size) * 0.18)',
-                        '--col-gap': 'calc(var(--base-size) * 0.2)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 'var(--row-gap)',
-                        width: '100%',
-                        pb: 2,
                         position: 'relative',
+                        width: '100%',
+                        maxWidth: { xs: '380px', sm: '540px', md: '680px' },
+                        mx: 'auto',
+                        height: { xs: 'clamp(240px, 72vw, 320px)', sm: 'clamp(280px, 52vw, 360px)' },
+                        display: 'flex',
+                        alignItems: 'flex-end',
+                        justifyContent: 'center',
+                        pb: { xs: 2.25, sm: 3 },
                         zIndex: 1,
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'row',
-                          flexWrap: { xs: 'nowrap', sm: 'nowrap' },
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 'var(--col-gap)',
-                          width: '100%',
-                        }}
-                      >
-                        {row2Packs[0] && (
-                          <Box
-                            sx={{
-                              flex: {
-                                xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                                sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)',
-                              },
-                              maxWidth: {
-                                xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                                sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)',
-                              },
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: '100%',
-                                '& .pack-card': {
-                                  width: '100% !important',
-                                  height: 'auto !important',
-                                  aspectRatio: '1 / 1.618',
-                                },
-                              }}
-                            >
-                              <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
-                            </Box>
-                          </Box>
-                        )}
-
-                        {row1Pack && (
-                          <Box
-                            sx={{
-                              width: 'min(var(--base-size), 100%)',
-                              transformOrigin: 'center',
-                              '& .pack-card': {
-                                width: '100% !important',
-                                height: 'auto !important',
-                                aspectRatio: '1 / 1.618',
-                              },
-                            }}
-                          >
-                            <PackCard pack={row1Pack} onClick={handlePackClick} />
-                          </Box>
-                        )}
-
-                        {row2Packs[1] && (
-                          <Box
-                            sx={{
-                              flex: {
-                                xs: '0 0 clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                                sm: '0 0 clamp(105px, calc(var(--base-size) * 0.786), 240px)',
-                              },
-                              maxWidth: {
-                                xs: 'clamp(86px, calc(var(--base-size) * 0.786), 220px)',
-                                sm: 'clamp(105px, calc(var(--base-size) * 0.786), 240px)',
-                              },
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: '100%',
-                                '& .pack-card': {
-                                  width: '100% !important',
-                                  height: 'auto !important',
-                                  aspectRatio: '1 / 1.618',
-                                },
-                              }}
-                            >
-                              <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
-                            </Box>
-                          </Box>
-                        )}
-                      </Box>
-
-                      {hasAdditionalTopPacks && (
+                      {row2Packs[0] && (
                         <Box
                           sx={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            width: '100%',
-                            mt: 0.5,
+                            position: 'absolute',
+                            bottom: { xs: '12%', sm: '12%', md: '10%' },
+                            left: { xs: '18%', sm: '20%', md: '26%' },
+                            transform: 'translateX(-50%)',
+                            width: { xs: 'clamp(138px, 38vw, 200px)', sm: 'clamp(160px, 30vw, 240px)' },
+                            filter: 'drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32))',
+                            zIndex: 1,
+                            '& .pack-card': {
+                              width: '100% !important',
+                              height: 'auto !important',
+                              aspectRatio: '1 / 1.618',
+                              transform: { xs: 'scale(0.94)', sm: 'scale(0.98)' },
+                              transformOrigin: 'center bottom',
+                            },
                           }}
                         >
-                          <Button
-                            onClick={handleViewFullTop}
-                            variant="text"
-                            sx={{
-                              textTransform: 'none',
-                              textDecoration: 'underline',
-                              fontSize: '0.82rem',
-                              fontWeight: 600,
-                              color: 'var(--tg-theme-button-color, #6C63FF)',
-                              px: 0,
-                              py: 0.5,
-                              minWidth: 'auto',
-                              '&:hover': {
-                                backgroundColor: 'transparent',
-                                textDecoration: 'underline',
-                                color: 'var(--tg-theme-button-color, #5A48D0)',
-                              },
-                            }}
-                          >
-                            все стикеры
-                          </Button>
+                          <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
+                        </Box>
+                      )}
+
+                      {row1Pack && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: { xs: '-6%', sm: '-8%', md: '-10%' },
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: { xs: 'clamp(170px, 48vw, 220px)', sm: 'clamp(195px, 32vw, 260px)' },
+                            zIndex: 2,
+                            '& .pack-card': {
+                              width: '100% !important',
+                              height: 'auto !important',
+                              aspectRatio: '1 / 1.618',
+                              boxShadow: '0 28px 52px rgba(8, 14, 30, 0.38)',
+                            },
+                          }}
+                        >
+                          <PackCard pack={row1Pack} onClick={handlePackClick} />
+                        </Box>
+                      )}
+
+                      {row2Packs[1] && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: { xs: '13%', sm: '12%', md: '10%' },
+                            right: { xs: '14%', sm: '18%', md: '24%' },
+                            transform: 'translateX(50%)',
+                            width: { xs: 'clamp(138px, 38vw, 200px)', sm: 'clamp(160px, 30vw, 240px)' },
+                            filter: 'drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32))',
+                            zIndex: 1,
+                            '& .pack-card': {
+                              width: '100% !important',
+                              height: 'auto !important',
+                              aspectRatio: '1 / 1.618',
+                              transform: { xs: 'scale(0.94)', sm: 'scale(0.98)' },
+                              transformOrigin: 'center bottom',
+                            },
+                          }}
+                        >
+                          <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
                         </Box>
                       )}
                     </Box>
-                  </Box>
-
-                  <Card
-                    sx={{
-                      mt: 2,
-                      borderRadius: 3,
-                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                      border: '1px solid var(--tg-theme-border-color)',
-                      boxShadow: 'none',
-                    }}
-                  >
-                    <CardContent sx={{ p: 2 }}>
-                      <Typography
-                        variant="body2"
+                    {hasAdditionalTopPacks && (
+                      <Box
                         sx={{
-                          color: 'var(--tg-theme-hint-color)',
-                          fontSize: '0.9rem',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          width: '100%',
+                          mt: { xs: 1.75, sm: 2 },
                         }}
                       >
-                        В этой категории пока нет стикеров. Попробуйте выбрать другую.
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : (
-                <Card
-                  sx={{
-                    mt: 2,
-                    borderRadius: 3,
-                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                    border: '1px solid var(--tg-theme-border-color)',
-                    boxShadow: 'none',
-                  }}
-                >
-                  <CardContent sx={{ p: 2 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: 'var(--tg-theme-hint-color)',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      В этой категории пока нет стикеров. Попробуйте выбрать другую.
-                    </Typography>
-                  </CardContent>
-                </Card>
+                        <Button
+                          onClick={handleViewFullTop}
+                          variant="text"
+                          sx={{
+                            textTransform: 'none',
+                            textDecoration: 'underline',
+                            textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45))',
+                            fontSize: '0.82rem',
+                            fontWeight: 300,
+                            color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7))',
+                            px: 0,
+                            py: 0.5,
+                            minWidth: 'auto',
+                            '&:hover': {
+                              backgroundColor: 'transparent',
+                              textDecoration: 'underline',
+                              textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6))',
+                              color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85))',
+                            },
+                          }}
+                        >
+                          все стикеры
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
               )}
             </Box>
 
@@ -730,10 +608,6 @@ export const DashboardPage: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Топ-5 категорий */}
-            {topCategories.length > 0 && (
-              <TopCategories categories={topCategories} />
-            )}
           </>
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
