@@ -56,6 +56,16 @@ class ImageLoader {
   };
   
   private processing = false;
+  
+  // Отслеживание приоритетов активных загрузок для резервирования слотов
+  private activePriorities: Map<string, number> = new Map(); // fileId -> priority
+  
+  // Резервирование слотов для высокоприоритетных загрузок
+  // Гарантируем минимум 6 слотов для высокого приоритета (TIER_0, TIER_1, TIER_2)
+  // Низкоприоритетные (TIER_3, TIER_4) используют оставшиеся слоты, но не более 4 одновременно
+  private readonly HIGH_PRIORITY_MIN_SLOTS = 6; // Минимум слотов для высокого приоритета
+  private readonly LOW_PRIORITY_MAX_SLOTS = 4;  // Максимум слотов для низкого приоритета
+  private readonly HIGH_PRIORITY_THRESHOLD = LoadPriority.TIER_2_FIRST_IMAGE; // >= 3 = высокий приоритет
 
   async loadImage(
     fileId: string, 
@@ -105,7 +115,24 @@ class ImageLoader {
     }
   }
 
-  // Обработка очереди
+  // Подсчет активных загрузок по приоритетам
+  private getActiveCountsByPriority(): { high: number; low: number } {
+    let high = 0;
+    let low = 0;
+    
+    // Подсчитываем активные загрузки по приоритетам из activePriorities Map
+    for (const priority of this.activePriorities.values()) {
+      if (priority >= this.HIGH_PRIORITY_THRESHOLD) {
+        high++;
+      } else {
+        low++;
+      }
+    }
+    
+    return { high, low };
+  }
+
+  // Обработка очереди с резервированием слотов для высокого приоритета
   private async processQueue(): Promise<void> {
     if (this.processing || this.queue.activeCount >= this.queue.maxConcurrency) {
       return;
@@ -113,8 +140,44 @@ class ImageLoader {
 
     this.processing = true;
 
-    while (this.queue.queue.length > 0 && this.queue.activeCount < this.queue.maxConcurrency) {
-      const item = this.queue.queue.shift();
+    // Подсчитываем активные загрузки по приоритетам
+    const activeByPriority = this.getActiveCountsByPriority();
+    
+    // Разделяем очередь на высокоприоритетные и низкоприоритетные элементы
+    const highPriorityItems: typeof this.queue.queue = [];
+    const lowPriorityItems: typeof this.queue.queue = [];
+    
+    for (const item of this.queue.queue) {
+      if (item.priority >= this.HIGH_PRIORITY_THRESHOLD) {
+        highPriorityItems.push(item);
+      } else {
+        lowPriorityItems.push(item);
+      }
+    }
+    
+    // Логирование для отладки (только в dev режиме)
+    if (import.meta.env.DEV && (highPriorityItems.length > 0 || lowPriorityItems.length > 0)) {
+      console.log(`📊 Queue processing: high=${highPriorityItems.length}, low=${lowPriorityItems.length}, active=${this.queue.activeCount}, activeHigh=${activeByPriority.high}, activeLow=${activeByPriority.low}`);
+    }
+
+    // Сначала обрабатываем высокоприоритетные элементы
+    // Обрабатываем пока есть элементы и есть свободные слоты
+    while (
+      highPriorityItems.length > 0 && 
+      this.queue.activeCount < this.queue.maxConcurrency
+    ) {
+      // Проверяем текущее количество активных высокоприоритетных загрузок
+      const currentActive = this.getActiveCountsByPriority();
+      
+      // Если есть низкоприоритетные элементы в очереди И уже достигнут минимум для высокого приоритета
+      // И занято достаточно слотов - резервируем место для низкоприоритетных
+      if (lowPriorityItems.length > 0 &&
+          currentActive.high >= this.HIGH_PRIORITY_MIN_SLOTS && 
+          this.queue.activeCount >= this.queue.maxConcurrency - this.LOW_PRIORITY_MAX_SLOTS) {
+        break; // Резервируем место для низкоприоритетных
+      }
+      
+      const item = highPriorityItems.shift();
       if (!item) break;
 
       // Проверить, не загружается ли уже
@@ -122,7 +185,14 @@ class ImageLoader {
         continue;
       }
 
+      // Удаляем из основной очереди
+      const index = this.queue.queue.findIndex(q => q.fileId === item.fileId);
+      if (index !== -1) {
+        this.queue.queue.splice(index, 1);
+      }
+
       this.queue.activeCount++;
+      this.activePriorities.set(item.fileId, item.priority);
       
       try {
         const promise = this.loadImageFromUrl(item.fileId, item.url);
@@ -131,10 +201,59 @@ class ImageLoader {
         promise.finally(() => {
           this.queue.activeCount--;
           this.queue.inFlight.delete(item.fileId);
+          this.activePriorities.delete(item.fileId);
           this.processQueue();
         });
       } catch (error) {
         this.queue.activeCount--;
+        this.activePriorities.delete(item.fileId);
+        console.warn('Failed to process queue item:', error);
+      }
+    }
+
+    // Затем обрабатываем низкоприоритетные элементы (если есть свободные слоты)
+    while (
+      lowPriorityItems.length > 0 && 
+      this.queue.activeCount < this.queue.maxConcurrency
+    ) {
+      // Проверяем текущее количество активных низкоприоритетных загрузок
+      const currentActive = this.getActiveCountsByPriority();
+      
+      // Если достигнут максимум для низкого приоритета - выходим
+      if (currentActive.low >= this.LOW_PRIORITY_MAX_SLOTS) {
+        break;
+      }
+      
+      const item = lowPriorityItems.shift();
+      if (!item) break;
+
+      // Проверить, не загружается ли уже
+      if (this.queue.inFlight.has(item.fileId)) {
+        continue;
+      }
+
+      // Удаляем из основной очереди
+      const index = this.queue.queue.findIndex(q => q.fileId === item.fileId);
+      if (index !== -1) {
+        this.queue.queue.splice(index, 1);
+      }
+
+      this.queue.activeCount++;
+      this.activePriorities.set(item.fileId, item.priority);
+      
+      try {
+        const promise = this.loadImageFromUrl(item.fileId, item.url);
+        this.queue.inFlight.set(item.fileId, promise);
+        
+        promise.finally(() => {
+          this.queue.activeCount--;
+          this.queue.inFlight.delete(item.fileId);
+          this.activePriorities.delete(item.fileId);
+          this.processQueue();
+        });
+      } catch (error) {
+        this.queue.activeCount--;
+        this.activePriorities.delete(item.fileId);
         console.warn('Failed to process queue item:', error);
       }
     }
@@ -249,6 +368,7 @@ class ImageLoader {
   abort(fileId: string): void {
     // Удалить из in-flight запросов
     this.queue.inFlight.delete(fileId);
+    this.activePriorities.delete(fileId);
     
     // Удалить из очереди
     this.queue.queue = this.queue.queue.filter(item => item.fileId !== fileId);
@@ -256,6 +376,7 @@ class ImageLoader {
 
   clear(): void {
     this.queue.inFlight.clear();
+    this.activePriorities.clear();
     this.queue.queue = [];
     this.queue.activeCount = 0;
     this.processing = false;
@@ -264,11 +385,21 @@ class ImageLoader {
 
   // Получить статистику очереди
   getQueueStats() {
+    const activeByPriority = this.getActiveCountsByPriority();
+    const highPriorityQueued = this.queue.queue.filter(item => item.priority >= this.HIGH_PRIORITY_THRESHOLD).length;
+    const lowPriorityQueued = this.queue.queue.filter(item => item.priority < this.HIGH_PRIORITY_THRESHOLD).length;
+    
     return {
       inFlight: this.queue.inFlight.size,
       queued: this.queue.queue.length,
+      queuedHigh: highPriorityQueued,
+      queuedLow: lowPriorityQueued,
       active: this.queue.activeCount,
-      maxConcurrency: this.queue.maxConcurrency
+      activeHigh: activeByPriority.high,
+      activeLow: activeByPriority.low,
+      maxConcurrency: this.queue.maxConcurrency,
+      reservedHigh: this.HIGH_PRIORITY_MIN_SLOTS,
+      reservedLow: this.LOW_PRIORITY_MAX_SLOTS
     };
   }
 }
