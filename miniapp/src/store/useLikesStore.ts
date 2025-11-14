@@ -77,22 +77,38 @@ export const useLikesStore = create<LikesStore>()(
         }
 
         // OPTIMISTIC UPDATE: Обновляем UI мгновенно
-        set((state) => ({
-          likes: {
-            ...state.likes,
-            [packId]: {
-              packId,
-              isLiked: newIsLiked,
-              likesCount: Math.max(0, newLikesCount),
-              syncing: true,
-              error: undefined
-            }
-          },
-          lastSyncTime: {
-            ...state.lastSyncTime,
-            [packId]: now
+        // Обновляем только конкретный packId, не трогая другие
+        set((state) => {
+          const oldState = state.likes[packId];
+          const newState = {
+            packId,
+            isLiked: newIsLiked,
+            likesCount: Math.max(0, newLikesCount),
+            syncing: true,
+            error: undefined
+          };
+          
+          // Логируем только если состояние действительно изменилось
+          if (!oldState || 
+              oldState.isLiked !== newState.isLiked || 
+              oldState.likesCount !== newState.likesCount) {
+            console.log(`🔄 [${packId}] Optimistic update:`, {
+              from: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : 'new',
+              to: { isLiked: newState.isLiked, likesCount: newState.likesCount }
+            });
           }
-        }));
+          
+          return {
+            likes: {
+              ...state.likes,
+              [packId]: newState
+            },
+            lastSyncTime: {
+              ...state.lastSyncTime,
+              [packId]: now
+            }
+          };
+        });
 
         // DEBOUNCE: Очищаем предыдущий таймер и создаем новый
         if (debounceTimers[packId]) {
@@ -114,20 +130,33 @@ export const useLikesStore = create<LikesStore>()(
               console.warn(`⚠️ Сервер вернул isLiked=${serverIsLiked} для ${packId}, ожидаем ${newIsLiked}. Сохраняем локальное значение для UX.`);
             }
 
-            set((state) => ({
-              likes: {
-                ...state.likes,
-                [packId]: {
-                  packId,
-                  isLiked: finalIsLiked,
-                  likesCount: Math.max(0, response.totalLikes),
-                  syncing: false,
-                  error: undefined
-                }
+            // Обновляем только конкретный packId с актуальными данными с сервера
+            set((state) => {
+              const oldState = state.likes[packId];
+              const newState = {
+                packId,
+                isLiked: finalIsLiked,
+                likesCount: Math.max(0, response.totalLikes),
+                syncing: false,
+                error: undefined
+              };
+              
+              // Логируем только если количество лайков изменилось
+              if (!oldState || oldState.likesCount !== newState.likesCount || oldState.isLiked !== newState.isLiked) {
+                console.log(`✅ [${packId}] Синхронизация с сервером:`, {
+                  serverResponse: response,
+                  oldState: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : null,
+                  newState: { isLiked: newState.isLiked, likesCount: newState.likesCount }
+                });
               }
-            }));
-
-            console.log(`✅ Лайк синхронизирован с сервером для ${packId}:`, response);
+              
+              return {
+                likes: {
+                  ...state.likes,
+                  [packId]: newState
+                }
+              };
+            });
           } catch (error) {
             console.error(`❌ Ошибка синхронизации лайка для ${packId}:`, error);
 
@@ -162,16 +191,33 @@ export const useLikesStore = create<LikesStore>()(
       },
 
       setLike: (packId: string, isLiked: boolean, likesCount?: number) => {
-        set((state) => ({
-          likes: {
-            ...state.likes,
-            [packId]: {
-              packId,
-              isLiked,
-              likesCount: likesCount ?? (state.likes[packId]?.likesCount || 0)
-            }
+        // Обновляем только конкретный packId
+        set((state) => {
+          const oldState = state.likes[packId];
+          const newLikesCount = likesCount ?? (oldState?.likesCount || 0);
+          const newState = {
+            packId,
+            isLiked,
+            likesCount: newLikesCount
+          };
+          
+          // Логируем только если состояние изменилось
+          if (!oldState || 
+              oldState.isLiked !== newState.isLiked || 
+              oldState.likesCount !== newState.likesCount) {
+            console.log(`📝 [${packId}] setLike:`, {
+              from: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : 'new',
+              to: newState
+            });
           }
-        }));
+          
+          return {
+            likes: {
+              ...state.likes,
+              [packId]: newState
+            }
+          };
+        });
       },
 
       initializeLikes: (stickerSets: Array<{ 
@@ -239,6 +285,21 @@ export const useLikesStore = create<LikesStore>()(
           });
           
           if (updates.size === 0) return state;
+          
+          // Логируем только измененные стикерсеты
+          const changedPacks: string[] = [];
+          updates.forEach((newState, id) => {
+            const oldState = state.likes[id];
+            if (!oldState || 
+                oldState.isLiked !== newState.isLiked || 
+                oldState.likesCount !== newState.likesCount) {
+              changedPacks.push(id);
+            }
+          });
+          
+          if (changedPacks.length > 0) {
+            console.log(`🔍 initializeLikes: Обновлено ${changedPacks.length} стикерсетов:`, changedPacks);
+          }
           
           // В режиме слияния сохраняем все существующие + обновляем новые
           // Иначе заменяем только те, что в updates
