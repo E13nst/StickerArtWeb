@@ -819,6 +819,22 @@ export const MyProfilePage: React.FC = () => {
           pattern: isPremium ? 'waves' : 'dots',
           content: isUserLoading ? (
             <LoadingSpinner message="Загрузка профиля..." />
+          ) : userError ? (
+            <Box sx={{ 
+              width: '100%', 
+              height: '100%',
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 3,
+              textAlign: 'center'
+            }}>
+              <ErrorDisplay 
+                error={userError} 
+                onRetry={() => loadMyProfile(true)}
+              />
+            </Box>
           ) : userInfo ? (
             <Box sx={{ 
               width: '100%', 
@@ -847,6 +863,22 @@ export const MyProfilePage: React.FC = () => {
 
       {/* Карточка с достижениями под аватаром */}
       <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
+        {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
+        {!isUserLoading && userError && !userInfo && (
+          <Box sx={{ 
+            mt: 4, 
+            p: 3, 
+            textAlign: 'center',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+            borderRadius: 3
+          }}>
+            <ErrorDisplay 
+              error={userError} 
+              onRetry={() => loadMyProfile(true)}
+            />
+          </Box>
+        )}
+        
         {userInfo && (
           <Card sx={{ 
             borderRadius: 3,

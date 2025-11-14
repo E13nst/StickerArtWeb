@@ -79,7 +79,7 @@ interface ProfileState {
   setStickerSetsLoading: (loading: boolean) => void;
   
   // Действия для пользователя
-  setUserInfo: (user: UserInfo) => void;
+  setUserInfo: (user: UserInfo | null) => void;
   clearUserInfo: () => void;
   
   // Действия для стикерсетов
@@ -136,11 +136,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   setStickerSetsLoading: (loading: boolean) => set({ isStickerSetsLoading: loading }),
   
   // Действия для пользователя
-  setUserInfo: (userInfo: UserInfo) =>
+  setUserInfo: (userInfo: UserInfo | null) =>
     set((state) => ({
       userInfo,
-      currentUserId: userInfo.telegramId ?? userInfo.id ?? state.currentUserId,
-      currentUserRole: userInfo.role ?? state.currentUserRole,
+      currentUserId: userInfo?.telegramId ?? userInfo?.id ?? state.currentUserId,
+      currentUserRole: userInfo?.role ?? state.currentUserRole,
     })),
   clearUserInfo: () => set({ userInfo: null }),
   
