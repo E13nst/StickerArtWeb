@@ -3,6 +3,7 @@ import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMet
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
+import { requestDeduplicator } from '@/utils/requestDeduplication';
 
 interface TelegramApiUser {
   id: number;
@@ -271,8 +272,15 @@ class ApiClient {
       params.officialOnly = options.officialOnly;
     }
     
-    const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
-    return response.data;
+    // ✅ P1 OPTIMIZATION: Request deduplication для предотвращения дублирующихся запросов
+    return requestDeduplicator.fetch(
+      `/stickersets`,
+      async () => {
+        const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
+        return response.data;
+      },
+      params
+    );
   }
 
   async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC'): Promise<StickerSetListResponse> {
