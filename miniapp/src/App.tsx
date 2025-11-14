@@ -64,17 +64,17 @@ const App: React.FC = () => {
             <LoadingSpinner />
           </div>
         }>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/profile" element={<MyProfilePage />} />
-            <Route path="/profile/:userId" element={<ProfilePage />} />
-            <Route path="/author/:id" element={<AuthorPage />} />
-            <Route path="/nft-soon" element={<NftSoonPage />} />
-            {/* Fallback route */}
-            <Route path="*" element={<DashboardPage />} />
-          </Routes>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/profile" element={<MyProfilePage />} />
+          <Route path="/profile/:userId" element={<ProfilePage />} />
+          <Route path="/author/:id" element={<AuthorPage />} />
+          <Route path="/nft-soon" element={<NftSoonPage />} />
+          {/* Fallback route */}
+          <Route path="*" element={<DashboardPage />} />
+        </Routes>
         </Suspense>
       </MainLayout>
     </Router>

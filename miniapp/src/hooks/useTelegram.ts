@@ -2,8 +2,66 @@ import { useEffect, useState, useRef } from 'react';
 import { TelegramWebApp, TelegramUser } from '../types/telegram';
 import WebApp from '@twa-dev/sdk';
 
+// Функция для получения реального initData из localStorage (для тестирования с ModHeader)
+const getRealInitDataForTesting = (): string | null => {
+  try {
+    const storedInitData = localStorage.getItem('dev_telegram_init_data');
+    if (storedInitData) {
+      console.log('🔧 Используется реальный initData из localStorage для тестирования');
+      return storedInitData;
+    }
+  } catch (e) {
+    console.warn('Ошибка чтения dev_telegram_init_data из localStorage:', e);
+  }
+  return null;
+};
+
 // Mock данные для разработки вне Telegram
-const createMockTelegramEnv = (): TelegramWebApp => {
+const createMockTelegramEnv = (realInitData?: string | null): TelegramWebApp => {
+  // Если передан реальный initData, используем его
+  if (realInitData) {
+    const params = new URLSearchParams(realInitData);
+    const userStr = params.get('user');
+    
+    let mockUser: TelegramUser = {
+      id: 777000,
+      first_name: 'Dev',
+      last_name: 'User',
+      username: 'devuser',
+      language_code: 'ru',
+      is_premium: true,
+    };
+    
+    if (userStr) {
+      try {
+        const parsedUser = JSON.parse(decodeURIComponent(userStr));
+        mockUser = {
+          id: parsedUser.id || 777000,
+          first_name: parsedUser.first_name || 'Dev',
+          last_name: parsedUser.last_name || 'User',
+          username: parsedUser.username || 'devuser',
+          language_code: parsedUser.language_code || 'ru',
+          is_premium: parsedUser.is_premium || false,
+          photo_url: parsedUser.photo_url,
+        };
+        console.log('✅ Распарсен реальный пользователь из initData:', mockUser);
+      } catch (e) {
+        console.warn('Ошибка парсинга user из initData:', e);
+      }
+    }
+    
+    return {
+      ...createMockTelegramEnvBase(mockUser),
+      initData: realInitData,
+      initDataUnsafe: {
+        user: mockUser,
+        auth_date: parseInt(params.get('auth_date') || `${Math.floor(Date.now() / 1000)}`),
+        hash: params.get('hash') || 'mock_hash',
+      },
+    } as unknown as TelegramWebApp;
+  }
+  
+  // Иначе используем стандартные mock данные
   const mockUser: TelegramUser = {
     id: 777000,
     first_name: 'Dev',
@@ -14,18 +72,26 @@ const createMockTelegramEnv = (): TelegramWebApp => {
   };
 
   const mockInitData = `user=${encodeURIComponent(JSON.stringify(mockUser))}&auth_date=${Math.floor(Date.now() / 1000)}&hash=mock_hash_for_development`;
-
-  // Определяем тему на основе системных настроек
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const colorScheme = isDarkMode ? 'dark' : 'light';
-
+  
   return {
+    ...createMockTelegramEnvBase(mockUser),
     initData: mockInitData,
     initDataUnsafe: {
       user: mockUser,
       auth_date: Math.floor(Date.now() / 1000),
       hash: 'mock_hash_for_development',
     },
+  } as unknown as TelegramWebApp;
+};
+
+// Базовая конфигурация mock Telegram окружения
+const createMockTelegramEnvBase = (mockUser: TelegramUser): Partial<TelegramWebApp> => {
+
+  // Определяем тему на основе системных настроек
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const colorScheme = isDarkMode ? 'dark' : 'light';
+
+  return {
     version: '7.0',
     platform: 'web',
     colorScheme: colorScheme,
@@ -123,10 +189,13 @@ export const useTelegram = () => {
     let expandTimeout: ReturnType<typeof setTimeout> | null = null;
     let handleScroll: (() => void) | null = null;
     
+    // Проверяем наличие реального initData в localStorage (для тестирования с ModHeader)
+    const realInitDataForTesting = getRealInitDataForTesting();
+    
     // В dev режиме без реальных данных Telegram - используем mock
     if (isDev && (!hasTelegramWebApp || !hasInitData)) {
       console.log('🔧 DEV MODE: Используется mock Telegram окружение');
-      telegram = createMockTelegramEnv();
+      telegram = createMockTelegramEnv(realInitDataForTesting);
       setIsMockMode(true);
     } else if (hasTelegramWebApp) {
       // Используем @twa-dev/SDK (production или real Telegram)
@@ -134,7 +203,7 @@ export const useTelegram = () => {
     } else {
       // В production без Telegram WebApp - используем mock
       console.log('🔧 PRODUCTION MODE: Telegram WebApp недоступен, используем mock');
-      telegram = createMockTelegramEnv();
+      telegram = createMockTelegramEnv(realInitDataForTesting);
       setIsMockMode(true);
     }
     

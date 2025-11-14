@@ -28,6 +28,9 @@ class ApiClient {
       }
     });
     this.language = this.detectLanguage();
+    
+    // ✅ Автоматическая инициализация auth заголовков из localStorage (для тестирования)
+    this.initializeAuthFromLocalStorage();
 
     // Добавляем interceptor для логирования
     this.client.interceptors.request.use(
@@ -110,6 +113,19 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  // ✅ Инициализация auth заголовков из localStorage (для тестирования с ModHeader)
+  private initializeAuthFromLocalStorage() {
+    try {
+      const storedInitData = localStorage.getItem('dev_telegram_init_data');
+      if (storedInitData) {
+        console.log('🔐 Используется initData из localStorage для API запросов');
+        this.setAuthHeaders(storedInitData);
+      }
+    } catch (e) {
+      console.warn('Ошибка чтения dev_telegram_init_data из localStorage:', e);
+    }
   }
 
   // Добавляем заголовки аутентификации (botName не отправляем)
@@ -279,8 +295,8 @@ class ApiClient {
     return requestDeduplicator.fetch(
       `/stickersets`,
       async () => {
-        const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
-        return response.data;
+    const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
+    return response.data;
       },
       params,
       { skipCache: shouldSkipCache }
@@ -543,29 +559,29 @@ class ApiClient {
   // Вспомогательная функция для маппинга ProfileResponse → UserInfo
   private mapProfileToUserInfo(data: ProfileResponse): UserInfo {
     return {
-      id: data.userId,
-      telegramId: data.userId,
-      username: data.user.username,
-      firstName: data.user.firstName,
-      lastName: data.user.lastName,
-      avatarUrl: undefined,
-      role: data.role,
-      artBalance: data.artBalance,
-      createdAt: data.user.createdAt,
-      updatedAt: data.user.updatedAt,
-      telegramUserInfo: {
-        user: {
-          id: data.userId,
-          is_bot: false,
-          first_name: data.user.firstName || '',
-          last_name: data.user.lastName || '',
-          username: data.user.username || '',
-          language_code: data.user.languageCode || '',
-          is_premium: !!data.user.isPremium
-        },
-        status: 'ok'
-      }
-    };
+        id: data.userId,
+        telegramId: data.userId,
+        username: data.user.username,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        avatarUrl: undefined,
+        role: data.role,
+        artBalance: data.artBalance,
+        createdAt: data.user.createdAt,
+        updatedAt: data.user.updatedAt,
+        telegramUserInfo: {
+          user: {
+            id: data.userId,
+            is_bot: false,
+            first_name: data.user.firstName || '',
+            last_name: data.user.lastName || '',
+            username: data.user.username || '',
+            language_code: data.user.languageCode || '',
+            is_premium: !!data.user.isPremium
+          },
+          status: 'ok'
+        }
+      };
   }
 
   async getProfile(userId: number): Promise<UserInfo> {
