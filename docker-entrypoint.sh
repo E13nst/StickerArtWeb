@@ -27,10 +27,37 @@ echo "=== CHECKING NGINX CACHE STATS ==="
 if [ -d "/data/cache/nginx/stickers" ]; then
     CACHE_SIZE=$(du -sh /data/cache/nginx/stickers 2>/dev/null | cut -f1 || echo "0")
     CACHE_FILES=$(find /data/cache/nginx/stickers -type f 2>/dev/null | wc -l || echo "0")
+    CACHE_SIZE_BYTES=$(du -sb /data/cache/nginx/stickers 2>/dev/null | cut -f1 || echo "0")
     echo "Cache size: ${CACHE_SIZE}"
     echo "Cached files: ${CACHE_FILES}"
+    
+    # Создаем JSON файл со статистикой кэша
+    cat > /usr/share/nginx/html/cache-info.json <<EOF
+{
+  "fileCount": ${CACHE_FILES},
+  "cacheSize": "${CACHE_SIZE}",
+  "cacheSizeBytes": ${CACHE_SIZE_BYTES},
+  "cachePath": "/data/cache/nginx/stickers",
+  "maxSize": "5 GB",
+  "ttl": "14 days",
+  "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
+    echo "✅ Cache info JSON created at /usr/share/nginx/html/cache-info.json"
 else
     echo "Cache directory empty (first deploy or cleared)"
+    # Создаем пустой JSON файл
+    cat > /usr/share/nginx/html/cache-info.json <<EOF
+{
+  "fileCount": 0,
+  "cacheSize": "0",
+  "cacheSizeBytes": 0,
+  "cachePath": "/data/cache/nginx/stickers",
+  "maxSize": "5 GB",
+  "ttl": "14 days",
+  "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
 fi
 
 echo "=== STARTING NGINX ==="
@@ -40,6 +67,29 @@ envsubst '$BACKEND_URL $STICKER_PROCESSOR_ORIGIN' < /etc/nginx/conf.d/app.conf.t
 
 # Проверяем конфигурацию nginx
 nginx -t
+
+# Запускаем фоновый процесс для периодического обновления статистики кэша
+(
+    while true; do
+        sleep 60  # Обновляем каждую минуту
+        if [ -d "/data/cache/nginx/stickers" ]; then
+            CACHE_SIZE=$(du -sh /data/cache/nginx/stickers 2>/dev/null | cut -f1 || echo "0")
+            CACHE_FILES=$(find /data/cache/nginx/stickers -type f 2>/dev/null | wc -l || echo "0")
+            CACHE_SIZE_BYTES=$(du -sb /data/cache/nginx/stickers 2>/dev/null | cut -f1 || echo "0")
+            cat > /usr/share/nginx/html/cache-info.json <<EOF
+{
+  "fileCount": ${CACHE_FILES},
+  "cacheSize": "${CACHE_SIZE}",
+  "cacheSizeBytes": ${CACHE_SIZE_BYTES},
+  "cachePath": "/data/cache/nginx/stickers",
+  "maxSize": "5 GB",
+  "ttl": "14 days",
+  "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
+        fi
+    done
+) &
 
 # Запускаем nginx
 exec nginx -g 'daemon off;'

@@ -224,6 +224,29 @@
         <p class="subtitle">Мониторинг эффективности кэширования стикеров</p>
 
         <div class="section">
+            <h2>📈 Текущая статистика кэша</h2>
+            <div id="cacheStats" class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="fileCount">-</div>
+                    <div class="stat-label">Файлов в кэше</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="cacheSize">-</div>
+                    <div class="stat-label">Размер кэша</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="maxSize">5 GB</div>
+                    <div class="stat-label">Максимальный размер</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lastUpdated">-</div>
+                    <div class="stat-label">Последнее обновление</div>
+                </div>
+            </div>
+            <button onclick="loadCacheStats()" style="margin-top: 15px;">🔄 Обновить статистику</button>
+        </div>
+
+        <div class="section">
             <h2>🔍 Проверка кэша для конкретного стикера</h2>
             <p>Введите ID стикера или полный URL для проверки статуса кэша:</p>
             <div class="test-form">
@@ -298,10 +321,45 @@
     </div>
 
     <script>
+        // Загрузка статистики кэша
+        async function loadCacheStats() {
+            try {
+                const response = await fetch('/api/cache-info');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                document.getElementById('fileCount').textContent = data.fileCount || 0;
+                document.getElementById('cacheSize').textContent = data.cacheSize || '0';
+                document.getElementById('maxSize').textContent = data.maxSize || '5 GB';
+                
+                if (data.lastUpdated) {
+                    const date = new Date(data.lastUpdated);
+                    document.getElementById('lastUpdated').textContent = 
+                        date.toLocaleString('ru-RU', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        });
+                }
+            } catch (error) {
+                console.error('Error loading cache stats:', error);
+                document.getElementById('fileCount').textContent = 'Ошибка';
+                document.getElementById('cacheSize').textContent = 'Ошибка';
+                document.getElementById('lastUpdated').textContent = 'Ошибка';
+            }
+        }
+        
+        // Загружаем статистику при загрузке страницы
+        window.addEventListener('DOMContentLoaded', loadCacheStats);
+        
         async function testCache() {
             const input = document.getElementById('stickerInput');
             const result = document.getElementById('testResult');
-            const button = document.querySelector('button');
+            const button = input.nextElementSibling; // Кнопка рядом с input
             
             const stickerId = input.value.trim();
             if (!stickerId) {
