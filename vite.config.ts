@@ -44,8 +44,12 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true, // Очищаем только dist/miniapp
       assetsDir: 'assets',
       sourcemap: false,
-      minify: 'terser', // Используем Terser для удаления console.log
+      minify: 'esbuild', // Используем esbuild (по умолчанию в Vite)
       cssMinify: true,
+      // Настройки esbuild для удаления console.log и debugger
+      esbuild: {
+        drop: ['console', 'debugger'], // Удаляем console.* и debugger в production
+      },
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -101,13 +105,6 @@ export default defineConfig(({ mode }) => {
         },
       },
       chunkSizeWarningLimit: 1000,
-      // Минификация с удалением console.log в production
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
     },
     
     server: {
