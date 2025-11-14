@@ -1250,6 +1250,7 @@ export const MyProfilePage: React.FC = () => {
           // ✅ REFACTORED: Обновляем профиль без параметров
           await loadMyProfile(true);
           const refreshedUserId = useProfileStore.getState().userInfo?.id;
+          if (refreshedUserId) {
             await loadUserStickerSets(refreshedUserId, searchTerm || undefined, 0, false, sortByLikes);
           }
         }}
