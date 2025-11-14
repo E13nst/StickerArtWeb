@@ -54,6 +54,7 @@ export const MyProfilePage: React.FC = () => {
     setStickerSetsLoading,
     setUserInfo,
     setUserStickerSets,
+    addUserStickerSets,
     setPagination,
     setError,
     setUserError,
@@ -408,7 +409,7 @@ export const MyProfilePage: React.FC = () => {
         
         if (append) {
           // Добавляем новые стикерсеты к существующим (как в GalleryPage)
-          setUserStickerSets(prev => getUniqueAppended(prev, filteredContent));
+          addUserStickerSets(filteredContent);
         } else {
           // Заменяем все стикерсеты
           setUserStickerSets(filteredContent);
@@ -457,7 +458,7 @@ export const MyProfilePage: React.FC = () => {
       
       if (append) {
         // Добавляем новые стикерсеты к существующим (как в GalleryPage)
-        setUserStickerSets(prev => getUniqueAppended(prev, finalContent));
+        addUserStickerSets(finalContent);
       } else {
         // Заменяем все стикерсеты
         setUserStickerSets(finalContent);
@@ -496,13 +497,6 @@ export const MyProfilePage: React.FC = () => {
         setStickerSetsLoading(false);
       }
     }
-  };
-
-  // Утилита для уникального добавления (без дубликатов)
-  const getUniqueAppended = (existing: any[], incoming: any[]) => {
-    const ids = new Set(existing.map((s) => String(s.id)));
-    const unique = incoming.filter((s) => !ids.has(String(s.id)));
-    return [...existing, ...unique];
   };
 
   // Обработчики действий
