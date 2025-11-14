@@ -508,13 +508,17 @@ export const MyProfilePage: React.FC = () => {
       const response = await apiClient.getStickerSets(page, 20, { likedOnly: true });
       const serverLikedSets = response.content || [];
       
+      // ✅ FIX: response.number может быть undefined для likedOnly запросов
+      // В этом случае используем переданный параметр page
+      const actualPage = response.number !== undefined ? response.number : page;
+      
       console.log('✅ Понравившиеся загружены:', {
         count: serverLikedSets.length,
-        page: response.number,
+        page: actualPage,
         totalPages: response.totalPages,
         totalElements: response.totalElements,
         append,
-        hasNextPage: response.number < response.totalPages - 1
+        hasNextPage: actualPage < response.totalPages - 1
       });
       
       // Инициализируем лайки из серверных данных
@@ -531,7 +535,7 @@ export const MyProfilePage: React.FC = () => {
       }
       
       // Обновляем пагинацию
-      setLikedCurrentPage(response.number);
+      setLikedCurrentPage(actualPage);
       setLikedTotalPages(response.totalPages);
       
       // Сохраняем загруженные данные
