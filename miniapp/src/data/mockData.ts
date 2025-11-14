@@ -126,7 +126,7 @@ export const mockAuthResponse = {
   authenticated: true,
   role: "USER",
   user: {
-    id: 123456789,
+    id: 777000,
     username: "testuser",
     first_name: "Test",
     last_name: "User"

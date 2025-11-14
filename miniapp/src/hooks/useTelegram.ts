@@ -5,7 +5,7 @@ import WebApp from '@twa-dev/sdk';
 // Mock данные для разработки вне Telegram
 const createMockTelegramEnv = (): TelegramWebApp => {
   const mockUser: TelegramUser = {
-    id: 123456789,
+    id: 777000,
     first_name: 'Dev',
     last_name: 'User',
     username: 'devuser',

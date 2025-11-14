@@ -65,7 +65,7 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
 
   const handleLoadTestData = () => {
     // Тестовые данные для разработки
-    const testInitData = 'query_id=test&user=%7B%22id%22%3A123456789%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22username%22%3A%22testuser%22%2C%22language_code%22%3A%22ru%22%7D&auth_date=' + Math.floor(Date.now() / 1000) + '&hash=test_hash';
+    const testInitData = 'query_id=test&user=%7B%22id%22%3A777000%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22username%22%3A%22testuser%22%2C%22language_code%22%3A%22ru%22%7D&auth_date=' + Math.floor(Date.now() / 1000) + '&hash=test_hash';
     setInitData(testInitData);
   };
 

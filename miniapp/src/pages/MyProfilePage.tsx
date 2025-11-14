@@ -104,7 +104,7 @@ export const MyProfilePage: React.FC = () => {
   const currentUserId = user?.id;
 
   // Моковые данные для разработки (когда нет валидной initData)
-  const mockUserId = 123456789;
+  const mockUserId = 777000;
 
   const effectiveUserId = useMemo(() => {
     if (typeof userInfo?.id === 'number') {
