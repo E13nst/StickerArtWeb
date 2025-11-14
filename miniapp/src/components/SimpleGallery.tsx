@@ -384,17 +384,26 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
 
   if (shouldUseVirtualization) {
     return (
-      <div
-        ref={containerRef}
-        className={usePageScroll ? "" : "gallery-scroll"}
-        data-testid="gallery-container"
-        style={{ 
-          width: '100%', 
-          flex: '1 1 auto', 
-          minHeight: 0,
-          ...(usePageScroll ? {} : {})
-        }}
-      >
+      <>
+        <style>{`
+          .gallery-scroll {
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100%;
+            -webkit-overflow-scrolling: touch;
+          }
+        `}</style>
+        <div
+          ref={containerRef}
+          className={usePageScroll ? "" : "gallery-scroll"}
+          data-testid="gallery-container"
+          style={{ 
+            width: '100%', 
+            flex: '1 1 auto', 
+            minHeight: 0,
+            ...(usePageScroll ? {} : {})
+          }}
+        >
         {renderOverlay}
         {isRefreshing && <LoadingSpinner message="Обновление..." />}
         <div className="gallery-items">
@@ -410,6 +419,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           />
         </div>
       </div>
+    </>
     );
   }
 
@@ -430,6 +440,12 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         .gallery-column-float-2 {
           animation: floatColumn2 7.64s ease-in-out infinite;
           animation-delay: 1.18s;
+        }
+        .gallery-scroll {
+          overflow-y: auto;
+          overflow-x: hidden;
+          height: 100%;
+          -webkit-overflow-scrolling: touch;
         }
       `}</style>
       <div
