@@ -47,11 +47,25 @@ function normalizeToStickerEndpoint(url: string): string {
   return url;
 }
 
+// ✅ P1 OPTIMIZATION: Расширение типов для Network Information API
+interface NetworkInformation extends EventTarget {
+  effectiveType?: '4g' | '3g' | '2g' | 'slow-2g';
+  rtt?: number;
+  downlink?: number;
+  saveData?: boolean;
+}
+
+interface NavigatorWithConnection extends Navigator {
+  connection?: NetworkInformation;
+  mozConnection?: NetworkInformation;
+  webkitConnection?: NetworkInformation;
+}
+
 class ImageLoader {
   private queue: LoaderQueue = {
     inFlight: new Map(),
     queue: [],
-    maxConcurrency: 10,
+    maxConcurrency: 10, // Будет динамически обновляться
     activeCount: 0
   };
   
@@ -66,6 +80,84 @@ class ImageLoader {
   private readonly HIGH_PRIORITY_MIN_SLOTS = 6; // Минимум слотов для высокого приоритета
   private readonly LOW_PRIORITY_MAX_SLOTS = 4;  // Максимум слотов для низкого приоритета
   private readonly HIGH_PRIORITY_THRESHOLD = LoadPriority.TIER_2_FIRST_IMAGE; // >= 3 = высокий приоритет
+  
+  constructor() {
+    // ✅ P1 OPTIMIZATION: Адаптивная concurrency на основе типа сети
+    this.updateConcurrencyBasedOnNetwork();
+    
+    // Слушаем изменения сети
+    this.listenToNetworkChanges();
+  }
+  
+  /**
+   * Определяет оптимальную concurrency на основе Network Information API
+   */
+  private getOptimalConcurrency(): number {
+    const nav = navigator as NavigatorWithConnection;
+    const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
+    
+    if (!connection) {
+      // Нет API - используем средние значения
+      return 6;
+    }
+    
+    const effectiveType = connection.effectiveType;
+    const rtt = connection.rtt; // Round Trip Time в ms
+    const saveData = connection.saveData; // Режим экономии трафика
+    
+    // Если включен режим экономии трафика - минимальная concurrency
+    if (saveData) {
+      return 2;
+    }
+    
+    // Определяем на основе типа сети
+    if (effectiveType === 'slow-2g' || (rtt && rtt > 1000)) {
+      return 2; // Очень медленная сеть
+    }
+    if (effectiveType === '2g' || (rtt && rtt > 500)) {
+      return 3; // Медленная сеть
+    }
+    if (effectiveType === '3g' || (rtt && rtt > 200)) {
+      return 5; // Средняя сеть
+    }
+    if (effectiveType === '4g' || (rtt && rtt <= 200)) {
+      return 8; // Быстрая сеть
+    }
+    
+    // Default для неизвестных значений
+    return 6;
+  }
+  
+  /**
+   * Обновляет maxConcurrency на основе текущего типа сети
+   */
+  private updateConcurrencyBasedOnNetwork(): void {
+    const newConcurrency = this.getOptimalConcurrency();
+    
+    if (this.queue.maxConcurrency !== newConcurrency) {
+      console.log(`[ImageLoader] Concurrency updated: ${this.queue.maxConcurrency} → ${newConcurrency}`);
+      this.queue.maxConcurrency = newConcurrency;
+      
+      // Если увеличили concurrency - запускаем процесс загрузки
+      if (!this.processing) {
+        this.processQueue();
+      }
+    }
+  }
+  
+  /**
+   * Подписываемся на изменения типа сети
+   */
+  private listenToNetworkChanges(): void {
+    const nav = navigator as NavigatorWithConnection;
+    const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
+    
+    if (connection && 'addEventListener' in connection) {
+      connection.addEventListener('change', () => {
+        this.updateConcurrencyBasedOnNetwork();
+      });
+    }
+  }
 
   async loadImage(
     fileId: string, 

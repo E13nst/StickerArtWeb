@@ -3,6 +3,7 @@ import { PackCard } from './PackCard';
 import { VirtualizedGallery } from './VirtualizedGallery';
 import { useSmartCache } from '../hooks/useSmartCache';
 import { LoadingSpinner } from './LoadingSpinner';
+import { throttle } from '../utils/throttle';
 
 interface Pack {
   id: string;
@@ -233,23 +234,33 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     };
   }, [hasNextPage, isLoadingMore, onLoadMore, usePageScroll]);
 
+  // ✅ P1 OPTIMIZATION: Throttle scroll handler для лучшего FPS
+  // Создаем throttled функцию один раз через useMemo
+  const throttledScrollHandler = useMemo(
+    () => throttle((currentScroll: number) => {
+      if (currentScroll > lastScrollTopRef.current && currentScroll > 40) {
+        setHideControls(true);
+      } else if (currentScroll < lastScrollTopRef.current) {
+        setHideControls(false);
+      }
+      lastScrollTopRef.current = currentScroll;
+    }, 100), // Max 10 раз в секунду вместо 60+
+    []
+  );
+
   useEffect(() => {
     if (usePageScroll) {
       // Используем скролл страницы
       const onScrollDirection = () => {
         const current = window.scrollY || document.documentElement.scrollTop;
-        if (current > lastScrollTopRef.current && current > 40) {
-          setHideControls(true);
-        } else if (current < lastScrollTopRef.current) {
-          setHideControls(false);
-        }
-        lastScrollTopRef.current = current;
+        throttledScrollHandler(current);
       };
 
       window.addEventListener('scroll', onScrollDirection, { passive: true });
 
       return () => {
         window.removeEventListener('scroll', onScrollDirection);
+        throttledScrollHandler.cancel(); // Важно: очищаем throttle при unmount
       };
     } else {
       // Используем скролл контейнера
@@ -260,21 +271,17 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
 
       const onScrollDirection = () => {
         const current = node.scrollTop;
-        if (current > lastScrollTopRef.current && current > 40) {
-          setHideControls(true);
-        } else if (current < lastScrollTopRef.current) {
-          setHideControls(false);
-        }
-        lastScrollTopRef.current = current;
+        throttledScrollHandler(current);
       };
 
       node.addEventListener('scroll', onScrollDirection, { passive: true });
 
       return () => {
         node.removeEventListener('scroll', onScrollDirection);
+        throttledScrollHandler.cancel(); // Важно: очищаем throttle при unmount
       };
     }
-  }, [usePageScroll]);
+  }, [usePageScroll, throttledScrollHandler]);
 
   // Ленивая загрузка при скролле (для локального отображения)
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {

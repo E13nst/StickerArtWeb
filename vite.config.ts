@@ -36,6 +36,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     
+    // Public директория для статичных файлов (sw.js и др.)
+    publicDir: path.resolve(__dirname, './miniapp/public'),
+    
     build: {
       outDir: '../dist/miniapp', // Относительно root (miniapp/)
       emptyOutDir: true, // Очищаем только dist/miniapp
