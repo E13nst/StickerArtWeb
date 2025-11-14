@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика кэша Nginx</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .test-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .cache-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+        .cache-status.HIT {
+            background: #28a745;
+            color: white;
+        }
+        .cache-status.MISS {
+            background: #ffc107;
+            color: #333;
+        }
+        .cache-status.BYPASS {
+            background: #6c757d;
+            color: white;
+        }
+        .cache-status.EXPIRED {
+            background: #fd7e14;
+            color: white;
+        }
+        .cache-status.STALE {
+            background: #17a2b8;
+            color: white;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .recent-requests {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .request-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.85em;
+            border-left: 3px solid #ddd;
+        }
+        .request-item.HIT {
+            border-left-color: #28a745;
+        }
+        .request-item.MISS {
+            border-left-color: #ffc107;
+        }
+        .request-item.BYPASS {
+            border-left-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Статистика кэша Nginx</h1>
+        <p class="subtitle">Мониторинг эффективности кэширования стикеров</p>
+
+        <div class="section">
+            <h2>🔍 Проверка кэша для конкретного стикера</h2>
+            <p>Введите ID стикера или полный URL для проверки статуса кэша:</p>
+            <div class="test-form">
+                <input type="text" id="stickerInput" placeholder="Например: CAACAgIAAxkBAAI..." />
+                <button onclick="testCache()">Проверить</button>
+            </div>
+            <div id="testResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Как проверить статистику кэша</h2>
+            <div class="instructions">
+                <h3>Способ 1: Через браузер (DevTools)</h3>
+                <ol>
+                    <li>Откройте DevTools (F12 или Cmd+Option+I)</li>
+                    <li>Перейдите на вкладку <strong>Network</strong></li>
+                    <li>Загрузите стикер (запрос к <code>/stickers/...?file=true</code>)</li>
+                    <li>Откройте запрос → вкладка <strong>Headers</strong></li>
+                    <li>Найдите заголовок <code>X-Cache-Status</code></li>
+                </ol>
+
+                <h3 style="margin-top: 20px;">Способ 2: Через curl в терминале</h3>
+                <ol>
+                    <li>Выполните команду:
+                        <br><code style="display: block; margin-top: 5px; padding: 8px; background: #f4f4f4;">
+                            curl -I "https://sticker-art-e13nst.amvera.io/stickers/ВАШ_ID?file=true" | grep X-Cache-Status
+                        </code>
+                    </li>
+                    <li>Или для получения всех заголовков:
+                        <br><code style="display: block; margin-top: 5px; padding: 8px; background: #f4f4f4;">
+                            curl -I "https://sticker-art-e13nst.amvera.io/stickers/ВАШ_ID?file=true"
+                        </code>
+                    </li>
+                </ol>
+
+                <h3 style="margin-top: 20px;">Способ 3: Через логи на сервере</h3>
+                <ol>
+                    <li>Подключитесь к контейнеру:
+                        <br><code style="display: block; margin-top: 5px; padding: 8px; background: #f4f4f4;">
+                            docker exec -it &lt;container_name&gt; tail -f /var/log/nginx/cache_stats.log
+                        </code>
+                    </li>
+                    <li>Или посмотрите размер кэша:
+                        <br><code style="display: block; margin-top: 5px; padding: 8px; background: #f4f4f4;">
+                            docker exec -it &lt;container_name&gt; du -sh /data/cache/nginx/stickers
+                        </code>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💡 Значения статусов кэша</h2>
+            <div style="margin-top: 15px;">
+                <p><span class="cache-status HIT">HIT</span> — ответ взят из кэша (быстро!)</p>
+                <p style="margin-top: 10px;"><span class="cache-status MISS">MISS</span> — не найдено в кэше, запрос к бэкенду</p>
+                <p style="margin-top: 10px;"><span class="cache-status BYPASS">BYPASS</span> — кэш пропущен (нет параметра ?file=true)</p>
+                <p style="margin-top: 10px;"><span class="cache-status EXPIRED">EXPIRED</span> — кэш устарел, обновляется</p>
+                <p style="margin-top: 10px;"><span class="cache-status STALE">STALE</span> — отдан устаревший кэш (при ошибках бэкенда)</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>⚙️ Настройки кэша</h2>
+            <div style="margin-top: 15px;">
+                <p><strong>Время жизни кэша:</strong> 14 дней для успешных ответов</p>
+                <p><strong>Максимальный размер:</strong> 5 GB</p>
+                <p><strong>Минимальное использование:</strong> 2 запроса перед кэшированием</p>
+                <p><strong>Путь кэша:</strong> <code>/data/cache/nginx/stickers</code></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testCache() {
+            const input = document.getElementById('stickerInput');
+            const result = document.getElementById('testResult');
+            const button = document.querySelector('button');
+            
+            const stickerId = input.value.trim();
+            if (!stickerId) {
+                result.className = 'result error';
+                result.style.display = 'block';
+                result.innerHTML = '❌ Пожалуйста, введите ID стикера';
+                return;
+            }
+
+            // Очищаем предыдущий результат
+            result.style.display = 'none';
+            button.disabled = true;
+            button.innerHTML = 'Проверка... <span class="loading"></span>';
+
+            try {
+                // Формируем URL
+                let url;
+                if (stickerId.startsWith('http')) {
+                    url = stickerId;
+                } else {
+                    url = `https://sticker-art-e13nst.amvera.io/stickers/${stickerId}?file=true`;
+                }
+
+                // Делаем HEAD запрос для проверки заголовков
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    mode: 'cors'
+                });
+
+                const cacheStatus = response.headers.get('X-Cache-Status') || 'UNKNOWN';
+                
+                result.style.display = 'block';
+                result.className = 'result ' + (cacheStatus === 'HIT' ? 'success' : cacheStatus === 'MISS' ? 'info' : 'error');
+                
+                let statusEmoji = '';
+                let statusText = '';
+                switch(cacheStatus) {
+                    case 'HIT':
+                        statusEmoji = '✅';
+                        statusText = 'Кэш работает! Ответ взят из кэша.';
+                        break;
+                    case 'MISS':
+                        statusEmoji = '⚠️';
+                        statusText = 'Кэш промах. Ответ получен от бэкенда и будет закэширован.';
+                        break;
+                    case 'BYPASS':
+                        statusEmoji = '⏭️';
+                        statusText = 'Кэш пропущен. Убедитесь, что используете параметр ?file=true';
+                        break;
+                    case 'EXPIRED':
+                        statusEmoji = '🔄';
+                        statusText = 'Кэш устарел и обновляется.';
+                        break;
+                    case 'STALE':
+                        statusEmoji = '📦';
+                        statusText = 'Отдан устаревший кэш (бэкенд недоступен).';
+                        break;
+                    default:
+                        statusEmoji = '❓';
+                        statusText = `Неизвестный статус: ${cacheStatus}`;
+                }
+
+                result.innerHTML = `
+                    ${statusEmoji} <strong>Статус кэша:</strong> 
+                    <span class="cache-status ${cacheStatus}">${cacheStatus}</span>
+                    <br><br>
+                    ${statusText}
+                    <br><br>
+                    <strong>URL:</strong> <code>${url}</code>
+                    <br>
+                    <strong>HTTP статус:</strong> ${response.status}
+                `;
+
+            } catch (error) {
+                result.style.display = 'block';
+                result.className = 'result error';
+                result.innerHTML = `❌ Ошибка при проверке: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'Проверить';
+            }
+        }
+
+        // Позволяем нажать Enter в поле ввода
+        document.getElementById('stickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testCache();
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -73,6 +73,9 @@ RUN mkdir -p /data/cache/nginx/stickers && \
 # Копируем собранные файлы из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+# Копируем страницу статистики кэша
+COPY public/cache-stats.html /usr/share/nginx/html/cache-stats.html
+
 # Копируем конфиг Nginx (шаблон для envsubst)
 COPY nginx.conf /etc/nginx/conf.d/app.conf.tpl
 
