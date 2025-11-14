@@ -4,7 +4,7 @@ import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { imageLoader } from '../utils/imageLoader';
-import { prefetchAnimation, markAsGalleryAnimation } from '../utils/animationLoader';
+import { prefetchAnimation, markAsGalleryAnimation, prefetchSticker, getCachedStickerUrl, markAsGallerySticker } from '../utils/animationLoader';
 import { LoadPriority } from '../utils/imageLoader';
 
 interface Pack {
@@ -53,8 +53,23 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       }
 
       if (firstSticker.isVideo) {
-        // Для видео пропускаем прелоадер изображений, сразу отмечаем готовность
-        setIsFirstStickerReady(true);
+        // Для видео используем prefetchSticker для правильной загрузки и кеширования
+        markAsGallerySticker(firstSticker.fileId);
+        prefetchSticker(firstSticker.fileId, firstSticker.url, {
+          isVideo: true,
+          markForGallery: true,
+          priority
+        })
+          .then(() => {
+            if ((import.meta as any).env?.DEV) {
+              console.log(`✅ First video sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
+            }
+            setIsFirstStickerReady(true);
+          })
+          .catch(() => {
+            console.warn(`⚠️ Failed to load first video sticker for pack ${pack.id}`);
+            setIsFirstStickerReady(true); // Показываем даже если ошибка
+          });
         return;
       }
       
@@ -93,15 +108,24 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     for (let i = 1; i < Math.min(pack.previewStickers.length, 3); i++) {
       const sticker = pack.previewStickers[i];
 
-      if (sticker.isVideo) {
-        continue;
-      }
-
       // Используем высокий приоритет для видимых карточек (TIER_2 или TIER_3)
       // Это гарантирует, что стикеры для ротации загрузятся быстро
       const priority = isHighPriority 
         ? LoadPriority.TIER_2_FIRST_IMAGE  // Для первых 6 паков - TIER_2
         : LoadPriority.TIER_3_ADDITIONAL;  // Для остальных видимых - TIER_3
+
+      if (sticker.isVideo) {
+        // Для видео используем prefetchSticker
+        markAsGallerySticker(sticker.fileId);
+        prefetchSticker(sticker.fileId, sticker.url, {
+          isVideo: true,
+          markForGallery: true,
+          priority
+        }).catch(() => {
+          // Игнорируем ошибки, но не блокируем ротацию
+        });
+        continue;
+      }
 
       imageLoader.loadImage(sticker.fileId, sticker.url, priority)
         .then(() => {
@@ -130,7 +154,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     hoverRotateInterval: 618,
     isHovered,
     isVisible: isNear,
-    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url, isAnimated: s.isAnimated })),
+    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url, isAnimated: s.isAnimated, isVideo: s.isVideo })),
     minDisplayDuration: 2000,
     loadPriority: rotationLoadPriority
   });
@@ -224,7 +248,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 />
               ) : activeSticker.isVideo ? (
                 <video
-                  src={activeSticker.url}
+                  src={getCachedStickerUrl(activeSticker.fileId) || activeSticker.url}
                   className="pack-card-video"
                   autoPlay
                   loop

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { imageLoader } from '../utils/imageLoader';
 import { imageCache } from '../utils/galleryUtils';
-import { animationCache } from '../utils/animationLoader';
+import { animationCache, getCachedStickerUrl, prefetchSticker, markAsGallerySticker } from '../utils/animationLoader';
 
 interface UseStickerRotationProps {
   stickersCount: number;
@@ -10,7 +10,7 @@ interface UseStickerRotationProps {
   isHovered?: boolean;
   isVisible?: boolean;
   // Опционально: источники стикеров для предварительной загрузки
-  stickerSources?: Array<{ fileId: string; url: string; isAnimated?: boolean }>;
+  stickerSources?: Array<{ fileId: string; url: string; isAnimated?: boolean; isVideo?: boolean }>;
   // Минимальное время показа стикера (по умолчанию 2 секунды)
   minDisplayDuration?: number;
   // Приоритет загрузки для следующего стикера (для видимых карточек)
@@ -48,8 +48,13 @@ export const useStickerRotation = ({
     }
   }, [stickersCount, currentIndex]);
 
-  // Функция проверки готовности стикера (изображение + JSON если анимированный)
-  const isStickerReady = useCallback((fileId: string, url: string, isAnimated?: boolean): boolean => {
+  // Функция проверки готовности стикера (изображение + JSON если анимированный, blob если видео)
+  const isStickerReady = useCallback((fileId: string, url: string, isAnimated?: boolean, isVideo?: boolean): boolean => {
+    // Для видео-стикеров проверяем blob кеш
+    if (isVideo) {
+      return getCachedStickerUrl(fileId) !== undefined;
+    }
+    
     // Проверяем что изображение в кеше
     if (!imageCache.get(fileId)) {
       return false;
@@ -72,11 +77,36 @@ export const useStickerRotation = ({
     const delay = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
 
     // Функция ожидания готовности стикера с таймаутом и проверкой реальной загрузки
-    const waitForStickerReady = async (fileId: string, url: string, isAnimated?: boolean, timeoutMs: number = 6000): Promise<boolean> => {
+    const waitForStickerReady = async (fileId: string, url: string, isAnimated?: boolean, isVideo?: boolean, timeoutMs: number = 6000): Promise<boolean> => {
       const startTime = Date.now();
       
+      // Для видео-стикеров используем prefetchSticker
+      if (isVideo) {
+        // Проверяем сразу - если уже в кэше
+        if (isStickerReady(fileId, url, isAnimated, isVideo)) {
+          return true;
+        }
+        
+        // Загружаем через prefetchSticker
+        try {
+          markAsGallerySticker(fileId);
+          await prefetchSticker(fileId, url, {
+            isVideo: true,
+            markForGallery: true,
+            priority: loadPriority
+          });
+          // Проверяем что загрузилось
+          if (getCachedStickerUrl(fileId)) {
+            return true;
+          }
+        } catch {
+          // Игнорируем ошибки
+        }
+        return false;
+      }
+      
       // Проверяем сразу - если уже в кэше и готов
-      if (isStickerReady(fileId, url, isAnimated)) {
+      if (isStickerReady(fileId, url, isAnimated, isVideo)) {
         // Для анимаций дополнительно проверяем что JSON действительно загружен
         if (isAnimated) {
           const animData = animationCache.get(fileId);
@@ -180,9 +210,14 @@ export const useStickerRotation = ({
       while (Date.now() - startTime < timeoutMs) {
         if (cancelled) return false;
         
-        if (isStickerReady(fileId, url, isAnimated)) {
+        if (isStickerReady(fileId, url, isAnimated, isVideo)) {
           // Дополнительная проверка реальной готовности
-          if (!isAnimated) {
+          if (isVideo) {
+            // Для видео проверяем blob кеш
+            if (getCachedStickerUrl(fileId)) {
+              return true;
+            }
+          } else if (!isAnimated) {
             const cachedUrl = imageCache.get(fileId);
             if (cachedUrl) {
               try {
@@ -208,7 +243,7 @@ export const useStickerRotation = ({
       
       // Таймаут - считаем готовым если изображение хотя бы попыталось загрузиться
       // Но лучше вернуть false чтобы не показывать неготовый стикер
-      return isStickerReady(fileId, url, isAnimated);
+      return isStickerReady(fileId, url, isAnimated, isVideo);
     };
 
     const checkCancel = () => {
@@ -238,7 +273,7 @@ export const useStickerRotation = ({
         const nextIdx = (currentIdx + 1) % Math.min(stickersCount, stickerSources.length);
         const nextSrc = stickerSources[nextIdx];
         if (nextSrc) {
-          const isReady = await waitForStickerReady(nextSrc.fileId, nextSrc.url, nextSrc.isAnimated, 6000);
+          const isReady = await waitForStickerReady(nextSrc.fileId, nextSrc.url, nextSrc.isAnimated, nextSrc.isVideo, 6000);
           // Логируем для отладки
           if ((import.meta as any).env?.DEV) {
             console.log(`🎨 Next sticker ${nextIdx} ready: ${isReady}`, nextSrc.fileId);
