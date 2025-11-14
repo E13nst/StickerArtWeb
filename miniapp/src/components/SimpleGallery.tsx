@@ -389,7 +389,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           .gallery-scroll {
             overflow-y: auto;
             overflow-x: hidden;
-            height: 100%;
+            max-height: 100vh;
             -webkit-overflow-scrolling: touch;
           }
         `}</style>
@@ -444,7 +444,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         .gallery-scroll {
           overflow-y: auto;
           overflow-x: hidden;
-          height: 100%;
+          max-height: 100vh;
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
