@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { PackCard } from './PackCard';
 import { VirtualizedGallery } from './VirtualizedGallery';
 import { useSmartCache } from '../hooks/useSmartCache';
@@ -35,7 +35,7 @@ interface SimpleGalleryProps {
   usePageScroll?: boolean;
 }
 
-export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
+const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   packs,
   onPackClick,
   enablePreloading = true,
@@ -351,7 +351,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
             hasNextPage={hasNextPage}
             isLoadingMore={isLoadingMore}
             onLoadMore={onLoadMore}
-            scrollContainerRef={usePageScroll ? null : containerRef}
+            scrollContainerRef={usePageScroll ? undefined : containerRef}
           />
         </div>
       </div>
@@ -848,3 +848,50 @@ if (typeof document !== 'undefined') {
   style.textContent = skeletonStyles;
   document.head.appendChild(style);
 }
+
+// Кастомная функция сравнения для оптимизации memo
+const areGalleryPropsEqual = (prevProps: SimpleGalleryProps, nextProps: SimpleGalleryProps): boolean => {
+  // Проверка массива packs (самое критичное)
+  if (prevProps.packs.length !== nextProps.packs.length) {
+    return false;
+  }
+  
+  // Быстрая проверка ID первого и последнего пака
+  if (prevProps.packs.length > 0) {
+    if (prevProps.packs[0].id !== nextProps.packs[0].id ||
+        prevProps.packs[prevProps.packs.length - 1].id !== nextProps.packs[nextProps.packs.length - 1].id) {
+      return false;
+    }
+  }
+  
+  // Проверка флагов загрузки
+  if (prevProps.isLoadingMore !== nextProps.isLoadingMore ||
+      prevProps.isRefreshing !== nextProps.isRefreshing ||
+      prevProps.hasNextPage !== nextProps.hasNextPage) {
+    return false;
+  }
+  
+  // Проверка callbacks (обычно стабильны через useCallback)
+  if (prevProps.onPackClick !== nextProps.onPackClick ||
+      prevProps.onLoadMore !== nextProps.onLoadMore) {
+    return false;
+  }
+  
+  // Проверка настроек
+  if (prevProps.enablePreloading !== nextProps.enablePreloading ||
+      prevProps.batchSize !== nextProps.batchSize ||
+      prevProps.usePageScroll !== nextProps.usePageScroll) {
+    return false;
+  }
+  
+  // React элементы проверяем по reference
+  if (prevProps.addButtonElement !== nextProps.addButtonElement ||
+      prevProps.controlsElement !== nextProps.controlsElement) {
+    return false;
+  }
+  
+  // Если всё совпало — не перерисовываем
+  return true;
+};
+
+export const SimpleGallery = memo(SimpleGalleryComponent, areGalleryPropsEqual);

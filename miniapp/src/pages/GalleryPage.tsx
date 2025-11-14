@@ -76,20 +76,19 @@ export const GalleryPage: React.FC = () => {
     return new URLSearchParams(window.location.search).get('sort') === 'likes';
   };
 
-  // Оптимизированное локальное состояние
-  const [uiState, setUiState] = useState(() => ({
-    searchTerm: '',
-    selectedStickerSet: null as StickerSetResponse | null,
-    isDetailOpen: false,
-    manualInitData: '',
-    isLoadingMore: false,
-    isUploadModalOpen: false,
-    selectedCategories: [] as string[],
-    sortByLikes: getInitialSortByLikes()
-  }));
+  // ✅ ОПТИМИЗАЦИЯ: Разбили один большой state на отдельные useState
+  // Это предотвращает лишние re-renders когда меняется только одно поле
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [manualInitData, setManualInitData] = useState('');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortByLikes, setSortByLikes] = useState(getInitialSortByLikes);
 
   // Debounced search term для оптимизации поиска
-  const debouncedSearchTerm = useDebounce(uiState.searchTerm, 500);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Загрузка initData из URL параметров при инициализации
   // BUILD_DEBUG: Force rebuild - timestamp 2025-10-28T14:30:00Z
@@ -122,18 +121,29 @@ export const GalleryPage: React.FC = () => {
     console.log('✅ hasStored:', hasStored);
     
     if (urlInitData) {
-      setUiState(prev => ({ ...prev, manualInitData: decodeURIComponent(urlInitData) }));
+      setManualInitData(decodeURIComponent(urlInitData));
       localStorage.setItem('telegram_init_data', decodeURIComponent(urlInitData));
     } else if (storedInitData) {
-      setUiState(prev => ({ ...prev, manualInitData: storedInitData }));
+      setManualInitData(storedInitData);
     } else if (extensionInitData) {
       // initData уже установлен
     } else {
       // В production без initData - используем пустую строку
       console.log('🔧 PRODUCTION MODE: initData не найден, используем пустую строку');
-      setUiState(prev => ({ ...prev, manualInitData: '' }));
+      setManualInitData('');
     }
   }, []);
+
+  // ✅ ОПТИМИЗАЦИЯ: Используем refs для стабилизации fetchStickerSets
+  // Это предотвращает пересоздание функции при изменении sortByLikes/manualInitData
+  const sortByLikesRef = useRef(sortByLikes);
+  const manualInitDataRef = useRef(manualInitData);
+  
+  // Обновляем refs при изменении значений
+  useEffect(() => {
+    sortByLikesRef.current = sortByLikes;
+    manualInitDataRef.current = manualInitData;
+  }, [sortByLikes, manualInitData]);
 
   // Загрузка стикерсетов - с поддержкой фильтрации по категориям
   const fetchStickerSets = useCallback(async (
@@ -142,7 +152,7 @@ export const GalleryPage: React.FC = () => {
     filterCategories?: string[]
   ) => {
     if (isLoadMore) {
-      setUiState(prev => ({ ...prev, isLoadingMore: true }));
+      setIsLoadingMore(true);
     } else {
       setLoading(true);
     }
@@ -150,7 +160,7 @@ export const GalleryPage: React.FC = () => {
 
     try {
       // Проверяем авторизацию напрямую без промежуточных функций
-      const currentInitData = uiState.manualInitData || initData;
+      const currentInitData = manualInitDataRef.current || initData;
       
       // Публичная галерея - авторизация необязательна, делаем неблокирующей
       if (currentInitData) {
@@ -167,7 +177,7 @@ export const GalleryPage: React.FC = () => {
       // При выключенной: сортировка по id DESC (последние добавленные)
       const response = await apiClient.getStickerSets(page, 20, {
         categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined,
-        sort: uiState.sortByLikes ? 'likesCount' : 'id',
+        sort: sortByLikesRef.current ? 'likesCount' : 'id',
         direction: 'DESC'
       });
       
@@ -207,19 +217,19 @@ export const GalleryPage: React.FC = () => {
       console.error('❌ Ошибка загрузки стикеров:', error);
     } finally {
       if (isLoadMore) {
-        setUiState(prev => ({ ...prev, isLoadingMore: false }));
+        setIsLoadingMore(false);
       } else {
         setLoading(false);
       }
     }
-  }, [uiState.manualInitData, uiState.sortByLikes, initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
+  }, [initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
 
   // Загрузка следующей страницы с учетом фильтров
   const loadMoreStickerSets = useCallback(() => {
-    if (currentPage < totalPages - 1 && !uiState.isLoadingMore) {
-      fetchStickerSets(currentPage + 1, true, uiState.selectedCategories);
+    if (currentPage < totalPages - 1 && !isLoadingMore) {
+      fetchStickerSets(currentPage + 1, true, selectedCategories);
     }
-  }, [currentPage, totalPages, uiState.isLoadingMore, uiState.selectedCategories, fetchStickerSets]);
+  }, [currentPage, totalPages, isLoadingMore, selectedCategories, fetchStickerSets]);
 
   // Поиск стикерсетов
   const searchStickerSets = useCallback(async (query: string) => {
@@ -262,22 +272,17 @@ export const GalleryPage: React.FC = () => {
     
     const stickerSet = stickerSets.find(s => s.id.toString() === id.toString());
     if (stickerSet) {
-      setUiState(prev => ({
-        ...prev,
-        selectedStickerSet: stickerSet,
-        isDetailOpen: true
-      }));
+      setSelectedStickerSet(stickerSet);
+      setIsDetailOpen(true);
     }
   }, [tg, stickerSets]);
 
   const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
-    setUiState((prev) => ({
-      ...prev,
-      selectedStickerSet:
-        prev.selectedStickerSet && prev.selectedStickerSet.id === updated.id
-          ? { ...prev.selectedStickerSet, ...updated }
-          : prev.selectedStickerSet,
-    }));
+    setSelectedStickerSet(prev =>
+      prev && prev.id === updated.id
+        ? { ...prev, ...updated }
+        : prev
+    );
   }, []);
 
   const handleBackToList = useCallback(() => {
@@ -286,15 +291,12 @@ export const GalleryPage: React.FC = () => {
       tg.HapticFeedback.impactOccurred('light');
     }
     
-    setUiState(prev => ({
-      ...prev,
-      isDetailOpen: false,
-      selectedStickerSet: null
-    }));
+    setIsDetailOpen(false);
+    setSelectedStickerSet(null);
   }, [tg]);
 
   const handleSearchChange = useCallback((newSearchTerm: string) => {
-    setUiState(prev => ({ ...prev, searchTerm: newSearchTerm }));
+    setSearchTerm(newSearchTerm);
   }, []);
 
   const handleSearch = useCallback((searchTerm: string) => {
@@ -306,18 +308,16 @@ export const GalleryPage: React.FC = () => {
   }, [searchStickerSets, fetchStickerSets]);
 
   const handleCategoryToggle = useCallback((categoryId: string) => {
-    setUiState(prev => {
-      const isSelected = prev.selectedCategories.includes(categoryId);
-      const newCategories = isSelected
-        ? prev.selectedCategories.filter(id => id !== categoryId)
-        : [...prev.selectedCategories, categoryId];
-      
-      return { ...prev, selectedCategories: newCategories };
+    setSelectedCategories(prev => {
+      const isSelected = prev.includes(categoryId);
+      return isSelected
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId];
     });
   }, []);
 
   const handleSortToggle = useCallback(() => {
-    setUiState(prev => ({ ...prev, sortByLikes: !prev.sortByLikes }));
+    setSortByLikes(prev => !prev);
   }, []);
 
   // Debounced поиск отключен - поиск только по требованию (Enter или клик)
@@ -333,14 +333,14 @@ export const GalleryPage: React.FC = () => {
     let filtered = stickerSets;
 
     // Фильтр по поисковому запросу (локальный)
-    if (uiState.searchTerm.trim()) {
+    if (searchTerm.trim()) {
       filtered = filtered.filter(stickerSet =>
-        stickerSet.title.toLowerCase().includes(uiState.searchTerm.toLowerCase())
+        stickerSet.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     return filtered;
-  }, [stickerSets, uiState.searchTerm]);
+  }, [stickerSets, searchTerm]);
 
   // Мемоизация адаптированных данных для галереи
   const galleryPacks = useMemo(() => 
@@ -368,7 +368,7 @@ export const GalleryPage: React.FC = () => {
   // Храним последние значения фильтров для предотвращения лишних перезагрузок
   const lastFiltersRef = useRef<{ categories: string[], sortByLikes: boolean }>({
     categories: [],
-    sortByLikes: uiState.sortByLikes
+    sortByLikes: sortByLikes
   });
 
   // Перезагрузка при изменении выбранных категорий или сортировки
@@ -376,31 +376,31 @@ export const GalleryPage: React.FC = () => {
     if (!isReady || !hasInitializedRef.current) return;
     
     // Проверяем, действительно ли изменились фильтры
-    const categoriesChanged = JSON.stringify(uiState.selectedCategories) !== JSON.stringify(lastFiltersRef.current.categories);
-    const sortChanged = uiState.sortByLikes !== lastFiltersRef.current.sortByLikes;
+    const categoriesChanged = JSON.stringify(selectedCategories) !== JSON.stringify(lastFiltersRef.current.categories);
+    const sortChanged = sortByLikes !== lastFiltersRef.current.sortByLikes;
     
     if (categoriesChanged || sortChanged) {
       lastFiltersRef.current = {
-        categories: [...uiState.selectedCategories],
-        sortByLikes: uiState.sortByLikes
+        categories: [...selectedCategories],
+        sortByLikes: sortByLikes
       };
-      fetchStickerSets(0, false, uiState.selectedCategories);
+      fetchStickerSets(0, false, selectedCategories);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uiState.selectedCategories, uiState.sortByLikes, isReady]); // Убрали fetchStickerSets из зависимостей
+  }, [selectedCategories, sortByLikes, isReady]); // Убрали fetchStickerSets из зависимостей
 
   // Инициализация - только при первом монтировании или изменении initData
   useEffect(() => {
     if (isReady && !hasInitializedRef.current) {
       hasInitializedRef.current = true;
       lastFiltersRef.current = {
-        categories: [...uiState.selectedCategories],
-        sortByLikes: uiState.sortByLikes
+        categories: [...selectedCategories],
+        sortByLikes: sortByLikes
       };
-      fetchStickerSets(0, false, uiState.selectedCategories);
+      fetchStickerSets(0, false, selectedCategories);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, uiState.manualInitData]); // Убрали fetchStickerSets из зависимостей
+  }, [isReady, manualInitData]); // Убрали fetchStickerSets из зависимостей
 
   // Автоматическая синхронизация offline очереди лайков
   useEffect(() => {
@@ -455,14 +455,14 @@ export const GalleryPage: React.FC = () => {
           <EmptyState
             title="🎨 Стикеры не найдены"
             message={
-              uiState.selectedCategories.length > 0 
+              selectedCategories.length > 0 
                 ? `Нет стикеров с выбранными категориями. Попробуйте снять фильтр или выбрать другие категории.`
-                : uiState.searchTerm 
+                : searchTerm 
                   ? 'По вашему запросу ничего не найдено' 
                   : 'У вас пока нет созданных наборов стикеров'
             }
-            actionLabel={uiState.selectedCategories.length > 0 ? undefined : "Создать стикер"}
-            onAction={uiState.selectedCategories.length > 0 ? undefined : () => {
+            actionLabel={selectedCategories.length > 0 ? undefined : "Создать стикер"}
+            onAction={selectedCategories.length > 0 ? undefined : () => {
               if (tg) {
                 tg.openTelegramLink('https://t.me/StickerGalleryBot');
               }
@@ -476,7 +476,7 @@ export const GalleryPage: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
                     <Box sx={{ flex: 1 }}>
                       <SearchBar
-                        value={uiState.searchTerm}
+                        value={searchTerm}
                         onChange={handleSearchChange}
                         onSearch={handleSearch}
                         placeholder="Поиск стикеров..."
@@ -484,16 +484,16 @@ export const GalleryPage: React.FC = () => {
                       />
                     </Box>
                     <SortButton
-                      sortByLikes={uiState.sortByLikes}
+                      sortByLikes={sortByLikes}
                       onToggle={handleSortToggle}
-                      disabled={isLoading || !!uiState.searchTerm || categories.length === 0}
+                      disabled={isLoading || !!searchTerm || categories.length === 0}
                     />
                   </Box>
                   {categories.length > 0 ? (
                     <div className="gallery-controls__filter">
                       <CategoryFilter
                         categories={categories}
-                        selectedCategories={uiState.selectedCategories}
+                        selectedCategories={selectedCategories}
                         onCategoryToggle={handleCategoryToggle}
                         disabled={isLoading}
                       />
@@ -504,13 +504,13 @@ export const GalleryPage: React.FC = () => {
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
               hasNextPage={currentPage < totalPages - 1}
-              isLoadingMore={uiState.isLoadingMore}
+              isLoadingMore={isLoadingMore}
               onLoadMore={loadMoreStickerSets}
               enablePreloading={true}
               addButtonElement={
                 <AddStickerPackButton
                   variant="gallery"
-                  onClick={() => setUiState(prev => ({ ...prev, isUploadModalOpen: true }))}
+                  onClick={() => setIsUploadModalOpen(true)}
                 />
               }
               isRefreshing={isRefreshing}
@@ -520,15 +520,15 @@ export const GalleryPage: React.FC = () => {
       </TelegramLayout>
       <DebugPanel initData={initData} />
       <UploadStickerPackModal
-        open={uiState.isUploadModalOpen}
-        onClose={() => setUiState(prev => ({ ...prev, isUploadModalOpen: false }))}
+        open={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
         onComplete={async () => {
-          await fetchStickerSets(0, false, uiState.selectedCategories);
+          await fetchStickerSets(0, false, selectedCategories);
         }}
       />
       <StickerPackModal 
-        open={uiState.isDetailOpen} 
-        stickerSet={uiState.selectedStickerSet} 
+        open={isDetailOpen} 
+        stickerSet={selectedStickerSet} 
         onClose={handleBackToList}
         onLike={(id, title) => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);

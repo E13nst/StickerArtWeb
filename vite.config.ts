@@ -41,16 +41,70 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true, // Очищаем только dist/miniapp
       assetsDir: 'assets',
       sourcemap: false,
-      minify: 'esbuild',
+      minify: 'terser', // Используем Terser для удаления console.log
       cssMinify: true,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          manualChunks: (id) => {
+            // Vendor chunks - разделяем по библиотекам для лучшего кэширования
+            if (id.includes('node_modules')) {
+              // React ecosystem (часто используется, редко меняется)
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                return 'react-vendor';
+              }
+              
+              // Material-UI (большая библиотека, редко меняется)
+              if (id.includes('@mui') || id.includes('@emotion')) {
+                return 'mui-vendor';
+              }
+              
+              // State management (Zustand + persist)
+              if (id.includes('zustand')) {
+                return 'state-vendor';
+              }
+              
+              // API & networking (axios)
+              if (id.includes('axios')) {
+                return 'api-vendor';
+              }
+              
+              // Lottie animations (тяжёлая библиотека)
+              if (id.includes('lottie')) {
+                return 'lottie-vendor';
+              }
+              
+              // Остальные dependencies
+              return 'vendor';
+            }
+            
+            // Page-based code splitting (каждая страница в отдельном chunk)
+            if (id.includes('/src/pages/')) {
+              const match = id.match(/pages\/(.+?)\.(tsx|ts|jsx|js)/);
+              if (match) {
+                return `page-${match[1].toLowerCase()}`;
+              }
+            }
+            
+            // Тяжёлые компоненты галереи
+            if (id.includes('SimpleGallery') || id.includes('VirtualizedGallery')) {
+              return 'gallery-heavy';
+            }
+            
+            // Модальные окна (загружаются по требованию)
+            if (id.includes('StickerPackModal') || id.includes('StickerSetDetail') || id.includes('UploadStickerPackModal')) {
+              return 'modals';
+            }
           },
         },
       },
       chunkSizeWarningLimit: 1000,
+      // Минификация с удалением console.log в production
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
     },
     
     server: {

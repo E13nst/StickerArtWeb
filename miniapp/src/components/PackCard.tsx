@@ -309,4 +309,43 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   );
 };
 
-export const PackCard = memo(PackCardComponent);
+// Кастомная функция сравнения для оптимизации memo
+const arePropsEqual = (prevProps: PackCardProps, nextProps: PackCardProps): boolean => {
+  // Быстрая проверка по id (самое важное)
+  if (prevProps.pack.id !== nextProps.pack.id) {
+    return false;
+  }
+  
+  // Проверка флагов
+  if (prevProps.isFirstRow !== nextProps.isFirstRow || 
+      prevProps.isHighPriority !== nextProps.isHighPriority) {
+    return false;
+  }
+  
+  // Проверка onClick (обычно стабильная функция)
+  if (prevProps.onClick !== nextProps.onClick) {
+    return false;
+  }
+  
+  // Проверка title (может измениться при обновлении)
+  if (prevProps.pack.title !== nextProps.pack.title) {
+    return false;
+  }
+  
+  // Проверка количества previewStickers (массив может измениться)
+  if (prevProps.pack.previewStickers.length !== nextProps.pack.previewStickers.length) {
+    return false;
+  }
+  
+  // Глубокая проверка только первого стикера (самый важный для отображения)
+  const prevFirst = prevProps.pack.previewStickers[0];
+  const nextFirst = nextProps.pack.previewStickers[0];
+  if (prevFirst?.fileId !== nextFirst?.fileId) {
+    return false;
+  }
+  
+  // Если всё совпало — не ре-рендерим
+  return true;
+};
+
+export const PackCard = memo(PackCardComponent, arePropsEqual);
