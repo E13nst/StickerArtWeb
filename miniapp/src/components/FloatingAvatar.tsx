@@ -25,12 +25,17 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
 
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
+  
+  // Определяем целевой размер аватара для выбора оптимального фото
+  const targetSize = size === 'large' ? 160 : size === 'medium' ? 130 : 100;
+  
   const avatarSrc = useMemo(() => {
     if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('blob:')) {
       return userInfo.avatarUrl;
     }
-    return userInfo.avatarUrl || getAvatarUrl(userInfo.profilePhotoFileId);
-  }, [userInfo.avatarUrl, userInfo.profilePhotoFileId]);
+    // Передаем profilePhotos и targetSize для выбора оптимального размера
+    return userInfo.avatarUrl || getAvatarUrl(userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize);
+  }, [userInfo.avatarUrl, userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize]);
 
   useEffect(() => {
     setAvatarError(false);

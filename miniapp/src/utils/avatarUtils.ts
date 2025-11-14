@@ -5,15 +5,109 @@ import { buildStickerUrl } from './stickerUtils';
  */
 
 /**
- * Генерирует URL для загрузки аватара пользователя через file_id
- * @param fileId - file_id фотографии профиля из Telegram
- * @returns URL для загрузки изображения через прокси API
+ * Тип для фото профиля из Telegram API
  */
-export const getAvatarUrl = (fileId: string | undefined): string | undefined => {
-  if (!fileId || fileId.trim() === '') {
+export interface ProfilePhoto {
+  file_id: string;
+  file_unique_id: string;
+  file_size: number;
+  width: number;
+  height: number;
+}
+
+export interface ProfilePhotosResponse {
+  total_count: number;
+  photos: ProfilePhoto[][];
+}
+
+/**
+ * Выбирает оптимальный размер фото профиля для аватара
+ * @param profilePhotos - Массив фотографий профиля из API
+ * @param targetSize - Целевой размер в пикселях (по умолчанию 160)
+ * @returns file_id оптимального размера или undefined
+ */
+export const getOptimalAvatarFileId = (
+  profilePhotos: ProfilePhotosResponse | undefined | null,
+  targetSize: number = 160
+): string | undefined => {
+  if (!profilePhotos?.photos || profilePhotos.photos.length === 0) {
     return undefined;
   }
-  return buildStickerUrl(fileId);
+
+  // Берем первый набор фото (обычно это текущее фото профиля)
+  const photoSet = profilePhotos.photos[0];
+  if (!photoSet || photoSet.length === 0) {
+    return undefined;
+  }
+
+  // Ищем фото, которое ближе всего к целевому размеру, но не меньше
+  // Если такого нет, берем самое большое
+  let bestPhoto: ProfilePhoto | null = null;
+  let bestDiff = Infinity;
+
+  for (const photo of photoSet) {
+    const size = Math.min(photo.width, photo.height);
+    const diff = size - targetSize;
+
+    // Если размер подходит (>= targetSize) и ближе к целевому
+    if (diff >= 0 && diff < bestDiff) {
+      bestPhoto = photo;
+      bestDiff = diff;
+    }
+  }
+
+  // Если не нашли подходящий размер, берем самое большое
+  if (!bestPhoto) {
+    bestPhoto = photoSet.reduce((max, photo) => {
+      const maxSize = Math.min(max.width, max.height);
+      const photoSize = Math.min(photo.width, photo.height);
+      return photoSize > maxSize ? photo : max;
+    });
+  }
+
+  // Логирование только в dev режиме
+  // @ts-ignore - import.meta.env определен в vite-env.d.ts
+  if (import.meta.env?.MODE === 'development') {
+    console.log('📸 Выбран размер аватара:', {
+      file_id: bestPhoto.file_id,
+      size: `${bestPhoto.width}x${bestPhoto.height}`,
+      file_size: `${Math.round(bestPhoto.file_size / 1024)}KB`,
+      targetSize
+    });
+  }
+
+  return bestPhoto.file_id;
+};
+
+/**
+ * Генерирует URL для загрузки аватара пользователя через file_id
+ * @param fileId - file_id фотографии профиля из Telegram
+ * @param profilePhotos - Опциональный массив фотографий для выбора оптимального размера
+ * @param targetSize - Целевой размер в пикселях (по умолчанию 160)
+ * @returns URL для загрузки изображения через прокси API
+ */
+export const getAvatarUrl = (
+  fileId: string | undefined,
+  profilePhotos?: ProfilePhotosResponse | null,
+  targetSize: number = 160
+): string | undefined => {
+  // Если есть массив фото, выбираем оптимальный размер
+  const optimalFileId = profilePhotos
+    ? getOptimalAvatarFileId(profilePhotos, targetSize)
+    : fileId;
+
+  if (!optimalFileId || optimalFileId.trim() === '') {
+    return undefined;
+  }
+
+  // Используем параметр file=true для загрузки файла (аналогично стикерам)
+  const url = buildStickerUrl(optimalFileId, { file: true });
+  // Логирование только в dev режиме
+  // @ts-ignore - import.meta.env определен в vite-env.d.ts
+  if (import.meta.env?.MODE === 'development') {
+    console.log('🔗 URL аватара:', url);
+  }
+  return url;
 };
 
 /**

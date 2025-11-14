@@ -9,7 +9,7 @@ import {
   CardContent
 } from '@mui/material';
 import { useTelegram } from '@/hooks/useTelegram';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useProfileStore, UserInfo } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 import { getUserUsername, isUserPremium } from '@/utils/userUtils';
@@ -168,8 +168,36 @@ export const ProfilePage: React.FC = () => {
     setUserError(null);
 
     try {
-      const userInfo = await apiClient.getUserInfo(id);
-      setUserInfo(userInfo);
+      // 1) получаем полный профиль через API /profiles/{userId}
+      const userProfile = await apiClient.getProfile(id);
+
+      // 2) фото профиля /users/{id}/photo (404 -> null)
+      let photo = null;
+      try {
+        photo = await apiClient.getUserPhoto(userProfile.id);
+      } catch (photoError: any) {
+        // Игнорируем ошибки загрузки фото (404 - нормально, если фото нет)
+        if (photoError?.response?.status !== 404) {
+          console.warn('⚠️ Ошибка загрузки фото профиля:', photoError);
+        }
+      }
+
+      // 3) объединяем данные профиля и фото
+      const combined: UserInfo = {
+        ...userProfile,
+        profilePhotoFileId: photo?.profilePhotoFileId,
+        profilePhotos: photo?.profilePhotos
+      };
+
+      console.log('✅ Информация о пользователе загружена:', {
+        id: combined.id,
+        username: combined.username,
+        hasPhoto: !!combined.profilePhotoFileId,
+        hasProfilePhotos: !!combined.profilePhotos,
+        profilePhotosCount: combined.profilePhotos?.total_count || 0
+      });
+      
+      setUserInfo(combined);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки пользователя';
       setUserError(errorMessage);

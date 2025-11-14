@@ -217,7 +217,7 @@ const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
 
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
-  const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId) || userInfo.avatarUrl;
+  const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId, userInfo.profilePhotos) || userInfo.avatarUrl;
   const initials = getInitials(firstName, lastName);
   const avatarBgColor = getAvatarColor(firstName);
 

@@ -68,7 +68,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   const displayName = getUserFullName(userInfo);
   const telegramId = getUserTelegramId(userInfo);
   
-  const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId) || userInfo.avatarUrl;
+  const avatarUrl = getAvatarUrl(userInfo.profilePhotoFileId, userInfo.profilePhotos) || userInfo.avatarUrl;
   const initials = getInitials(firstName, lastName);
   const avatarBgColor = getAvatarColor(firstName);
 
