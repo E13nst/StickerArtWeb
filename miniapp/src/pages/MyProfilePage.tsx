@@ -1089,7 +1089,7 @@ export const MyProfilePage: React.FC = () => {
                     isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isLoadingMorePublished}
                     onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
                     enablePreloading={true}
-                    usePageScroll={true}
+                    usePageScroll={false}
                     addButtonElement={setsFilter === 'published' ? (
                       <AddStickerPackButton
                         variant="gallery"
