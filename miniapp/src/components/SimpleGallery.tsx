@@ -234,6 +234,54 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     };
   }, [hasNextPage, isLoadingMore, onLoadMore, usePageScroll]);
 
+  // ✅ P2 OPTIMIZATION: Prefetching следующей страницы при приближении к концу
+  useEffect(() => {
+    if (!hasNextPage || isLoadingMore || !onLoadMore) {
+      return;
+    }
+
+    // Создаём sentinel для prefetch (раньше чем основной loader)
+    const prefetchSentinel = document.createElement('div');
+    prefetchSentinel.style.height = '1px';
+    prefetchSentinel.style.pointerEvents = 'none';
+    
+    const container = usePageScroll 
+      ? document.documentElement 
+      : containerRef.current;
+    
+    if (!container) {
+      return;
+    }
+    
+    // Размещаем sentinel на 80% от конца списка
+    const galleryContainer = containerRef.current?.querySelector('.gallery-column-grid');
+    if (galleryContainer) {
+      galleryContainer.appendChild(prefetchSentinel);
+    }
+
+    const prefetchObserver = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasNextPage && !isLoadingMore) {
+          console.log('🔮 Prefetching: загрузка следующей страницы заранее');
+          onLoadMore();
+        }
+      },
+      {
+        root: usePageScroll ? null : containerRef.current,
+        rootMargin: '400px', // Prefetch за 400px до конца
+        threshold: 0.1
+      }
+    );
+
+    prefetchObserver.observe(prefetchSentinel);
+
+    return () => {
+      prefetchObserver.disconnect();
+      prefetchSentinel.remove();
+    };
+  }, [hasNextPage, isLoadingMore, onLoadMore, usePageScroll]);
+
   // ✅ P1 OPTIMIZATION: Throttle scroll handler для лучшего FPS
   // Создаем throttled функцию один раз через useMemo
   const throttledScrollHandler = useMemo(
