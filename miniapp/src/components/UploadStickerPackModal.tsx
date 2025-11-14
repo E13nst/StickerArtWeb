@@ -5,10 +5,12 @@ import {
   Button,
   Chip,
   CircularProgress,
+  IconButton,
   Tooltip,
   TextField,
   Typography
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
@@ -127,7 +129,12 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   }, [open]);
 
   const handleClose = () => {
-    if (isSubmittingLink || isApplyingCategories || step === 'categories') {
+    // Не закрываем только если идет процесс отправки
+    if (isSubmittingLink || isApplyingCategories) {
+      return;
+    }
+    // На шаге категорий требуем, чтобы была выбрана хотя бы одна категория
+    if (step === 'categories' && selectedCategories.length === 0) {
       return;
     }
     resetState();
@@ -735,11 +742,27 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         </Box>
       )}
 
+      {step === 'categories' && selectedCategories.length === 0 && categories.length > 0 && (
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'var(--tg-theme-hint-color)',
+            fontSize: '0.75rem',
+            textAlign: 'center',
+            mt: 1,
+            mb: -1,
+            opacity: 0.8
+          }}
+        >
+          Выберите хотя бы одну категорию
+        </Typography>
+      )}
+
       <Button
         fullWidth
         variant="contained"
         onClick={handleApplyCategories}
-        disabled={isApplyingCategories}
+        disabled={isApplyingCategories || selectedCategories.length === 0}
         sx={{
           mt: 3,
           py: 1.5,
@@ -805,7 +828,29 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
+            <Box sx={{ position: 'relative', width: '100%' }}>
+              <IconButton
+                aria-label="close"
+                onClick={handleClose}
+                disabled={isSubmittingLink || isApplyingCategories || (step === 'categories' && selectedCategories.length === 0)}
+                sx={{
+                  position: 'absolute',
+                  top: -8,
+                  right: -8,
+                  zIndex: 1,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+                  '&:disabled': { opacity: 0.5 }
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+              {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
+            </Box>
           </Box>
         </ModalBackdrop>
       )}
