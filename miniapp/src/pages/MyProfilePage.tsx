@@ -106,58 +106,6 @@ export const MyProfilePage: React.FC = () => {
   // currentUserId будет получен из /api/profiles/me
   const currentUserId = userInfo?.id;
 
-  // Моковые данные для разработки (когда нет валидной initData)
-  const mockUserId = 777000;
-
-  const effectiveUserId = useMemo(() => {
-    if (typeof userInfo?.id === 'number') {
-      return userInfo.id;
-    }
-    if (typeof currentUserId === 'number') {
-      return currentUserId;
-    }
-    return mockUserId;
-  }, [userInfo?.id, currentUserId]);
-
-  const mockUserInfo = {
-    id: mockUserId,
-    firstName: 'Иван',
-    lastName: 'Иванов',
-    username: 'ivan_ivanov',
-    artBalance: 150,
-    profilePhotoFileId: null,
-    profilePhotos: []
-  };
-  const mockStickerSets: any[] = [
-    {
-      id: 1,
-      userId: mockUserId,
-      title: 'Мои первые стикеры',
-      name: 'my_first_stickers',
-      stickerCount: 12,
-      createdAt: new Date().toISOString(),
-      previewSticker: null
-    },
-    {
-      id: 2,
-      userId: mockUserId,
-      title: 'Веселые котики',
-      name: 'funny_cats',
-      stickerCount: 8,
-      createdAt: new Date().toISOString(),
-      previewSticker: null
-    },
-    {
-      id: 3,
-      userId: mockUserId,
-      title: 'Рабочие мемы',
-      name: 'work_memes',
-      stickerCount: 15,
-      createdAt: new Date().toISOString(),
-      previewSticker: null
-    }
-  ];
-
   useEffect(() => {
     console.log('🔍 MyProfilePage: Текущий пользователь:', user);
     console.log('🔍 MyProfilePage: initData:', initData ? `${initData.length} chars` : 'empty');
@@ -246,19 +194,22 @@ export const MyProfilePage: React.FC = () => {
     setLoading(true);
     
     try {
-      let loadedProfile: any = null;
-      try {
-        loadedProfile = await loadUserInfo();
-      } catch (profileError) {
-        console.error('Ошибка загрузки пользователя:', profileError);
+      // Загружаем профиль пользователя
+      const loadedProfile = await loadUserInfo();
+      
+      // Если не удалось загрузить профиль, выходим
+      if (!loadedProfile?.id) {
+        console.error('❌ Не удалось получить ID пользователя');
+        setError('Не удалось загрузить профиль пользователя');
+        return;
       }
 
-      const targetUserId = loadedProfile?.id || mockUserId;
-
+      // Загружаем стикерсеты пользователя
       try {
-        await loadUserStickerSets(targetUserId, undefined, 0, false, sortByLikes);
+        await loadUserStickerSets(loadedProfile.id, undefined, 0, false, sortByLikes);
       } catch (stickerError) {
         console.error('Ошибка загрузки стикерсетов:', stickerError);
+        // Не показываем ошибку пользователю - профиль загружен, просто нет стикерсетов
       }
 
       const currentUserInfo = useProfileStore.getState().userInfo;
@@ -320,21 +271,18 @@ export const MyProfilePage: React.FC = () => {
       
       return combined;
     } catch (error: any) {
-      // В режиме разработки используем моковые данные вместо показа ошибки
-      if (error?.response?.status === 401 || !isInTelegramApp) {
-        console.log('🔧 Режим разработки: используем моковые данные профиля');
-        setUserInfo(mockUserInfo as any);
-        setUserError(null);
-        return mockUserInfo;
-      } else {
-        const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки пользователя';
-        setUserError(errorMessage);
-      }
-      // Не пробрасываем ошибку дальше в режиме разработки
-      if (isInTelegramApp) {
-        throw error;
-      }
-      return null;
+      // ✅ Показываем ошибку вместо моковых данных
+      console.error('❌ Ошибка загрузки профиля пользователя:', error);
+      
+      const errorMessage = error?.response?.status === 401
+        ? 'Ошибка аутентификации. Попробуйте перезапустить приложение.'
+        : error instanceof Error 
+          ? error.message 
+          : 'Ошибка загрузки пользователя';
+      
+      setUserError(errorMessage);
+      setUserInfo(null);
+      throw error;
     } finally {
       setUserLoading(false);
     }
@@ -384,15 +332,24 @@ export const MyProfilePage: React.FC = () => {
     }
     setStickerSetsError(null);
 
-    const resolvedUserId =
-      typeof userIdParam === 'number' && !Number.isNaN(userIdParam) ? userIdParam : mockUserId;
+    // ✅ Проверяем что userId валидный
+    if (typeof userIdParam !== 'number' || Number.isNaN(userIdParam)) {
+      console.error('❌ Невалидный userId:', userIdParam);
+      setStickerSetsError('Невозможно загрузить стикерсеты: не указан ID пользователя');
+      if (!append) {
+        setStickerSetsLoading(false);
+      } else {
+        setIsLoadingMorePublished(false);
+      }
+      return;
+    }
 
     try {
-      console.log('🔍 Загрузка стикерсетов для userId:', resolvedUserId, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam);
+      console.log('🔍 Загрузка стикерсетов для userId:', userIdParam, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam);
       
       // Если есть поисковый запрос, используем специальный эндпоинт поиска
       if (searchQuery && searchQuery.trim()) {
-        const response = await apiClient.searchUserStickerSets(resolvedUserId, searchQuery, page, 20);
+        const response = await apiClient.searchUserStickerSets(userIdParam, searchQuery, page, 20);
         const filteredContent = response.content || [];
         
         if (append) {
@@ -417,7 +374,7 @@ export const MyProfilePage: React.FC = () => {
         return;
       }
       
-      const response = await apiClient.getUserStickerSets(resolvedUserId, page, 20, 'createdAt', 'DESC');
+      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC');
       const filteredContent = response.content || [];
       
       console.log('✅ Стикерсеты загружены:', {
@@ -459,24 +416,20 @@ export const MyProfilePage: React.FC = () => {
         response.totalElements ?? 0
       );
     } catch (error: any) {
-      // В режиме разработки используем моковые данные вместо показа ошибки
-      if (error?.response?.status === 401 || !isInTelegramApp) {
-        console.log('🔧 Режим разработки: используем моковые данные стикерсетов');
-        const fallbackSets = mockStickerSets;
-        const filtered = searchQuery 
-          ? fallbackSets.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()) && String((s as any).userId) === String(resolvedUserId))
-          : fallbackSets.filter(s => String((s as any).userId) === String(resolvedUserId));
-        setUserStickerSets(filtered);
-        setPagination(0, 1, filtered.length);
-        setStickerSetsError(null);
-      } else {
-        const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикерсетов';
-        console.error('❌ Ошибка загрузки стикерсетов:', error);
-        setStickerSetsError(errorMessage);
-      }
-      // Не пробрасываем ошибку дальше в режиме разработки
-      if (isInTelegramApp) {
-        throw error;
+      // ✅ Показываем ошибку вместо моковых данных
+      const errorMessage = error?.response?.status === 401
+        ? 'Ошибка аутентификации. Попробуйте перезапустить приложение.'
+        : error instanceof Error 
+          ? error.message 
+          : 'Ошибка загрузки стикерсетов';
+      
+      console.error('❌ Ошибка загрузки стикерсетов:', error);
+      setStickerSetsError(errorMessage);
+      
+      // Очищаем список стикерсетов при ошибке
+      if (!append) {
+        setUserStickerSets([]);
+        setPagination(0, 1, 0);
       }
     } finally {
       if (append) {
@@ -692,7 +645,7 @@ export const MyProfilePage: React.FC = () => {
 
   // Обработка поиска с отправкой
   const handleSearch = (searchTermValue: string) => {
-    const userId = effectiveUserId;
+    const userId = currentUserId;
     if (!userId) return;
     
     if (searchTermValue.trim()) {
@@ -706,7 +659,7 @@ export const MyProfilePage: React.FC = () => {
   const handleSortToggle = () => {
     const newSortByLikes = !sortByLikes;
     setSortByLikes(newSortByLikes);
-    const userId = effectiveUserId;
+    const userId = currentUserId;
     if (userId) {
       loadUserStickerSets(userId, searchTerm || undefined, 0, false, newSortByLikes);
     }
@@ -720,7 +673,7 @@ export const MyProfilePage: React.FC = () => {
       console.log('⏸️ Пагинация отключена при поиске');
       return;
     }
-    if (effectiveUserId && !isLoadingMorePublished && currentPage < totalPages - 1) {
+    if (currentUserId && !isLoadingMorePublished && currentPage < totalPages - 1) {
       const nextPage = currentPage + 1;
       console.log('📄 Загрузка следующей страницы "Мои":', {
         currentPage,
@@ -728,17 +681,17 @@ export const MyProfilePage: React.FC = () => {
         totalPages,
         hasNextPage: currentPage < totalPages - 1
       });
-      loadUserStickerSets(effectiveUserId, undefined, nextPage, true, sortByLikes);
+      loadUserStickerSets(currentUserId, undefined, nextPage, true, sortByLikes);
     } else {
       console.log('⏸️ Не загружаем следующую страницу "Мои":', {
-        effectiveUserId: !!effectiveUserId,
+        currentUserId: !!currentUserId,
         isLoadingMorePublished,
         currentPage,
         totalPages,
         hasNextPage: currentPage < totalPages - 1
       });
     }
-  }, [effectiveUserId, currentPage, totalPages, searchTerm, sortByLikes, isLoadingMorePublished, loadUserStickerSets]);
+  }, [currentUserId, currentPage, totalPages, searchTerm, sortByLikes, isLoadingMorePublished, loadUserStickerSets]);
 
   const handleLoadMoreLiked = useCallback(() => {
     if (!isLikedLoadingMore && likedCurrentPage < likedTotalPages - 1) {
@@ -1059,7 +1012,7 @@ export const MyProfilePage: React.FC = () => {
               ) : stickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay 
                   error={stickerSetsError} 
-                  onRetry={() => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, 0, false, sortByLikes)} 
+                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)} 
                 />
               ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
                 <EmptyState
@@ -1101,7 +1054,7 @@ export const MyProfilePage: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                   <Button
                     variant="outlined"
-                    onClick={() => effectiveUserId && loadUserStickerSets(effectiveUserId, undefined, currentPage + 1, true)}
+                    onClick={() => currentUserId && loadUserStickerSets(currentUserId, undefined, currentPage + 1, true)}
                   >
                     Показать ещё
                   </Button>
