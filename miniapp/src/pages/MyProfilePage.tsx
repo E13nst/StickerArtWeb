@@ -401,7 +401,8 @@ export const MyProfilePage: React.FC = () => {
         const filteredContent = response.content || [];
         
         if (append) {
-          setUserStickerSets(response.number === 0 ? filteredContent : getUniqueAppended(userStickerSets, filteredContent));
+          // Используем функциональное обновление для получения актуального состояния
+          setUserStickerSets(prev => response.number === 0 ? filteredContent : getUniqueAppended(prev, filteredContent));
         } else {
           setUserStickerSets(filteredContent);
         }
@@ -417,7 +418,14 @@ export const MyProfilePage: React.FC = () => {
       const response = await apiClient.getUserStickerSets(resolvedUserId, page, 20, 'createdAt', 'DESC');
       const filteredContent = response.content || [];
       
-      console.log('✅ Стикерсеты загружены:', filteredContent.length, 'страница:', response.number, 'из', response.totalPages);
+      console.log('✅ Стикерсеты загружены:', {
+        count: filteredContent.length,
+        page: response.number,
+        totalPages: response.totalPages,
+        totalElements: response.totalElements,
+        append,
+        hasNextPage: response.number < response.totalPages - 1
+      });
       
       if (filteredContent.length > 0) {
         initializeLikes(filteredContent);
@@ -433,7 +441,8 @@ export const MyProfilePage: React.FC = () => {
       }
       
       if (append) {
-        setUserStickerSets(response.number === 0 ? finalContent : getUniqueAppended(userStickerSets, finalContent));
+        // Используем функциональное обновление для получения актуального состояния
+        setUserStickerSets(prev => response.number === 0 ? finalContent : getUniqueAppended(prev, finalContent));
       } else {
         setUserStickerSets(finalContent);
       }
@@ -524,6 +533,15 @@ export const MyProfilePage: React.FC = () => {
       
       const response = await apiClient.getStickerSets(page, 20, { likedOnly: true });
       const serverLikedSets = response.content || [];
+      
+      console.log('✅ Понравившиеся загружены:', {
+        count: serverLikedSets.length,
+        page: response.number,
+        totalPages: response.totalPages,
+        totalElements: response.totalElements,
+        append,
+        hasNextPage: response.number < response.totalPages - 1
+      });
       
       // Инициализируем лайки из серверных данных
       // Важно: все стикерсеты из likedOnly должны быть лайкнуты
@@ -690,6 +708,53 @@ export const MyProfilePage: React.FC = () => {
     }
   };
 
+  // Обработчики загрузки следующих страниц (стабильные функции для IntersectionObserver)
+  const handleLoadMorePublished = useCallback(() => {
+    // Не загружаем следующую страницу при активном поиске
+    if (searchTerm && searchTerm.trim()) {
+      console.log('⏸️ Пагинация отключена при поиске');
+      return;
+    }
+    if (effectiveUserId && !isStickerSetsLoading && currentPage < totalPages - 1) {
+      const nextPage = currentPage + 1;
+      console.log('📄 Загрузка следующей страницы "Мои":', {
+        currentPage,
+        nextPage,
+        totalPages,
+        hasNextPage: currentPage < totalPages - 1
+      });
+      loadUserStickerSets(effectiveUserId, undefined, nextPage, true, sortByLikes);
+    } else {
+      console.log('⏸️ Не загружаем следующую страницу "Мои":', {
+        effectiveUserId: !!effectiveUserId,
+        isStickerSetsLoading,
+        currentPage,
+        totalPages,
+        hasNextPage: currentPage < totalPages - 1
+      });
+    }
+  }, [effectiveUserId, currentPage, totalPages, searchTerm, sortByLikes, isStickerSetsLoading, loadUserStickerSets]);
+
+  const handleLoadMoreLiked = useCallback(() => {
+    if (!isLikedLoadingMore && likedCurrentPage < likedTotalPages - 1) {
+      const nextPage = likedCurrentPage + 1;
+      console.log('📄 Загрузка следующей страницы "Понравившиеся":', {
+        currentPage: likedCurrentPage,
+        nextPage,
+        totalPages: likedTotalPages,
+        hasNextPage: likedCurrentPage < likedTotalPages - 1
+      });
+      loadLikedStickerSets(nextPage, true);
+    } else {
+      console.log('⏸️ Не загружаем следующую страницу "Понравившиеся":', {
+        isLikedLoadingMore,
+        currentPage: likedCurrentPage,
+        totalPages: likedTotalPages,
+        hasNextPage: likedCurrentPage < likedTotalPages - 1
+      });
+    }
+  }, [likedCurrentPage, likedTotalPages, isLikedLoadingMore, loadLikedStickerSets]);
+
   // Фильтрация стикерсетов (при поиске данные уже отфильтрованы на сервере)
   const filteredStickerSets = userStickerSets;
 
@@ -712,7 +777,21 @@ export const MyProfilePage: React.FC = () => {
     userInfo: userInfo?.firstName,
     stickerSetsCount: userStickerSets.length,
     filteredCount: filteredStickerSets.length,
-    isLoading
+    isLoading,
+    setsFilter,
+    // Пагинация "Мои"
+    publishedPagination: {
+      currentPage,
+      totalPages,
+      hasNextPage: currentPage < totalPages - 1
+    },
+    // Пагинация "Понравившиеся"
+    likedPagination: {
+      currentPage: likedCurrentPage,
+      totalPages: likedTotalPages,
+      hasNextPage: likedCurrentPage < likedTotalPages - 1,
+      count: likedStickerSets.length
+    }
   });
 
   // Основные ошибки (показываем только в Telegram приложении)
@@ -1000,12 +1079,13 @@ export const MyProfilePage: React.FC = () => {
                   <SimpleGallery
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
-                    hasNextPage={setsFilter === 'liked' ? likedCurrentPage < likedTotalPages - 1 : currentPage < totalPages - 1}
-                    isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isStickerSetsLoading}
-                    onLoadMore={setsFilter === 'liked' 
-                      ? () => loadLikedStickerSets(likedCurrentPage + 1, true)
-                      : () => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)
+                    hasNextPage={
+                      setsFilter === 'liked' 
+                        ? likedCurrentPage < likedTotalPages - 1 
+                        : !searchTerm && currentPage < totalPages - 1
                     }
+                    isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isStickerSetsLoading}
+                    onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
                     enablePreloading={true}
                     usePageScroll={true}
                     addButtonElement={setsFilter === 'published' ? (
