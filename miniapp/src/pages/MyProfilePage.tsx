@@ -946,13 +946,7 @@ export const MyProfilePage: React.FC = () => {
                     fontWeight="bold"
                     sx={{ color: 'var(--tg-theme-button-color)' }}
                   >
-                    {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
-                  </Typography>
-                  <Typography 
-                    variant="body2"
-                    sx={{ color: 'var(--tg-theme-hint-color)' }}
-                  >
-                    Стикеров
+                    {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
                   </Typography>
                 </Box>
                 
