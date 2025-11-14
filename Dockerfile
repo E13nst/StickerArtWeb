@@ -38,7 +38,6 @@ RUN echo "=== FILES BEFORE BUILD ===" && \
 # 1. Очищаем предыдущие сборки (если есть)
 # 2. Проверяем TypeScript
 # 3. Vite собирает в dist/miniapp/ (согласно vite.config.ts: outDir: '../dist/miniapp')
-# 4. Копируем корневой index.html в dist/ для редиректа
 RUN echo "=== STARTING BUILD ===" && \
     rm -rf dist && \
     echo "dist/ removed" && \
@@ -47,8 +46,8 @@ RUN echo "=== STARTING BUILD ===" && \
     npx vite build && \
     echo "Vite build completed" && \
     mkdir -p dist && \
-    cp index.html dist/ && \
-    echo "index.html copied"
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=/miniapp/"><title>Redirecting...</title></head><body><p>Redirecting to <a href="/miniapp/">Sticker Gallery</a>...</p></body></html>' > dist/index.html && \
+    echo "Redirect index.html created"
 
 # Debug: Показываем что получилось после сборки
 RUN echo "=== FILES AFTER BUILD ===" && \

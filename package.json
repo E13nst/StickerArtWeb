@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode development",
-    "build": "npx tsc && npx vite build && mkdir -p dist && cp index.html dist/",
-    "build:win": "npx tsc && npx vite build && New-Item -ItemType Directory -Force -Path dist && Copy-Item index.html dist/",
+    "build": "npx tsc && npx vite build",
+    "build:win": "npx tsc && npx vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
