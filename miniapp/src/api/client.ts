@@ -628,10 +628,14 @@ class ApiClient {
 
   // Загрузка фото профиля как blob: GET /api/users/{userId}/photo?file_id={fileId}
   async getUserPhotoBlob(userId: number, fileId?: string): Promise<Blob> {
-    let url = `/users/${userId}/photo`;
-    if (fileId) {
-      url += `?file_id=${encodeURIComponent(fileId)}`;
+    if (!fileId) {
+      throw new Error('fileId is required for getUserPhotoBlob');
     }
+    
+    // ✅ FIX: Используем sticker-processor для загрузки изображения
+    // Точно так же как для стикеров: /stickers/{fileId}?file=true
+    const url = `/stickers/${encodeURIComponent(fileId)}?file=true`;
+    
     const response = await this.client.get(url, {
       responseType: 'blob'
     });
