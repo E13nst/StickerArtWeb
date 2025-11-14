@@ -89,6 +89,10 @@ export const MyProfilePage: React.FC = () => {
   const [isLikedListLoaded, setIsLikedListLoaded] = useState(false);
   // Сохраняем исходный список для защиты от удаления карточек до инициализации в store
   const [originalLikedSetIds, setOriginalLikedSetIds] = useState<Set<string>>(new Set());
+  // Пагинация для понравившихся
+  const [likedCurrentPage, setLikedCurrentPage] = useState(0);
+  const [likedTotalPages, setLikedTotalPages] = useState(1);
+  const [isLikedLoadingMore, setIsLikedLoadingMore] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
@@ -509,11 +513,16 @@ export const MyProfilePage: React.FC = () => {
     }
   };
 
-  // Загрузка понравившихся с сервера (только при первом запросе или обновлении профиля)
-  const loadLikedStickerSets = useCallback(async () => {
+  // Загрузка понравившихся с сервера с поддержкой пагинации
+  const loadLikedStickerSets = useCallback(async (page: number = 0, append: boolean = false) => {
     try {
-      setStickerSetsLoading(true);
-      const response = await apiClient.getStickerSets(0, 50, { likedOnly: true });
+      if (append) {
+        setIsLikedLoadingMore(true);
+      } else {
+        setStickerSetsLoading(true);
+      }
+      
+      const response = await apiClient.getStickerSets(page, 20, { likedOnly: true });
       const serverLikedSets = response.content || [];
       
       // Инициализируем лайки из серверных данных
@@ -528,18 +537,37 @@ export const MyProfilePage: React.FC = () => {
         initializeLikes(setsWithLikes, true);
       }
       
-      // Сохраняем загруженные данные и отмечаем что список загружен
-      setLikedStickerSets(serverLikedSets);
-      // Сохраняем исходные ID для защиты от случайного удаления
-      setOriginalLikedSetIds(new Set(serverLikedSets.map(s => String(s.id))));
-      setIsLikedListLoaded(true);
+      // Обновляем пагинацию
+      setLikedCurrentPage(response.number);
+      setLikedTotalPages(response.totalPages);
+      
+      // Сохраняем загруженные данные
+      if (append) {
+        // Добавляем новые данные к существующим, убирая дубликаты
+        setLikedStickerSets(prev => {
+          const existingIds = new Set(prev.map(s => String(s.id)));
+          const unique = serverLikedSets.filter(s => !existingIds.has(String(s.id)));
+          return [...prev, ...unique];
+        });
+      } else {
+        setLikedStickerSets(serverLikedSets);
+        // Сохраняем исходные ID для защиты от случайного удаления
+        setOriginalLikedSetIds(new Set(serverLikedSets.map(s => String(s.id))));
+        setIsLikedListLoaded(true);
+      }
     } catch (e) {
-      console.warn('⚠️ Не удалось загрузить понравившиеся с сервера');
-      setLikedStickerSets([]);
-      setOriginalLikedSetIds(new Set());
-      setIsLikedListLoaded(false);
+      console.warn('⚠️ Не удалось загрузить понравившиеся с сервера', e);
+      if (!append) {
+        setLikedStickerSets([]);
+        setOriginalLikedSetIds(new Set());
+        setIsLikedListLoaded(false);
+      }
     } finally {
-      setStickerSetsLoading(false);
+      if (append) {
+        setIsLikedLoadingMore(false);
+      } else {
+        setStickerSetsLoading(false);
+      }
     }
   }, [initializeLikes]);
   
@@ -589,16 +617,18 @@ export const MyProfilePage: React.FC = () => {
   useEffect(() => {
     setIsLikedListLoaded(false);
     setOriginalLikedSetIds(new Set());
+    setLikedCurrentPage(0);
+    setLikedTotalPages(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
   
   // Загружаем с сервера только при первом открытии вкладки "Понравившиеся"
   useEffect(() => {
-    if (setsFilter === 'liked' && !isLikedListLoaded && !isStickerSetsLoading) {
-      loadLikedStickerSets();
+    if (setsFilter === 'liked' && !isLikedListLoaded && !isStickerSetsLoading && !isLikedLoadingMore) {
+      loadLikedStickerSets(0, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setsFilter, isLikedListLoaded, isStickerSetsLoading]);
+  }, [setsFilter, isLikedListLoaded, isStickerSetsLoading, isLikedLoadingMore]);
   
   // Локально обновляем список при изменении лайков (без запроса к серверу)
   useEffect(() => {
@@ -970,9 +1000,12 @@ export const MyProfilePage: React.FC = () => {
                   <SimpleGallery
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
-                    hasNextPage={setsFilter === 'liked' ? false : currentPage < totalPages - 1}
-                    isLoadingMore={isStickerSetsLoading}
-                    onLoadMore={setsFilter === 'liked' ? undefined : () => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)}
+                    hasNextPage={setsFilter === 'liked' ? likedCurrentPage < likedTotalPages - 1 : currentPage < totalPages - 1}
+                    isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isStickerSetsLoading}
+                    onLoadMore={setsFilter === 'liked' 
+                      ? () => loadLikedStickerSets(likedCurrentPage + 1, true)
+                      : () => effectiveUserId && loadUserStickerSets(effectiveUserId, searchTerm || undefined, currentPage + 1, true, sortByLikes)
+                    }
                     enablePreloading={true}
                     usePageScroll={true}
                     addButtonElement={setsFilter === 'published' ? (
