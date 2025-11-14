@@ -168,7 +168,15 @@ export const MyProfilePage: React.FC = () => {
       // Проверяем, что это НЕ моковые данные (Иван Иванов)
       if (cached && cached.userInfo.firstName !== 'Иван' && cached.userInfo.username !== 'ivan_ivanov') {
         console.log('📦 Профиль уже в кэше, используем его');
-        setUserInfo(cached.userInfo);
+        // Используем photo_url из Telegram как fallback, если в кэше нет фото
+        const cachedUserInfo = {
+          ...cached.userInfo,
+          avatarUrl: cached.userInfo.avatarUrl || 
+                     (cached.userInfo.profilePhotoFileId || cached.userInfo.profilePhotos 
+                       ? undefined 
+                       : user?.photo_url)
+        };
+        setUserInfo(cachedUserInfo);
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
         
@@ -202,7 +210,15 @@ export const MyProfilePage: React.FC = () => {
       const cached = getCachedProfile(telegramId);
       if (cached) {
         console.log(`📦 Загрузка моего профиля из кэша`);
-        setUserInfo(cached.userInfo);
+        // Используем photo_url из Telegram как fallback, если в кэше нет фото
+        const cachedUserInfo = {
+          ...cached.userInfo,
+          avatarUrl: cached.userInfo.avatarUrl || 
+                     (cached.userInfo.profilePhotoFileId || cached.userInfo.profilePhotos 
+                       ? undefined 
+                       : user?.photo_url)
+        };
+        setUserInfo(cachedUserInfo);
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
         
@@ -269,10 +285,17 @@ export const MyProfilePage: React.FC = () => {
       // 2) фото профиля /users/{id}/photo (404 -> null)
       const photo = await apiClient.getUserPhoto(userProfile.id);
 
+      // 3) Fallback: используем photo_url из Telegram WebApp, если API не вернул фото
+      const telegramPhotoUrl = user?.photo_url;
+
       const combined = {
         ...userProfile,
         profilePhotoFileId: photo?.profilePhotoFileId,
-        profilePhotos: photo?.profilePhotos
+        profilePhotos: photo?.profilePhotos,
+        // Используем photo_url из Telegram как fallback, если нет данных из API
+        avatarUrl: photo?.profilePhotoFileId || photo?.profilePhotos 
+          ? undefined 
+          : telegramPhotoUrl
       };
 
       console.log('✅ Информация о пользователе загружена:', combined);
