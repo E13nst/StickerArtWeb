@@ -7,11 +7,30 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// ✅ DEEP OPTIMIZATION: Performance monitoring
+import { performanceMonitor } from './utils/performanceMonitor'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
 )
+
+// ✅ DEEP OPTIMIZATION: Инициализация performance monitoring
+performanceMonitor.initialize();
+
+// Логируем метрики после загрузки
+if (import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const report = performanceMonitor.generateReport();
+      console.log('📊 Performance Report:', report);
+      
+      // TODO: Отправка на бэкенд (раскомментируйте когда endpoint готов)
+      // performanceMonitor.sendReport('/api/analytics/performance');
+    }, 3000); // Ждём 3 секунды чтобы все метрики собрались
+  });
+}
 
 // ✅ P1 OPTIMIZATION: Service Worker для offline-режима и кэширования
 // Регистрируем только в production
