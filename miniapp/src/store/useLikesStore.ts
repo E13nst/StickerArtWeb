@@ -1,26 +1,24 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient } from '../api/client';
-
-interface LikeState {
-  packId: string;
-  isLiked: boolean;
-  likesCount: number;
-  syncing?: boolean;  // Флаг синхронизации с сервером
-  error?: string;     // Ошибка синхронизации
-}
-
-interface PendingLike {
-  packId: string;
-  isLiked: boolean;
-  timestamp: number;
-  retries: number;
-}
+import {
+  LikeState,
+  PendingLike,
+  MIN_REQUEST_INTERVAL,
+  MAX_RETRIES,
+  checkRateLimit,
+  createOptimisticState,
+  createRateLimitErrorState,
+  syncLikeWithServer,
+  clearAllDebounceTimers,
+  resolveLikeState,
+  logStateChange
+} from './likesStoreHelpers';
 
 interface LikesStore {
   likes: Record<string, LikeState>;
-  pendingSync: PendingLike[];  // Очередь для offline синхронизации
-  lastSyncTime: Record<string, number>;  // Последнее время синхронизации для rate limiting
+  pendingSync: PendingLike[];
+  lastSyncTime: Record<string, number>;
   toggleLike: (packId: string) => Promise<void>;
   setLike: (packId: string, isLiked: boolean, likesCount?: number) => void;
   initializeLikes: (stickerSets: Array<{ id: number; likes?: number }>, mergeMode?: boolean) => void;
@@ -35,14 +33,6 @@ interface LikesStore {
 // Версия storage - при изменении будут очищены старые данные
 const STORAGE_VERSION = 3;
 
-// Константы для защиты от DDOS
-const MIN_REQUEST_INTERVAL = 1000; // Минимум 1 секунда между запросами на один стикер
-const MAX_RETRIES = 3; // Максимум попыток повтора при ошибке
-const DEBOUNCE_DELAY = 500; // Задержка debounce перед отправкой на сервер
-
-// Таймеры debounce для каждого стикерсета
-const debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
-
 export const useLikesStore = create<LikesStore>()(
   persist(
     (set, get) => ({
@@ -50,120 +40,62 @@ export const useLikesStore = create<LikesStore>()(
       pendingSync: [],
       lastSyncTime: {},
 
+      // ✅ REFACTORED: Упрощенная версия toggleLike с использованием helpers
       toggleLike: async (packId: string) => {
         const currentState = get().likes[packId];
         const newIsLiked = !currentState?.isLiked;
-        const newLikesCount = (currentState?.likesCount || 0) + (newIsLiked ? 1 : -1);
         const now = Date.now();
-        const lastSync = get().lastSyncTime[packId] || 0;
 
-        // ЗАЩИТА ОТ DDOS: Rate limiting - проверяем минимальный интервал
-        if (now - lastSync < MIN_REQUEST_INTERVAL) {
-          console.warn(`⚠️ Rate limit: слишком частые запросы для ${packId}. Подождите ${MIN_REQUEST_INTERVAL}ms`);
-          // Обновляем UI оптимистично, но не синхронизируем с сервером
+        // Проверка rate limit
+        if (checkRateLimit(packId, get().lastSyncTime)) {
+          console.warn(`⚠️ Rate limit: слишком частые запросы для ${packId}`);
+          
+          const newLikesCount = (currentState?.likesCount || 0) + (newIsLiked ? 1 : -1);
+          const errorState = createRateLimitErrorState(packId, newIsLiked, newLikesCount);
+          
           set((state) => ({
-            likes: {
-              ...state.likes,
-              [packId]: {
-                packId,
-                isLiked: newIsLiked,
-                likesCount: Math.max(0, newLikesCount),
-                syncing: false,
-                error: 'Слишком частые запросы. Подождите немного.'
-              }
-            }
+            likes: { ...state.likes, [packId]: errorState }
           }));
           return;
         }
 
-        // OPTIMISTIC UPDATE: Обновляем UI мгновенно
-        // Обновляем только конкретный packId, не трогая другие
+        // Optimistic update
+        const optimisticState = createOptimisticState(packId, currentState, newIsLiked);
+        
         set((state) => {
-          const oldState = state.likes[packId];
-          const newState = {
-            packId,
-            isLiked: newIsLiked,
-            likesCount: Math.max(0, newLikesCount),
-            syncing: true,
-            error: undefined
-          };
-          
-          // Логируем только если состояние действительно изменилось
-          if (!oldState || 
-              oldState.isLiked !== newState.isLiked || 
-              oldState.likesCount !== newState.likesCount) {
-            console.log(`🔄 [${packId}] Optimistic update:`, {
-              from: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : 'new',
-              to: { isLiked: newState.isLiked, likesCount: newState.likesCount }
-            });
-          }
+          logStateChange(packId, 'optimistic', state.likes[packId], optimisticState);
           
           return {
-            likes: {
-              ...state.likes,
-              [packId]: newState
-            },
-            lastSyncTime: {
-              ...state.lastSyncTime,
-              [packId]: now
-            }
+            likes: { ...state.likes, [packId]: optimisticState },
+            lastSyncTime: { ...state.lastSyncTime, [packId]: now }
           };
         });
 
-        // DEBOUNCE: Очищаем предыдущий таймер и создаем новый
-        if (debounceTimers[packId]) {
-          clearTimeout(debounceTimers[packId]);
-        }
-
-        debounceTimers[packId] = setTimeout(async () => {
-          try {
-            // Синхронизация с сервером (PUT /toggle автоматически определяет действие)
-            const response = await apiClient.toggleLike(parseInt(packId));
-
-            // Бывают случаи (dev, прокси, неустановленные заголовки), когда сервер
-            // возвращает неверный isLiked (false) при корректном обновлении счётчика.
-            // Чтобы не мигало сердце, в течение короткого окна доверяем локальному
-            // состоянию newIsLiked, если оно расходится с ответом.
-            const serverIsLiked = response.isLiked;
-            const finalIsLiked = serverIsLiked === newIsLiked ? serverIsLiked : newIsLiked;
-            if (serverIsLiked !== newIsLiked) {
-              console.warn(`⚠️ Сервер вернул isLiked=${serverIsLiked} для ${packId}, ожидаем ${newIsLiked}. Сохраняем локальное значение для UX.`);
-            }
-
-            // Обновляем только конкретный packId с актуальными данными с сервера
+        // Debounced server sync
+        syncLikeWithServer(
+          packId,
+          newIsLiked,
+          currentState,
+          // onSuccess
+          (finalIsLiked, likesCount) => {
             set((state) => {
-              const oldState = state.likes[packId];
-              const newState = {
+              const syncedState: LikeState = {
                 packId,
                 isLiked: finalIsLiked,
-                likesCount: Math.max(0, response.totalLikes),
+                likesCount,
                 syncing: false,
                 error: undefined
               };
-              
-              // Логируем только если количество лайков изменилось
-              if (!oldState || oldState.likesCount !== newState.likesCount || oldState.isLiked !== newState.isLiked) {
-                console.log(`✅ [${packId}] Синхронизация с сервером:`, {
-                  serverResponse: response,
-                  oldState: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : null,
-                  newState: { isLiked: newState.isLiked, likesCount: newState.likesCount }
-                });
-              }
-              
+
+              logStateChange(packId, 'sync', state.likes[packId], syncedState);
+
               return {
-                likes: {
-                  ...state.likes,
-                  [packId]: newState
-                }
+                likes: { ...state.likes, [packId]: syncedState }
               };
             });
-          } catch (error) {
-            console.error(`❌ Ошибка синхронизации лайка для ${packId}:`, error);
-
-            // ROLLBACK: Откатываем изменения при ошибке
-            const oldIsLiked = !newIsLiked;
-            const oldLikesCount = (currentState?.likesCount || 0);
-
+          },
+          // onError
+          (error, oldIsLiked, oldLikesCount) => {
             set((state) => ({
               likes: {
                 ...state.likes,
@@ -172,10 +104,9 @@ export const useLikesStore = create<LikesStore>()(
                   isLiked: oldIsLiked,
                   likesCount: oldLikesCount,
                   syncing: false,
-                  error: error instanceof Error ? error.message : 'Ошибка синхронизации'
+                  error: error.message
                 }
               },
-              // Добавляем в очередь для повторной попытки
               pendingSync: [
                 ...state.pendingSync,
                 {
@@ -187,93 +118,58 @@ export const useLikesStore = create<LikesStore>()(
               ]
             }));
           }
-        }, DEBOUNCE_DELAY);
+        );
       },
 
+      // ✅ REFACTORED: Упрощенный setLike
       setLike: (packId: string, isLiked: boolean, likesCount?: number) => {
-        // Обновляем только конкретный packId
         set((state) => {
           const oldState = state.likes[packId];
           const newLikesCount = likesCount ?? (oldState?.likesCount || 0);
-          const newState = {
+          const newState: LikeState = {
             packId,
             isLiked,
             likesCount: newLikesCount
           };
-          
-          // Логируем только если состояние изменилось
-          if (!oldState || 
-              oldState.isLiked !== newState.isLiked || 
-              oldState.likesCount !== newState.likesCount) {
-            console.log(`📝 [${packId}] setLike:`, {
-              from: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : 'new',
-              to: newState
-            });
-          }
-          
+
+          logStateChange(packId, 'setLike', oldState, newState);
+
           return {
-            likes: {
-              ...state.likes,
-              [packId]: newState
-            }
+            likes: { ...state.likes, [packId]: newState }
           };
         });
       },
 
+      // ✅ REFACTORED: Упрощенный initializeLikes с использованием resolveLikeState
       initializeLikes: (stickerSets: Array<{ 
         id: number; 
-        // API возвращает разные названия в разных endpoints
-        likes?: number;              // Старое название
-        likesCount?: number;         // Новое название (GET /stickersets)
-        isLiked?: boolean;           // Старое название
-        isLikedByCurrentUser?: boolean;  // Новое название (GET /stickersets)
+        likes?: number;
+        likesCount?: number;
+        isLiked?: boolean;
+        isLikedByCurrentUser?: boolean;
       }>, mergeMode: boolean = false) => {
-        console.log('🔍 DEBUG initializeLikes: Получено стикерсетов:', stickerSets.length, 'mergeMode:', mergeMode);
+        console.log('🔍 initializeLikes: Получено стикерсетов:', stickerSets.length, 'mergeMode:', mergeMode);
         
         set((state) => {
           const updates = new Map<string, LikeState>();
           const now = Date.now();
           
           stickerSets.forEach(stickerSet => {
-            const apiLikesCount = stickerSet.likesCount ?? stickerSet.likes ?? 0;
             const packId = stickerSet.id.toString();
             const existingState = state.likes[packId];
+            const apiLikesCount = stickerSet.likesCount ?? stickerSet.likes ?? 0;
             const apiIsLiked = stickerSet.isLikedByCurrentUser ?? stickerSet.isLiked;
-            
-            // Защита от перезаписи свежих данных старыми из кэша:
-            // 1. Синхронизация идет - сохраняем локальное
-            // 2. Недавнее изменение (< 10 сек) и API отличается - игнорируем API
-            // 3. Существующая запись старше 10 сек - обновляем из API
-            // 4. Новая запись - создаем из API
-            
             const lastSync = state.lastSyncTime[packId] || 0;
-            const timeSinceSync = now - lastSync;
-            const isRecentChange = timeSinceSync < 10000; // 10 секунд защиты от кэша
-            
-            let isLiked: boolean;
-            let likesCount: number;
-            
-            if (existingState?.syncing) {
-              // Идет синхронизация - сохраняем локальное состояние
-              isLiked = existingState.isLiked;
-              likesCount = existingState.likesCount;
-            } else if (mergeMode && existingState && isRecentChange && apiIsLiked !== undefined && apiIsLiked !== existingState.isLiked) {
-              // Режим слияния + недавнее изменение + конфликт - сохраняем локальное
-              isLiked = existingState.isLiked;
-              likesCount = existingState.likesCount;
-            } else if (apiIsLiked !== undefined) {
-              // API вернул данные - используем их
-              isLiked = apiIsLiked;
-              likesCount = apiLikesCount;
-            } else if (existingState) {
-              // API не вернул данные - сохраняем существующие
-              isLiked = existingState.isLiked;
-              likesCount = existingState.likesCount;
-            } else {
-              // Новая запись
-              isLiked = false;
-              likesCount = apiLikesCount;
-            }
+
+            // Используем helper для определения финального состояния
+            const { isLiked, likesCount } = resolveLikeState({
+              existingState,
+              apiIsLiked,
+              apiLikesCount,
+              lastSyncTime: lastSync,
+              now,
+              mergeMode
+            });
             
             updates.set(packId, {
               packId,
@@ -286,28 +182,22 @@ export const useLikesStore = create<LikesStore>()(
           
           if (updates.size === 0) return state;
           
-          // Логируем только измененные стикерсеты
-          const changedPacks: string[] = [];
-          updates.forEach((newState, id) => {
-            const oldState = state.likes[id];
+          // Логируем изменения
+          let changedCount = 0;
+          updates.forEach((newState, packId) => {
+            const oldState = state.likes[packId];
             if (!oldState || 
                 oldState.isLiked !== newState.isLiked || 
                 oldState.likesCount !== newState.likesCount) {
-              changedPacks.push(id);
+              changedCount++;
             }
           });
           
-          if (changedPacks.length > 0) {
-            console.log(`🔍 initializeLikes: Обновлено ${changedPacks.length} стикерсетов:`, changedPacks);
+          if (changedCount > 0) {
+            console.log(`🔍 initializeLikes: Обновлено ${changedCount} стикерсетов`);
           }
           
-          // В режиме слияния сохраняем все существующие + обновляем новые
-          // Иначе заменяем только те, что в updates
-          const newLikes = mergeMode 
-            ? { ...state.likes, ...Object.fromEntries(updates) }
-            : { ...state.likes, ...Object.fromEntries(updates) };
-          
-          return { likes: newLikes };
+          return { likes: { ...state.likes, ...Object.fromEntries(updates) } };
         });
       },
 
@@ -445,16 +335,14 @@ export const useLikesStore = create<LikesStore>()(
         });
       },
 
+      // ✅ REFACTORED: Упрощенный clearStorage
       clearStorage: () => {
-        // Очищаем все данные о лайках
         set({ 
           likes: {},
           pendingSync: [],
           lastSyncTime: {}
         });
-        
-        // Очищаем debounce таймеры
-        Object.values(debounceTimers).forEach(timer => clearTimeout(timer));
+        clearAllDebounceTimers();
       }
     }),
     {
