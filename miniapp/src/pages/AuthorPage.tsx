@@ -271,8 +271,7 @@ export const AuthorPage: React.FC = () => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    const fileId = profile?.profilePhotoFileId;
-    if (!profile || !fileId) {
+    if (!profile || (!profile.profilePhotoFileId && !profile.profilePhotos)) {
       setAuthorAvatarUrl(null);
       return () => {
         if (objectUrl) {
@@ -288,7 +287,31 @@ export const AuthorPage: React.FC = () => {
         } else {
           apiClient.checkExtensionHeaders();
         }
-        const blob = await apiClient.getSticker(fileId);
+        
+        // Выбираем оптимальный fileId из profilePhotos, если есть
+        let optimalFileId = profile.profilePhotoFileId;
+        if (profile.profilePhotos?.photos?.[0]?.[0]) {
+          const photoSet = profile.profilePhotos.photos[0];
+          const targetSize = 160;
+          let bestPhoto = photoSet.find((p: any) => Math.min(p.width, p.height) >= targetSize);
+          if (!bestPhoto) {
+            bestPhoto = photoSet.reduce((max: any, p: any) => {
+              const maxSize = Math.min(max.width, max.height);
+              const photoSize = Math.min(p.width, p.height);
+              return photoSize > maxSize ? p : max;
+            });
+          }
+          optimalFileId = bestPhoto?.file_id || profile.profilePhotoFileId;
+        }
+
+        if (!optimalFileId) {
+          setAuthorAvatarUrl(null);
+          return;
+        }
+
+        // Используем getUserPhotoBlob вместо getSticker для фото профиля
+        const userId = profile.userId;
+        const blob = await apiClient.getUserPhotoBlob(userId, optimalFileId);
         if (cancelled) {
           return;
         }
@@ -309,7 +332,7 @@ export const AuthorPage: React.FC = () => {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [profile?.profilePhotoFileId, effectiveInitData, user?.language_code]);
+  }, [profile?.profilePhotoFileId, profile?.profilePhotos, profile?.userId, effectiveInitData, user?.language_code]);
 
   const avatarUserInfo = useMemo<UserInfo | null>(() => {
     if (!profile) {

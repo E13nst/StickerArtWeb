@@ -92,6 +92,7 @@ export const MyProfilePage: React.FC = () => {
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
+  const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
 
   // Получаем telegramId текущего пользователя
   const currentUserId = user?.id;
@@ -180,6 +181,13 @@ export const MyProfilePage: React.FC = () => {
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
         
+        // Загружаем фото как blob URL, если есть fileId или profilePhotos
+        if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
+          loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
+        } else {
+          setAvatarBlobUrl(null);
+        }
+        
         // ВАЖНО: Инициализируем лайки из кеша (mergeMode = true для сохранения актуальных лайков)
         if (cached.stickerSets.length > 0) {
           initializeLikes(cached.stickerSets, true);
@@ -221,6 +229,13 @@ export const MyProfilePage: React.FC = () => {
         setUserInfo(cachedUserInfo);
         setUserStickerSets(cached.stickerSets);
         setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
+        
+        // Загружаем фото как blob URL, если есть fileId или profilePhotos
+        if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
+          loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
+        } else {
+          setAvatarBlobUrl(null);
+        }
         
         // ВАЖНО: Инициализируем лайки из кеша с mergeMode = true
         // Это сохраняет актуальные лайки из store, но обновляет данные стикерсетов
@@ -300,6 +315,14 @@ export const MyProfilePage: React.FC = () => {
 
       console.log('✅ Информация о пользователе загружена:', combined);
       setUserInfo(combined as any);
+      
+      // 4) Загружаем фото как blob URL, если есть fileId или profilePhotos
+      if (photo?.profilePhotoFileId || photo?.profilePhotos) {
+        loadAvatarBlob(userProfile.id, photo.profilePhotoFileId, photo.profilePhotos);
+      } else {
+        setAvatarBlobUrl(null);
+      }
+      
       return combined;
     } catch (error: any) {
       // В режиме разработки используем моковые данные вместо показа ошибки
@@ -321,6 +344,41 @@ export const MyProfilePage: React.FC = () => {
       setUserLoading(false);
     }
   };
+
+  // Загрузка фото профиля как blob URL
+  const loadAvatarBlob = useCallback(async (userId: number, fileId?: string, profilePhotos?: any) => {
+    try {
+      // Выбираем оптимальный fileId из profilePhotos, если есть
+      let optimalFileId = fileId;
+      if (profilePhotos?.photos?.[0]?.[0]) {
+        // Используем первое фото из первого набора (текущее фото профиля)
+        const photoSet = profilePhotos.photos[0];
+        // Выбираем фото размером около 160px или самое большое
+        const targetSize = 160;
+        let bestPhoto = photoSet.find((p: any) => Math.min(p.width, p.height) >= targetSize);
+        if (!bestPhoto) {
+          bestPhoto = photoSet.reduce((max: any, p: any) => {
+            const maxSize = Math.min(max.width, max.height);
+            const photoSize = Math.min(p.width, p.height);
+            return photoSize > maxSize ? p : max;
+          });
+        }
+        optimalFileId = bestPhoto?.file_id || fileId;
+      }
+
+      if (!optimalFileId) {
+        setAvatarBlobUrl(null);
+        return;
+      }
+
+      const blob = await apiClient.getUserPhotoBlob(userId, optimalFileId);
+      const objectUrl = URL.createObjectURL(blob);
+      setAvatarBlobUrl(objectUrl);
+    } catch (error) {
+      console.error('❌ Ошибка загрузки фото профиля:', error);
+      setAvatarBlobUrl(null);
+    }
+  }, []);
 
   // Загрузка стикерсетов пользователя
   const loadUserStickerSets = async (userIdParam: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
@@ -658,6 +716,24 @@ export const MyProfilePage: React.FC = () => {
   // Проверка premium статуса
   const isPremium = userInfo ? isUserPremium(userInfo) : false;
 
+  // Обновляем userInfo с blob URL для аватара
+  const userInfoWithAvatar = useMemo(() => {
+    if (!userInfo) return null;
+    return {
+      ...userInfo,
+      avatarUrl: avatarBlobUrl || userInfo.avatarUrl
+    };
+  }, [userInfo, avatarBlobUrl]);
+
+  // Cleanup blob URL при размонтировании
+  useEffect(() => {
+    return () => {
+      if (avatarBlobUrl) {
+        URL.revokeObjectURL(avatarBlobUrl);
+      }
+    };
+  }, [avatarBlobUrl]);
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 
@@ -694,7 +770,7 @@ export const MyProfilePage: React.FC = () => {
                 transform: 'translate(-50%, 50%)',
                 zIndex: 20
               }}>
-                <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
+                <FloatingAvatar userInfo={userInfoWithAvatar || userInfo} size="large" overlap={0} />
               </Box>
             </Box>
           ) : null

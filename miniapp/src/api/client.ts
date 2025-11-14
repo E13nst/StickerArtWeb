@@ -614,6 +614,18 @@ class ApiClient {
     }
   }
 
+  // Загрузка фото профиля как blob: GET /api/users/{userId}/photo?file_id={fileId}
+  async getUserPhotoBlob(userId: number, fileId?: string): Promise<Blob> {
+    let url = `/users/${userId}/photo`;
+    if (fileId) {
+      url += `?file_id=${encodeURIComponent(fileId)}`;
+    }
+    const response = await this.client.get(url, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
   // Получение информации о пользователе по ID (использует новый API /profiles/{userId})
   async getUserInfo(userId: number): Promise<UserInfo> {
     try {

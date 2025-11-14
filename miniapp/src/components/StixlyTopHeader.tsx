@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "../api/client";
+import CollectionsIcon from "@mui/icons-material/Collections";
 
 // Build asset path respecting Vite base (/miniapp/)
 const BASE = (import.meta as any).env?.BASE_URL || "/miniapp/";
@@ -567,191 +568,155 @@ export default function StixlyTopHeader({
                   maxWidth: "clamp(320px, 82%, 640px)",
                   margin: "0 auto",
                   display: "flex",
-                  flexDirection: "row",
+                  flexDirection: "column",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "clamp(16px, 5vw, 38px)",
+                  justifyContent: "center",
+                  gap: "8px",
                   color: "rgba(255,255,255,0.92)",
                   textAlign: "center",
                   paddingLeft: "clamp(6px, 2vw, 14px)",
                   paddingRight: "clamp(6px, 2vw, 14px)",
                 }}
               >
-                <div
+                <span
                   style={{
-                    flex: "0 1 21%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    textAlign: "center",
+                    fontSize: "clamp(20px, 5vw, 28px)",
+                    fontWeight: 700,
+                    letterSpacing: "1px",
+                    color: "rgba(255,255,255,0.96)",
+                    textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    marginBottom: "clamp(12px, 3vw, 20px)",
+                    marginTop: "clamp(-8px, -2vw, -4px)",
+                    textTransform: "uppercase",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "clamp(13px, 3.4vw, 16px)",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      letterSpacing: "1.2px",
-                      color: "rgba(255,255,255,0.7)",
-                    }}
-                  >
-                    Likes
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "clamp(18px, 5vw, 26px)",
-                      fontWeight: 700,
-                      textShadow: "0 2px 12px rgba(0,0,0,0.35)",
-                    }}
-                  >
-                    {formattedTotalLikes}
-                  </span>
+                  СТАТИСТИКА
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "clamp(6px, 2vw, 12px)",
+                    flexWrap: "nowrap",
+                    width: "100%",
+                    paddingLeft: "clamp(4px, 1vw, 8px)",
+                    paddingRight: "clamp(4px, 1vw, 8px)",
+                  }}
+                >
                   <div
                     style={{
+                      position: "relative",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "6px",
-                      padding: "4px 10px",
-                      borderRadius: "999px",
-                      background: "rgba(255,255,255,0.12)",
-                      boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
-                      fontSize: "clamp(11px, 2.6vw, 14px)",
+                      padding: "clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px)",
+                      borderRadius: "10px",
+                      background: "rgba(255, 255, 255, 0.15)",
+                      backdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
+                      fontSize: "clamp(11px, 2.8vw, 16px)",
                       fontWeight: 600,
-                      letterSpacing: "0.6px",
+                      textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      whiteSpace: "nowrap",
+                      flex: "1 1 0",
+                      minWidth: 0,
+                      justifyContent: "center",
+                      overflow: "visible",
                     }}
                   >
-                    <span style={{ fontSize: "1.05em" }}>❤️</span>
-                    <span>{formattedLikesDailyChange}</span>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    flex: "0 1 34%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "clamp(18px, 5vw, 28px)",
-                      fontWeight: 800,
-                      letterSpacing: "2px",
-                      color: "rgba(255,255,255,0.96)",
-                      textTransform: "uppercase",
-                      textShadow: "0 4px 18px rgba(0,0,0,0.28)",
-                    }}
-                  >
-                    DASHBOARD
-                  </span>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: "8px",
-                        flexWrap: "wrap",
-                        justifyContent: "center",
+                    <span 
+                      style={{ 
+                        position: "absolute",
+                        left: "50%",
+                        top: "0",
+                        transform: "translate(-50%, -61.8%)",
+                        fontSize: "clamp(32px, 8vw, 56px)",
+                        opacity: 0.15,
+                        zIndex: 0,
+                        pointerEvents: "none",
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: "clamp(22px, 6vw, 34px)",
-                          fontWeight: 700,
-                          textShadow: "0 2px 12px rgba(0,0,0,0.3)",
-                        }}
-                      >
-                        {formattedTotalPacks}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "clamp(12px, 3.2vw, 16px)",
-                          fontWeight: 500,
-                          textTransform: "uppercase",
-                          letterSpacing: "1.4px",
-                          color: "rgba(255,255,255,0.72)",
-                        }}
-                      >
-                        sets
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "4px 12px",
-                        borderRadius: "999px",
-                        background: "rgba(255,255,255,0.18)",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
-                        fontSize: "clamp(11px, 2.8vw, 14px)",
-                        fontWeight: 600,
-                        letterSpacing: "0.6px",
-                      }}
-                    >
-                      <span style={{ fontSize: "1.1em" }}>📈</span>
-                      <span>{formattedDailyChange}</span>
-                    </div>
+                      ❤️
+                    </span>
+                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(14px, 3.5vw, 20px)", fontWeight: 700 }}>{formattedTotalLikes}</span>
+                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(10px, 2.5vw, 14px)", opacity: 0.9, marginLeft: "3px", fontWeight: 500 }}>({formattedLikesDailyChange})</span>
                   </div>
-                </div>
-                <div
-                  style={{
-                    flex: "0 1 21%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    textAlign: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "clamp(13px, 3.4vw, 16px)",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      letterSpacing: "1.2px",
-                      color: "rgba(255,255,255,0.7)",
-                    }}
-                  >
-                    ART
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "clamp(18px, 5vw, 26px)",
-                      fontWeight: 700,
-                      textShadow: "0 2px 12px rgba(0,0,0,0.35)",
-                    }}
-                  >
-                    {formattedArtTotal}
-                  </span>
                   <div
                     style={{
+                      position: "relative",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "6px",
-                      padding: "4px 10px",
-                      borderRadius: "999px",
-                      background: "rgba(255,255,255,0.12)",
-                      boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
-                      fontSize: "clamp(11px, 2.6vw, 14px)",
+                      padding: "clamp(7px, 1.8vw, 11px) clamp(9px, 2.2vw, 13px)",
+                      borderRadius: "10px",
+                      background: "rgba(255, 255, 255, 0.15)",
+                      backdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
+                      fontSize: "clamp(12px, 3.2vw, 18px)",
                       fontWeight: 600,
-                      letterSpacing: "0.6px",
+                      textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      whiteSpace: "nowrap",
+                      flex: "1 1 0",
+                      minWidth: 0,
+                      justifyContent: "center",
+                      overflow: "visible",
                     }}
                   >
-                    <span style={{ fontSize: "1.05em" }}>🪙</span>
-                    <span>{formattedArtDailyChange}</span>
+                    <CollectionsIcon 
+                      sx={{ 
+                        position: "absolute",
+                        left: "50%",
+                        top: "0",
+                        transform: "translate(-50%, -61.8%)",
+                        fontSize: "clamp(32px, 8vw, 56px)",
+                        opacity: 0.15,
+                        zIndex: 0,
+                        pointerEvents: "none",
+                        color: "rgba(255, 255, 255, 0.95)",
+                      }} 
+                    />
+                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(15px, 4vw, 22px)", fontWeight: 700 }}>{formattedTotalPacks}</span>
+                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(11px, 2.8vw, 16px)", opacity: 0.9, marginLeft: "3px", fontWeight: 500 }}>({formattedDailyChange})</span>
+                  </div>
+                  <div
+                    style={{
+                      position: "relative",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px)",
+                      borderRadius: "10px",
+                      background: "rgba(255, 255, 255, 0.15)",
+                      backdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255, 255, 255, 0.2)",
+                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
+                      fontSize: "clamp(11px, 2.8vw, 16px)",
+                      fontWeight: 600,
+                      textShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      whiteSpace: "nowrap",
+                      flex: "1 1 0",
+                      minWidth: 0,
+                      justifyContent: "center",
+                      overflow: "visible",
+                    }}
+                  >
+                    <span 
+                      style={{ 
+                        position: "absolute",
+                        left: "50%",
+                        top: "0",
+                        transform: "translate(-50%, -61.8%)",
+                        fontSize: "clamp(32px, 8vw, 56px)",
+                        opacity: 0.15,
+                        zIndex: 0,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      🪙
+                    </span>
+                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(14px, 3.5vw, 20px)", fontWeight: 700 }}>{formattedArtTotal}</span>
+                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(10px, 2.5vw, 14px)", opacity: 0.9, marginLeft: "3px", fontWeight: 500 }}>({formattedArtDailyChange})</span>
                   </div>
                 </div>
               </div>
