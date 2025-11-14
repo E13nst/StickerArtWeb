@@ -119,12 +119,12 @@ export const getOptimalAvatarFileId = (
 };
 
 /**
- * Генерирует URL для загрузки аватара пользователя через /api/users/{userId}/photo
+ * Генерирует URL для загрузки аватара пользователя через sticker-processor
  * @param userId - ID пользователя (обязательно для фото профиля)
  * @param fileId - file_id фотографии профиля из Telegram (опционально)
  * @param profilePhotos - Опциональный массив фотографий для выбора оптимального размера
  * @param targetSize - Целевой размер в пикселях (по умолчанию 160)
- * @returns URL для загрузки изображения через /api/users/{userId}/photo
+ * @returns URL для загрузки изображения через sticker-processor (/stickers/{fileId}?file=true)
  */
 export const getAvatarUrl = (
   userId: number | undefined,
@@ -142,15 +142,15 @@ export const getAvatarUrl = (
     ? getOptimalAvatarFileId(profilePhotos, targetSize)
     : fileId;
 
-  // Если нет fileId и нет profilePhotos, возвращаем undefined
-  // (API не вернет фото без file_id)
-  if (!optimalFileId && !profilePhotos) {
+  // Если нет fileId, возвращаем undefined
+  // Аватарки должны загружаться через sticker-processor, для этого нужен fileId
+  if (!optimalFileId) {
     return undefined;
   }
 
-  // Используем /api/users/{userId}/photo вместо /stickers/{fileId}
-  // Если optimalFileId есть, передаем его как параметр, иначе API вернет основное фото
-  const url = buildProfilePhotoUrl(userId, optimalFileId);
+  // ✅ FIX: Используем sticker-processor для загрузки аватара (как для стикеров)
+  // URL будет /stickers/{fileId}?file=true (через buildStickerUrl)
+  const url = buildStickerUrl(optimalFileId, { file: true });
   
   // Логирование только в dev режиме
   // @ts-ignore - import.meta.env определен в vite-env.d.ts

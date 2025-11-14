@@ -250,6 +250,7 @@ class ApiClient {
     options?: {
       categoryKeys?: string[]; // Фильтр по категориям (массив ключей)
       authorId?: number;
+      userId?: number;          // Фильтр по пользователю (Telegram ID)
       hasAuthorOnly?: boolean;
       officialOnly?: boolean;
       likedOnly?: boolean;     // Только лайкнутые
@@ -280,6 +281,10 @@ class ApiClient {
       params.authorId = options.authorId;
     }
 
+    if (typeof options?.userId === 'number') {
+      params.userId = options.userId;
+    }
+
     if (typeof options?.hasAuthorOnly === 'boolean') {
       params.hasAuthorOnly = options.hasAuthorOnly;
     }
@@ -304,8 +309,8 @@ class ApiClient {
   }
 
   async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC'): Promise<StickerSetListResponse> {
-    const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
-      params: { page, size, sort, direction }
+    const response = await this.client.get<StickerSetListResponse>('/stickersets', {
+      params: { authorId, page, size, sort, direction }
     });
     return response.data;
   }
@@ -641,17 +646,17 @@ class ApiClient {
     }
   }
 
-  // Загрузка фото профиля как blob: GET /api/users/{userId}/photo?file_id={fileId}
+  // Загрузка фото профиля как blob: через sticker-processor (как для стикеров)
   async getUserPhotoBlob(userId: number, fileId?: string): Promise<Blob> {
     if (!fileId) {
       throw new Error('fileId is required for getUserPhotoBlob');
     }
     
     // ✅ FIX: Используем sticker-processor для загрузки изображения
-    // Точно так же как для стикеров: /stickers/{fileId}?file=true
-    const url = `/stickers/${encodeURIComponent(fileId)}?file=true`;
+    // Точно так же как для стикеров: используем buildStickerUrl напрямую с axios
+    const url = buildStickerUrl(fileId, { file: true });
     
-    const response = await this.client.get(url, {
+    const response = await axios.get(url, {
       responseType: 'blob'
     });
     return response.data;
@@ -765,8 +770,8 @@ class ApiClient {
     direction: 'ASC' | 'DESC' = 'DESC'
   ): Promise<StickerSetListResponse> {
     try {
-      const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
-        params: { page, size, sort, direction }
+      const response = await this.client.get<StickerSetListResponse>('/stickersets', {
+        params: { userId, page, size, sort, direction }
       });
       return response.data;
     } catch (error) {
