@@ -208,7 +208,11 @@ export const MyProfilePage: React.FC = () => {
       // Если не удалось загрузить профиль, выходим
       if (!loadedProfile?.id) {
         console.error('❌ Не удалось получить ID пользователя');
-        setError('Не удалось загрузить профиль пользователя');
+        // ✅ Используем setUserError чтобы показать ошибку в UI
+        // (error не показывается, только userError)
+        if (!userError) {
+          setUserError('Не удалось загрузить профиль пользователя');
+        }
         return;
       }
 
@@ -234,7 +238,8 @@ export const MyProfilePage: React.FC = () => {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки профиля';
-      setError(errorMessage);
+      // ✅ Используем setUserError чтобы показать ошибку в UI
+      setUserError(errorMessage);
       console.error('❌ Ошибка загрузки профиля:', error);
     } finally {
       setLoading(false);
