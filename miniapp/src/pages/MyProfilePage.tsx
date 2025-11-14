@@ -162,52 +162,11 @@ export const MyProfilePage: React.FC = () => {
     console.log('🔍 MyProfilePage: Текущий пользователь:', user);
     console.log('🔍 MyProfilePage: initData:', initData ? `${initData.length} chars` : 'empty');
     
-    // Если нет валидного пользователя, используем моковые данные для разработки
-    // НЕ кэшируем моковые данные - они только для разработки
-    if (!currentUserId) {
-      console.log('🔧 Режим разработки: используем моковые данные');
-      setUserInfo(mockUserInfo as any);
-      setUserStickerSets(mockStickerSets);
-      setPagination(0, 1, mockStickerSets.length);
-      return;
-    }
-
-    // Проверяем кэш, но игнорируем моковые данные
-    if (isCacheValid(currentUserId)) {
-      const cached = getCachedProfile(currentUserId);
-      // Проверяем, что это НЕ моковые данные (Иван Иванов)
-      if (cached && cached.userInfo.firstName !== 'Иван' && cached.userInfo.username !== 'ivan_ivanov') {
-        console.log('📦 Профиль уже в кэше, используем его');
-        // Используем photo_url из Telegram как fallback, если в кэше нет фото
-        const cachedUserInfo = {
-          ...cached.userInfo,
-          avatarUrl: cached.userInfo.avatarUrl || 
-                     (cached.userInfo.profilePhotoFileId || cached.userInfo.profilePhotos 
-                       ? undefined 
-                       : user?.photo_url)
-        };
-        setUserInfo(cachedUserInfo);
-        setUserStickerSets(cached.stickerSets);
-        setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
-        
-        // Загружаем фото как blob URL, если есть fileId или profilePhotos
-        if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
-          loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
-        } else {
-          setAvatarBlobUrl(null);
-        }
-        
-        // ВАЖНО: Инициализируем лайки из кеша (mergeMode = true для сохранения актуальных лайков)
-        if (cached.stickerSets.length > 0) {
-          initializeLikes(cached.stickerSets, true);
-        }
-        return;
-      } else if (cached && (cached.userInfo.firstName === 'Иван' || cached.userInfo.username === 'ivan_ivanov')) {
-        console.log('🗑️ Обнаружены моковые данные в кэше, очищаем и загружаем реальные');
-        // Очищаем моковые данные
-        reset();
-      }
-    }
+    // ✅ УПРОЩЕНО: Удалена проверка кэша из useEffect
+    // Проблема: если в кэше были старые моковые данные (ivan_ivanov),
+    // они загружались и делался return, не вызывая loadMyProfile() для получения реальных данных
+    // 
+    // Теперь loadMyProfile() сам решает использовать кэш или нет
 
     // Настраиваем заголовки: initData либо заголовки расширения в dev
     if (initData) {
@@ -233,35 +192,48 @@ export const MyProfilePage: React.FC = () => {
       if (cachedKeys.length > 0) {
         try {
           const cachedData = JSON.parse(localStorage.getItem(cachedKeys[0]) || '{}');
+          
+          // ✅ ВАЖНО: Проверяем что это НЕ моковые данные (Иван Иванов)
           if (cachedData.userInfo) {
-            console.log(`📦 Загрузка моего профиля из кэша`);
-            const cachedUserInfo = {
-              ...cachedData.userInfo,
-              avatarUrl: cachedData.userInfo.avatarUrl || 
-                         (cachedData.userInfo.profilePhotoFileId || cachedData.userInfo.profilePhotos 
-                           ? undefined 
-                           : user?.photo_url)
-            };
-            setUserInfo(cachedUserInfo);
-            setUserStickerSets(cachedData.stickerSets || []);
-            setPagination(
-              cachedData.pagination?.currentPage || 0,
-              cachedData.pagination?.totalPages || 1,
-              cachedData.pagination?.totalElements || 0
-            );
-            
-            // Загружаем фото как blob URL
-            if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
-              loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
+            const isMockData = 
+              cachedData.userInfo.firstName === 'Иван' || 
+              cachedData.userInfo.username === 'ivan_ivanov' ||
+              cachedData.userInfo.username === 'mockuser';
+              
+            if (isMockData) {
+              console.log('🗑️ Обнаружены моковые данные в кэше, пропускаем и загружаем с сервера');
+              // Очищаем моковые данные из кэша
+              localStorage.removeItem(cachedKeys[0]);
             } else {
-              setAvatarBlobUrl(null);
+              console.log(`📦 Загрузка моего профиля из кэша`);
+              const cachedUserInfo = {
+                ...cachedData.userInfo,
+                avatarUrl: cachedData.userInfo.avatarUrl || 
+                           (cachedData.userInfo.profilePhotoFileId || cachedData.userInfo.profilePhotos 
+                             ? undefined 
+                             : user?.photo_url)
+              };
+              setUserInfo(cachedUserInfo);
+              setUserStickerSets(cachedData.stickerSets || []);
+              setPagination(
+                cachedData.pagination?.currentPage || 0,
+                cachedData.pagination?.totalPages || 1,
+                cachedData.pagination?.totalElements || 0
+              );
+              
+              // Загружаем фото как blob URL
+              if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
+                loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
+              } else {
+                setAvatarBlobUrl(null);
+              }
+              
+              // Инициализируем лайки из кеша с mergeMode = true
+              if (cachedData.stickerSets && cachedData.stickerSets.length > 0) {
+                initializeLikes(cachedData.stickerSets, true);
+              }
+              return;
             }
-            
-            // Инициализируем лайки из кеша с mergeMode = true
-            if (cachedData.stickerSets && cachedData.stickerSets.length > 0) {
-              initializeLikes(cachedData.stickerSets, true);
-            }
-            return;
           }
         } catch (e) {
           console.warn('Ошибка чтения кэша:', e);
