@@ -540,37 +540,38 @@ class ApiClient {
   // ============ МЕТОДЫ ДЛЯ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ ============
 
   // Получение профиля пользователя по userId: GET /api/profiles/{userId}
+  // Вспомогательная функция для маппинга ProfileResponse → UserInfo
+  private mapProfileToUserInfo(data: ProfileResponse): UserInfo {
+    return {
+      id: data.userId,
+      telegramId: data.userId,
+      username: data.user.username,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      avatarUrl: undefined,
+      role: data.role,
+      artBalance: data.artBalance,
+      createdAt: data.user.createdAt,
+      updatedAt: data.user.updatedAt,
+      telegramUserInfo: {
+        user: {
+          id: data.userId,
+          is_bot: false,
+          first_name: data.user.firstName || '',
+          last_name: data.user.lastName || '',
+          username: data.user.username || '',
+          language_code: data.user.languageCode || '',
+          is_premium: !!data.user.isPremium
+        },
+        status: 'ok'
+      }
+    };
+  }
+
   async getProfile(userId: number): Promise<UserInfo> {
     try {
       const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
-      const data = response.data;
-      
-      // Маппинг новой структуры ответа в UserInfo
-      const mapped: UserInfo = {
-        id: data.userId,
-        telegramId: data.userId,
-        username: data.user.username,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        avatarUrl: undefined,
-        role: data.role,
-        artBalance: data.artBalance,
-        createdAt: data.user.createdAt,
-        updatedAt: data.user.updatedAt,
-        telegramUserInfo: {
-          user: {
-            id: data.userId,
-            is_bot: false,
-            first_name: data.user.firstName || '',
-            last_name: data.user.lastName || '',
-            username: data.user.username || '',
-            language_code: data.user.languageCode || '',
-            is_premium: !!data.user.isPremium
-          },
-          status: 'ok'
-        }
-      };
-      return mapped;
+      return this.mapProfileToUserInfo(response.data);
     } catch (error) {
       console.warn('⚠️ API недоступен, используем мок данные для профиля');
       // Фоллбек к мокам при девелопменте вне Telegram
@@ -593,19 +594,17 @@ class ApiClient {
     return response.data;
   }
 
-  // Профиль текущего пользователя (роль, баланс): GET /api/profiles/me
-  async getMyProfile(): Promise<{ role: string; artBalance: number; userId: number } | null> {
-    try {
-      const response = await this.client.get<any>('/profiles/me');
-      const data = response.data;
-      return {
-        role: data.role,
-        artBalance: data.artBalance,
-        userId: data.userId
-      };
-    } catch (error) {
-      return null;
-    }
+  // ✅ REFACTORED: Профиль текущего пользователя через /api/profiles/me
+  // Возвращает UserInfo для единообразия с getProfile(userId)
+  async getMyProfile(): Promise<UserInfo> {
+    const response = await this.client.get<ProfileResponse>('/profiles/me');
+    return this.mapProfileToUserInfo(response.data);
+  }
+
+  // Получить raw ProfileResponse текущего пользователя (если нужен полный ответ)
+  async getMyProfileRaw(): Promise<ProfileResponse> {
+    const response = await this.client.get<ProfileResponse>('/profiles/me');
+    return response.data;
   }
 
   // Фото профиля: GET /api/users/{userId}/photo

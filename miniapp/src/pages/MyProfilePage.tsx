@@ -102,8 +102,9 @@ export const MyProfilePage: React.FC = () => {
   // Отдельное состояние для загрузки следующей страницы "Мои" (аналогично GalleryPage)
   const [isLoadingMorePublished, setIsLoadingMorePublished] = useState(false);
 
-  // Получаем telegramId текущего пользователя
-  const currentUserId = user?.id;
+  // ✅ REFACTORED: Больше не зависим от user.id из Telegram
+  // currentUserId будет получен из /api/profiles/me
+  const currentUserId = userInfo?.id;
 
   // Моковые данные для разработки (когда нет валидной initData)
   const mockUserId = 777000;
@@ -215,60 +216,72 @@ export const MyProfilePage: React.FC = () => {
       apiClient.checkExtensionHeaders();
     }
 
-    loadMyProfile(currentUserId);
+    // ✅ REFACTORED: Загружаем профиль без параметров (используется /api/profiles/me)
+    loadMyProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId]);
+  }, []);
 
-  // Загрузка своего профиля с кэшированием
-  const loadMyProfile = async (telegramId: number, forceReload: boolean = false) => {
-    // Проверяем кэш
-    if (!forceReload && isCacheValid(telegramId)) {
-      const cached = getCachedProfile(telegramId);
-      if (cached) {
-        console.log(`📦 Загрузка моего профиля из кэша`);
-        // Используем photo_url из Telegram как fallback, если в кэше нет фото
-        const cachedUserInfo = {
-          ...cached.userInfo,
-          avatarUrl: cached.userInfo.avatarUrl || 
-                     (cached.userInfo.profilePhotoFileId || cached.userInfo.profilePhotos 
-                       ? undefined 
-                       : user?.photo_url)
-        };
-        setUserInfo(cachedUserInfo);
-        setUserStickerSets(cached.stickerSets);
-        setPagination(cached.pagination.currentPage, cached.pagination.totalPages, cached.pagination.totalElements);
-        
-        // Загружаем фото как blob URL, если есть fileId или profilePhotos
-        if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
-          loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
-        } else {
-          setAvatarBlobUrl(null);
+  // ✅ REFACTORED: Загрузка своего профиля через /api/profiles/me с кэшированием
+  const loadMyProfile = async (forceReload: boolean = false) => {
+    // Для кэширования используем специальный ключ 'me' вместо telegramId
+    const cacheKey = 'me';
+    
+    // Проверяем кэш (по ключу 'me')
+    if (!forceReload) {
+      // Попытаемся получить из кэша любой профиль (обычно там только один)
+      const cachedKeys = Object.keys(localStorage).filter(k => k.startsWith('profile_cache_'));
+      if (cachedKeys.length > 0) {
+        try {
+          const cachedData = JSON.parse(localStorage.getItem(cachedKeys[0]) || '{}');
+          if (cachedData.userInfo) {
+            console.log(`📦 Загрузка моего профиля из кэша`);
+            const cachedUserInfo = {
+              ...cachedData.userInfo,
+              avatarUrl: cachedData.userInfo.avatarUrl || 
+                         (cachedData.userInfo.profilePhotoFileId || cachedData.userInfo.profilePhotos 
+                           ? undefined 
+                           : user?.photo_url)
+            };
+            setUserInfo(cachedUserInfo);
+            setUserStickerSets(cachedData.stickerSets || []);
+            setPagination(
+              cachedData.pagination?.currentPage || 0,
+              cachedData.pagination?.totalPages || 1,
+              cachedData.pagination?.totalElements || 0
+            );
+            
+            // Загружаем фото как blob URL
+            if (cachedUserInfo.profilePhotoFileId || cachedUserInfo.profilePhotos) {
+              loadAvatarBlob(cachedUserInfo.id || cachedUserInfo.telegramId, cachedUserInfo.profilePhotoFileId, cachedUserInfo.profilePhotos);
+            } else {
+              setAvatarBlobUrl(null);
+            }
+            
+            // Инициализируем лайки из кеша с mergeMode = true
+            if (cachedData.stickerSets && cachedData.stickerSets.length > 0) {
+              initializeLikes(cachedData.stickerSets, true);
+            }
+            return;
+          }
+        } catch (e) {
+          console.warn('Ошибка чтения кэша:', e);
         }
-        
-        // ВАЖНО: Инициализируем лайки из кеша с mergeMode = true
-        // Это сохраняет актуальные лайки из store, но обновляет данные стикерсетов
-        if (cached.stickerSets.length > 0) {
-          initializeLikes(cached.stickerSets, true);
-        }
-        return;
       }
     }
     
     // Загружаем с сервера
-    console.log(`🌐 Загрузка моего профиля с сервера`);
+    console.log(`🌐 Загрузка моего профиля с сервера через /api/profiles/me`);
     setLoading(true);
     
     try {
-      console.log('🔍 Загрузка профиля пользователя с Telegram ID:', telegramId);
-      
       let loadedProfile: any = null;
       try {
-        loadedProfile = await loadUserInfo(telegramId);
+        loadedProfile = await loadUserInfo();
       } catch (profileError) {
         console.error('Ошибка загрузки пользователя:', profileError);
       }
 
-      const targetUserId = (typeof loadedProfile?.id === 'number' ? loadedProfile.id : telegramId) || mockUserId;
+      const targetUserId = loadedProfile?.id || mockUserId;
 
       try {
         await loadUserStickerSets(targetUserId, undefined, 0, false, sortByLikes);
@@ -284,8 +297,9 @@ export const MyProfilePage: React.FC = () => {
         totalElements: useProfileStore.getState().totalElements
       };
       
-      if (currentUserInfo && currentStickerSets) {
-        setCachedProfile(telegramId, currentUserInfo, currentStickerSets, currentPagination);
+      // Кэшируем по userId который вернул сервер
+      if (currentUserInfo && currentStickerSets && currentUserInfo.id) {
+        setCachedProfile(currentUserInfo.id, currentUserInfo, currentStickerSets, currentPagination);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки профиля';
@@ -296,16 +310,17 @@ export const MyProfilePage: React.FC = () => {
     }
   };
 
-  // Загрузка информации о текущем пользователе (+ профиль + фото)
-  const loadUserInfo = async (telegramId: number) => {
+  // ✅ REFACTORED: Загрузка информации о текущем пользователе через /api/profiles/me
+  const loadUserInfo = async () => {
     setUserLoading(true);
     setUserError(null);
 
     try {
-      // 1) получаем полный профиль через новый API /profiles/{userId}
-      const userProfile = await apiClient.getProfile(telegramId);
+      // 1) Получаем профиль текущего пользователя через /api/profiles/me
+      console.log('🔍 Загрузка профиля текущего пользователя через /api/profiles/me');
+      const userProfile = await apiClient.getMyProfile();
 
-      // 2) фото профиля /users/{id}/photo (404 -> null)
+      // 2) Фото профиля /users/{id}/photo (404 -> null)
       const photo = await apiClient.getUserPhoto(userProfile.id);
 
       // 3) Fallback: используем photo_url из Telegram WebApp, если API не вернул фото
@@ -321,7 +336,7 @@ export const MyProfilePage: React.FC = () => {
           : telegramPhotoUrl
       };
 
-      console.log('✅ Информация о пользователе загружена:', combined);
+      console.log('✅ Информация о текущем пользователе загружена:', combined);
       setUserInfo(combined as any);
       
       // 4) Загружаем фото как blob URL, если есть fileId или profilePhotos
@@ -1232,9 +1247,9 @@ export const MyProfilePage: React.FC = () => {
         open={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onComplete={async () => {
-          if (currentUserId) {
-            await loadMyProfile(currentUserId, true);
-            const refreshedUserId = useProfileStore.getState().userInfo?.id ?? currentUserId;
+          // ✅ REFACTORED: Обновляем профиль без параметров
+          await loadMyProfile(true);
+          const refreshedUserId = useProfileStore.getState().userInfo?.id;
             await loadUserStickerSets(refreshedUserId, searchTerm || undefined, 0, false, sortByLikes);
           }
         }}
