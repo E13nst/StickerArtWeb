@@ -565,6 +565,7 @@ export const ProfilePage: React.FC = () => {
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     enablePreloading={true}
+                    usePageScroll={true}
                   />
                 </div>
               )}

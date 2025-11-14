@@ -49,6 +49,18 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
 
   // Обновление ширины контейнера
   useEffect(() => {
+    // Если scrollContainerRef равен null, используем window для измерения
+    if (!scrollContainerRef) {
+      const updateMetrics = () => {
+        setContainerWidth(window.innerWidth || 400);
+        setMeasuredHeight(window.innerHeight || containerHeight);
+      };
+
+      updateMetrics();
+      window.addEventListener('resize', updateMetrics);
+      return () => window.removeEventListener('resize', updateMetrics);
+    }
+
     const node = getContainerNode();
     if (!node) return;
 
@@ -67,7 +79,7 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
 
     window.addEventListener('resize', updateMetrics);
     return () => window.removeEventListener('resize', updateMetrics);
-  }, [containerHeight, getContainerNode]);
+  }, [containerHeight, getContainerNode, scrollContainerRef]);
 
   // Вычисляем видимые элементы
   const visibleRange = useMemo(() => {
@@ -88,6 +100,17 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   }, [scrollTop, packs.length, itemHeight, overscan, containerWidth, measuredHeight]);
 
   useEffect(() => {
+    // Если scrollContainerRef равен null, используем скролл страницы
+    if (!scrollContainerRef) {
+      const handleScroll = () => {
+        setScrollTop(window.scrollY || document.documentElement.scrollTop);
+      };
+
+      handleScroll();
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+
     const node = getContainerNode();
     if (!node) return;
 
@@ -96,13 +119,15 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     handleScroll();
     node.addEventListener('scroll', handleScroll, { passive: true });
     return () => node.removeEventListener('scroll', handleScroll);
-  }, [getContainerNode]);
+  }, [getContainerNode, scrollContainerRef]);
 
   // Пагинация: sentinel внутри scroll-контейнера
   useEffect(() => {
-    const root = getContainerNode();
     const sentinel = sentinelRef.current;
-    if (!root || !sentinel || !hasNextPage || isLoadingMore) return;
+    if (!sentinel || !hasNextPage || isLoadingMore) return;
+
+    // Если scrollContainerRef равен null, используем window как root
+    const root = scrollContainerRef ? getContainerNode() : null;
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -115,7 +140,7 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     );
     io.observe(sentinel);
     return () => io.disconnect();
-  }, [getContainerNode, hasNextPage, isLoadingMore, onLoadMore]);
+  }, [getContainerNode, hasNextPage, isLoadingMore, onLoadMore, scrollContainerRef]);
 
   // Рендерим только видимые элементы
   const visiblePacks = packs.slice(visibleRange.startIndex, visibleRange.endIndex);
@@ -154,7 +179,10 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     </div>
   );
 
-  if (scrollContainerRef) {
+  // Если scrollContainerRef передан, используем его (внешний контейнер)
+  // Если scrollContainerRef равен null, используем скролл страницы (не создаем контейнер)
+  // Если scrollContainerRef не передан, создаем свой контейнер со скроллом
+  if (scrollContainerRef !== undefined) {
     return content;
   }
 

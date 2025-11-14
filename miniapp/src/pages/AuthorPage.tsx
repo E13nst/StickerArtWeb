@@ -599,6 +599,7 @@ export const AuthorPage: React.FC = () => {
               isLoadingMore={isLoadingMore}
               onLoadMore={hasNextPage ? handleLoadMore : undefined}
               enablePreloading={true}
+              usePageScroll={true}
             />
           </div>
         )}

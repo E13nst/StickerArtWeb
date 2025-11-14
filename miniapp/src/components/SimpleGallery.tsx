@@ -31,6 +31,8 @@ interface SimpleGalleryProps {
   controlsElement?: React.ReactNode;
   // Спиннер во время обновления данных без скрытия панели
   isRefreshing?: boolean;
+  // Использовать скролл страницы вместо собственного скролла галереи
+  usePageScroll?: boolean;
 }
 
 export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
@@ -43,7 +45,8 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
   onLoadMore,
   addButtonElement,
   controlsElement,
-  isRefreshing = false
+  isRefreshing = false,
+  usePageScroll = false
 }) => {
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -152,39 +155,48 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
 
   // Сохраняем позицию скролла перед обновлением данных
   useEffect(() => {
-    if (containerRef.current && isLoadingMore) {
-      scrollPositionRef.current = containerRef.current.scrollTop;
+    if (isLoadingMore) {
+      if (usePageScroll) {
+        scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+      } else if (containerRef.current) {
+        scrollPositionRef.current = containerRef.current.scrollTop;
+      }
     }
-  }, [isLoadingMore]);
+  }, [isLoadingMore, usePageScroll]);
 
   // Восстанавливаем позицию скролла после загрузки
   useEffect(() => {
-    if (containerRef.current && !isLoadingMore && scrollPositionRef.current > 0) {
+    if (!isLoadingMore && scrollPositionRef.current > 0) {
       // Используем requestAnimationFrame для плавного восстановления
       requestAnimationFrame(() => {
-        if (containerRef.current) {
+        if (usePageScroll) {
+          window.scrollTo(0, scrollPositionRef.current);
+        } else if (containerRef.current) {
           containerRef.current.scrollTop = scrollPositionRef.current;
         }
       });
     }
-  }, [isLoadingMore, packs.length]);
+  }, [isLoadingMore, packs.length, usePageScroll]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const container = containerRef.current;
-    if (!sentinel || !container || !hasNextPage || isLoadingMore) {
+    if (!sentinel || !hasNextPage || isLoadingMore) {
       if (!sentinel) console.log('🔍 InfiniteScroll: sentinel не найден');
-      if (!container) console.log('🔍 InfiniteScroll: container не найден');
       if (!hasNextPage) console.log('🔍 InfiniteScroll: нет следующей страницы');
       if (isLoadingMore) console.log('🔍 InfiniteScroll: уже загружается');
       return;
     }
 
+    // Если используем скролл страницы, используем window/document как root
+    const rootElement = usePageScroll ? null : container;
+
     console.log('🔍 InfiniteScroll: настройка IntersectionObserver', {
       hasNextPage,
       isLoadingMore,
-      containerHeight: container.clientHeight,
-      containerScrollHeight: container.scrollHeight
+      usePageScroll,
+      containerHeight: container?.clientHeight,
+      containerScrollHeight: container?.scrollHeight
     });
 
     const observer = new IntersectionObserver(
@@ -199,14 +211,16 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
         if (entry.isIntersecting && hasNextPage && !isLoadingMore && onLoadMore) {
           console.log('✅ InfiniteScroll: загрузка следующей страницы');
           // Сохраняем позицию скролла перед загрузкой
-          if (containerRef.current) {
+          if (usePageScroll) {
+            scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+          } else if (containerRef.current) {
             scrollPositionRef.current = containerRef.current.scrollTop;
           }
           onLoadMore();
         }
       },
       {
-        root: container, // Важно: указываем контейнер как root для наблюдения внутри скроллируемой области
+        root: rootElement, // null для window, или container для внутреннего скролла
         rootMargin: '100px',
         threshold: 0.1
       }
@@ -217,33 +231,57 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [hasNextPage, isLoadingMore, onLoadMore]);
+  }, [hasNextPage, isLoadingMore, onLoadMore, usePageScroll]);
 
   useEffect(() => {
-    const node = containerRef.current;
-    if (!node) {
-      return;
-    }
+    if (usePageScroll) {
+      // Используем скролл страницы
+      const onScrollDirection = () => {
+        const current = window.scrollY || document.documentElement.scrollTop;
+        if (current > lastScrollTopRef.current && current > 40) {
+          setHideControls(true);
+        } else if (current < lastScrollTopRef.current) {
+          setHideControls(false);
+        }
+        lastScrollTopRef.current = current;
+      };
 
-    const onScrollDirection = () => {
-      const current = node.scrollTop;
-      if (current > lastScrollTopRef.current && current > 40) {
-        setHideControls(true);
-      } else if (current < lastScrollTopRef.current) {
-        setHideControls(false);
+      window.addEventListener('scroll', onScrollDirection, { passive: true });
+
+      return () => {
+        window.removeEventListener('scroll', onScrollDirection);
+      };
+    } else {
+      // Используем скролл контейнера
+      const node = containerRef.current;
+      if (!node) {
+        return;
       }
-      lastScrollTopRef.current = current;
-    };
 
-    node.addEventListener('scroll', onScrollDirection, { passive: true });
+      const onScrollDirection = () => {
+        const current = node.scrollTop;
+        if (current > lastScrollTopRef.current && current > 40) {
+          setHideControls(true);
+        } else if (current < lastScrollTopRef.current) {
+          setHideControls(false);
+        }
+        lastScrollTopRef.current = current;
+      };
 
-    return () => {
-      node.removeEventListener('scroll', onScrollDirection);
-    };
-  }, []);
+      node.addEventListener('scroll', onScrollDirection, { passive: true });
+
+      return () => {
+        node.removeEventListener('scroll', onScrollDirection);
+      };
+    }
+  }, [usePageScroll]);
 
   // Ленивая загрузка при скролле (для локального отображения)
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (usePageScroll) {
+      // При использовании скролла страницы эта функция не вызывается
+      return;
+    }
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
     
@@ -251,7 +289,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     if (!hasNextPage && isNearBottom && visibleCount < packs.length) {
       setVisibleCount(prev => Math.min(prev + batchSize, packs.length));
     }
-  }, [visibleCount, packs.length, batchSize, hasNextPage]);
+  }, [visibleCount, packs.length, batchSize, hasNextPage, usePageScroll]);
 
   // Видимые паки - показываем все если есть пагинация
   const visiblePacks = useMemo(() => 
@@ -293,9 +331,14 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
     return (
       <div
         ref={containerRef}
-        className="gallery-scroll"
+        className={usePageScroll ? "" : "gallery-scroll"}
         data-testid="gallery-container"
-        style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }}
+        style={{ 
+          width: '100%', 
+          flex: '1 1 auto', 
+          minHeight: 0,
+          ...(usePageScroll ? {} : {})
+        }}
       >
         {renderOverlay}
         {isRefreshing && <LoadingSpinner message="Обновление..." />}
@@ -308,7 +351,7 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
             hasNextPage={hasNextPage}
             isLoadingMore={isLoadingMore}
             onLoadMore={onLoadMore}
-            scrollContainerRef={containerRef}
+            scrollContainerRef={usePageScroll ? null : containerRef}
           />
         </div>
       </div>
@@ -336,8 +379,8 @@ export const SimpleGallery: React.FC<SimpleGalleryProps> = ({
       `}</style>
       <div
         ref={containerRef}
-        onScroll={handleScroll}
-        className="gallery-scroll"
+        onScroll={usePageScroll ? undefined : handleScroll}
+        className={usePageScroll ? "" : "gallery-scroll"}
         style={{
           width: '100%',
           flex: '1 1 auto',
