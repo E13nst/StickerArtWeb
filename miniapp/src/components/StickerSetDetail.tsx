@@ -27,6 +27,7 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { StickerThumbnail } from './StickerThumbnail';
 import { useLikesStore } from '@/store/useLikesStore';
 import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAsGallerySticker } from '@/utils/animationLoader';
+import { LoadPriority } from '@/utils/imageLoader';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
 import { imageCache } from '@/utils/galleryUtils';
@@ -453,13 +454,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     for (let i = 0; i < stickersToPreload.length; i += batchSize) {
       const batch = stickersToPreload.slice(i, i + batchSize);
       
-      // Загружаем батч параллельно
+      // Загружаем батч параллельно с максимальным приоритетом для модального окна
       const batchPromises = batch.map((sticker) => {
         const imageUrl = getStickerImageUrl(sticker.file_id);
         return prefetchSticker(sticker.file_id, imageUrl, {
           isAnimated: Boolean(sticker.is_animated || sticker.isAnimated),
           isVideo: Boolean(sticker.is_video || sticker.isVideo),
-          markForGallery: true
+          markForGallery: true,
+          priority: LoadPriority.TIER_0_MODAL // Максимальный приоритет для модального окна
         }).catch(() => {
           // Игнорируем ошибки отдельных стикеров
         });
@@ -602,7 +604,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       prefetchSticker(currentSticker.file_id, getStickerImageUrl(currentSticker.file_id), {
         isAnimated: Boolean(currentSticker.is_animated || currentSticker.isAnimated),
         isVideo: Boolean(currentSticker.is_video || currentSticker.isVideo),
-        markForGallery: true
+        markForGallery: true,
+        priority: LoadPriority.TIER_0_MODAL // Максимальный приоритет для текущего стикера в модальном окне
       }).catch(() => {});
     }
   }, [activeIndex, stickers, isModal]);

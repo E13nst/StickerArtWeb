@@ -13,6 +13,8 @@ interface UseStickerRotationProps {
   stickerSources?: Array<{ fileId: string; url: string; isAnimated?: boolean }>;
   // Минимальное время показа стикера (по умолчанию 2 секунды)
   minDisplayDuration?: number;
+  // Приоритет загрузки для следующего стикера (для видимых карточек)
+  loadPriority?: number;
 }
 
 export const useStickerRotation = ({
@@ -22,7 +24,8 @@ export const useStickerRotation = ({
   isHovered = false,
   isVisible = true,
   stickerSources,
-  minDisplayDuration = 2000 // Минимум 2 секунды показа
+  minDisplayDuration = 2000, // Минимум 2 секунды показа
+  loadPriority = 1 // По умолчанию низкий приоритет (TIER_4_BACKGROUND)
 }: UseStickerRotationProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentIndexRef = useRef(0);
@@ -116,9 +119,10 @@ export const useStickerRotation = ({
         }
       }
       
-      // Пробуем загрузить если нет в кеше
+      // Пробуем загрузить если нет в кеше с указанным приоритетом
+      // Для видимых карточек используется более высокий приоритет
       try {
-        await imageLoader.loadImage(fileId, url, 1);
+        await imageLoader.loadImage(fileId, url, loadPriority);
         
         // После загрузки через imageLoader, проверяем реальную готовность
         if (isAnimated) {
@@ -236,7 +240,7 @@ export const useStickerRotation = ({
         if (nextSrc) {
           const isReady = await waitForStickerReady(nextSrc.fileId, nextSrc.url, nextSrc.isAnimated, 6000);
           // Логируем для отладки
-          if (import.meta.env.DEV) {
+          if ((import.meta as any).env?.DEV) {
             console.log(`🎨 Next sticker ${nextIdx} ready: ${isReady}`, nextSrc.fileId);
           }
           
@@ -272,7 +276,7 @@ export const useStickerRotation = ({
       }
       switchingRef.current = false;
     };
-  }, [stickersCount, isVisible, isHovered, autoRotateInterval, hoverRotateInterval, stickerSources, isStickerReady]);
+  }, [stickersCount, isVisible, isHovered, autoRotateInterval, hoverRotateInterval, stickerSources, isStickerReady, loadPriority]);
 
   // Ручное управление
   const goToNext = useCallback(() => {

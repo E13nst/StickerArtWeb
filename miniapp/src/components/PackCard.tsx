@@ -36,11 +36,21 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
 
-  // Предзагрузка первого стикера фоном для всех карточек
+  // Предзагрузка первого стикера с максимальным приоритетом для видимых карточек
   useEffect(() => {
     if (pack.previewStickers.length > 0) {
       const firstSticker = pack.previewStickers[0];
-      const priority = isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE;
+      
+      // Для видимых карточек используем максимальный приоритет
+      // Для невидимых - стандартный приоритет
+      let priority: LoadPriority;
+      if (isNear) {
+        // Видимая карточка - максимальный приоритет
+        priority = isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE;
+      } else {
+        // Невидимая карточка - более низкий приоритет, но все равно загружаем первый стикер
+        priority = isHighPriority ? LoadPriority.TIER_2_FIRST_IMAGE : LoadPriority.TIER_3_ADDITIONAL;
+      }
 
       if (firstSticker.isVideo) {
         // Для видео пропускаем прелоадер изображений, сразу отмечаем готовность
@@ -51,7 +61,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       // Загружаем изображение и JSON если анимация
       imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority)
         .then(() => {
-          console.log(`✅ First sticker ready for pack ${pack.id}`);
+          if ((import.meta as any).env?.DEV) {
+            console.log(`✅ First sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
+          }
           setIsFirstStickerReady(true);
           
           // Prefetch JSON для анимаций
@@ -66,32 +78,52 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           setIsFirstStickerReady(true); // Показываем даже если ошибка
         });
     }
-  }, [pack.id, pack.previewStickers, isHighPriority]);
+  }, [pack.id, pack.previewStickers, isHighPriority, isNear]);
 
-  // Предзагрузка остальных стикеров фоном только когда карточка рядом с viewport
+  // Предзагрузка остальных стикеров ТОЛЬКО для видимых карточек с высоким приоритетом
+  // Для невидимых карточек не загружаем дополнительные стикеры - экономим запросы
   useEffect(() => {
-    if (pack.previewStickers.length > 0 && isNear) {
-      for (let i = 1; i < pack.previewStickers.length; i++) {
-        const sticker = pack.previewStickers[i];
-
-        if (sticker.isVideo) {
-          continue;
-        }
-        imageLoader.loadImage(sticker.fileId, sticker.url, LoadPriority.TIER_4_BACKGROUND)
-          .then(() => {
-            // Prefetch JSON для анимаций
-            if (sticker.isAnimated) {
-              prefetchAnimation(sticker.fileId, sticker.url).then(() => {
-                markAsGalleryAnimation(sticker.fileId);
-              }).catch(() => {});
-            }
-          })
-          .catch(() => {}); // Игнорируем ошибки для фоновых стикеров
-      }
+    // Загружаем только если карточка видима и есть стикеры для ротации
+    if (pack.previewStickers.length <= 1 || !isNear) {
+      return; // Не загружаем дополнительные стикеры для невидимых карточек
     }
-  }, [pack.id, pack.previewStickers, isNear]);
+
+    // Для видимых карточек загружаем 2-й и 3-й стикеры с высоким приоритетом
+    // Это критично для плавной ротации
+    for (let i = 1; i < Math.min(pack.previewStickers.length, 3); i++) {
+      const sticker = pack.previewStickers[i];
+
+      if (sticker.isVideo) {
+        continue;
+      }
+
+      // Используем высокий приоритет для видимых карточек (TIER_2 или TIER_3)
+      // Это гарантирует, что стикеры для ротации загрузятся быстро
+      const priority = isHighPriority 
+        ? LoadPriority.TIER_2_FIRST_IMAGE  // Для первых 6 паков - TIER_2
+        : LoadPriority.TIER_3_ADDITIONAL;  // Для остальных видимых - TIER_3
+
+      imageLoader.loadImage(sticker.fileId, sticker.url, priority)
+        .then(() => {
+          // Prefetch JSON для анимаций
+          if (sticker.isAnimated) {
+            prefetchAnimation(sticker.fileId, sticker.url).then(() => {
+              markAsGalleryAnimation(sticker.fileId);
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {
+          // Игнорируем ошибки, но не блокируем ротацию
+        });
+    }
+  }, [pack.id, pack.previewStickers, isNear, isHighPriority]);
 
   // Используем хук для управления ротацией стикеров
+  // Для видимых карточек используем высокий приоритет загрузки следующего стикера
+  const rotationLoadPriority = isNear 
+    ? (isHighPriority ? LoadPriority.TIER_2_FIRST_IMAGE : LoadPriority.TIER_3_ADDITIONAL)
+    : LoadPriority.TIER_4_BACKGROUND;
+
   const { currentIndex: currentStickerIndex } = useStickerRotation({
     stickersCount: pack.previewStickers.length,
     autoRotateInterval: 2333,
@@ -99,7 +131,8 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     isHovered,
     isVisible: isNear,
     stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url, isAnimated: s.isAnimated })),
-    minDisplayDuration: 2000
+    minDisplayDuration: 2000,
+    loadPriority: rotationLoadPriority
   });
 
   // useStickerRotation гарантирует готовность стикера перед переключением индекса

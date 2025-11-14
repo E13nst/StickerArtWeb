@@ -1,4 +1,5 @@
 import { imageCache } from './galleryUtils';
+import { imageLoader, LoadPriority } from './imageLoader';
 
 // Глобальный кеш для Lottie анимаций (shared с AnimatedSticker)
 const animationCache = new Map<string, any>();
@@ -77,45 +78,58 @@ export const prefetchAnimation = async (fileId: string, url: string): Promise<vo
 export const prefetchSticker = async (
   fileId: string,
   url: string,
-  options: { isAnimated?: boolean; isVideo?: boolean; markForGallery?: boolean } = {}
+  options: { 
+    isAnimated?: boolean; 
+    isVideo?: boolean; 
+    markForGallery?: boolean;
+    priority?: LoadPriority; // Приоритет загрузки через imageLoader
+  } = {}
 ): Promise<void> => {
-  const { isAnimated = false, isVideo = false, markForGallery = false } = options;
+  const { 
+    isAnimated = false, 
+    isVideo = false, 
+    markForGallery = false,
+    priority = LoadPriority.TIER_4_BACKGROUND // По умолчанию низкий приоритет
+  } = options;
 
   if (markForGallery) {
     markAsGallerySticker(fileId);
   }
 
+  // Для анимаций используем prefetchAnimation (загружает JSON)
   if (isAnimated) {
     return prefetchAnimation(fileId, url);
   }
 
+  // Для обычных изображений используем imageLoader с приоритетами
   if (!isVideo) {
-    if (stickerBlobCache.has(fileId)) {
+    // Проверяем кеш imageLoader (он уже может быть загружен)
+    const cached = imageCache.get(fileId);
+    if (cached) {
+      // Если есть в кеше imageLoader, сохраняем в stickerBlobCache для совместимости
+      if (!stickerBlobCache.has(fileId)) {
+        setStickerBlob(fileId, cached, 'image');
+      }
       return;
     }
-    if (stickerPrefetchInFlight.has(fileId)) {
-      return stickerPrefetchInFlight.get(fileId)!;
-    }
 
-    const task = (async () => {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) return;
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setStickerBlob(fileId, objectUrl, 'image');
-        imageCache.set(fileId, objectUrl);
-      } catch {
-        // ignore
-      } finally {
-        stickerPrefetchInFlight.delete(fileId);
+    // Используем imageLoader с указанным приоритетом
+    try {
+      const loadedUrl = await imageLoader.loadImage(fileId, url, priority);
+      // Сохраняем в stickerBlobCache для совместимости со старым кодом
+      if (!stickerBlobCache.has(fileId)) {
+        setStickerBlob(fileId, loadedUrl, 'image');
       }
-    })();
-
-    stickerPrefetchInFlight.set(fileId, task);
-    return task;
+    } catch (error) {
+      // Игнорируем ошибки загрузки
+      if ((import.meta as any).env?.DEV) {
+        console.warn(`Failed to prefetch sticker ${fileId}:`, error);
+      }
+    }
+    return;
   }
 
+  // Для видео используем старую логику (blob)
   if (stickerBlobCache.has(fileId)) {
     return;
   }
