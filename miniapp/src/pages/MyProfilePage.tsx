@@ -124,7 +124,15 @@ export const MyProfilePage: React.FC = () => {
     }
 
     // ✅ REFACTORED: Загружаем профиль без параметров (используется /api/profiles/me)
-    loadMyProfile();
+    // Оборачиваем в async для перехвата ошибок
+    (async () => {
+      try {
+        await loadMyProfile();
+      } catch (error) {
+        // Ошибка уже обработана в loadMyProfile и установлена в userError
+        console.log('🔍 Ошибка при загрузке профиля перехвачена в useEffect');
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -282,7 +290,8 @@ export const MyProfilePage: React.FC = () => {
       
       setUserError(errorMessage);
       setUserInfo(null);
-      throw error;
+      // ❌ НЕ пробрасываем ошибку дальше, чтобы не крашить компонент
+      return null;
     } finally {
       setUserLoading(false);
     }
