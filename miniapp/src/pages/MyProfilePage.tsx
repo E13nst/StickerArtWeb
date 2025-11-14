@@ -97,6 +97,8 @@ export const MyProfilePage: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
+  // Отдельное состояние для загрузки следующей страницы "Мои" (аналогично GalleryPage)
+  const [isLoadingMorePublished, setIsLoadingMorePublished] = useState(false);
 
   // Получаем telegramId текущего пользователя
   const currentUserId = user?.id;
@@ -386,7 +388,11 @@ export const MyProfilePage: React.FC = () => {
 
   // Загрузка стикерсетов пользователя
   const loadUserStickerSets = async (userIdParam: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
-    setStickerSetsLoading(true);
+    if (append) {
+      setIsLoadingMorePublished(true);
+    } else {
+      setStickerSetsLoading(true);
+    }
     setStickerSetsError(null);
 
     const resolvedUserId =
@@ -401,17 +407,24 @@ export const MyProfilePage: React.FC = () => {
         const filteredContent = response.content || [];
         
         if (append) {
-          // Используем функциональное обновление для получения актуального состояния
-          setUserStickerSets(prev => response.number === 0 ? filteredContent : getUniqueAppended(prev, filteredContent));
+          // Добавляем новые стикерсеты к существующим (как в GalleryPage)
+          setUserStickerSets(prev => getUniqueAppended(prev, filteredContent));
         } else {
+          // Заменяем все стикерсеты
           setUserStickerSets(filteredContent);
         }
         
+        // Инициализируем лайки из API данных (как в GalleryPage)
         if (filteredContent.length > 0) {
-          initializeLikes(filteredContent);
+          initializeLikes(filteredContent, append);
         }
         
-        setPagination(response.number, response.totalPages, response.totalElements);
+        // Обновляем информацию о пагинации (как в GalleryPage)
+        setPagination(
+          response.number ?? page,
+          response.totalPages ?? 0,
+          response.totalElements ?? 0
+        );
         return;
       }
       
@@ -427,8 +440,10 @@ export const MyProfilePage: React.FC = () => {
         hasNextPage: response.number < response.totalPages - 1
       });
       
+      // Инициализируем лайки из API данных
+      // При загрузке дополнительных страниц используем mergeMode=true для защиты от перезаписи (как в GalleryPage)
       if (filteredContent.length > 0) {
-        initializeLikes(filteredContent);
+        initializeLikes(filteredContent, append);
       }
       
       let finalContent = filteredContent;
@@ -441,13 +456,19 @@ export const MyProfilePage: React.FC = () => {
       }
       
       if (append) {
-        // Используем функциональное обновление для получения актуального состояния
-        setUserStickerSets(prev => response.number === 0 ? finalContent : getUniqueAppended(prev, finalContent));
+        // Добавляем новые стикерсеты к существующим (как в GalleryPage)
+        setUserStickerSets(prev => getUniqueAppended(prev, finalContent));
       } else {
+        // Заменяем все стикерсеты
         setUserStickerSets(finalContent);
       }
       
-      setPagination(response.number, response.totalPages, response.totalElements);
+      // Обновляем информацию о пагинации (как в GalleryPage)
+      setPagination(
+        response.number ?? page,
+        response.totalPages ?? 0,
+        response.totalElements ?? 0
+      );
     } catch (error: any) {
       // В режиме разработки используем моковые данные вместо показа ошибки
       if (error?.response?.status === 401 || !isInTelegramApp) {
@@ -469,7 +490,11 @@ export const MyProfilePage: React.FC = () => {
         throw error;
       }
     } finally {
-      setStickerSetsLoading(false);
+      if (append) {
+        setIsLoadingMorePublished(false);
+      } else {
+        setStickerSetsLoading(false);
+      }
     }
   };
 
@@ -545,6 +570,7 @@ export const MyProfilePage: React.FC = () => {
       
       // Инициализируем лайки из серверных данных
       // Важно: все стикерсеты из likedOnly должны быть лайкнуты
+      // При загрузке дополнительных страниц используем mergeMode=true для защиты от перезаписи (как в GalleryPage)
       if (serverLikedSets.length > 0) {
         // Убеждаемся, что все стикерсеты помечены как лайкнутые
         const setsWithLikes = serverLikedSets.map(set => ({
@@ -552,7 +578,7 @@ export const MyProfilePage: React.FC = () => {
           isLikedByCurrentUser: true, // Все из likedOnly должны быть лайкнуты
           isLiked: true // Для совместимости со старым API
         }));
-        initializeLikes(setsWithLikes, true);
+        initializeLikes(setsWithLikes, append);
       }
       
       // Обновляем пагинацию
@@ -658,11 +684,7 @@ export const MyProfilePage: React.FC = () => {
 
 
   const handleCreateSticker = () => {
-    if (tg) {
-      tg.openTelegramLink('https://t.me/StickerGalleryBot');
-    } else {
-      window.open('https://t.me/StickerGalleryBot', '_blank');
-    }
+    setIsUploadModalOpen(true);
   };
 
   const handleShareProfile = () => {
@@ -709,13 +731,14 @@ export const MyProfilePage: React.FC = () => {
   };
 
   // Обработчики загрузки следующих страниц (стабильные функции для IntersectionObserver)
+  // Используем логику из GalleryPage: проверяем currentPage < totalPages - 1 && !isLoadingMore
   const handleLoadMorePublished = useCallback(() => {
     // Не загружаем следующую страницу при активном поиске
     if (searchTerm && searchTerm.trim()) {
       console.log('⏸️ Пагинация отключена при поиске');
       return;
     }
-    if (effectiveUserId && !isStickerSetsLoading && currentPage < totalPages - 1) {
+    if (effectiveUserId && !isLoadingMorePublished && currentPage < totalPages - 1) {
       const nextPage = currentPage + 1;
       console.log('📄 Загрузка следующей страницы "Мои":', {
         currentPage,
@@ -727,13 +750,13 @@ export const MyProfilePage: React.FC = () => {
     } else {
       console.log('⏸️ Не загружаем следующую страницу "Мои":', {
         effectiveUserId: !!effectiveUserId,
-        isStickerSetsLoading,
+        isLoadingMorePublished,
         currentPage,
         totalPages,
         hasNextPage: currentPage < totalPages - 1
       });
     }
-  }, [effectiveUserId, currentPage, totalPages, searchTerm, sortByLikes, isStickerSetsLoading, loadUserStickerSets]);
+  }, [effectiveUserId, currentPage, totalPages, searchTerm, sortByLikes, isLoadingMorePublished, loadUserStickerSets]);
 
   const handleLoadMoreLiked = useCallback(() => {
     if (!isLikedLoadingMore && likedCurrentPage < likedTotalPages - 1) {
@@ -1084,7 +1107,7 @@ export const MyProfilePage: React.FC = () => {
                         ? likedCurrentPage < likedTotalPages - 1 
                         : !searchTerm && currentPage < totalPages - 1
                     }
-                    isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isStickerSetsLoading}
+                    isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isLoadingMorePublished}
                     onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
                     enablePreloading={true}
                     usePageScroll={true}
