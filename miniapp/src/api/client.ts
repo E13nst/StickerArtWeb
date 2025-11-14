@@ -618,8 +618,16 @@ class ApiClient {
   // ✅ REFACTORED: Профиль текущего пользователя через /api/profiles/me
   // Возвращает UserInfo для единообразия с getProfile(userId)
   async getMyProfile(): Promise<UserInfo> {
-    const response = await this.client.get<ProfileResponse>('/profiles/me');
-    return this.mapProfileToUserInfo(response.data);
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      '/profiles/me',
+      async () => {
+        const response = await this.client.get<ProfileResponse>('/profiles/me');
+        return this.mapProfileToUserInfo(response.data);
+      },
+      {}, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Получить raw ProfileResponse текущего пользователя (если нужен полный ответ)
@@ -630,20 +638,28 @@ class ApiClient {
 
   // Фото профиля: GET /api/users/{userId}/photo
   async getUserPhoto(userId: number): Promise<{ profilePhotoFileId?: string; profilePhotos?: any } | null> {
-    try {
-      const response = await this.client.get<any>(`/users/${userId}/photo`);
-      const data = response.data;
-      return {
-        profilePhotoFileId: data.profilePhotoFileId,
-        profilePhotos: data.profilePhotos
-      };
-    } catch (error: any) {
-      // 404 — нет фото
-      if (error?.response?.status === 404) {
-        return null;
-      }
-      throw error;
-    }
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/users/${userId}/photo`,
+      async () => {
+        try {
+          const response = await this.client.get<any>(`/users/${userId}/photo`);
+          const data = response.data;
+          return {
+            profilePhotoFileId: data.profilePhotoFileId,
+            profilePhotos: data.profilePhotos
+          };
+        } catch (error: any) {
+          // 404 — нет фото
+          if (error?.response?.status === 404) {
+            return null;
+          }
+          throw error;
+        }
+      },
+      { userId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Загрузка фото профиля как blob: через sticker-processor (как для стикеров)
@@ -656,10 +672,18 @@ class ApiClient {
     // Точно так же как для стикеров: используем buildStickerUrl напрямую с axios
     const url = buildStickerUrl(fileId, { file: true });
     
-    const response = await axios.get(url, {
-      responseType: 'blob'
-    });
-    return response.data;
+    // ✅ FIX: Используем дедупликацию запросов для предотвращения двойной загрузки
+    return requestDeduplicator.fetch(
+      url,
+      async () => {
+        const response = await axios.get(url, {
+          responseType: 'blob'
+        });
+        return response.data;
+      },
+      { fileId, userId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем blob (TTL 5 минут)
+    );
   }
 
   // Получение информации о пользователе по ID (использует новый API /profiles/{userId})

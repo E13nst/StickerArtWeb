@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -101,6 +101,10 @@ export const MyProfilePage: React.FC = () => {
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   // Отдельное состояние для загрузки следующей страницы "Мои" (аналогично GalleryPage)
   const [isLoadingMorePublished, setIsLoadingMorePublished] = useState(false);
+  // ✅ FIX: Отслеживаем текущий загружаемый fileId для предотвращения дублирования
+  const loadingAvatarFileIdRef = useRef<string | null>(null);
+  // ✅ FIX: Флаг для предотвращения повторных вызовов loadMyProfile из-за React.StrictMode
+  const isProfileLoadingRef = useRef(false);
 
   // ✅ REFACTORED: Больше не зависим от user.id из Telegram
   // currentUserId будет получен из /api/profiles/me
@@ -109,6 +113,12 @@ export const MyProfilePage: React.FC = () => {
   useEffect(() => {
     console.log('🔍 MyProfilePage: Текущий пользователь:', user);
     console.log('🔍 MyProfilePage: initData:', initData ? `${initData.length} chars` : 'empty');
+    
+    // ✅ FIX: Защита от повторных вызовов из-за React.StrictMode в dev режиме
+    if (isProfileLoadingRef.current) {
+      console.log('🔍 MyProfilePage: Загрузка профиля уже выполняется, пропускаем');
+      return;
+    }
     
     // ✅ УПРОЩЕНО: Удалена проверка кэша из useEffect
     // Проблема: если в кэше были старые моковые данные (ivan_ivanov),
@@ -122,6 +132,9 @@ export const MyProfilePage: React.FC = () => {
     } else {
       apiClient.checkExtensionHeaders();
     }
+
+    // Устанавливаем флаг загрузки
+    isProfileLoadingRef.current = true;
 
     // ✅ REFACTORED: Загружаем профиль без параметров (используется /api/profiles/me)
     // Оборачиваем в async для перехвата ошибок
@@ -304,9 +317,10 @@ export const MyProfilePage: React.FC = () => {
 
   // Загрузка фото профиля как blob URL
   const loadAvatarBlob = useCallback(async (userId: number, fileId?: string, profilePhotos?: any) => {
+    // Выбираем оптимальный fileId из profilePhotos, если есть
+    let optimalFileId = fileId;
+    
     try {
-      // Выбираем оптимальный fileId из profilePhotos, если есть
-      let optimalFileId = fileId;
       if (profilePhotos?.photos?.[0]?.[0]) {
         // Используем первое фото из первого набора (текущее фото профиля)
         const photoSet = profilePhotos.photos[0];
@@ -328,14 +342,34 @@ export const MyProfilePage: React.FC = () => {
         return;
       }
 
-      const blob = await apiClient.getUserPhotoBlob(userId, optimalFileId);
-      const objectUrl = URL.createObjectURL(blob);
-      setAvatarBlobUrl(objectUrl);
+      // ✅ FIX: Проверяем, не загружается ли уже аватар с таким же fileId
+      if (loadingAvatarFileIdRef.current === optimalFileId) {
+        console.log('📸 Аватар уже загружается, пропускаем повторную загрузку');
+        return;
+      }
+
+      // Устанавливаем флаг загрузки
+      loadingAvatarFileIdRef.current = optimalFileId;
+
+      try {
+        const blob = await apiClient.getUserPhotoBlob(userId, optimalFileId);
+        const objectUrl = URL.createObjectURL(blob);
+        setAvatarBlobUrl(objectUrl);
+      } finally {
+        // Сбрасываем флаг после загрузки
+        if (loadingAvatarFileIdRef.current === optimalFileId) {
+          loadingAvatarFileIdRef.current = null;
+        }
+      }
     } catch (error) {
       console.error('❌ Ошибка загрузки фото профиля:', error);
       setAvatarBlobUrl(null);
+      // Сбрасываем флаг при ошибке
+      if (loadingAvatarFileIdRef.current === optimalFileId) {
+        loadingAvatarFileIdRef.current = null;
+      }
     }
-  }, []);
+  }, []); // Не добавляем avatarBlobUrl в зависимости, используем ref для отслеживания
 
   // Загрузка стикерсетов пользователя
   const loadUserStickerSets = async (userIdParam: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
