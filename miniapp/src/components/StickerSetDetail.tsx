@@ -295,6 +295,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [likeAnim, setLikeAnim] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const [authorUsername, setAuthorUsername] = useState<string | null>(null);
   const [isMainLoaded, setIsMainLoaded] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
@@ -985,8 +986,77 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     );
   }
 
+  const handleOutsidePreviewClick = useCallback((event: React.MouseEvent) => {
+    if (!isModal) return;
+    
+    // Проверяем, был ли клик вне области большого превью
+    if (previewRef.current && !previewRef.current.contains(event.target as Node)) {
+      onBack();
+    }
+  }, [isModal, onBack]);
+
+  const { tg } = useTelegram();
+  const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  // Предотвращаем закрытие Mini App при свайпе внутри модального окна
+  useEffect(() => {
+    if (!isModal || !modalContentRef.current) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const touchTarget = e.target as HTMLElement;
+      // Сохраняем начальную позицию только если касание внутри модального окна
+      if (modalContentRef.current && modalContentRef.current.contains(touchTarget)) {
+        touchStartYRef.current = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchStartYRef.current || !modalContentRef.current) return;
+
+      const touchTarget = e.target as HTMLElement;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartYRef.current;
+      
+      // Проверяем, что касание происходит внутри контента модального окна
+      if (modalContentRef.current.contains(touchTarget)) {
+        // Если свайп вверх (deltaY < 0) и он достаточно большой, предотвращаем закрытие Mini App
+        if (deltaY < -20) { // Порог 20px для предотвращения случайных срабатываний
+          // Предотвращаем закрытие Mini App
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Вызываем expand() для предотвращения сворачивания
+          if (tg && typeof tg.expand === 'function') {
+            tg.expand();
+          }
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      touchStartYRef.current = null;
+    };
+
+    // Используем capture phase для перехвата событий до их обработки Telegram
+    document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true });
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: true, capture: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      document.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      document.removeEventListener('touchend', handleTouchEnd, { capture: true });
+      document.removeEventListener('touchcancel', handleTouchEnd, { capture: true });
+    };
+  }, [isModal, tg]);
+
   return (
-    <Box sx={{ 
+    <Box 
+      ref={modalContentRef}
+      onClick={handleOutsidePreviewClick}
+      sx={{ 
       height: isModal ? 'auto' : '100vh', 
       overflow: 'hidden', 
       display: 'flex', 
@@ -996,6 +1066,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       gap: 'var(--tg-spacing-3)',
       padding: 'var(--tg-spacing-4)',
       backgroundColor: 'transparent', // Делаем фон полностью прозрачным
+      touchAction: 'pan-y', // Разрешаем только вертикальный скролл
       animation: 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
       '@keyframes modalContentSlideIn': {
         '0%': {
@@ -1012,7 +1083,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       {stickerCount > 0 && (
         <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <Box 
+            ref={previewRef}
             key={stickers[activeIndex]?.file_id || `preview-${activeIndex}`}
+            onClick={(e) => e.stopPropagation()}
             sx={{
             position: 'relative',
             width: 'min(82vw, 44vh)',
@@ -1117,6 +1190,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       <Box sx={{ width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
         <Box
           ref={scrollerRef}
+          onClick={(e) => e.stopPropagation()}
           sx={{
             width: 'min(92vw, 720px)',
             display: 'flex',
@@ -1169,6 +1243,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       {/* Информация о наборе: полупрозрачная карточка как превью стикеров */}
       <Card 
         className="sticker-detail-info-card"
+        onClick={(e) => e.stopPropagation()}
         sx={{ 
           width: 'min(92vw, 720px)', 
           marginTop: 'var(--tg-spacing-3)', 

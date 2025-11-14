@@ -123,7 +123,18 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
         },
       }}
     >
-      {children}
+      <Box
+        sx={{
+          touchAction: 'pan-y', // Разрешаем только вертикальный скролл внутри контента
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {children}
+      </Box>
     </Box>
   );
 };

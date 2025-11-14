@@ -470,7 +470,7 @@ export default function StixlyTopHeader({
 
   const headerContent = isProfileMode && activeProfileMode ? (
     <div
-      className="stixlytopheader stixly-top-header stixly-top-header--profile"
+      className="stixly-top-header stixly-top-header--profile"
       style={{
         position: "relative",
         width: "100%",
@@ -504,7 +504,7 @@ export default function StixlyTopHeader({
     </div>
   ) : (
     <div
-      className="stixlytopheader stixly-top-header"
+      className="stixly-top-header"
       style={{
         position: "relative",
         width: "100%",
@@ -841,10 +841,10 @@ export default function StixlyTopHeader({
     : current.bg;
 
   return (
-    <header id="stixlytopheader" className="stixlytopheader" role="banner" style={{ width: "100%" }}>
+    <div style={{ position: "relative", width: "100%" }}>
       {headerContent}
       {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
-    </header>
+    </div>
   );
 }
 
