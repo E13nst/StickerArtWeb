@@ -41,7 +41,10 @@ export const GalleryPage: React.FC = () => {
     setPagination,
   } = useStickerStore();
   const { checkAuth } = useAuth();
-  const { initializeLikes, syncPendingLikes, resetPendingSync } = useLikesStore();
+  // ✅ FIX: Используем selectors для предотвращения пересоздания функций
+  const initializeLikes = useLikesStore(state => state.initializeLikes);
+  const syncPendingLikes = useLikesStore(state => state.syncPendingLikes);
+  const resetPendingSync = useLikesStore(state => state.resetPendingSync);
 
   // Категории стикеров (загружаются с API)
   const [categories, setCategories] = useState<Category[]>([]);

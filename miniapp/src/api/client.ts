@@ -273,13 +273,17 @@ class ApiClient {
     }
     
     // ✅ P1 OPTIMIZATION: Request deduplication для предотвращения дублирующихся запросов
+    // ⚠️ FIX: Запросы с likedOnly не кэшируем (они часто меняются)
+    const shouldSkipCache = options?.likedOnly === true;
+    
     return requestDeduplicator.fetch(
       `/stickersets`,
       async () => {
         const response = await this.client.get<StickerSetListResponse>('/stickersets', { params });
         return response.data;
       },
-      params
+      params,
+      { skipCache: shouldSkipCache }
     );
   }
 

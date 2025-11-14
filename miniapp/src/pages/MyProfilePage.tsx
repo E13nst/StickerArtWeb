@@ -65,12 +65,13 @@ export const MyProfilePage: React.FC = () => {
     clearCache,
     reset
   } = useProfileStore();
-  const { initializeLikes } = useLikesStore();
+  // ✅ FIX: Используем selector для предотвращения пересоздания функции на каждом рендере
+  const initializeLikes = useLikesStore(state => state.initializeLikes);
   
   // Подписываемся на изменения лайков для перезагрузки списка "понравившиеся"
   const likedIdsHash = useLikesStore((state) => {
     return Object.entries(state.likes)
-      .filter(([_, likeState]) => likeState.isLiked)
+      .filter(([_, likeState]: [string, any]) => likeState.isLiked)
       .map(([id]) => id)
       .sort()
       .join(',');

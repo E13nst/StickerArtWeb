@@ -60,7 +60,8 @@ export const ProfilePage: React.FC = () => {
     isCacheValid,
     reset
   } = useProfileStore();
-  const { initializeLikes } = useLikesStore();
+  // ✅ FIX: Используем selector для предотвращения пересоздания функции
+  const initializeLikes = useLikesStore(state => state.initializeLikes);
 
   // Локальное состояние
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');

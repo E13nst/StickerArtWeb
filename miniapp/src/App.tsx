@@ -16,7 +16,8 @@ const AuthorPage = lazy(() => import('@/pages/AuthorPage').then(m => ({ default:
 const NftSoonPage = lazy(() => import('@/pages/NftSoonPage').then(m => ({ default: m.NftSoonPage })));
 
 const App: React.FC = () => {
-  const { clearStorage } = useLikesStore();
+  // ✅ FIX: Используем selector для предотвращения пересоздания функции
+  const clearStorage = useLikesStore(state => state.clearStorage);
   const initializeCurrentUser = useProfileStore((state) => state.initializeCurrentUser);
   const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
   const { initData, user } = useTelegram();

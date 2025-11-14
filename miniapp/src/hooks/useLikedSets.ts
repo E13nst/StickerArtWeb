@@ -18,7 +18,8 @@ export function useLikedSets() {
   const [isLoadingLiked, setIsLoadingLiked] = useState(false);
   const [likedError, setLikedError] = useState<string | null>(null);
 
-  const { initializeLikes } = useLikesStore();
+  // ✅ FIX: Используем selector для предотвращения пересоздания функции
+  const initializeLikes = useLikesStore(state => state.initializeLikes);
 
   /**
    * Загружает понравившиеся стикерсеты с сервера
@@ -43,7 +44,7 @@ export function useLikedSets() {
       } else {
         setLikedStickerSets(newSets);
         // Запоминаем ID лайкнутых наборов при первой загрузке
-        const ids = new Set(newSets.map(s => s.id.toString()));
+        const ids: Set<string> = new Set(newSets.map(s => s.id.toString()));
         setOriginalLikedSetIds(ids);
       }
 
@@ -85,7 +86,7 @@ export function useLikedSets() {
     // Множество ID которые сейчас лайкнуты в store
     const currentlyLikedIds = new Set(
       Object.entries(likesState)
-        .filter(([_, state]) => state.isLiked)
+        .filter(([_, state]: [string, any]) => state.isLiked)
         .map(([id]) => id)
     );
 
