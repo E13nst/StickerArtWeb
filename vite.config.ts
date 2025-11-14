@@ -86,6 +86,15 @@ export default defineConfig(({ mode }) => {
         },
       },
       chunkSizeWarningLimit: 1000,
+      
+      // ✅ DEEP OPTIMIZATION: CSS оптимизация
+      cssCodeSplit: true, // Разделяем CSS по chunks (каждый chunk грузит свой CSS)
+      cssMinify: true, // Минификация CSS (по умолчанию esbuild)
+    },
+    
+    // ✅ CSS оптимизация
+    css: {
+      devSourcemap: false, // Отключаем sourcemaps для CSS в dev (быстрее сборка)
     },
     
     server: {
