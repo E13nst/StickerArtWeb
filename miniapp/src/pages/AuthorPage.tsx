@@ -14,6 +14,7 @@ import { StickerSetResponse, ProfileResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { SearchBar } from '../components/SearchBar';
 import { SortButton } from '../components/SortButton';
+import { getAvatarUrl } from '../utils/avatarUtils';
 
 type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
@@ -315,9 +316,15 @@ export const AuthorPage: React.FC = () => {
       return null;
     }
     const base = mapProfileToUserInfo(profile);
+    // Используем загруженный blob URL, или getAvatarUrl с profilePhotos, или undefined
+    const userId = base.id || base.telegramId;
+    const avatarUrl = authorAvatarUrl ?? 
+                      (userId && (base.profilePhotoFileId || base.profilePhotos)
+                        ? getAvatarUrl(userId, base.profilePhotoFileId, base.profilePhotos, 160)
+                        : undefined);
     return {
       ...base,
-      avatarUrl: authorAvatarUrl ?? base.avatarUrl
+      avatarUrl
     };
   }, [profile, authorAvatarUrl]);
 

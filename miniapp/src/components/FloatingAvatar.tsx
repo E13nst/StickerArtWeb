@@ -33,9 +33,10 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
     if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('blob:')) {
       return userInfo.avatarUrl;
     }
-    // Передаем profilePhotos и targetSize для выбора оптимального размера
-    return userInfo.avatarUrl || getAvatarUrl(userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize);
-  }, [userInfo.avatarUrl, userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize]);
+    // Передаем userId, profilePhotos и targetSize для выбора оптимального размера
+    const userId = userInfo.id || userInfo.telegramId;
+    return userInfo.avatarUrl || getAvatarUrl(userId, userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize);
+  }, [userInfo.avatarUrl, userInfo.id, userInfo.telegramId, userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize]);
 
   useEffect(() => {
     setAvatarError(false);

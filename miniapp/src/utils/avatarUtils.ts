@@ -5,6 +5,45 @@ import { buildStickerUrl } from './stickerUtils';
  */
 
 /**
+ * Получает базовый URL API из переменных окружения или использует относительный путь
+ */
+const getApiBaseUrl = (): string => {
+  // @ts-ignore
+  const apiUrl = import.meta.env?.VITE_BACKEND_URL;
+  if (apiUrl) {
+    try {
+      const url = new URL(apiUrl);
+      return url.origin;
+    } catch {
+      return '';
+    }
+  }
+  return '';
+};
+
+/**
+ * Строит URL для получения фото профиля через /api/users/{userId}/photo
+ * @param userId - ID пользователя
+ * @param fileId - file_id фотографии (опционально, если не указан, вернется основное фото)
+ * @returns URL для загрузки фото профиля
+ */
+export const buildProfilePhotoUrl = (userId: number, fileId?: string): string => {
+  if (!userId) {
+    return '';
+  }
+  
+  const baseUrl = getApiBaseUrl();
+  const apiPath = baseUrl ? `${baseUrl}/api` : '/api';
+  const url = `${apiPath}/users/${userId}/photo`;
+  
+  if (fileId) {
+    return `${url}?file_id=${encodeURIComponent(fileId)}`;
+  }
+  
+  return url;
+};
+
+/**
  * Тип для фото профиля из Telegram API
  */
 export interface ProfilePhoto {
@@ -80,32 +119,43 @@ export const getOptimalAvatarFileId = (
 };
 
 /**
- * Генерирует URL для загрузки аватара пользователя через file_id
- * @param fileId - file_id фотографии профиля из Telegram
+ * Генерирует URL для загрузки аватара пользователя через /api/users/{userId}/photo
+ * @param userId - ID пользователя (обязательно для фото профиля)
+ * @param fileId - file_id фотографии профиля из Telegram (опционально)
  * @param profilePhotos - Опциональный массив фотографий для выбора оптимального размера
  * @param targetSize - Целевой размер в пикселях (по умолчанию 160)
- * @returns URL для загрузки изображения через прокси API
+ * @returns URL для загрузки изображения через /api/users/{userId}/photo
  */
 export const getAvatarUrl = (
+  userId: number | undefined,
   fileId: string | undefined,
   profilePhotos?: ProfilePhotosResponse | null,
   targetSize: number = 160
 ): string | undefined => {
+  // Если нет userId, не можем построить URL для фото профиля
+  if (!userId) {
+    return undefined;
+  }
+
   // Если есть массив фото, выбираем оптимальный размер
   const optimalFileId = profilePhotos
     ? getOptimalAvatarFileId(profilePhotos, targetSize)
     : fileId;
 
-  if (!optimalFileId || optimalFileId.trim() === '') {
+  // Если нет fileId и нет profilePhotos, возвращаем undefined
+  // (API не вернет фото без file_id)
+  if (!optimalFileId && !profilePhotos) {
     return undefined;
   }
 
-  // Используем параметр file=true для загрузки файла (аналогично стикерам)
-  const url = buildStickerUrl(optimalFileId, { file: true });
+  // Используем /api/users/{userId}/photo вместо /stickers/{fileId}
+  // Если optimalFileId есть, передаем его как параметр, иначе API вернет основное фото
+  const url = buildProfilePhotoUrl(userId, optimalFileId);
+  
   // Логирование только в dev режиме
   // @ts-ignore - import.meta.env определен в vite-env.d.ts
   if (import.meta.env?.MODE === 'development') {
-    console.log('🔗 URL аватара:', url);
+    console.log('🔗 URL аватара:', url, { userId, fileId: optimalFileId, hasProfilePhotos: !!profilePhotos });
   }
   return url;
 };
