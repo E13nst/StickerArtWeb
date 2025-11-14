@@ -53,34 +53,15 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            // Vendor chunks - разделяем по библиотекам для лучшего кэширования
+            // ✅ CRITICAL FIX: Минимальное разделение vendors для избежания проблем с порядком
             if (id.includes('node_modules')) {
-              // React ecosystem (часто используется, редко меняется)
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-                return 'react-vendor';
-              }
-              
-              // Material-UI (большая библиотека, редко меняется)
-              if (id.includes('@mui') || id.includes('@emotion')) {
-                return 'mui-vendor';
-              }
-              
-              // State management (Zustand + persist)
-              if (id.includes('zustand')) {
-                return 'state-vendor';
-              }
-              
-              // API & networking (axios)
-              if (id.includes('axios')) {
-                return 'api-vendor';
-              }
-              
-              // Lottie animations (тяжёлая библиотека)
+              // Только Lottie отдельно (большая ~300KB, независимая, редко меняется)
               if (id.includes('lottie')) {
                 return 'lottie-vendor';
               }
               
-              // Остальные dependencies
+              // ВСЕ остальные vendors в ОДИН chunk
+              // Это гарантирует правильный порядок инициализации React/MUI/Zustand
               return 'vendor';
             }
             

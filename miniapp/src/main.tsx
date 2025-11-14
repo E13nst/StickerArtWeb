@@ -1,5 +1,9 @@
+// ✅ CRITICAL: Импортируем React ПЕРВЫМ для правильного порядка загрузки chunks
+// Это гарантирует что react-vendor загрузится до всех остальных vendor chunks
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+
+// Затем импортируем приложение
 import App from './App.tsx'
 import './index.css'
 
