@@ -34,6 +34,8 @@ interface SimpleGalleryProps {
   isRefreshing?: boolean;
   // Использовать скролл страницы вместо собственного скролла галереи
   usePageScroll?: boolean;
+  // Режим скролла: 'inner' - внутренний скролл галереи, 'page' - скролл всей страницы
+  scrollMode?: 'inner' | 'page';
 }
 
 const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
@@ -47,8 +49,11 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   addButtonElement,
   controlsElement,
   isRefreshing = false,
-  usePageScroll = false
+  usePageScroll = false,
+  scrollMode
 }) => {
+  // Определяем режим скролла: приоритет у scrollMode, затем usePageScroll для обратной совместимости
+  const isPageScroll = scrollMode === 'page' || (scrollMode === undefined && usePageScroll);
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
@@ -157,27 +162,27 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   // Сохраняем позицию скролла перед обновлением данных
   useEffect(() => {
     if (isLoadingMore) {
-      if (usePageScroll) {
+      if (isPageScroll) {
         scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
       } else if (containerRef.current) {
         scrollPositionRef.current = containerRef.current.scrollTop;
       }
     }
-  }, [isLoadingMore, usePageScroll]);
+  }, [isLoadingMore, isPageScroll]);
 
   // Восстанавливаем позицию скролла после загрузки
   useEffect(() => {
     if (!isLoadingMore && scrollPositionRef.current > 0) {
       // Используем requestAnimationFrame для плавного восстановления
       requestAnimationFrame(() => {
-        if (usePageScroll) {
+        if (isPageScroll) {
           window.scrollTo(0, scrollPositionRef.current);
         } else if (containerRef.current) {
           containerRef.current.scrollTop = scrollPositionRef.current;
         }
       });
     }
-  }, [isLoadingMore, packs.length, usePageScroll]);
+  }, [isLoadingMore, packs.length, isPageScroll]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -190,12 +195,12 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     }
 
     // Если используем скролл страницы, используем window/document как root
-    const rootElement = usePageScroll ? null : container;
+    const rootElement = isPageScroll ? null : container;
 
     console.log('🔍 InfiniteScroll: настройка IntersectionObserver', {
       hasNextPage,
       isLoadingMore,
-      usePageScroll,
+      isPageScroll,
       containerHeight: container?.clientHeight,
       containerScrollHeight: container?.scrollHeight
     });
@@ -212,7 +217,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         if (entry.isIntersecting && hasNextPage && !isLoadingMore && onLoadMore) {
           console.log('✅ InfiniteScroll: загрузка следующей страницы');
           // Сохраняем позицию скролла перед загрузкой
-          if (usePageScroll) {
+          if (isPageScroll) {
             scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
           } else if (containerRef.current) {
             scrollPositionRef.current = containerRef.current.scrollTop;
@@ -232,7 +237,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [hasNextPage, isLoadingMore, onLoadMore, usePageScroll]);
+  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll]);
 
   // ✅ P2 OPTIMIZATION: Prefetching следующей страницы при приближении к концу
   useEffect(() => {
@@ -245,7 +250,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     prefetchSentinel.style.height = '1px';
     prefetchSentinel.style.pointerEvents = 'none';
     
-    const container = usePageScroll 
+    const container = isPageScroll 
       ? document.documentElement 
       : containerRef.current;
     
@@ -268,7 +273,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         }
       },
       {
-        root: usePageScroll ? null : containerRef.current,
+        root: isPageScroll ? null : containerRef.current,
         rootMargin: '400px', // Prefetch за 400px до конца
         threshold: 0.1
       }
@@ -280,7 +285,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       prefetchObserver.disconnect();
       prefetchSentinel.remove();
     };
-  }, [hasNextPage, isLoadingMore, onLoadMore, usePageScroll]);
+  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll]);
 
   // ✅ P1 OPTIMIZATION: Throttle scroll handler для лучшего FPS
   // Создаем throttled функцию один раз через useMemo
@@ -297,7 +302,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   );
 
   useEffect(() => {
-    if (usePageScroll) {
+    if (isPageScroll) {
       // Используем скролл страницы
       const onScrollDirection = () => {
         const current = window.scrollY || document.documentElement.scrollTop;
@@ -329,11 +334,11 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         throttledScrollHandler.cancel(); // Важно: очищаем throttle при unmount
       };
     }
-  }, [usePageScroll, throttledScrollHandler]);
+  }, [isPageScroll, throttledScrollHandler]);
 
   // Ленивая загрузка при скролле (для локального отображения)
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    if (usePageScroll) {
+    if (isPageScroll) {
       // При использовании скролла страницы эта функция не вызывается
       return;
     }
@@ -344,13 +349,18 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     if (!hasNextPage && isNearBottom && visibleCount < packs.length) {
       setVisibleCount(prev => Math.min(prev + batchSize, packs.length));
     }
-  }, [visibleCount, packs.length, batchSize, hasNextPage, usePageScroll]);
+  }, [visibleCount, packs.length, batchSize, hasNextPage, isPageScroll]);
 
-  // Видимые паки - показываем все если есть пагинация
-  const visiblePacks = useMemo(() => 
-    hasNextPage ? packs : packs.slice(0, visibleCount), 
-    [packs, visibleCount, hasNextPage]
-  );
+  // Видимые паки - показываем все если есть пагинация (onLoadMore) или hasNextPage
+  // Локальная ленивая загрузка используется только если нет пагинации вообще
+  const visiblePacks = useMemo(() => {
+    // Если есть onLoadMore, значит используется пагинация - показываем все загруженные паки
+    if (onLoadMore) {
+      return packs;
+    }
+    // Если нет пагинации, используем локальную ленивую загрузку
+    return packs.slice(0, visibleCount);
+  }, [packs, visibleCount, onLoadMore]);
 
 
   // Обработчик клика
@@ -395,13 +405,13 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         `}</style>
         <div
           ref={containerRef}
-          className={usePageScroll ? "" : "gallery-scroll"}
+          className={isPageScroll ? "simpleGallery simpleGallery--pageScroll" : "simpleGallery simpleGallery--innerScroll gallery-scroll"}
           data-testid="gallery-container"
           style={{ 
             width: '100%', 
             flex: '1 1 auto', 
             minHeight: 0,
-            ...(usePageScroll ? {} : {})
+            ...(isPageScroll ? {} : {})
           }}
         >
         {renderOverlay}
@@ -415,7 +425,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
             hasNextPage={hasNextPage}
             isLoadingMore={isLoadingMore}
             onLoadMore={onLoadMore}
-            scrollContainerRef={usePageScroll ? undefined : containerRef}
+            scrollContainerRef={isPageScroll ? undefined : containerRef}
           />
         </div>
       </div>
@@ -447,11 +457,22 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           max-height: 100vh;
           -webkit-overflow-scrolling: touch;
         }
+        .simpleGallery--innerScroll {
+          overflow-y: auto;
+          overflow-x: hidden;
+          max-height: 100vh;
+          -webkit-overflow-scrolling: touch;
+        }
+        .simpleGallery--pageScroll {
+          overflow: visible;
+          height: auto;
+          max-height: none;
+        }
       `}</style>
       <div
         ref={containerRef}
-        onScroll={usePageScroll ? undefined : handleScroll}
-        className={usePageScroll ? "" : "gallery-scroll"}
+        onScroll={isPageScroll ? undefined : handleScroll}
+        className={isPageScroll ? "simpleGallery simpleGallery--pageScroll" : "simpleGallery simpleGallery--innerScroll gallery-scroll"}
         style={{
           width: '100%',
           flex: '1 1 auto',
@@ -779,8 +800,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         </div>
       </div>
 
-      {/* Индикатор загрузки */}
-      {!hasNextPage && visibleCount < packs.length && (
+      {/* Индикатор загрузки - показываем только при локальной ленивой загрузке (без пагинации) */}
+      {!onLoadMore && !hasNextPage && visibleCount < packs.length && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -951,7 +972,8 @@ const areGalleryPropsEqual = (prevProps: SimpleGalleryProps, nextProps: SimpleGa
   // Проверка настроек
   if (prevProps.enablePreloading !== nextProps.enablePreloading ||
       prevProps.batchSize !== nextProps.batchSize ||
-      prevProps.usePageScroll !== nextProps.usePageScroll) {
+      prevProps.usePageScroll !== nextProps.usePageScroll ||
+      prevProps.scrollMode !== nextProps.scrollMode) {
     return false;
   }
   

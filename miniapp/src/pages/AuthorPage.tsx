@@ -622,7 +622,7 @@ export const AuthorPage: React.FC = () => {
               isLoadingMore={isLoadingMore}
               onLoadMore={hasNextPage ? handleLoadMore : undefined}
               enablePreloading={true}
-              usePageScroll={true}
+              scrollMode="page"
               isRefreshing={isSetsLoading && stickerSets.length > 0}
             />
           </div>

@@ -615,6 +615,7 @@ export const ProfilePage: React.FC = () => {
                     isLoadingMore={isLoadingMore}
                     onLoadMore={loadMoreStickerSets}
                     enablePreloading={true}
+                    scrollMode="page"
                     isRefreshing={isRefreshing}
                   />
                 </div>

@@ -982,7 +982,28 @@ export const MyProfilePage: React.FC = () => {
             pb: 2
           }}>
             <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
-              {/* Статистика */}
+              {/* Никнейм - отдельно, в одну строчку */}
+              <Box sx={{ 
+                textAlign: 'center',
+                mb: 2,
+                mt: 1
+              }}>
+                <Typography 
+                  variant="h5" 
+                  fontWeight="bold"
+                  sx={{ 
+                    color: 'var(--tg-theme-button-color)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    px: 2
+                  }}
+                >
+                  {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
+                </Typography>
+              </Box>
+              
+              {/* Статистика - на второй строчке */}
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-around', 
@@ -1003,16 +1024,6 @@ export const MyProfilePage: React.FC = () => {
                     sx={{ color: 'var(--tg-theme-hint-color)' }}
                   >
                     Наборов
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography 
-                    variant="h5" 
-                    fontWeight="bold"
-                    sx={{ color: 'var(--tg-theme-button-color)' }}
-                  >
-                    {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
                   </Typography>
                 </Box>
                 
@@ -1135,7 +1146,7 @@ export const MyProfilePage: React.FC = () => {
                     isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isLoadingMorePublished}
                     onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
                     enablePreloading={true}
-                    usePageScroll={false}
+                    scrollMode="page"
                     isRefreshing={isStickerSetsLoading && (setsFilter === 'liked' ? likedStickerSets.length > 0 : filteredStickerSets.length > 0)}
                     addButtonElement={setsFilter === 'published' ? (
                       <AddStickerPackButton
