@@ -52,7 +52,7 @@ header.stixlytopheader > .stixly-top-header {
 
 /* Profile mode header */
 .stixly-top-header--profile {
-  min-height: calc(240px + env(safe-area-inset-top)) !important;
+  min-height: calc(100px + env(safe-area-inset-top)) !important;
 }
 
 /* Ensure the inner content of the header accounts for safe area */
@@ -73,7 +73,7 @@ header.stixlytopheader > .stixly-top-header > * {
 
 /* For pages with profile mode header, adjust padding accordingly */
 .stixly-main-layout:has(.stixly-top-header--profile) > div:not([class*="bottom"]):not([class*="Bottom"]) {
-  padding-top: calc(240px + env(safe-area-inset-top)) !important;
+  padding-top: calc(100px + env(safe-area-inset-top)) !important;
 }
 
 /* Fallback for browsers that don't support :has() - apply to all content divs */
@@ -97,7 +97,7 @@ header.stixlytopheader > .stixly-top-header > * {
   }
   
   .stixly-top-header--profile {
-    min-height: 240px !important;
+    min-height: 100px !important;
   }
   
   .stixly-main-layout:has(header#stixlytopheader) > div:not(.bottom-nav) {
@@ -105,7 +105,7 @@ header.stixlytopheader > .stixly-top-header > * {
   }
   
   .stixly-main-layout:has(.stixly-top-header--profile) > div:not(.bottom-nav) {
-    padding-top: 240px !important;
+    padding-top: 100px !important;
   }
   
   /* Fallback for browsers without :has() support */

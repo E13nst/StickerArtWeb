@@ -475,16 +475,19 @@ export default function StixlyTopHeader({
       style={{
         position: "relative",
         width: "100%",
-        height: "calc(100vh * 0.382)", // 38.2% от высоты viewport (золотая пропорция)
-        minHeight: "240px",
-        maxHeight: "320px",
+        height: "calc(100vh * 0.146)", // 14.6% от высоты viewport (упрощенная золотая пропорция)
+        minHeight: "100px",
+        maxHeight: "140px",
         zIndex: 1,
         overflow: "visible",
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
         borderBottomRightRadius: "calc(100vw * 0.038)",
-        background: activeProfileMode.backgroundColor,
-        backgroundImage: profilePatternUrl ? `url(${profilePatternUrl})` : undefined,
-        backgroundRepeat: 'repeat',
+        // Используем backgroundImage для объединения градиента и паттерна
+        backgroundImage: profilePatternUrl 
+          ? `${activeProfileMode.backgroundColor}, url(${profilePatternUrl})`
+          : activeProfileMode.backgroundColor,
+        backgroundRepeat: profilePatternUrl ? 'repeat, repeat' : 'no-repeat',
+        backgroundSize: profilePatternUrl ? 'auto, auto' : 'cover',
       }}
     >
       {/* Контент профиля */}

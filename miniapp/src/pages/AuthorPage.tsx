@@ -584,31 +584,6 @@ export const AuthorPage: React.FC = () => {
           </Alert>
         )}
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.618rem',
-            mb: '0.618rem',
-            px: '0.618rem'
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <SearchBar
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onSearch={handleSearch}
-              placeholder="Поиск стикерсетов автора..."
-              disabled={isSetsLoading && stickerSets.length === 0}
-            />
-          </Box>
-          <SortButton
-            sortByLikes={sortByLikes}
-            onToggle={handleSortToggle}
-            disabled={isSetsLoading && stickerSets.length === 0}
-          />
-        </Box>
-
         {isSetsLoading && stickerSets.length === 0 ? (
           <LoadingSpinner message="Загрузка стикерсетов..." />
         ) : displayedStickerSets.length === 0 ? (
@@ -623,6 +598,24 @@ export const AuthorPage: React.FC = () => {
         ) : (
           <div className="fade-in">
             <SimpleGallery
+              controlsElement={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <SearchBar
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      onSearch={handleSearch}
+                      placeholder="Поиск стикерсетов автора..."
+                      disabled={isSetsLoading && stickerSets.length === 0}
+                    />
+                  </Box>
+                  <SortButton
+                    sortByLikes={sortByLikes}
+                    onToggle={handleSortToggle}
+                    disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
+                  />
+                </Box>
+              }
               packs={packs}
               onPackClick={handlePackClick}
               hasNextPage={hasNextPage}
@@ -630,6 +623,7 @@ export const AuthorPage: React.FC = () => {
               onLoadMore={hasNextPage ? handleLoadMore : undefined}
               enablePreloading={true}
               usePageScroll={true}
+              isRefreshing={isSetsLoading && stickerSets.length > 0}
             />
           </div>
         )}

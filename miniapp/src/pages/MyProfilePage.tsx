@@ -33,6 +33,7 @@ import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { SortButton } from '@/components/SortButton';
+import { ProfileFilterTabs } from '@/components/ProfileFilterTabs';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -127,9 +128,12 @@ export const MyProfilePage: React.FC = () => {
     // Теперь loadMyProfile() сам решает использовать кэш или нет
 
     // Настраиваем заголовки: initData либо заголовки расширения в dev
+    console.log('🔄 MyProfilePage: useEffect инициализации', { initData: !!initData, userInfo: !!userInfo });
     if (initData) {
+      console.log('🔐 Устанавливаем заголовки авторизации из initData');
       apiClient.setAuthHeaders(initData);
     } else {
+      console.log('🔧 Проверяем заголовки расширения');
       apiClient.checkExtensionHeaders();
     }
 
@@ -140,10 +144,12 @@ export const MyProfilePage: React.FC = () => {
     // Оборачиваем в async для перехвата ошибок
     (async () => {
       try {
+        console.log('🚀 Начинаем загрузку профиля...');
         await loadMyProfile();
+        console.log('✅ Загрузка профиля завершена');
       } catch (error) {
         // Ошибка уже обработана в loadMyProfile и установлена в userError
-        console.log('🔍 Ошибка при загрузке профиля перехвачена в useEffect');
+        console.error('❌ Ошибка при загрузке профиля перехвачена в useEffect:', error);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,11 +157,13 @@ export const MyProfilePage: React.FC = () => {
 
   // ✅ REFACTORED: Загрузка своего профиля через /api/profiles/me с кэшированием
   const loadMyProfile = async (forceReload: boolean = false) => {
+    console.log('🔄 loadMyProfile вызван', { forceReload });
     // Для кэширования используем специальный ключ 'me' вместо telegramId
     const cacheKey = 'me';
     
     // Проверяем кэш (по ключу 'me')
     if (!forceReload) {
+      console.log('🔍 Проверяем кэш...');
       // Попытаемся получить из кэша любой профиль (обычно там только один)
       const cachedKeys = Object.keys(localStorage).filter(k => k.startsWith('profile_cache_'));
       if (cachedKeys.length > 0) {
@@ -226,6 +234,7 @@ export const MyProfilePage: React.FC = () => {
         if (!userError) {
           setUserError('Не удалось загрузить профиль пользователя');
         }
+        console.log('🔄 Ранний выход из loadMyProfile, isLoading будет сброшен в finally');
         return;
       }
 
@@ -393,11 +402,13 @@ export const MyProfilePage: React.FC = () => {
     }
 
     try {
-      console.log('🔍 Загрузка стикерсетов для userId:', userIdParam, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam);
+      console.log('🔍 Загрузка стикерсетов для userId:', userIdParam, 'searchQuery:', searchQuery, 'sortByLikes:', sortByLikesParam, 'page:', page, 'append:', append);
       
       // Если есть поисковый запрос, используем специальный эндпоинт поиска
       if (searchQuery && searchQuery.trim()) {
+        console.log('🔍 Выполняем поиск стикерсетов...');
         const response = await apiClient.searchUserStickerSets(userIdParam, searchQuery, page, 20);
+        console.log('✅ Поиск завершен:', { count: response.content?.length || 0, page: response.number, totalPages: response.totalPages });
         const filteredContent = response.content || [];
         
         if (append) {
@@ -419,10 +430,18 @@ export const MyProfilePage: React.FC = () => {
           response.totalPages ?? 0,
           response.totalElements ?? 0
         );
+        console.log('✅ Поиск стикерсетов успешно завершен');
         return;
       }
       
+      console.log('🔍 Загружаем стикерсеты пользователя...');
       const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC');
+      console.log('✅ Ответ от API получен:', { 
+        hasResponse: !!response, 
+        contentLength: response?.content?.length || 0,
+        page: response?.number,
+        totalPages: response?.totalPages 
+      });
       const filteredContent = response.content || [];
       
       console.log('✅ Стикерсеты загружены:', {
@@ -471,7 +490,13 @@ export const MyProfilePage: React.FC = () => {
           ? error.message 
           : 'Ошибка загрузки стикерсетов';
       
-      console.error('❌ Ошибка загрузки стикерсетов:', error);
+      console.error('❌ Ошибка загрузки стикерсетов:', {
+        error,
+        message: error?.message,
+        response: error?.response,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
       setStickerSetsError(errorMessage);
       
       // Очищаем список стикерсетов при ошибке
@@ -480,11 +505,13 @@ export const MyProfilePage: React.FC = () => {
         setPagination(0, 1, 0);
       }
     } finally {
+      console.log('🔄 Сбрасываем состояние загрузки:', { append, isLoadingMorePublished, isStickerSetsLoading });
       if (append) {
         setIsLoadingMorePublished(false);
       } else {
         setStickerSetsLoading(false);
       }
+      console.log('✅ Состояние загрузки сброшено');
     }
   };
 
@@ -532,14 +559,23 @@ export const MyProfilePage: React.FC = () => {
 
   // Загрузка понравившихся с сервера с поддержкой пагинации
   const loadLikedStickerSets = useCallback(async (page: number = 0, append: boolean = false) => {
+    console.log('🔍 loadLikedStickerSets вызван', { page, append });
     try {
       if (append) {
         setIsLikedLoadingMore(true);
       } else {
+        console.log('🔄 Устанавливаем isStickerSetsLoading = true для понравившихся');
         setStickerSetsLoading(true);
       }
       
+      console.log('🔍 Загружаем понравившиеся стикерсеты...');
       const response = await apiClient.getStickerSets(page, 20, { likedOnly: true });
+      console.log('✅ Ответ от API для понравившихся получен:', { 
+        hasResponse: !!response, 
+        contentLength: response?.content?.length || 0,
+        page: response?.number,
+        totalPages: response?.totalPages 
+      });
       const serverLikedSets = response.content || [];
       
       // ✅ FIX: response.number может быть undefined для likedOnly запросов
@@ -594,11 +630,13 @@ export const MyProfilePage: React.FC = () => {
         setIsLikedListLoaded(false);
       }
     } finally {
+      console.log('🔄 Сбрасываем состояние загрузки понравившихся:', { append, isLikedLoadingMore, isStickerSetsLoading });
       if (append) {
         setIsLikedLoadingMore(false);
       } else {
         setStickerSetsLoading(false);
       }
+      console.log('✅ Состояние загрузки понравившихся сброшено');
     }
   }, [initializeLikes]);
   
@@ -788,6 +826,9 @@ export const MyProfilePage: React.FC = () => {
     stickerSetsCount: userStickerSets.length,
     filteredCount: filteredStickerSets.length,
     isLoading,
+    isUserLoading,
+    isStickerSetsLoading,
+    isLoadingMorePublished,
     setsFilter,
     // Пагинация "Мои"
     publishedPagination: {
@@ -1033,63 +1074,6 @@ export const MyProfilePage: React.FC = () => {
         <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
-              {/* Переключатель Published/Liked */}
-              <Box sx={{ display: 'flex', gap: '0.618rem', mb: '0.618rem', mt: '-0.618rem' }}>
-                <Chip
-                  label="Мои"
-                  color={setsFilter === 'published' ? 'primary' : 'default'}
-                  variant={setsFilter === 'published' ? 'filled' : 'outlined'}
-                  onClick={() => setSetsFilter('published')}
-                  sx={{ 
-                    borderRadius: '0.618rem',
-                    transform: 'none !important',
-                    '&:hover': {
-                      transform: 'none !important'
-                    },
-                    '&:active': {
-                      transform: 'none !important'
-                    }
-                  }}
-                />
-                <Chip
-                  label="Понравившиеся"
-                  color={setsFilter === 'liked' ? 'primary' : 'default'}
-                  variant={setsFilter === 'liked' ? 'filled' : 'outlined'}
-                  onClick={() => {
-                    setSetsFilter('liked');
-                    // Список обновится в useEffect при изменении setsFilter
-                  }}
-                  sx={{ 
-                    borderRadius: '0.618rem',
-                    transform: 'none !important',
-                    '&:hover': {
-                      transform: 'none !important'
-                    },
-                    '&:active': {
-                      transform: 'none !important'
-                    }
-                  }}
-                />
-              </Box>
-
-              {/* Поиск и сортировка */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', mb: '0.618rem', px: '0.618rem' }}>
-                <Box sx={{ flex: 1 }}>
-                  <SearchBar
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onSearch={handleSearch}
-                    placeholder="Поиск моих стикерсетов..."
-                    disabled={isStickerSetsLoading}
-                  />
-                </Box>
-                <SortButton
-                  sortByLikes={sortByLikes}
-                  onToggle={handleSortToggle}
-                  disabled={isStickerSetsLoading || !!searchTerm}
-                />
-              </Box>
-
               {/* Контент стикерсетов */}
               {isStickerSetsLoading ? (
                 <LoadingSpinner message="Загрузка стикерсетов..." />
@@ -1111,8 +1095,36 @@ export const MyProfilePage: React.FC = () => {
                   actionLabel="Создать стикер"
                   onAction={handleCreateSticker}
                 />
-                              ) : (
+              ) : (
+                <div className="fade-in">
                   <SimpleGallery
+                    controlsElement={
+                      <>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
+                          <Box sx={{ flex: 1 }}>
+                            <SearchBar
+                              value={searchTerm}
+                              onChange={handleSearchChange}
+                              onSearch={handleSearch}
+                              placeholder="Поиск моих стикерсетов..."
+                              disabled={isStickerSetsLoading}
+                            />
+                          </Box>
+                          <SortButton
+                            sortByLikes={sortByLikes}
+                            onToggle={handleSortToggle}
+                            disabled={isStickerSetsLoading || !!searchTerm}
+                          />
+                        </Box>
+                        <div className="gallery-controls__filter">
+                          <ProfileFilterTabs
+                            activeFilter={setsFilter}
+                            onFilterChange={setSetsFilter}
+                            disabled={isStickerSetsLoading}
+                          />
+                        </div>
+                      </>
+                    }
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={
@@ -1124,6 +1136,7 @@ export const MyProfilePage: React.FC = () => {
                     onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
                     enablePreloading={true}
                     usePageScroll={false}
+                    isRefreshing={isStickerSetsLoading && (setsFilter === 'liked' ? likedStickerSets.length > 0 : filteredStickerSets.length > 0)}
                     addButtonElement={setsFilter === 'published' ? (
                       <AddStickerPackButton
                         variant="gallery"
@@ -1131,7 +1144,8 @@ export const MyProfilePage: React.FC = () => {
                       />
                     ) : undefined}
                   />
-                )}
+                </div>
+              )}
 
               {/* Кнопка "Показать ещё" убрана, так как SimpleGallery использует infinite scroll */}
               {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
