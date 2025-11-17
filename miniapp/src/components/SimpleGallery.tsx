@@ -15,6 +15,14 @@ interface Pack {
     isVideo: boolean;
     emoji: string;
   }>;
+  // Информация о типах файлов в сете для отладки (видна только админу)
+  stickerTypes?: {
+    hasWebp: boolean;
+    hasWebm: boolean;
+    hasTgs: boolean;
+  };
+  // Количество стикеров в паке (видно только админу)
+  stickerCount?: number;
 }
 
 interface SimpleGalleryProps {

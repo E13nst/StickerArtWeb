@@ -6,6 +6,7 @@ import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { imageLoader } from '../utils/imageLoader';
 import { prefetchAnimation, markAsGalleryAnimation, prefetchSticker, getCachedStickerUrl, markAsGallerySticker } from '../utils/animationLoader';
 import { LoadPriority } from '../utils/imageLoader';
+import { useProfileStore } from '../store/useProfileStore';
 
 interface Pack {
   id: string;
@@ -17,6 +18,14 @@ interface Pack {
     isVideo: boolean;
     emoji: string;
   }>;
+  // Информация о типах файлов в сете для отладки (видна только админу)
+  stickerTypes?: {
+    hasWebp: boolean;
+    hasWebm: boolean;
+    hasTgs: boolean;
+  };
+  // Количество стикеров в паке (видно только админу)
+  stickerCount?: number;
 }
 
 interface PackCardProps {
@@ -35,6 +44,11 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
   const [isHovered, setIsHovered] = useState(false);
   const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
+  
+  // Получаем роль пользователя для отладочной информации
+  const userInfo = useProfileStore(state => state.userInfo);
+  const normalizedRole = (userInfo?.role ?? '').toUpperCase();
+  const isAdmin = normalizedRole.includes('ADMIN');
 
   // Предзагрузка первого стикера с максимальным приоритетом для видимых карточек
   useEffect(() => {
@@ -305,6 +319,98 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         size="medium"
         placement="top-right"
       />
+
+      {/* Badge с типами стикеров и количеством - только для админа */}
+      {isAdmin && (pack.stickerTypes || pack.stickerCount) && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '8px',
+            left: '8px',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '4px',
+            pointerEvents: 'none',
+            flexWrap: 'wrap'
+          }}
+        >
+          {/* Количество стикеров */}
+          {pack.stickerCount !== undefined && (
+            <div
+              style={{
+                backgroundColor: 'rgba(33, 150, 243, 0.6)',
+                color: 'white',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: '600',
+                lineHeight: 1,
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}
+            >
+              <span style={{ fontSize: '8px' }}>📊</span>
+              {pack.stickerCount}
+            </div>
+          )}
+          
+          {/* Типы файлов */}
+          {pack.stickerTypes?.hasTgs && (
+            <div
+              style={{
+                backgroundColor: 'rgba(156, 39, 176, 0.6)',
+                color: 'white',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: '600',
+                lineHeight: 1,
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+              }}
+            >
+              TGS
+            </div>
+          )}
+          {pack.stickerTypes?.hasWebm && (
+            <div
+              style={{
+                backgroundColor: 'rgba(244, 67, 54, 0.6)',
+                color: 'white',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: '600',
+                lineHeight: 1,
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+              }}
+            >
+              WEBM
+            </div>
+          )}
+          {pack.stickerTypes?.hasWebp && (
+            <div
+              style={{
+                backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                color: 'white',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: '600',
+                lineHeight: 1,
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
+              }}
+            >
+              WEBP
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

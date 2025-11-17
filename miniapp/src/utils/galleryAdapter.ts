@@ -11,6 +11,14 @@ export interface GalleryPack {
     isVideo: boolean;
     emoji: string;
   }>;
+  // Информация о типах файлов в сете для отладки (видна только админу)
+  stickerTypes?: {
+    hasWebp: boolean;
+    hasWebm: boolean;
+    hasTgs: boolean;
+  };
+  // Количество стикеров в паке (видно только админу)
+  stickerCount?: number;
 }
 
 // Кэш для избежания повторных вычислений
@@ -125,10 +133,21 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       }
     }
 
+    // Определяем типы файлов в сете для отладки
+    const hasWebm = stickers.some(s => s?.is_video || s?.isVideo);
+    const hasTgs = stickers.some(s => s?.is_animated || s?.isAnimated);
+    const hasWebp = stickers.some(s => !s?.is_video && !s?.is_animated && !s?.isVideo && !s?.isAnimated);
+
     const result: GalleryPack = {
       id: stickerSet.id.toString(),
       title: stickerSet.title,
-      previewStickers
+      previewStickers,
+      stickerTypes: {
+        hasWebp,
+        hasWebm,
+        hasTgs
+      },
+      stickerCount: stickers.length
     };
 
     if (previewStickers.length > 0) {
