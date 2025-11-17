@@ -460,6 +460,20 @@ class ApiClient {
     }
   }
 
+  async blockStickerSet(id: number, reason?: string | null): Promise<StickerSetResponse> {
+    try {
+      const payload =
+        typeof reason === 'string' && reason.trim().length > 0
+          ? { reason: reason.trim() }
+          : {};
+      const response = await this.client.put<StickerSetResponse>(`/stickersets/${id}/block`, payload);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при блокировке стикерсета ${id}:`, error);
+      throw error;
+    }
+  }
+
   // AI-подбор категорий по заголовку
   async suggestCategoriesForTitle(title: string): Promise<CategorySuggestionResult> {
     try {

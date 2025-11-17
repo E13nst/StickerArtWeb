@@ -15,7 +15,8 @@ import {
   DialogActions,
   Tooltip,
   Popover,
-  SvgIcon
+  SvgIcon,
+  TextField
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -309,6 +310,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [selectedCategoryKeys, setSelectedCategoryKeys] = useState<string[]>([]);
   const [isSavingCategories, setIsSavingCategories] = useState(false);
   const [categorySaveError, setCategorySaveError] = useState<string | null>(null);
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+  const [blockReasonInput, setBlockReasonInput] = useState('');
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
   const effectiveStickerSet = fullStickerSet ?? stickerSet;
   const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() =>
     deriveVisibilityState(fullStickerSet ?? stickerSet)
@@ -316,6 +321,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [isVisibilityUpdating, setIsVisibilityUpdating] = useState(false);
   const [visibilityInfoAnchor, setVisibilityInfoAnchor] = useState<HTMLElement | null>(null);
   const visibilityInfoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isStickerSetBlocked = Boolean(effectiveStickerSet?.isBlocked);
+  const currentBlockReason = effectiveStickerSet?.blockReason;
   const displayedCategories = useMemo(() => {
     return effectiveStickerSet?.categories ?? stickerSet.categories ?? [];
   }, [effectiveStickerSet?.categories, stickerSet.categories]);
@@ -770,6 +777,49 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       setIsSavingCategories(false);
     }
   }, [selectedCategoryKeys, stickerSet.id, onCategoriesUpdated, fullStickerSet, stickerSet]);
+
+  const handleOpenBlockDialog = useCallback(() => {
+    setBlockReasonInput('');
+    setBlockError(null);
+    setIsBlockDialogOpen(true);
+  }, []);
+
+  const handleCloseBlockDialog = useCallback(() => {
+    if (isBlocking) return;
+    setIsBlockDialogOpen(false);
+    setBlockError(null);
+    setBlockReasonInput('');
+  }, [isBlocking]);
+
+  const handleBlockStickerSet = useCallback(async () => {
+    if (!effectiveStickerSet?.id) {
+      return;
+    }
+    setIsBlocking(true);
+    setBlockError(null);
+    try {
+      const updated = await apiClient.blockStickerSet(
+        effectiveStickerSet.id,
+        blockReasonInput.trim() ? blockReasonInput.trim() : undefined
+      );
+      const mergedUpdate: StickerSetResponse = {
+        ...(fullStickerSet ?? stickerSet),
+        ...updated,
+        telegramStickerSetInfo:
+          updated.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
+        previewStickers: updated.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+      };
+      setFullStickerSet(mergedUpdate);
+      onStickerSetUpdated?.(mergedUpdate);
+      setIsBlockDialogOpen(false);
+      setBlockReasonInput('');
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Не удалось заблокировать стикерсет.';
+      setBlockError(message);
+    } finally {
+      setIsBlocking(false);
+    }
+  }, [effectiveStickerSet?.id, blockReasonInput, fullStickerSet, stickerSet, onStickerSetUpdated]);
 
 
   const handleVisibilityInfoClose = useCallback(() => {
@@ -1406,7 +1456,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 </Typography>
               )}
             </Box>
-            {(canToggleVisibility || canEditCategories) && (
+            {(canToggleVisibility || canEditCategories || isAdmin) && (
               <Box
                 sx={{
                   display: 'flex',
@@ -1461,9 +1511,43 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 Изменить
               </Button>
                 )}
+                {isAdmin && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    onClick={handleOpenBlockDialog}
+                    disabled={isStickerSetBlocked || isBlocking}
+                    sx={{
+                      whiteSpace: 'nowrap',
+                      borderColor: 'rgba(244, 67, 54, 0.5)',
+                      color: 'rgba(244, 67, 54, 0.9)',
+                      '&:hover': {
+                        borderColor: 'rgba(244, 67, 54, 0.8)',
+                        backgroundColor: 'rgba(244, 67, 54, 0.08)'
+                      }
+                    }}
+                  >
+                    {isStickerSetBlocked ? 'Заблокирован' : 'Заблокировать'}
+                  </Button>
+                )}
               </Box>
             )}
           </Box>
+          {isStickerSetBlocked && (
+            <Alert
+              severity="error"
+              variant="outlined"
+              sx={{
+                mt: 2,
+                color: 'rgba(255, 255, 255, 0.9)',
+                borderColor: 'rgba(244, 67, 54, 0.4)',
+                backgroundColor: 'rgba(244, 67, 54, 0.12)'
+              }}
+            >
+              Набор заблокирован {currentBlockReason ? `— ${currentBlockReason}` : 'без указания причины'}.
+            </Alert>
+          )}
         </CardContent>
       </Card>
       <Popover
@@ -1604,6 +1688,88 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             }}
           >
             {isSavingCategories ? 'Сохраняем…' : 'Сохранить'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={isBlockDialogOpen}
+        onClose={handleCloseBlockDialog}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          onClick: (e) => e.stopPropagation(),
+          sx: {
+            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+            color: 'var(--tg-theme-text-color, #000000)',
+            backgroundImage: 'none'
+          }
+        }}
+        BackdropProps={{
+          onClick: (e) => {
+            e.stopPropagation();
+            handleCloseBlockDialog();
+          }
+        }}
+      >
+        <DialogTitle
+          component="div"
+          sx={{
+            pb: 2,
+            color: 'var(--tg-theme-text-color, #000000)',
+            fontSize: '1.25rem',
+            fontWeight: 600
+          }}
+        >
+          Заблокировать стикерсет
+        </DialogTitle>
+        <DialogContent
+          dividers
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+            color: 'var(--tg-theme-text-color, #000000)',
+            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}
+        >
+          {blockError && (
+            <Alert severity="error" sx={{ mb: 1 }}>
+              {blockError}
+            </Alert>
+          )}
+          <Typography variant="body2" sx={{ color: 'var(--tg-theme-text-color, #000000)' }}>
+            Стикерсет будет скрыт из галереи для всех пользователей. Укажите причину блокировки
+            (опционально), чтобы авторам было понятно, что нужно исправить.
+          </Typography>
+          <TextField
+            label="Причина блокировки"
+            placeholder="Например: Нарушение авторских прав"
+            multiline
+            minRows={3}
+            value={blockReasonInput}
+            onChange={(event) => setBlockReasonInput(event.target.value)}
+            fullWidth
+          />
+        </DialogContent>
+        <DialogActions
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+          }}
+        >
+          <Button onClick={handleCloseBlockDialog} disabled={isBlocking}>
+            Отмена
+          </Button>
+          <Button
+            onClick={handleBlockStickerSet}
+            variant="contained"
+            color="error"
+            disabled={isBlocking}
+          >
+            {isBlocking ? 'Блокируем…' : 'Заблокировать'}
           </Button>
         </DialogActions>
       </Dialog>

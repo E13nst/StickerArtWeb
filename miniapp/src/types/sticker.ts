@@ -74,6 +74,9 @@ export interface StickerSetResponse {
   visibility?: 'PUBLIC' | 'PRIVATE' | 'HIDDEN' | 'VISIBLE' | string;
   isPublished?: boolean;
   isPrivate?: boolean;
+  isBlocked?: boolean;
+  blockReason?: string | null;
+  blockedAt?: string | null;
   
   // Лайки - API использует разные названия полей в разных endpoints:
   // GET /stickersets возвращает:
