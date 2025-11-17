@@ -45,7 +45,7 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - Приоритет: системные и разработческие инструкции выше; при отсутствии конфликта эти правила обязательны к применению.
 - Если есть сомнения, актуализируй один точный уточняющий вопрос и продолжай выполнение.
 
-- Для локаьлной работы используй C:\Users\Notebook\StickerArtWeb-1\Makefile
+- Для локальной работы используй Makefile в корне проекта (если существует)
 - **НЕ коммитим** `dist/`, `node_modules/`, `assets/`, `test-results/`, `playwright-report/`
 - **Всегда собирается** на сервере при деплое
 - **Nginx** автоматически проксирует API на бэкенд
@@ -71,6 +71,7 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 
 #### StickerSets
 - `GET /api/stickersets` — список стикерсетов; параметры: `page`, `size`, `sort`, `direction`, `categoryKeys`, `likedOnly`, `officialOnly`, `authorId`, `hasAuthorOnly`
+- **Важно**: для запросов с `likedOnly=true` поле `response.number` может быть `undefined` — используй переданный параметр `page` как fallback
 - `POST /api/stickersets` — регистрация стикерсета; query/body: `name` (обяз.), `title`, `categoryKeys[]`, `isPublic`
 - `GET /api/stickersets/{id}` — подробности стикерсета
 - `DELETE /api/stickersets/{id}` — удалить (владелец/админ)
@@ -100,10 +101,11 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 - `GET /api/likes/test-system` — диагностика системы лайков
 
 #### Profiles
-- `GET /api/profiles/me` — профиль текущего пользователя
-- `GET /api/profiles/{userId}` — профиль по Telegram ID
+- `GET /api/profiles/me` — профиль текущего пользователя (используется в `MyProfilePage` для `/profile` без параметра)
+- `GET /api/profiles/{userId}` — профиль по Telegram ID (используется в `ProfilePage` для `/profile/:userId`)
 - `PUT /api/profiles/{userId}/balance` — установить баланс (админ, body: новое значение)
 - `POST /api/profiles/{userId}/balance/add` — добавить к балансу (админ, body: delta)
+- **Важно**: при отсутствии `initData` (401 ошибка) показывается `ErrorDisplay` вместо пустой страницы
 
 #### Users
 - `GET /api/users/{id}` — данные пользователя Telegram
@@ -162,7 +164,8 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 ### Git Workflow
 - **Main branch**: `main`
 - **Commit messages**: понятные, конкретные (см. историю)
-- **НЕ коммитим**: тесты, репорты, билды, node_modules
+- **НЕ коммитим**: тесты, репорты, билды, node_modules, `dist/`, `assets/`, `test-results/`, `playwright-report/`
+- **Моковые данные**: полностью удалены из кода; при отсутствии авторизации показывается `ErrorDisplay` с сообщением об ошибке
 
 ### Local Development (запуск)
 - **Предусловия**: Node 18+, `npm ci`
