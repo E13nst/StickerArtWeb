@@ -794,8 +794,8 @@ class ApiClient {
     direction: 'ASC' | 'DESC' = 'DESC'
   ): Promise<StickerSetListResponse> {
     try {
-      const response = await this.client.get<StickerSetListResponse>('/stickersets', {
-        params: { userId, page, size, sort, direction }
+      const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
+        params: { page, size, sort, direction }
       });
       return response.data;
     } catch (error) {
