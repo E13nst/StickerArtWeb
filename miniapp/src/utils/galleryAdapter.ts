@@ -19,6 +19,8 @@ export interface GalleryPack {
   };
   // Количество стикеров в паке (видно только админу)
   stickerCount?: number;
+  // Публичность стикерсета
+  isPublic?: boolean;
 }
 
 // Кэш для избежания повторных вычислений
@@ -138,6 +140,11 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
     const hasTgs = stickers.some(s => s?.is_animated || s?.isAnimated);
     const hasWebp = stickers.some(s => !s?.is_video && !s?.is_animated && !s?.isVideo && !s?.isAnimated);
 
+    // Определяем публичность стикерсета
+    const isPublic = stickerSet.visibility === 'PUBLIC' || 
+                     stickerSet.isPublished === true || 
+                     (stickerSet as any).isPublic === true;
+
     const result: GalleryPack = {
       id: stickerSet.id.toString(),
       title: stickerSet.title,
@@ -147,7 +154,8 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
         hasWebm,
         hasTgs
       },
-      stickerCount: stickers.length
+      stickerCount: stickers.length,
+      isPublic
     };
 
     if (previewStickers.length > 0) {

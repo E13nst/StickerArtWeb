@@ -26,6 +26,8 @@ interface Pack {
   };
   // Количество стикеров в паке (видно только админу)
   stickerCount?: number;
+  // Публичность стикерсета
+  isPublic?: boolean;
 }
 
 interface PackCardProps {
@@ -321,7 +323,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       />
 
       {/* Badge с типами стикеров и количеством - только для админа */}
-      {isAdmin && (pack.stickerTypes || pack.stickerCount) && (
+      {isAdmin && (pack.stickerTypes || pack.stickerCount || pack.isPublic !== undefined) && (
         <div
           style={{
             position: 'absolute',
@@ -407,6 +409,41 @@ const PackCardComponent: React.FC<PackCardProps> = ({
               }}
             >
               WEBP
+            </div>
+          )}
+          
+          {/* Бейдж состояния isPublic с иконкой глаза */}
+          {pack.isPublic !== undefined && (
+            <div
+              style={{
+                backgroundColor: pack.isPublic ? 'rgba(76, 175, 80, 0.6)' : 'rgba(158, 158, 158, 0.6)',
+                color: 'white',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: '600',
+                lineHeight: 1,
+                backdropFilter: 'blur(8px)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}
+            >
+              <svg 
+                width="10" 
+                height="10" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
             </div>
           )}
         </div>
