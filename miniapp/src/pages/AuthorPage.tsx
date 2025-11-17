@@ -129,11 +129,13 @@ export const AuthorPage: React.FC = () => {
       }
 
       try {
-        const response = await apiClient.getStickerSets(page, PAGE_SIZE, {
+        const response = await apiClient.getStickerSetsByAuthor(
           authorId,
-          sort: sortByLikes ? 'likesCount' : 'createdAt',
-          direction: 'DESC'
-        });
+          page,
+          PAGE_SIZE,
+          sortByLikes ? 'likesCount' : 'createdAt',
+          'DESC'
+        );
 
         const content = response.content || [];
 

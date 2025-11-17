@@ -309,8 +309,8 @@ class ApiClient {
   }
 
   async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC'): Promise<StickerSetListResponse> {
-    const response = await this.client.get<StickerSetListResponse>('/stickersets', {
-      params: { authorId, page, size, sort, direction }
+    const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
+      params: { page, size, sort, direction }
     });
     return response.data;
   }
