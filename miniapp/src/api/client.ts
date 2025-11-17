@@ -191,8 +191,16 @@ class ApiClient {
 
   // Общая статистика платформы
   async getStatistics(): Promise<any> {
-    const response = await this.client.get('/statistics');
-    return response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      '/statistics',
+      async () => {
+        const response = await this.client.get('/statistics');
+        return response.data;
+      },
+      {}, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Удаляем заголовки аутентификации
@@ -214,14 +222,18 @@ class ApiClient {
   // API возвращает список CategoryDto с локализованными названиями
   // Поддерживает заголовок X-Language (ru/en) для локализации
   async getCategories(): Promise<CategoryResponse[]> {
-    try {
-      const response = await this.client.get<CategoryResponse[]>('/categories');
-      // API возвращает массив активных категорий, отсортированных по displayOrder
-      return response.data.filter(cat => cat.isActive);
-    } catch (error) {
-      console.warn('⚠️ Не удалось загрузить категории с API, используем fallback');
-      // Fallback категории, если API недоступен
-      return [
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      '/categories',
+      async () => {
+        try {
+          const response = await this.client.get<CategoryResponse[]>('/categories');
+          // API возвращает массив активных категорий, отсортированных по displayOrder
+          return response.data.filter(cat => cat.isActive);
+        } catch (error) {
+          console.warn('⚠️ Не удалось загрузить категории с API, используем fallback');
+          // Fallback категории, если API недоступен
+          return [
         { id: 1, key: 'animals', name: 'Animals', description: 'Stickers with animals', displayOrder: 1, isActive: true },
         { id: 2, key: 'memes', name: 'Memes', description: 'Popular memes', displayOrder: 2, isActive: true },
         { id: 3, key: 'emotions', name: 'Emotions', description: 'Express emotions', displayOrder: 3, isActive: true },
@@ -239,8 +251,12 @@ class ApiClient {
         { id: 15, key: 'music', name: 'Music', description: 'Music stickers', displayOrder: 15, isActive: true },
         { id: 16, key: 'technology', name: 'Technology', description: 'Technology and electronics stickers', displayOrder: 16, isActive: true },
         { id: 17, key: 'movies', name: 'Movies', description: 'Movie and TV series stickers', displayOrder: 17, isActive: true }
-      ];
-    }
+          ];
+        }
+      },
+      {}, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Получение списка стикерсетов с пагинацией и фильтрацией
@@ -309,15 +325,31 @@ class ApiClient {
   }
 
   async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC'): Promise<StickerSetListResponse> {
-    const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
-      params: { page, size, sort, direction }
-    });
-    return response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/stickersets/author/${authorId}`,
+      async () => {
+        const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
+          params: { page, size, sort, direction }
+        });
+        return response.data;
+      },
+      { authorId, page, size, sort, direction }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   async getTelegramUser(userId: number): Promise<TelegramApiUser> {
-    const response = await this.client.get<TelegramApiUser>(`/users/${userId}`);
-    return response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/users/${userId}`,
+      async () => {
+        const response = await this.client.get<TelegramApiUser>(`/users/${userId}`);
+        return response.data;
+      },
+      { userId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Создание нового стикерсета
@@ -341,8 +373,16 @@ class ApiClient {
 
   // Получение стикерсета по ID
   async getStickerSet(id: number): Promise<StickerSetResponse> {
-    const response = await this.client.get<StickerSetResponse>(`/stickersets/${id}`);
-    return response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/stickersets/${id}`,
+      async () => {
+        const response = await this.client.get<StickerSetResponse>(`/stickersets/${id}`);
+        return response.data;
+      },
+      { id }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Метаданные набора: автор и лайки
@@ -462,10 +502,18 @@ class ApiClient {
 
   // Проверка статуса аутентификации
   async checkAuthStatus(): Promise<AuthResponse> {
-    console.log('🔐 Проверка статуса авторизации...');
-    const response = await this.client.get<AuthResponse>('/auth/status');
-    console.log('✅ Статус авторизации получен:', response.data);
-    return response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      '/auth/status',
+      async () => {
+        console.log('🔐 Проверка статуса авторизации...');
+        const response = await this.client.get<AuthResponse>('/auth/status');
+        console.log('✅ Статус авторизации получен:', response.data);
+        return response.data;
+      },
+      {}, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Получение стикера по file_id
@@ -590,29 +638,45 @@ class ApiClient {
   }
 
   async getProfile(userId: number): Promise<UserInfo> {
-    try {
-      const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
-      return this.mapProfileToUserInfo(response.data);
-    } catch (error) {
-      console.warn('⚠️ API недоступен, используем мок данные для профиля');
-      // Фоллбек к мокам при девелопменте вне Telegram
-      return {
-        id: userId,
-        telegramId: userId,
-        username: 'mockuser',
-        firstName: 'Mock',
-        lastName: 'User',
-        avatarUrl: undefined,
-        role: 'USER',
-        artBalance: 100,
-        createdAt: new Date().toISOString()
-      } as UserInfo;
-    }
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/profiles/${userId}`,
+      async () => {
+        try {
+          const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+          return this.mapProfileToUserInfo(response.data);
+        } catch (error) {
+          console.warn('⚠️ API недоступен, используем мок данные для профиля');
+          // Фоллбек к мокам при девелопменте вне Telegram
+          return {
+            id: userId,
+            telegramId: userId,
+            username: 'mockuser',
+            firstName: 'Mock',
+            lastName: 'User',
+            avatarUrl: undefined,
+            role: 'USER',
+            artBalance: 100,
+            createdAt: new Date().toISOString()
+          } as UserInfo;
+        }
+      },
+      { userId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   async getProfileStrict(userId: number): Promise<ProfileResponse> {
-    const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
-    return response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/profiles/${userId}`,
+      async () => {
+        const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+        return response.data;
+      },
+      { userId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // ✅ REFACTORED: Профиль текущего пользователя через /api/profiles/me
@@ -688,9 +752,13 @@ class ApiClient {
 
   // Получение информации о пользователе по ID (использует новый API /profiles/{userId})
   async getUserInfo(userId: number): Promise<UserInfo> {
-    try {
-      const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
-      const data = response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/profiles/${userId}`,
+      async () => {
+        try {
+          const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+          const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo
       const mapped: UserInfo = {
@@ -718,29 +786,37 @@ class ApiClient {
         }
       };
       return mapped;
-    } catch (error) {
-      console.warn('⚠️ API недоступен, используем мок данные для пользователя');
-      // Мок данные для пользователя
-      return {
-        id: userId,
-        telegramId: userId,
-        username: 'mockuser',
-        firstName: 'Mock',
-        lastName: 'User',
-        avatarUrl: 'https://via.placeholder.com/64x64/2481cc/ffffff?text=MU',
-        role: 'USER',
-        artBalance: 150,
-        createdAt: '2025-09-15T10:30:00Z'
-      };
-    }
+        } catch (error) {
+          console.warn('⚠️ API недоступен, используем мок данные для пользователя');
+          // Мок данные для пользователя
+          return {
+            id: userId,
+            telegramId: userId,
+            username: 'mockuser',
+            firstName: 'Mock',
+            lastName: 'User',
+            avatarUrl: 'https://via.placeholder.com/64x64/2481cc/ffffff?text=MU',
+            role: 'USER',
+            artBalance: 150,
+            createdAt: '2025-09-15T10:30:00Z'
+          };
+        }
+      },
+      { userId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Получение информации о текущем пользователе по Telegram ID (использует новый API /profiles/{userId})
   async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
-    try {
-      // API endpoint: /api/profiles/{userId} где userId = telegramId
-      const response = await this.client.get<ProfileResponse>(`/profiles/${telegramId}`);
-      const data = response.data;
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/profiles/${telegramId}`,
+      async () => {
+        try {
+          // API endpoint: /api/profiles/{userId} где userId = telegramId
+          const response = await this.client.get<ProfileResponse>(`/profiles/${telegramId}`);
+          const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo
       const mapped: UserInfo = {
@@ -768,21 +844,25 @@ class ApiClient {
         }
       };
       return mapped;
-    } catch (error) {
-      console.warn('⚠️ API недоступен, используем мок данные для текущего пользователя');
-      // Мок данные для текущего пользователя
-      return {
-        id: telegramId,
-        telegramId: telegramId,
-        username: 'currentuser',
-        firstName: 'Current',
-        lastName: 'User',
-        avatarUrl: 'https://via.placeholder.com/64x64/4CAF50/ffffff?text=CU',
-        role: 'USER',
-        artBalance: 250,
-        createdAt: '2025-09-15T10:30:00Z'
-      };
-    }
+        } catch (error) {
+          console.warn('⚠️ API недоступен, используем мок данные для текущего пользователя');
+          // Мок данные для текущего пользователя
+          return {
+            id: telegramId,
+            telegramId: telegramId,
+            username: 'currentuser',
+            firstName: 'Current',
+            lastName: 'User',
+            avatarUrl: 'https://via.placeholder.com/64x64/4CAF50/ffffff?text=CU',
+            role: 'USER',
+            artBalance: 250,
+            createdAt: '2025-09-15T10:30:00Z'
+          };
+        }
+      },
+      { telegramId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Получение стикерсетов пользователя по userId
@@ -793,27 +873,35 @@ class ApiClient {
     sort: 'createdAt' | 'title' | 'name' = 'createdAt',
     direction: 'ASC' | 'DESC' = 'DESC'
   ): Promise<StickerSetListResponse> {
-    try {
-      const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
-        params: { page, size, sort, direction }
-      });
-      return response.data;
-    } catch (error) {
-      console.warn('⚠️ API недоступен, используем мок данные для стикерсетов пользователя');
-      // Фильтруем мок данные по userId (для демонстрации)
-             const userMockSets = mockStickerSets.filter(set => (set as any).userId === userId || userId === 777000);
-      
-      return {
-        content: userMockSets,
-        totalElements: userMockSets.length,
-        totalPages: Math.ceil(userMockSets.length / size),
-        size: size,
-        number: page,
-        first: page === 0,
-        last: page >= Math.ceil(userMockSets.length / size) - 1,
-        numberOfElements: userMockSets.length
-      };
-    }
+    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+    return requestDeduplicator.fetch(
+      `/stickersets/user/${userId}`,
+      async () => {
+        try {
+          const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
+            params: { page, size, sort, direction }
+          });
+          return response.data;
+        } catch (error) {
+          console.warn('⚠️ API недоступен, используем мок данные для стикерсетов пользователя');
+          // Фильтруем мок данные по userId (для демонстрации)
+          const userMockSets = mockStickerSets.filter(set => (set as any).userId === userId || userId === 777000);
+          
+          return {
+            content: userMockSets,
+            totalElements: userMockSets.length,
+            totalPages: Math.ceil(userMockSets.length / size),
+            size: size,
+            number: page,
+            first: page === 0,
+            last: page >= Math.ceil(userMockSets.length / size) - 1,
+            numberOfElements: userMockSets.length
+          };
+        }
+      },
+      { userId, page, size, sort, direction }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
   }
 
   // Поиск стикерсетов пользователя по названию
