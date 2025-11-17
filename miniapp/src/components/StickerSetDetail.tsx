@@ -20,7 +20,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import DownloadIcon from '@mui/icons-material/Download';
-import { StickerSetResponse, CategoryResponse, CategorySuggestion } from '@/types/sticker';
+import { StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
 import { AnimatedSticker } from './AnimatedSticker';
@@ -307,12 +307,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesLoadError, setCategoriesLoadError] = useState<string | null>(null);
   const [selectedCategoryKeys, setSelectedCategoryKeys] = useState<string[]>([]);
-  const [aiSuggestions, setAiSuggestions] = useState<CategorySuggestion[]>([]);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
   const [isSavingCategories, setIsSavingCategories] = useState(false);
   const [categorySaveError, setCategorySaveError] = useState<string | null>(null);
-  const canEditCategories = enableCategoryEditing;
   const effectiveStickerSet = fullStickerSet ?? stickerSet;
   const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() =>
     deriveVisibilityState(fullStickerSet ?? stickerSet)
@@ -351,12 +347,17 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const isAdmin = normalizedRole.includes('ADMIN');
   const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
   const canToggleVisibility = (isAuthor || isAdmin) && Boolean(stickerSet.id);
+  // Редактирование категорий доступно, если:
+  // 1. Явно разрешено через enableCategoryEditing (например, на странице "Мои стикеры"), И
+  // 2. Пользователь - автор стикерсета (загрузил его) или администратор
+  const canEditCategories = enableCategoryEditing && (isAuthor || isAdmin);
 
   useEffect(() => {
     if (!isCategoriesDialogOpen) {
       setSelectedCategoryKeys(currentCategoryKeys);
     }
   }, [currentCategoryKeys, isCategoriesDialogOpen]);
+
 
   useEffect(() => {
     setDraftVisibility(deriveVisibilityState(fullStickerSet ?? stickerSet));
@@ -724,29 +725,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }
   }, [availableCategories.length]);
 
-  const fetchAiSuggestions = useCallback(async () => {
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const result = await apiClient.suggestCategoriesForStickerSet(stickerSet.id, { apply: false });
-      setAiSuggestions(result?.suggestedCategories ?? []);
-    } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Не удалось получить предложения AI';
-      setAiError(message);
-    } finally {
-      setAiLoading(false);
-    }
-  }, [stickerSet.id]);
 
   const handleOpenCategoriesDialog = useCallback(() => {
     setSelectedCategoryKeys(currentCategoryKeys);
     setCategorySaveError(null);
-    setAiError(null);
     setCategoriesLoadError(null);
     setIsCategoriesDialogOpen(true);
     loadCategories();
-    fetchAiSuggestions();
-  }, [currentCategoryKeys, fetchAiSuggestions, loadCategories]);
+  }, [currentCategoryKeys, loadCategories]);
 
   const handleCloseCategoriesDialog = useCallback(() => {
     if (isSavingCategories) return;
@@ -767,8 +753,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     setCategorySaveError(null);
     try {
       const updated = await apiClient.updateStickerSetCategories(stickerSet.id, selectedCategoryKeys);
-      setFullStickerSet(updated);
-      onCategoriesUpdated?.(updated);
+      // Сохраняем telegramStickerSetInfo из текущего состояния, чтобы не потерять превью
+      const mergedUpdate = {
+        ...updated,
+        telegramStickerSetInfo: updated.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
+        previewStickers: updated.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+      };
+      console.log('✅ Категории сохранены, обновляем стикерсет:', mergedUpdate);
+      setFullStickerSet(mergedUpdate);
+      onCategoriesUpdated?.(mergedUpdate);
       setIsCategoriesDialogOpen(false);
     } catch (error: any) {
       const message = error?.response?.data?.message || error?.message || 'Не удалось сохранить категории. Попробуйте позже.';
@@ -776,14 +769,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     } finally {
       setIsSavingCategories(false);
     }
-  }, [selectedCategoryKeys, stickerSet.id, onCategoriesUpdated]);
+  }, [selectedCategoryKeys, stickerSet.id, onCategoriesUpdated, fullStickerSet, stickerSet]);
 
-  const handleApplySuggestionAll = useCallback(() => {
-    const suggestionKeys = aiSuggestions
-      .map((suggestion) => suggestion.categoryKey)
-      .filter((key): key is string => Boolean(key));
-    setSelectedCategoryKeys((prev) => Array.from(new Set([...prev, ...suggestionKeys])));
-  }, [aiSuggestions]);
 
   const handleVisibilityInfoClose = useCallback(() => {
     if (visibilityInfoTimeoutRef.current) {
@@ -1509,69 +1496,54 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         onClose={handleCloseCategoriesDialog}
         fullWidth
         maxWidth="sm"
+        PaperProps={{
+          onClick: (e) => e.stopPropagation(),
+          sx: {
+            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+            color: 'var(--tg-theme-text-color, #000000)',
+            backgroundImage: 'none'
+          }
+        }}
+        BackdropProps={{
+          onClick: (e) => {
+            e.stopPropagation();
+            handleCloseCategoriesDialog();
+          }
+        }}
       >
-        <DialogTitle>Изменить категории</DialogTitle>
-        <DialogContent dividers>
+        <DialogTitle 
+          component="div"
+          sx={{ 
+            pb: 2,
+            color: 'var(--tg-theme-text-color, #000000)',
+            fontSize: '1.25rem',
+            fontWeight: 600
+          }}
+        >
+          Добавьте категории
+        </DialogTitle>
+        <DialogContent 
+          dividers 
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+            color: 'var(--tg-theme-text-color, #000000)',
+            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+          }}
+        >
           {categorySaveError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {categorySaveError}
             </Alert>
           )}
 
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-            Предложения AI
-          </Typography>
-          {aiLoading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <CircularProgress size={18} />
-              <Typography variant="body2">AI подбирает категории…</Typography>
-            </Box>
-          ) : aiError ? (
-            <Alert severity="info" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <span>{aiError}</span>
-              <Button variant="outlined" size="small" onClick={fetchAiSuggestions}>
-                Повторить запрос
-              </Button>
-            </Alert>
-          ) : aiSuggestions.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
-              {aiSuggestions.map((suggestion) => {
-                if (!suggestion.categoryKey) return null;
-                const isSelected = selectedCategoryKeys.includes(suggestion.categoryKey);
-                return (
-                  <Chip
-                    key={`ai-${suggestion.categoryKey}`}
-                    label={`${suggestion.categoryName ?? suggestion.categoryKey}${suggestion.confidence ? ` · ${(suggestion.confidence * 100).toFixed(0)}%` : ''}`}
-                    color={isSelected ? 'primary' : 'default'}
-                    variant={isSelected ? 'filled' : 'outlined'}
-                    onClick={() => handleToggleCategory(suggestion.categoryKey!)}
-                  />
-                );
-              })}
-            </Box>
-          ) : (
-            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-              AI не нашёл подходящих категорий для этого набора.
-            </Typography>
-          )}
-          {aiSuggestions.length > 0 && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleApplySuggestionAll}
-              sx={{ mb: 3 }}
-            >
-              Добавить все предложенные
-            </Button>
-          )}
-
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color, #000000)', mb: 1 }}>
             Доступные категории
           </Typography>
           {categoriesLoading && availableCategories.length === 0 ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <CircularProgress size={18} />
-              <Typography variant="body2">Загрузка категорий…</Typography>
+              <CircularProgress size={18} sx={{ color: 'var(--tg-theme-button-color, #2481cc)' }} />
+              <Typography variant="body2" sx={{ color: 'var(--tg-theme-text-color, #000000)' }}>Загрузка категорий…</Typography>
             </Box>
           ) : categoriesLoadError ? (
             <Alert severity="error" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1591,24 +1563,45 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     color={isSelected ? 'primary' : 'default'}
                     variant={isSelected ? 'filled' : 'outlined'}
                     onClick={() => handleToggleCategory(category.key)}
+                    sx={{ cursor: 'pointer' }}
                   />
                 );
               })}
             </Box>
           )}
 
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color, #999999)' }}>
             Выбрано категорий: {selectedCategoryKeys.length}
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCategoriesDialog} disabled={isSavingCategories}>
+        <DialogActions 
+          onClick={(e) => e.stopPropagation()}
+          sx={{
+            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+          }}
+        >
+          <Button 
+            onClick={handleCloseCategoriesDialog} 
+            disabled={isSavingCategories}
+            sx={{
+              color: 'var(--tg-theme-button-color, #2481cc)'
+            }}
+          >
             Отмена
           </Button>
           <Button
             onClick={handleSaveCategories}
             variant="contained"
             disabled={isSavingCategories}
+            sx={{
+              backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
+              color: 'var(--tg-theme-button-text-color, #ffffff)',
+              '&:hover': {
+                backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
+                opacity: 0.9
+              }
+            }}
           >
             {isSavingCategories ? 'Сохраняем…' : 'Сохранить'}
           </Button>

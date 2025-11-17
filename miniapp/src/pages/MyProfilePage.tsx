@@ -1266,11 +1266,13 @@ export const MyProfilePage: React.FC = () => {
         open={isModalOpen}
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
+        enableCategoryEditing={true}
         onLike={(id) => {
           // Настоящее переключение лайка через store
           useLikesStore.getState().toggleLike(String(id));
         }}
         onStickerSetUpdated={handleStickerSetUpdated}
+        onCategoriesUpdated={handleStickerSetUpdated}
       />
 
       {/* Debug панель */}

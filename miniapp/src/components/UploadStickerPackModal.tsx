@@ -95,6 +95,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [suggestionsFetched, setSuggestionsFetched] = useState(false);
+  const [aiSuggestedKeys, setAiSuggestedKeys] = useState<Set<string>>(new Set());
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isCreatedPackModalOpen, setIsCreatedPackModalOpen] = useState(false);
@@ -117,6 +118,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     setSuggestionLoading(false);
     setSuggestionError(null);
     setSuggestionsFetched(false);
+    setAiSuggestedKeys(new Set());
     setIsPreviewLoading(false);
     setActivePreviewIndex(0);
     setIsPreviewModalOpen(false);
@@ -176,13 +178,9 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         console.warn('⚠️ Не удалось загрузить полные данные стикерсета сразу после создания', fetchError);
       }
 
-      if (onComplete) {
-        await onComplete(hydratedStickerSet);
-      }
-
-      resetState();
-      setCreatedPackForDetail(hydratedStickerSet);
-      setIsCreatedPackModalOpen(true);
+      // Сохраняем созданный стикерсет и переходим на шаг выбора категорий
+      setCreatedStickerSet(hydratedStickerSet);
+      setStep('categories');
     } catch (error: any) {
       const messages = extractErrorMessages(error, 'Не удалось создать стикерсет. Проверьте ссылку и попробуйте снова.');
       setLinkError(messages[0]);
@@ -214,9 +212,11 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   const loadSuggestions = async (title: string | undefined) => {
     if (!title || suggestionsFetched) {
+      console.log('⏭️ Пропуск AI подбора:', { title, suggestionsFetched });
       return;
     }
 
+    console.log('🤖 Запуск AI подбора для:', title);
     setSuggestionLoading(true);
     setSuggestionError(null);
 
@@ -224,17 +224,26 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       const suggestion = await apiClient.suggestCategoriesForTitle(title);
       setSuggestionsFetched(true);
 
+      console.log('📦 AI ответ:', suggestion);
+
       if (suggestion?.suggestedCategories?.length) {
         const suggestionKeys = suggestion.suggestedCategories
           .map((item) => item.categoryKey)
           .filter((key): key is string => Boolean(key));
 
         if (suggestionKeys.length > 0) {
+          setAiSuggestedKeys(new Set(suggestionKeys));
           setSelectedCategories(suggestionKeys);
+          console.log('✅ AI предложил категории:', suggestionKeys);
+        } else {
+          console.log('⚠️ AI не вернул категории');
         }
+      } else {
+        console.log('⚠️ AI ответ не содержит предложений');
       }
     } catch (error: any) {
       const message = error?.response?.data?.message || error?.message || 'AI не смог подобрать категории.';
+      console.error('❌ Ошибка AI подбора:', error);
       setSuggestionError(message);
     } finally {
       setSuggestionLoading(false);
@@ -283,14 +292,21 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   useEffect(() => {
     if (!createdStickerSet || step !== 'categories' || suggestionsFetched) {
+      console.log('⏭️ Пропуск useEffect AI подбора:', { 
+        hasCreatedStickerSet: !!createdStickerSet, 
+        step, 
+        suggestionsFetched 
+      });
       return;
     }
 
     if (!suggestionBaseTitle) {
+      console.log('⚠️ Нет названия для AI подбора');
       setSuggestionsFetched(true);
       return;
     }
 
+    console.log('🎯 Триггер AI подбора через useEffect');
     loadSuggestions(suggestionBaseTitle);
   }, [createdStickerSet, step, suggestionBaseTitle, suggestionsFetched]);
 
@@ -351,14 +367,15 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
     try {
       const updatedStickerSet = await apiClient.updateStickerSetCategories(createdStickerSet.id, selectedCategories);
-      setCreatedStickerSet(updatedStickerSet);
-
+      
       if (onComplete) {
         await onComplete(updatedStickerSet);
       }
 
+      // После сохранения категорий открываем детальное окно стикерсета
       resetState();
-      onClose();
+      setCreatedPackForDetail(updatedStickerSet);
+      setIsCreatedPackModalOpen(true);
     } catch (error: any) {
       const messages = extractErrorMessages(error, 'Не удалось сохранить категории. Попробуйте позже.');
       setCategoriesError(messages[0]);
@@ -588,12 +605,8 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   const renderCategoriesStep = () => (
     <>
-      <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 2 }}>
+      <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 3 }}>
         Добавьте категории
-      </Typography>
-
-      <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', mb: 2 }}>
-        Вы получите +10 ART после публикации набора
       </Typography>
 
       <Box
@@ -642,9 +655,16 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         </Box>
       </Box>
 
-      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 1 }}>
-        Выберите категории для стикерсета:
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
+          Выберите категории для стикерсета:
+        </Typography>
+        {!suggestionLoading && aiSuggestedKeys.size > 0 && (
+          <Typography variant="caption" sx={{ color: 'var(--tg-theme-link-color, #2481cc)', fontSize: '0.75rem', fontWeight: 500 }}>
+            ✨ {aiSuggestedKeys.size} от AI
+          </Typography>
+        )}
+      </Box>
 
       {suggestionLoading && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -719,10 +739,11 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           ) : (
             categories.map((category) => {
               const isSelected = selectedCategories.includes(category.key);
+              const isAiSuggested = aiSuggestedKeys.has(category.key);
               return (
                 <Chip
                   key={category.key}
-                  label={category.name}
+                  label={isAiSuggested ? `✨ ${category.name}` : category.name}
                   onClick={() => handleCategoryToggle(category.key)}
                   color={isSelected ? 'primary' : 'default'}
                   variant={isSelected ? 'filled' : 'outlined'}
@@ -733,7 +754,23 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                     transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                     '&:hover': {
                       transform: 'scale(1.05)'
-                    }
+                    },
+                    ...(isAiSuggested && {
+                      fontWeight: 600,
+                      boxShadow: '0 0 0 1px var(--tg-theme-link-color, #2481cc)',
+                      ...(!isSelected && {
+                        borderColor: 'var(--tg-theme-link-color, #2481cc)',
+                        borderWidth: 2,
+                        borderStyle: 'solid',
+                        backgroundColor: 'rgba(36, 129, 204, 0.08)',
+                        color: 'var(--tg-theme-link-color, #2481cc)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(36, 129, 204, 0.15)',
+                          borderColor: 'var(--tg-theme-link-color, #2481cc)',
+                          transform: 'scale(1.05)'
+                        }
+                      })
+                    })
                   }}
                 />
               );
