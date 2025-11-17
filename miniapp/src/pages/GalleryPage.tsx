@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { useLikesStore } from '../store/useLikesStore';
+import { useProfileStore } from '../store/useProfileStore';
 import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { apiClient } from '../api/client';
@@ -45,6 +46,9 @@ export const GalleryPage: React.FC = () => {
   const initializeLikes = useLikesStore(state => state.initializeLikes);
   const syncPendingLikes = useLikesStore(state => state.syncPendingLikes);
   const resetPendingSync = useLikesStore(state => state.resetPendingSync);
+  
+  // Получаем информацию о профиле пользователя для badges админа
+  const { userInfo, setUserInfo } = useProfileStore();
 
   // Категории стикеров (загружаются с API)
   const [categories, setCategories] = useState<Category[]>([]);
@@ -92,6 +96,36 @@ export const GalleryPage: React.FC = () => {
 
   // Debounced search term для оптимизации поиска
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  
+  // Ref для предотвращения повторной загрузки профиля
+  const isProfileLoadingRef = useRef(false);
+  
+  // Загрузка профиля пользователя для badges админа (неблокирующая)
+  const loadUserProfile = useCallback(async () => {
+    // Если уже загружаем - пропускаем
+    if (isProfileLoadingRef.current) {
+      return;
+    }
+    
+    // Если уже загружен - пропускаем
+    if (userInfo) {
+      return;
+    }
+    
+    isProfileLoadingRef.current = true;
+    
+    try {
+      console.log('🔍 GalleryPage: Загрузка профиля пользователя для badges админа...');
+      const profile = await apiClient.getMyProfile();
+      setUserInfo(profile);
+      console.log('✅ GalleryPage: Профиль пользователя загружен:', profile);
+    } catch (error) {
+      // Ошибка не критична - просто не покажем badges админа
+      console.log('ℹ️ GalleryPage: Не удалось загрузить профиль (это нормально для неавторизованных):', error);
+    } finally {
+      isProfileLoadingRef.current = false;
+    }
+  }, [userInfo, setUserInfo]);
 
   // Загрузка initData из URL параметров при инициализации
   // BUILD_DEBUG: Force rebuild - timestamp 2025-10-28T14:30:00Z
@@ -136,6 +170,22 @@ export const GalleryPage: React.FC = () => {
       setManualInitData('');
     }
   }, []);
+  
+  // Загрузка профиля пользователя после установки заголовков авторизации
+  useEffect(() => {
+    // Настраиваем заголовки авторизации
+    const currentInitData = manualInitData || initData;
+    if (currentInitData) {
+      console.log('🔐 GalleryPage: Устанавливаем заголовки авторизации');
+      apiClient.setAuthHeaders(currentInitData);
+    } else {
+      console.log('🔧 GalleryPage: Проверяем заголовки расширения');
+      apiClient.checkExtensionHeaders();
+    }
+    
+    // Загружаем профиль пользователя (неблокирующая операция)
+    loadUserProfile();
+  }, [initData, manualInitData, loadUserProfile]);
 
   // ✅ ОПТИМИЗАЦИЯ: Используем refs для стабилизации fetchStickerSets
   // Это предотвращает пересоздание функции при изменении sortByLikes/manualInitData
