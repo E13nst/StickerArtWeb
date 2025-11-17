@@ -24,7 +24,7 @@ export const ProfileFilterTabs: React.FC<ProfileFilterTabsProps> = ({
   const accentShadowHover = isLight ? '0 10px 26px rgba(30, 72, 185, 0.18)' : '0 10px 26px rgba(28, 48, 108, 0.34)';
 
   const filters = [
-    { id: 'published' as const, label: 'Мои' },
+    { id: 'published' as const, label: 'Загруженные' },
     { id: 'liked' as const, label: 'Понравившиеся' }
   ];
 

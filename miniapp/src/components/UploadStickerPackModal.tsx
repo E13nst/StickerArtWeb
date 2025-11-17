@@ -379,13 +379,13 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           textAlign: 'center'
         }}
       >
-        Создайте новый стикерсет
+        Добавьте стикеры в Stixly
       </Typography>
 
       <TextField
         fullWidth
         label="Ссылка или имя стикерсета"
-        placeholder="https://t.me/addstickers/..."
+        placeholder="Вставьте ссылку"
         value={link}
         onChange={(event) => {
           setLink(event.target.value);
@@ -469,10 +469,10 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         {isSubmittingLink ? (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             <CircularProgress size={16} sx={{ color: 'var(--tg-theme-button-text-color, #ffffff)' }} />
-            <span>Создание...</span>
+            <span>Добавляем</span>
           </Box>
         ) : (
-          'Создать стикерсет'
+          'Добавить (+10 ART)'
         )}
       </Button>
     </form>
