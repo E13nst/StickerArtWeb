@@ -21,6 +21,9 @@ export interface GalleryPack {
   stickerCount?: number;
   // Публичность стикерсета
   isPublic?: boolean;
+  // Флаги блокировки и удаления
+  isBlocked?: boolean;
+  isDeleted?: boolean;
 }
 
 // Кэш для избежания повторных вычислений
@@ -155,7 +158,9 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
         hasTgs
       },
       stickerCount: stickers.length,
-      isPublic
+      isPublic,
+      isBlocked: stickerSet.isBlocked ?? false,
+      isDeleted: false // isDeleted не приходит с бэкенда, устанавливается локально при удалении
     };
 
     if (previewStickers.length > 0) {

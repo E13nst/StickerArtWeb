@@ -23,6 +23,11 @@ interface Pack {
   };
   // Количество стикеров в паке (видно только админу)
   stickerCount?: number;
+  // Публичность стикерсета
+  isPublic?: boolean;
+  // Флаги блокировки и удаления
+  isBlocked?: boolean;
+  isDeleted?: boolean;
 }
 
 interface SimpleGalleryProps {
