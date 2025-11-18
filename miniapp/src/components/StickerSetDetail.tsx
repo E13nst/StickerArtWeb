@@ -1511,7 +1511,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 </Typography>
               )}
             </Box>
-            {(canToggleVisibility || canEditCategories || isAdmin) && (
+            {(canEditCategories || (effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0)) && (
               <Box
                 sx={{
                   display: 'flex',
@@ -1520,40 +1520,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   flexShrink: 0
                 }}
               >
-                {canToggleVisibility && (
-                  <Tooltip title={draftVisibility === 'public' ? 'Публичный набор' : 'Приватный набор'}>
-                    <IconButton
-                      aria-label="toggle-visibility"
-                      onClick={handleVisibilityToggle}
-                      disabled={isVisibilityUpdating}
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        padding: 0,
-                        color: 'rgba(255, 255, 255, 0.85)',
-                        backgroundColor: 'transparent',
-                        borderRadius: '50%',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.12)'
-                        },
-                        '&:active': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.18)'
-                        },
-                        '&.Mui-disabled': {
-                          color: 'rgba(255, 255, 255, 0.32)',
-                          backgroundColor: 'transparent',
-                          cursor: 'not-allowed'
-                        }
-                      }}
-                    >
-                      {draftVisibility === 'public' ? (
-                        <EyePublishedIcon sx={{ fontSize: 18 }} />
-                      ) : (
-                        <EyeUnpublishedIcon sx={{ fontSize: 18 }} />
-                      )}
-                    </IconButton>
-                  </Tooltip>
-                )}
             {canEditCategories && (
               <Button
                 variant="contained"
@@ -1593,30 +1559,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           )}
         </CardContent>
       </Card>
-      <Popover
-        open={Boolean(visibilityInfoAnchor)}
-        anchorEl={visibilityInfoAnchor}
-        onClose={handleVisibilityInfoClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        disableRestoreFocus
-        PaperProps={{
-          sx: {
-            backgroundColor: 'rgba(10, 12, 16, 0.92)',
-            color: 'rgba(255,255,255,0.9)',
-            px: 2,
-            py: 1.5,
-            maxWidth: 260,
-            borderRadius: 'var(--tg-radius-m)',
-            border: '1px solid rgba(255,255,255,0.18)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.45)'
-          }
-        }}
-      >
-        <Typography variant="caption" sx={{ lineHeight: 1.45, display: 'block' }}>
-          Публичные стикеры — видны всем. <br />Приватные — только вам.
-        </Typography>
-      </Popover>
 
       <Dialog
         open={isCategoriesDialogOpen}
