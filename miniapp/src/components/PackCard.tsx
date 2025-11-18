@@ -27,6 +27,9 @@ interface Pack {
   stickerCount?: number;
   // Публичность стикерсета
   isPublic?: boolean;
+  // Флаги блокировки и удаления
+  isBlocked?: boolean;
+  isDeleted?: boolean;
 }
 
 interface PackCardProps {
@@ -57,6 +60,11 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   const userInfo = useProfileStore(state => state.userInfo);
   const normalizedRole = (userInfo?.role ?? '').toUpperCase();
   const isAdmin = normalizedRole.includes('ADMIN');
+
+  // Проверяем статус блокировки и удаления
+  const isBlocked = pack.isBlocked ?? false;
+  const isDeleted = pack.isDeleted ?? false;
+  const isDimmed = isBlocked || isDeleted;
 
   // 🔥 УНИФИЦИРОВАННАЯ предзагрузка первого стикера через единую систему
   useEffect(() => {
@@ -224,7 +232,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         border: '1px solid var(--tg-theme-border-color)',
         boxShadow: '0 3px 13px var(--tg-theme-shadow-color)', // 3 и 13 - числа Фибоначчи
         touchAction: 'manipulation',
-        transition: 'transform 0.233s ease, box-shadow 0.233s ease' // 0.233 ≈ 1/φ
+        transition: 'transform 0.233s ease, box-shadow 0.233s ease, opacity 0.3s ease, filter 0.3s ease', // 0.233 ≈ 1/φ
+        opacity: isDimmed ? 0.5 : 1,
+        filter: isDimmed ? 'grayscale(0.7)' : 'none'
       }}
     >
       {/* Сменяющиеся превью стикеров - ОПТИМИЗИРОВАНО: рендерим только активный */}
@@ -341,6 +351,33 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         size="medium"
         placement="top-right"
       />
+
+      {/* Бейдж статуса блокировки/удаления - показывается всегда если стикерсет заблокирован/удален */}
+      {isDimmed && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            backgroundColor: 'rgba(244, 67, 54, 0.9)',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: 600,
+            lineHeight: 1,
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            pointerEvents: 'none',
+            zIndex: 10
+          }}
+        >
+          {isDeleted ? '❌ Удален' : '🚫 Заблокирован'}
+        </div>
+      )}
 
       {/* Badge с типами стикеров и количеством - только для админа */}
       {isAdmin && (pack.stickerTypes || pack.stickerCount || pack.isPublic !== undefined) && (

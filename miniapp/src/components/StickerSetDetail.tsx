@@ -33,6 +33,7 @@ import { Link } from 'react-router-dom';
 import { imageCache } from '@/utils/imageLoader';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useStickerStore } from '@/store/useStickerStore';
+import { StickerSetActions } from './StickerSetActions';
 import type { SvgIconProps } from '@mui/material/SvgIcon';
 
 // Кеш полных данных стикерсетов для оптимистичного UI
@@ -820,6 +821,61 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }
   }, [effectiveStickerSet?.id, blockReasonInput, fullStickerSet, stickerSet, onStickerSetUpdated]);
 
+  // Обработчик завершения действия из StickerSetActions
+  const handleActionComplete = useCallback(async (action: string, updatedData?: StickerSetResponse) => {
+    if (action === 'DELETE') {
+      // Для DELETE закрываем модальное окно или возвращаемся назад
+      if (isModal) {
+        onBack();
+      } else {
+        onBack();
+      }
+      return;
+    }
+
+    // Для остальных действий перезапрашиваем данные с сервера
+    try {
+      const refreshedData = await apiClient.getStickerSet(stickerSet.id);
+      const mergedUpdate: StickerSetResponse = {
+        ...refreshedData,
+        telegramStickerSetInfo:
+          refreshedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
+        previewStickers: refreshedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+      };
+
+      // Обновляем локальное состояние
+      setFullStickerSet(mergedUpdate);
+
+      // Обновляем кеш
+      stickerSetCache.set(stickerSet.id, {
+        data: mergedUpdate,
+        timestamp: Date.now(),
+        ttl: CACHE_TTL
+      });
+
+      // Обновляем глобальные stores
+      useStickerStore.getState().updateStickerSet(stickerSet.id, mergedUpdate);
+      useProfileStore.getState().updateUserStickerSet(stickerSet.id, mergedUpdate);
+
+      // Уведомляем родительский компонент
+      onStickerSetUpdated?.(mergedUpdate);
+    } catch (error) {
+      console.error('❌ Ошибка при обновлении данных стикерсета:', error);
+      // Если не удалось перезапросить, используем данные из ответа API (если есть)
+      if (updatedData) {
+        const mergedUpdate: StickerSetResponse = {
+          ...(fullStickerSet ?? stickerSet),
+          ...updatedData,
+          telegramStickerSetInfo:
+            updatedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
+          previewStickers: updatedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+        };
+        setFullStickerSet(mergedUpdate);
+        onStickerSetUpdated?.(mergedUpdate);
+      }
+    }
+  }, [stickerSet.id, isModal, onBack, fullStickerSet, stickerSet, onStickerSetUpdated]);
+
 
   const handleVisibilityInfoClose = useCallback(() => {
     if (visibilityInfoTimeoutRef.current) {
@@ -1510,25 +1566,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 Изменить
               </Button>
                 )}
-                {isAdmin && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="error"
-                    onClick={handleOpenBlockDialog}
-                    disabled={isStickerSetBlocked || isBlocking}
-                    sx={{
-                      whiteSpace: 'nowrap',
-                      borderColor: 'rgba(244, 67, 54, 0.5)',
-                      color: 'rgba(244, 67, 54, 0.9)',
-                      '&:hover': {
-                        borderColor: 'rgba(244, 67, 54, 0.8)',
-                        backgroundColor: 'rgba(244, 67, 54, 0.08)'
-                      }
-                    }}
-                  >
-                    {isStickerSetBlocked ? 'Заблокирован' : 'Заблокировать'}
-                  </Button>
+                {/* Динамические кнопки действий на основе availableActions */}
+                {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
+                  <StickerSetActions
+                    stickerSet={effectiveStickerSet}
+                    availableActions={effectiveStickerSet.availableActions}
+                    onActionComplete={handleActionComplete}
+                  />
                 )}
               </Box>
             )}

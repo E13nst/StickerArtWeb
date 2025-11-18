@@ -88,6 +88,13 @@ interface ProfileState {
   removeUserStickerSet: (id: number) => void;
   updateUserStickerSet: (id: number, updates: Partial<StickerSetResponse>) => void;
   
+  // Оптимистичные обновления статуса стикерсетов пользователя
+  markUserStickerAsBlocked: (id: number, reason?: string) => void;
+  markUserStickerAsUnblocked: (id: number) => void;
+  markUserStickerAsDeleted: (id: number) => void;
+  markUserStickerAsPublished: (id: number) => void;
+  markUserStickerAsUnpublished: (id: number) => void;
+  
   // Действия для ошибок
   setError: (error: string | null) => void;
   setUserError: (error: string | null) => void;
@@ -170,6 +177,52 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       stickerSet.id === id ? { ...stickerSet, ...updates } : stickerSet
     );
     set({ userStickerSets: updatedStickerSets });
+  },
+  
+  // Оптимистичные обновления статуса стикерсетов пользователя
+  markUserStickerAsBlocked: (id: number, reason?: string) => {
+    const { updateUserStickerSet } = get();
+    updateUserStickerSet(id, { 
+      isBlocked: true, 
+      blockReason: reason || null,
+      blockedAt: new Date().toISOString()
+    });
+  },
+  
+  markUserStickerAsUnblocked: (id: number) => {
+    const { updateUserStickerSet } = get();
+    updateUserStickerSet(id, { 
+      isBlocked: false, 
+      blockReason: null,
+      blockedAt: null
+    });
+  },
+  
+  markUserStickerAsDeleted: (id: number) => {
+    const { updateUserStickerSet } = get();
+    // Для удаленных стикерсетов используем специальный флаг (не из API, локальный)
+    updateUserStickerSet(id, { 
+      isBlocked: true, // Удаленные также помечаются как заблокированные
+      visibility: 'HIDDEN' as any
+    });
+  },
+  
+  markUserStickerAsPublished: (id: number) => {
+    const { updateUserStickerSet } = get();
+    updateUserStickerSet(id, { 
+      isPublished: true,
+      isPrivate: false,
+      visibility: 'PUBLIC'
+    });
+  },
+  
+  markUserStickerAsUnpublished: (id: number) => {
+    const { updateUserStickerSet } = get();
+    updateUserStickerSet(id, { 
+      isPublished: false,
+      isPrivate: true,
+      visibility: 'PRIVATE'
+    });
   },
   
   // Действия для ошибок

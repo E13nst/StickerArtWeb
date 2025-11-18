@@ -474,6 +474,16 @@ class ApiClient {
     }
   }
 
+  async unblockStickerSet(id: number): Promise<StickerSetResponse> {
+    try {
+      const response = await this.client.put<StickerSetResponse>(`/stickersets/${id}/unblock`);
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Ошибка при разблокировке стикерсета ${id}:`, error);
+      throw error;
+    }
+  }
+
   // AI-подбор категорий по заголовку
   async suggestCategoriesForTitle(title: string): Promise<CategorySuggestionResult> {
     try {

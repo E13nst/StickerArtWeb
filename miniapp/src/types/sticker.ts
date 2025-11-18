@@ -78,6 +78,9 @@ export interface StickerSetResponse {
   blockReason?: string | null;
   blockedAt?: string | null;
   
+  // Доступные действия для стикерсета (DELETE, BLOCK, UNBLOCK, PUBLISH, UNPUBLISH)
+  availableActions?: string[];
+  
   // Лайки - API использует разные названия полей в разных endpoints:
   // GET /stickersets возвращает:
   likesCount?: number;              // Общее количество лайков

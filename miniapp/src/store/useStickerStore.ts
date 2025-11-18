@@ -27,6 +27,13 @@ interface StickerState {
   updateStickerSet: (id: number, stickerSet: Partial<StickerSetResponse>) => void;
   removeStickerSet: (id: number) => void;
   
+  // Оптимистичные обновления статуса
+  markAsBlocked: (id: number, reason?: string) => void;
+  markAsUnblocked: (id: number) => void;
+  markAsDeleted: (id: number) => void;
+  markAsPublished: (id: number) => void;
+  markAsUnpublished: (id: number) => void;
+  
   // Действия для авторизации
   setAuthStatus: (authStatus: AuthResponse) => void;
   
@@ -82,6 +89,52 @@ export const useStickerStore = create<StickerState>((set, get) => ({
     const { stickerSets } = get();
     const updatedStickerSets = stickerSets.filter(stickerSet => stickerSet.id !== id);
     set({ stickerSets: updatedStickerSets });
+  },
+  
+  // Оптимистичные обновления статуса
+  markAsBlocked: (id: number, reason?: string) => {
+    const { updateStickerSet } = get();
+    updateStickerSet(id, { 
+      isBlocked: true, 
+      blockReason: reason || null,
+      blockedAt: new Date().toISOString()
+    });
+  },
+  
+  markAsUnblocked: (id: number) => {
+    const { updateStickerSet } = get();
+    updateStickerSet(id, { 
+      isBlocked: false, 
+      blockReason: null,
+      blockedAt: null
+    });
+  },
+  
+  markAsDeleted: (id: number) => {
+    const { updateStickerSet } = get();
+    // Для удаленных стикерсетов используем специальный флаг (не из API, локальный)
+    updateStickerSet(id, { 
+      isBlocked: true, // Удаленные также помечаются как заблокированные
+      visibility: 'HIDDEN' as any
+    });
+  },
+  
+  markAsPublished: (id: number) => {
+    const { updateStickerSet } = get();
+    updateStickerSet(id, { 
+      isPublished: true,
+      isPrivate: false,
+      visibility: 'PUBLIC'
+    });
+  },
+  
+  markAsUnpublished: (id: number) => {
+    const { updateStickerSet } = get();
+    updateStickerSet(id, { 
+      isPublished: false,
+      isPrivate: true,
+      visibility: 'PRIVATE'
+    });
   },
   
   // Действия для авторизации
