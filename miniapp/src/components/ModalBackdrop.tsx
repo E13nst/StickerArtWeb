@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
 import { useTelegram } from '@/hooks/useTelegram';
-import { clearNonGalleryAnimations } from '@/utils/animationLoader';
+import { clearNonGalleryAnimations } from '@/utils/imageLoader';
 
 interface ModalBackdropProps {
   open: boolean;

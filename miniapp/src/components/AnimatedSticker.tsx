@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Lottie from 'lottie-react';
 import type { LottieRefCurrentProps } from 'lottie-react';
-import { animationCache } from '../utils/animationLoader';
+import { animationCache } from '../utils/imageLoader';
 
 interface AnimatedStickerProps {
   fileId: string;

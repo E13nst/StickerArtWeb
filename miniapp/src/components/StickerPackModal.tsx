@@ -2,8 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerSetDetail } from './StickerSetDetail';
 import { ModalBackdrop } from './ModalBackdrop';
-import { imageCache } from '@/utils/galleryUtils';
-import { animationCache, clearStickerBlobsExcept } from '@/utils/animationLoader';
+import { imageCache, animationCache, clearStickerBlobsExcept } from '@/utils/imageLoader';
 
 interface StickerPackModalProps {
   open: boolean;

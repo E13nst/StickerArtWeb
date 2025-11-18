@@ -27,11 +27,10 @@ import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerThumbnail } from './StickerThumbnail';
 import { useLikesStore } from '@/store/useLikesStore';
-import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAsGallerySticker } from '@/utils/animationLoader';
-import { LoadPriority } from '@/utils/imageLoader';
+import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAsGallerySticker, LoadPriority } from '@/utils/imageLoader';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
-import { imageCache } from '@/utils/galleryUtils';
+import { imageCache } from '@/utils/imageLoader';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useStickerStore } from '@/store/useStickerStore';
 import type { SvgIconProps } from '@mui/material/SvgIcon';

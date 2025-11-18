@@ -1,11 +1,10 @@
 import React, { useCallback, memo, useState, useEffect } from 'react';
 import { useNearVisible } from '../hooks/useNearVisible';
+import { useViewportVisibility } from '../hooks/useViewportVisibility';
 import { useStickerRotation } from '../hooks/useStickerRotation';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
-import { imageLoader } from '../utils/imageLoader';
-import { prefetchAnimation, markAsGalleryAnimation, prefetchSticker, getCachedStickerUrl, markAsGallerySticker } from '../utils/animationLoader';
-import { LoadPriority } from '../utils/imageLoader';
+import { imageLoader, LoadPriority, videoBlobCache, imageCache } from '../utils/imageLoader';
 import { useProfileStore } from '../store/useProfileStore';
 
 interface Pack {
@@ -33,17 +32,24 @@ interface Pack {
 interface PackCardProps {
   pack: Pack;
   isFirstRow?: boolean;
-  isHighPriority?: boolean; // Для первых 6 паков на экране
+  isHighPriority?: boolean; // ⚠️ DEPRECATED: Теперь приоритет определяется автоматически через viewport
   onClick?: (packId: string) => void;
 }
 
 const PackCardComponent: React.FC<PackCardProps> = ({ 
   pack, 
   isFirstRow = false,
-  isHighPriority = false,
+  isHighPriority = false, // Оставлено для обратной совместимости, но не используется
   onClick
 }) => {
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
+  
+  // 🔥 НОВОЕ: Динамическое определение видимости в viewport
+  const { isInViewport, isNearViewport } = useViewportVisibility(ref, {
+    rootMargin: '800px',
+    threshold: 0.1
+  });
+  
   const [isHovered, setIsHovered] = useState(false);
   const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
   
@@ -52,67 +58,87 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   const normalizedRole = (userInfo?.role ?? '').toUpperCase();
   const isAdmin = normalizedRole.includes('ADMIN');
 
-  // Предзагрузка первого стикера с максимальным приоритетом для видимых карточек
+  // 🔥 УНИФИЦИРОВАННАЯ предзагрузка первого стикера через единую систему
   useEffect(() => {
     if (pack.previewStickers.length > 0) {
       const firstSticker = pack.previewStickers[0];
       
-      // Для видимых карточек используем максимальный приоритет
-      // Для невидимых - стандартный приоритет
+      // 🔥 НОВАЯ ЛОГИКА: Приоритет зависит от положения в viewport
       let priority: LoadPriority;
-      if (isNear) {
-        // Видимая карточка - максимальный приоритет
-        priority = isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE;
+      if (isInViewport) {
+        // Карточка видима прямо сейчас - максимальный приоритет
+        priority = LoadPriority.TIER_1_VIEWPORT;
+      } else if (isNearViewport) {
+        // Карточка близко к viewport (в пределах 800px) - высокий приоритет
+        priority = LoadPriority.TIER_2_NEAR_VIEWPORT;
+      } else if (isNear) {
+        // Карточка далеко, но в зоне предзагрузки - средний приоритет
+        priority = LoadPriority.TIER_3_ADDITIONAL;
       } else {
-        // Невидимая карточка - более низкий приоритет, но все равно загружаем первый стикер
-        priority = isHighPriority ? LoadPriority.TIER_2_FIRST_IMAGE : LoadPriority.TIER_3_ADDITIONAL;
+        // Карточка совсем далеко - низкий приоритет
+        priority = LoadPriority.TIER_4_BACKGROUND;
       }
 
-      if (firstSticker.isVideo) {
-        // Для видео используем prefetchSticker для правильной загрузки и кеширования
-        markAsGallerySticker(firstSticker.fileId);
-        prefetchSticker(firstSticker.fileId, firstSticker.url, {
-          isVideo: true,
-          markForGallery: true,
-          priority
-        })
-          .then(() => {
-            if ((import.meta as any).env?.DEV) {
-              console.log(`✅ First video sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
-            }
-            setIsFirstStickerReady(true);
-          })
-          .catch(() => {
-            console.warn(`⚠️ Failed to load first video sticker for pack ${pack.id}`);
-            setIsFirstStickerReady(true); // Показываем даже если ошибка
-          });
-        return;
-      }
-      
-      // Загружаем изображение и JSON если анимация
-      imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority)
+      // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Единая точка входа для всех типов ресурсов
+      const loadPromise = firstSticker.isVideo
+        ? imageLoader.loadVideo(firstSticker.fileId, firstSticker.url, priority)
+        : imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority);
+
+      // 🔥 ФИКС: Добавляем timeout для промисов загрузки (10 секунд)
+      // Если промис зависает - показываем контент все равно
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), 10000); // 🔥 УВЕЛИЧЕНО: с 3s до 10s
+      });
+
+      Promise.race([loadPromise, timeoutPromise])
         .then(() => {
           if ((import.meta as any).env?.DEV) {
-            console.log(`✅ First sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
+            const type = firstSticker.isVideo ? 'video' : firstSticker.isAnimated ? 'animated' : 'static';
+            console.log(`✅ First ${type} sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
           }
           setIsFirstStickerReady(true);
           
-          // Prefetch JSON для анимаций
-          if (firstSticker.isAnimated) {
-            prefetchAnimation(firstSticker.fileId, firstSticker.url).then(() => {
-              markAsGalleryAnimation(firstSticker.fileId);
-            }).catch(() => {});
+          // 🔥 Для анимаций загружаем JSON ПОСЛЕ изображения
+          // Это гарантирует что изображение покажется быстро, а анимация подгрузится
+          if (firstSticker.isAnimated && !firstSticker.isVideo) {
+            imageLoader.loadAnimation(firstSticker.fileId, firstSticker.url, LoadPriority.TIER_3_ADDITIONAL)
+              .catch(() => {
+                // Игнорируем ошибки загрузки JSON - изображение уже есть
+              });
           }
         })
-        .catch(() => {
-          console.warn(`⚠️ Failed to load first sticker for pack ${pack.id}`);
-          setIsFirstStickerReady(true); // Показываем даже если ошибка
+        .catch((error) => {
+          if ((import.meta as any).env?.DEV) {
+            console.warn(`⚠️ Failed to load first sticker for pack ${pack.id} (timeout or error):`, error.message);
+          }
+          setIsFirstStickerReady(true); // 🔥 КРИТИЧНО: Показываем контент даже при timeout/ошибке
         });
     }
-  }, [pack.id, pack.previewStickers, isHighPriority, isNear]);
+  }, [pack.id, pack.previewStickers, isInViewport, isNearViewport, isNear]);
 
-  // Предзагрузка остальных стикеров ТОЛЬКО для видимых карточек с высоким приоритетом
-  // Для невидимых карточек не загружаем дополнительные стикеры - экономим запросы
+  // 🔥 НОВОЕ: Обновление приоритета при изменении видимости
+  useEffect(() => {
+    if (pack.previewStickers.length === 0) return;
+    
+    const firstSticker = pack.previewStickers[0];
+    
+    // Определяем новый приоритет на основе видимости
+    let newPriority: LoadPriority;
+    if (isInViewport) {
+      newPriority = LoadPriority.TIER_1_VIEWPORT;
+    } else if (isNearViewport) {
+      newPriority = LoadPriority.TIER_2_NEAR_VIEWPORT;
+    } else if (isNear) {
+      newPriority = LoadPriority.TIER_3_ADDITIONAL;
+    } else {
+      newPriority = LoadPriority.TIER_4_BACKGROUND;
+    }
+    
+    // Обновляем приоритет загрузки
+    imageLoader.updatePriority(firstSticker.fileId, newPriority);
+  }, [pack.previewStickers, isInViewport, isNearViewport, isNear, pack.id]);
+
+  // 🔥 УНИФИЦИРОВАННАЯ предзагрузка остальных стикеров для плавной ротации
   useEffect(() => {
     // Загружаем только если карточка видима и есть стикеры для ротации
     if (pack.previewStickers.length <= 1 || !isNear) {
@@ -124,45 +150,39 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     for (let i = 1; i < Math.min(pack.previewStickers.length, 3); i++) {
       const sticker = pack.previewStickers[i];
 
-      // Используем высокий приоритет для видимых карточек (TIER_2 или TIER_3)
-      // Это гарантирует, что стикеры для ротации загрузятся быстро
-      const priority = isHighPriority 
-        ? LoadPriority.TIER_2_FIRST_IMAGE  // Для первых 6 паков - TIER_2
-        : LoadPriority.TIER_3_ADDITIONAL;  // Для остальных видимых - TIER_3
+      // 🔥 НОВАЯ ЛОГИКА: Приоритет для ротирующихся стикеров зависит от видимости
+      const priority = isInViewport
+        ? LoadPriority.TIER_2_NEAR_VIEWPORT  // Видимая карточка - высокий приоритет для ротации
+        : LoadPriority.TIER_3_ADDITIONAL;     // Невидимая - средний приоритет
 
-      if (sticker.isVideo) {
-        // Для видео используем prefetchSticker
-        markAsGallerySticker(sticker.fileId);
-        prefetchSticker(sticker.fileId, sticker.url, {
-          isVideo: true,
-          markForGallery: true,
-          priority
-        }).catch(() => {
-          // Игнорируем ошибки, но не блокируем ротацию
-        });
-        continue;
-      }
+      // 🔥 УНИФИЦИРОВАНО: Единая точка входа через imageLoader
+      const loadPromise = sticker.isVideo
+        ? imageLoader.loadVideo(sticker.fileId, sticker.url, priority)
+        : imageLoader.loadImage(sticker.fileId, sticker.url, priority);
 
-      imageLoader.loadImage(sticker.fileId, sticker.url, priority)
+      loadPromise
         .then(() => {
-          // Prefetch JSON для анимаций
-          if (sticker.isAnimated) {
-            prefetchAnimation(sticker.fileId, sticker.url).then(() => {
-              markAsGalleryAnimation(sticker.fileId);
-            }).catch(() => {});
+          // Для анимаций подгружаем JSON после изображения
+          if (sticker.isAnimated && !sticker.isVideo) {
+            imageLoader.loadAnimation(sticker.fileId, sticker.url, LoadPriority.TIER_4_BACKGROUND)
+              .catch(() => {
+                // Игнорируем ошибки - изображение уже есть
+              });
           }
         })
         .catch(() => {
           // Игнорируем ошибки, но не блокируем ротацию
         });
     }
-  }, [pack.id, pack.previewStickers, isNear, isHighPriority]);
+  }, [pack.id, pack.previewStickers, isNear, isInViewport]);
 
   // Используем хук для управления ротацией стикеров
-  // Для видимых карточек используем высокий приоритет загрузки следующего стикера
-  const rotationLoadPriority = isNear 
-    ? (isHighPriority ? LoadPriority.TIER_2_FIRST_IMAGE : LoadPriority.TIER_3_ADDITIONAL)
-    : LoadPriority.TIER_4_BACKGROUND;
+  // 🔥 НОВАЯ ЛОГИКА: Приоритет для следующего стикера в ротации
+  const rotationLoadPriority = isInViewport
+    ? LoadPriority.TIER_2_NEAR_VIEWPORT  // Видимая карточка - высокий приоритет
+    : (isNearViewport 
+        ? LoadPriority.TIER_3_ADDITIONAL  // Близко к viewport - средний
+        : LoadPriority.TIER_4_BACKGROUND); // Далеко - низкий
 
   const { currentIndex: currentStickerIndex } = useStickerRotation({
     stickersCount: pack.previewStickers.length,
@@ -264,7 +284,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 />
               ) : activeSticker.isVideo ? (
                 <video
-                  src={getCachedStickerUrl(activeSticker.fileId) || activeSticker.url}
+                  src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
                   className="pack-card-video"
                   autoPlay
                   loop
@@ -278,7 +298,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 />
               ) : (
                 <img
-                  src={activeSticker.url}
+                  src={imageCache.get(activeSticker.fileId) || activeSticker.url}
                   alt={activeSticker.emoji}
                   className="pack-card-image"
                   style={{
@@ -460,10 +480,10 @@ const arePropsEqual = (prevProps: PackCardProps, nextProps: PackCardProps): bool
   }
   
   // Проверка флагов
-  if (prevProps.isFirstRow !== nextProps.isFirstRow || 
-      prevProps.isHighPriority !== nextProps.isHighPriority) {
+  if (prevProps.isFirstRow !== nextProps.isFirstRow) {
     return false;
   }
+  // isHighPriority больше не используется - приоритет определяется динамически
   
   // Проверка onClick (обычно стабильная функция)
   if (prevProps.onClick !== nextProps.onClick) {

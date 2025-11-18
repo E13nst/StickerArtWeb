@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { imageLoader } from '../utils/imageLoader';
-import { imageCache } from '../utils/galleryUtils';
-import { animationCache, getCachedStickerUrl, prefetchSticker, markAsGallerySticker } from '../utils/animationLoader';
+import { imageLoader, imageCache, animationCache, getCachedStickerUrl, prefetchSticker, markAsGallerySticker } from '../utils/imageLoader';
 
 interface UseStickerRotationProps {
   stickersCount: number;
