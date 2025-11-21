@@ -1094,38 +1094,28 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Предотвращаем закрытие Mini App при свайпе внутри модального окна
+  // Свайп вниз закрывает модальное окно, свайп вверх предотвращает закрытие Mini App
   useEffect(() => {
-    if (!isModal || !modalContentRef.current) return;
+    if (!isModal) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      const touchTarget = e.target as HTMLElement;
-      // Сохраняем начальную позицию только если касание внутри модального окна
-      if (modalContentRef.current && modalContentRef.current.contains(touchTarget)) {
-        touchStartYRef.current = e.touches[0].clientY;
-      }
+      touchStartYRef.current = e.touches[0].clientY;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!touchStartYRef.current || !modalContentRef.current) return;
+      if (touchStartYRef.current === null) return;
 
-      const touchTarget = e.target as HTMLElement;
-      const currentY = e.touches[0].clientY;
-      const deltaY = currentY - touchStartYRef.current;
+      const deltaY = e.touches[0].clientY - touchStartYRef.current;
       
-      // Проверяем, что касание происходит внутри контента модального окна
-      if (modalContentRef.current.contains(touchTarget)) {
-        // Если свайп вверх (deltaY < 0) и он достаточно большой, предотвращаем закрытие Mini App
-        if (deltaY < -20) { // Порог 20px для предотвращения случайных срабатываний
-          // Предотвращаем закрытие Mini App
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Вызываем expand() для предотвращения сворачивания
-          if (tg && typeof tg.expand === 'function') {
-            tg.expand();
-          }
-        }
+      // Свайп вниз > 50px - закрываем модальное окно
+      if (deltaY > 50) {
+        e.preventDefault();
+        onBack();
+      }
+      // Свайп вверх - предотвращаем закрытие Mini App
+      else if (deltaY < -20) {
+        e.preventDefault();
+        tg?.expand?.();
       }
     };
 
@@ -1133,19 +1123,16 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       touchStartYRef.current = null;
     };
 
-    // Используем capture phase для перехвата событий до их обработки Telegram
-    document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true });
-    document.addEventListener('touchcancel', handleTouchEnd, { passive: true, capture: true });
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart, { capture: true });
-      document.removeEventListener('touchmove', handleTouchMove, { capture: true });
-      document.removeEventListener('touchend', handleTouchEnd, { capture: true });
-      document.removeEventListener('touchcancel', handleTouchEnd, { capture: true });
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isModal, tg]);
+  }, [isModal, tg, onBack]);
 
   return (
     <Box 
