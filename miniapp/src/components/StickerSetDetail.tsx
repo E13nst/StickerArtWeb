@@ -807,7 +807,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         ...updated,
         telegramStickerSetInfo:
           updated.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
-        previewStickers: updated.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+        previewStickers: updated.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
+        // Сохраняем availableActions из ответа API
+        availableActions: updated.availableActions
       };
       setFullStickerSet(mergedUpdate);
       onStickerSetUpdated?.(mergedUpdate);
@@ -840,7 +842,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         ...refreshedData,
         telegramStickerSetInfo:
           refreshedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
-        previewStickers: refreshedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+        previewStickers: refreshedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
+        // Сохраняем availableActions из ответа API
+        availableActions: refreshedData.availableActions
       };
 
       // Обновляем локальное состояние
@@ -868,7 +872,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           ...updatedData,
           telegramStickerSetInfo:
             updatedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
-          previewStickers: updatedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers
+          previewStickers: updatedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
+          // Сохраняем availableActions из ответа API
+          availableActions: updatedData.availableActions
         };
         setFullStickerSet(mergedUpdate);
         onStickerSetUpdated?.(mergedUpdate);
@@ -916,9 +922,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
         const responseVisibility = deriveVisibilityState(response);
         const finalVisibilityState = response ? responseVisibility : next;
-        const finalData = response
+        const baseData = response
           ? applyVisibilityToStickerSet(response, finalVisibilityState)
           : applyVisibilityToStickerSet(previousFull ?? stickerSet, finalVisibilityState);
+        
+        // Сохраняем availableActions из ответа API
+        const finalData: StickerSetResponse = {
+          ...baseData,
+          availableActions: response?.availableActions
+        };
 
         setFullStickerSet(finalData);
         setDraftVisibility(finalVisibilityState);
