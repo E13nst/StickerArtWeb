@@ -14,14 +14,16 @@ interface SearchBarProps {
   onSearch?: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
+const SearchBarComponent: React.FC<SearchBarProps> = ({
   value,
   onChange,
   onSearch,
   placeholder = "Поиск стикеров...",
-  disabled = false
+  disabled = false,
+  compact = false
 }) => {
   const { tg } = useTelegram();
   const scheme = tg?.colorScheme;
@@ -118,8 +120,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           background: glassBase,
           backgroundColor: glassSolid,
           color: textColorResolved,
-          height: '2.5rem',
-          fontSize: '0.875rem',
+          height: compact ? '2.2rem' : '2.5rem',
+          fontSize: compact ? '0.8125rem' : '0.875rem',
           paddingLeft: '0.618rem',
           paddingRight: '0.618rem',
           border: `1px solid ${borderColor}`,
@@ -164,3 +166,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     />
   );
 };
+
+// Мемоизация для предотвращения ререндера при изменении других пропсов родителя
+export const SearchBar = React.memo(SearchBarComponent);

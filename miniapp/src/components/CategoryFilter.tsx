@@ -12,13 +12,15 @@ interface CategoryFilterProps {
   selectedCategories: string[];
   onCategoryToggle: (categoryId: string) => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories,
   selectedCategories,
   onCategoryToggle,
-  disabled = false
+  disabled = false,
+  compact = false
 }) => {
   const { tg } = useTelegram();
   const scheme = tg?.colorScheme;
@@ -30,6 +32,11 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
   const accentShadow = isLight ? '0 6px 18px rgba(30, 72, 185, 0.14)' : '0 6px 18px rgba(28, 48, 108, 0.28)';
   const accentShadowHover = isLight ? '0 10px 26px rgba(30, 72, 185, 0.18)' : '0 10px 26px rgba(28, 48, 108, 0.34)';
+  
+  // Compact mode adjustments
+  const padding = compact ? '0.35rem 0.7rem' : '0.45rem 0.9rem';
+  const fontSize = compact ? '0.75rem' : '0.8125rem';
+  const baseOpacityUnselected = compact ? 0.72 : 0.88;
 
   const handleCategoryClick = (categoryId: string) => {
     if (disabled) return;
@@ -46,10 +53,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
     <div
       style={{
         display: 'flex',
-        gap: '0.5rem',
+        gap: compact ? '0.4rem' : '0.5rem',
         overflowX: 'auto',
         overflowY: 'hidden',
-        padding: '0.5rem 0',
+        padding: compact ? '0.3rem 0' : '0.5rem 0',
         scrollbarWidth: 'none',
         maskImage: 'none',
         WebkitMaskImage: 'none',
@@ -67,7 +74,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           : glassSolid;
         const baseShadow = accentShadow;
         const baseTransform = isSelected ? 'scale(0.98)' : 'scale(1)';
-        const baseOpacity = isSelected ? 1 : 0.88;
+        const baseOpacity = isSelected ? 1 : baseOpacityUnselected;
         const baseSaturate = isSelected ? 'saturate(220%)' : 'saturate(140%)';
 
         const hoverBackground = isSelected
@@ -113,12 +120,12 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
             }}
             style={{
               flexShrink: 0,
-              padding: '0.45rem 0.9rem',
+              padding: padding,
               borderRadius: '0.75rem',
               background: baseBackground,
               backgroundColor: baseSolid,
               color: textColorResolved,
-              fontSize: '0.8125rem',
+              fontSize: fontSize,
               fontWeight: 600,
               whiteSpace: 'nowrap',
               border: `1px solid ${baseBorder}`,

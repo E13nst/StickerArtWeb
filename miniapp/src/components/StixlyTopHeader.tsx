@@ -790,6 +790,26 @@ export default function StixlyTopHeader({
     ? activeProfileMode.backgroundColor
     : current.bg;
 
+  // Update CSS variable for header height
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      const headerElement = document.querySelector('.stixly-top-header');
+      if (headerElement) {
+        const height = headerElement.getBoundingClientRect().height;
+        const safeAreaTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '0');
+        const totalHeight = height + safeAreaTop;
+        document.documentElement.style.setProperty('--stixly-header-height', `${totalHeight}px`);
+      }
+    };
+
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateHeaderHeight);
+    };
+  }, []);
+
   return (
     <div style={{ position: "relative", width: "100%" }}>
       {headerContent}

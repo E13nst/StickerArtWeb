@@ -8,7 +8,7 @@ interface SortButtonProps {
   disabled?: boolean;
 }
 
-export const SortButton: React.FC<SortButtonProps> = ({
+const SortButtonComponent: React.FC<SortButtonProps> = ({
   sortByLikes,
   onToggle,
   disabled = false
@@ -117,3 +117,6 @@ export const SortButton: React.FC<SortButtonProps> = ({
     </button>
   );
 };
+
+// Мемоизация для предотвращения ререндера при изменении других пропсов родителя
+export const SortButton = React.memo(SortButtonComponent);

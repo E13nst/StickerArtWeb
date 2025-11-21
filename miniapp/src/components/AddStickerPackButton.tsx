@@ -8,7 +8,7 @@ interface AddStickerPackButtonProps {
   variant?: 'gallery' | 'profile';
 }
 
-export const AddStickerPackButton: React.FC<AddStickerPackButtonProps> = ({ onClick, variant = 'gallery' }) => {
+const AddStickerPackButtonComponent: React.FC<AddStickerPackButtonProps> = ({ onClick, variant = 'gallery' }) => {
   const { tg } = useTelegram();
   const handleClick = () => { tg?.HapticFeedback?.impactOccurred('light'); onClick(); };
 
@@ -72,7 +72,7 @@ export const AddStickerPackButton: React.FC<AddStickerPackButtonProps> = ({ onCl
   const buttonStyles: React.CSSProperties = {
     width: '100%',
     maxWidth: '100%',
-    height: '2.2rem',
+    height: '2rem',
     padding: '0 0.75rem',
     borderRadius: '0.75rem',
     border: `1px solid ${borderColor}`,
@@ -118,3 +118,5 @@ export const AddStickerPackButton: React.FC<AddStickerPackButtonProps> = ({ onCl
   );
 };
 
+// Мемоизация для предотвращения ререндера при изменении других пропсов родителя
+export const AddStickerPackButton = React.memo(AddStickerPackButtonComponent);

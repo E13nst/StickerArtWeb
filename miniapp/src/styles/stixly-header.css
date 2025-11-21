@@ -3,6 +3,7 @@
 
 :root {
   --stixly-header-bg: linear-gradient(90deg, #ff80bf 0%, #6e55ff 100%);
+  --stixly-header-height: 140px; /* Default header height, will be updated dynamically */
 }
 
 /* The gallery/page base body color (fallback when header not visible) */
