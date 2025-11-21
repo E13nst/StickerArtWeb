@@ -1102,11 +1102,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }
   }, [isModal, onBack]);
 
-  const { tg } = useTelegram();
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
-  // Свайп вниз закрывает модальное окно, свайп вверх предотвращает закрытие Mini App
+  // Упрощенная логика: свайп вниз закрывает модальное окно
   useEffect(() => {
     if (!isModal) return;
 
@@ -1119,15 +1118,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
       const deltaY = e.touches[0].clientY - touchStartYRef.current;
       
-      // Свайп вниз > 50px - закрываем модальное окно
-      if (deltaY > 50) {
+      // Свайп вниз > 80px - закрываем модальное окно
+      if (deltaY > 80) {
         e.preventDefault();
+        e.stopPropagation();
         onBack();
-      }
-      // Свайп вверх - предотвращаем закрытие Mini App
-      else if (deltaY < -20) {
-        e.preventDefault();
-        tg?.expand?.();
+        touchStartYRef.current = null;
       }
     };
 
@@ -1135,16 +1131,22 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       touchStartYRef.current = null;
     };
 
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Добавляем обработчики на модальное окно, чтобы предотвратить всплытие
+    const modalElement = modalContentRef.current;
+    if (modalElement) {
+      modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+      modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      modalElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
+      if (modalElement) {
+        modalElement.removeEventListener('touchstart', handleTouchStart);
+        modalElement.removeEventListener('touchmove', handleTouchMove);
+        modalElement.removeEventListener('touchend', handleTouchEnd);
+      }
     };
-  }, [isModal, tg, onBack]);
+  }, [isModal, onBack]);
 
   return (
     <Box 
@@ -1259,23 +1261,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 onLoad: () => setIsMainLoaded(true)
               })}
             </Box>
-            <IconButton
-              aria-label="close"
-              onClick={onBack}
-              sx={{
-                position: 'absolute',
-                top: 'var(--tg-spacing-3)',
-                right: 'var(--tg-spacing-3)',
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                borderRadius: 'var(--tg-radius-s)',
-                width: 40,
-                height: 40,
-                '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' }
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
           </Box>
         </Box>
       )}

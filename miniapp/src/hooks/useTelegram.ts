@@ -216,7 +216,19 @@ export const useTelegram = () => {
       telegram.ready();
       telegram.expand();
       
-      // Предотвращаем сворачивание миниаппа при скролле
+      // Отключаем вертикальные свайпы, которые сворачивают Mini App (Bot API 7.7+)
+      // Это глобально отключает сворачивание приложения свайпом вниз
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.disableVerticalSwipes) {
+        window.Telegram.WebApp.disableVerticalSwipes();
+        console.log('✅ Вертикальные свайпы отключены - Mini App не будет сворачиваться');
+      } else if (typeof (telegram as any).disableVerticalSwipes === 'function') {
+        (telegram as any).disableVerticalSwipes();
+        console.log('✅ Вертикальные свайпы отключены (через telegram объект)');
+      } else {
+        console.log('⚠️ disableVerticalSwipes() не доступен в текущей версии Telegram WebApp');
+      }
+      
+      // Предотвращаем сворачивание миниаппа при скролле (fallback для старых версий)
       // Подписываемся на изменение viewport и автоматически расширяем обратно
       if (typeof telegram.onEvent === 'function') {
         telegram.onEvent('viewportChanged', () => {

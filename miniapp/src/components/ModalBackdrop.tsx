@@ -124,6 +124,11 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
       }}
     >
       <Box
+        onTouchMove={(e) => {
+          // Предотвращаем сворачивание Mini App при свайпе внутри модального окна
+          // События touchmove внутри модального окна не должны сворачивать приложение
+          e.stopPropagation();
+        }}
         sx={{
           touchAction: 'pan-y', // Разрешаем только вертикальный скролл внутри контента
           width: '100%',
