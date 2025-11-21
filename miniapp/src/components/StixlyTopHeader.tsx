@@ -34,8 +34,8 @@ type Slide = {
 const RAW_SLIDES: (Omit<Slide, "img"> & { img: string })[] = [
   {
     id: 1,
-    bg: "linear-gradient(180deg, #000000 0%, #111111 100%)",
-    img: "stixly-logo-light.webp",
+    bg: "linear-gradient(180deg, #1D4ED8 0%, #38BDF8 100%)",
+    img: "stixly-logo-orange.webp",
     text: "Find, create & smile with stickers",
   },
   {
@@ -43,12 +43,6 @@ const RAW_SLIDES: (Omit<Slide, "img"> & { img: string })[] = [
     bg: "linear-gradient(180deg, #1D4ED8 0%, #38BDF8 100%)",
     img: "stixly-logo-orange.webp",
     text: "",
-  },
-  {
-    id: 3,
-    bg: "linear-gradient(180deg, #3B1D73 0%, #2CD9FF 100%)",
-    img: "stixly-mascot.webp",
-    text: "Your Universe of stickers",
   },
 ];
 
@@ -363,11 +357,14 @@ export default function StixlyTopHeader({
   const activeProfileMode = isProfileMode ? (profileMode as ProfileModeConfig) : undefined;
   const isStaticSlide = !isProfileMode && typeof fixedSlideId === 'number';
   const isDashboardMode = !isProfileMode && fixedSlideId === 2;
+  
+  // Проверяем, нужна ли статистика (если есть слайд с id=2)
+  const needsStats = !isProfileMode && slides.some(s => s.id === 2);
 
   useEffect(() => {
     let isActive = true;
 
-    if (!isDashboardMode) {
+    if (!needsStats) {
       setDashboardStats(null);
       return () => {
         isActive = false;
@@ -376,6 +373,26 @@ export default function StixlyTopHeader({
 
     const fetchDashboardStats = async () => {
       try {
+        // Проверяем кэш в localStorage
+        const CACHE_KEY = 'stixly_dashboard_stats';
+        const CACHE_TTL = 10 * 60 * 1000; // 10 минут
+        
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        if (cachedData) {
+          try {
+            const { data, timestamp } = JSON.parse(cachedData);
+            const isExpired = Date.now() - timestamp > CACHE_TTL;
+            
+            if (!isExpired && data) {
+              console.log('✅ Используем кэшированную статистику');
+              setDashboardStats(data);
+              return;
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Ошибка парсинга кэша статистики, запрашиваем с API');
+          }
+        }
+
         const statisticsResponse = await apiClient.getStatistics().catch((error) => {
           console.warn('⚠️ Не удалось получить общую статистику с /api/statistics', error);
           return null;
@@ -405,14 +422,27 @@ export default function StixlyTopHeader({
           (statisticsResponse as any)?.art?.daily,
         ]);
 
-        setDashboardStats({
+        const statsData = {
           totalSets,
           setsDailyDelta,
           totalLikes,
           likesDailyDelta,
           artTotal,
           artDailyDelta: artDelta,
-        });
+        };
+
+        setDashboardStats(statsData);
+        
+        // Сохраняем в кэш
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            data: statsData,
+            timestamp: Date.now()
+          }));
+          console.log('✅ Статистика сохранена в кэш');
+        } catch (storageError) {
+          console.warn('⚠️ Не удалось сохранить статистику в localStorage');
+        }
       } catch (error) {
         console.warn('⚠️ Не удалось получить статистику для заголовка Dashboard', error);
         if (!isActive) {
@@ -427,7 +457,7 @@ export default function StixlyTopHeader({
     return () => {
       isActive = false;
     };
-  }, [isDashboardMode]);
+  }, [needsStats]);
 
   useEffect(() => {
     if (isStaticSlide) {
@@ -463,7 +493,6 @@ export default function StixlyTopHeader({
   }, [slides.length, isProfileMode, isStaticSlide]);
 
   const current = slides[index];
-  const isMascot = current.img.includes("mascot");
 
   const profilePatternUrl = activeProfileMode
     ? getPatternSVG(activeProfileMode.pattern)
@@ -522,19 +551,14 @@ export default function StixlyTopHeader({
         pointerEvents: "auto", // разрешаем взаимодействия для кнопки
       }}
     >
-      {/* Два слоя для идеального кросс‑фейда без пустоты */}
-      <div style={{ position: "absolute", inset: 0 }}>
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={`bg-${current.id}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.0, ease: "easeInOut" }}
-            style={{ position: "absolute", inset: 0, background: current.bg }}
-          />
-        </AnimatePresence>
-      </div>
+      {/* Статичный голубой градиент */}
+      <div 
+        style={{ 
+          position: "absolute", 
+          inset: 0, 
+          background: "linear-gradient(180deg, #1D4ED8 0%, #38BDF8 100%)" 
+        }}
+      />
 
       <div style={{ position: "absolute", inset: 0 }}>
         <AnimatePresence initial={false}>
@@ -550,21 +574,17 @@ export default function StixlyTopHeader({
               inset: 0,
               display: "flex",
               alignItems: "center",
-              justifyContent: isDashboardMode
-                ? "center"
-                : isMascot
-                  ? "space-between"
-                  : "center",
-              flexDirection: isDashboardMode || isMascot ? "row" : "column",
-              gap: isDashboardMode ? "clamp(12px, 5vw, 32px)" : undefined,
+              justifyContent: "center",
+              flexDirection: current.id === 2 ? "row" : "column",
+              gap: current.id === 2 ? "clamp(12px, 5vw, 32px)" : undefined,
               color: "#fff",
               textAlign: "center",
-              paddingLeft: isDashboardMode ? "12px" : "8px", // минимальные отступы по золотым пропорциям
-              paddingRight: isDashboardMode ? "12px" : "8px",
-              paddingTop: isDashboardMode ? "10px" : "12px", // оптимизировано для меньшей высоты
+              paddingLeft: current.id === 2 ? "12px" : "8px", // минимальные отступы по золотым пропорциям
+              paddingRight: current.id === 2 ? "12px" : "8px",
+              paddingTop: current.id === 2 ? "10px" : "12px", // оптимизировано для меньшей высоты
             }}
           >
-            {isDashboardMode ? (
+            {current.id === 2 ? (
               <div
                 style={{
                   width: "100%",
@@ -723,44 +743,6 @@ export default function StixlyTopHeader({
                   </div>
                 </div>
               </div>
-            ) : isMascot ? (
-              <>
-                <div
-                  style={{
-                    flex: "1 1 0%",
-                    textAlign: "left",
-                    paddingRight: "12px",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "clamp(16px, 4.6vw, 24px)",
-                      lineHeight: 1.15,
-                      fontWeight: 700,
-                      color: "rgba(255,255,255,0.96)",
-                      letterSpacing: "0.2px",
-                      textShadow:
-                        "0 1px 2px rgba(0,0,0,0.35), 0 6px 20px rgba(0,0,0,0.25)",
-                      transform: "translateY(10px)",
-                    }}
-                  >
-                    {current.text}
-                  </p>
-                </div>
-                <img
-                  src={current.img}
-                  alt="Stixly"
-                  style={{
-                    flex: "0 0 auto",
-                    width: "180px", // уменьшено для соответствия новой высоте
-                    height: "auto",
-                    filter: "drop-shadow(0 0 10px rgba(255,255,255,0.28))",
-                  }}
-                  loading="eager"
-                  decoding="async"
-                />
-              </>
             ) : (
               <>
                 <img
