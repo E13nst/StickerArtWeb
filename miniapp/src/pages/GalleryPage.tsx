@@ -21,10 +21,9 @@ import { SearchBar } from '../components/SearchBar';
 // Новые компоненты галереи
 import { SimpleGallery } from '../components/SimpleGallery';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
-import { CategoryFilter, Category } from '../components/CategoryFilter';
+import { Category } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
-import { AddStickerPackButton } from '../components/AddStickerPackButton';
-import { SortButton } from '../components/SortButton';
+import { CompactControlsBar } from '../components/CompactControlsBar';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -93,6 +92,8 @@ export const GalleryPage: React.FC = () => {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortByLikes, setSortByLikes] = useState(getInitialSortByLikes);
+  const [selectedStickerTypes, setSelectedStickerTypes] = useState<string[]>(['static', 'animated', 'video', 'official']);
+  const [selectedDate, setSelectedDate] = useState<string | null>('all');
 
   // Debounced search term для оптимизации поиска
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -373,6 +374,23 @@ export const GalleryPage: React.FC = () => {
     setSortByLikes(prev => !prev);
   }, []);
 
+  const handleStickerTypeToggle = useCallback((typeId: string) => {
+    setSelectedStickerTypes(prev => {
+      const isSelected = prev.includes(typeId);
+      return isSelected
+        ? prev.filter(id => id !== typeId)
+        : [...prev, typeId];
+    });
+  }, []);
+
+  const handleDateChange = useCallback((dateId: string) => {
+    setSelectedDate(dateId);
+  }, []);
+
+  const handleAddClick = useCallback(() => {
+    setIsUploadModalOpen(true);
+  }, []);
+
   // Debounced поиск отключен - поиск только по требованию (Enter или клик)
   // useEffect(() => {
   //   if (debouncedSearchTerm) {
@@ -499,6 +517,28 @@ export const GalleryPage: React.FC = () => {
     <>
       <TelegramLayout>
 
+        {/* Compact Controls Bar - always visible */}
+        {!isInitialLoading && !error && (
+          <CompactControlsBar
+            searchValue={searchTerm}
+            onSearchChange={handleSearchChange}
+            onSearch={handleSearch}
+            searchDisabled={false}
+            categories={categories}
+            selectedCategories={selectedCategories}
+            onCategoryToggle={handleCategoryToggle}
+            categoriesDisabled={false}
+            sortByLikes={sortByLikes}
+            onSortToggle={handleSortToggle}
+            sortDisabled={!!searchTerm || categories.length === 0}
+            selectedStickerTypes={selectedStickerTypes}
+            onStickerTypeToggle={handleStickerTypeToggle}
+            selectedDate={selectedDate}
+            onDateChange={handleDateChange}
+            onAddClick={handleAddClick}
+          />
+        )}
+
         {/* Content */}
         {isInitialLoading ? (
           <LoadingSpinner message="Загрузка стикеров..." />
@@ -524,49 +564,14 @@ export const GalleryPage: React.FC = () => {
         ) : (
           <div className="fade-in">
             <SimpleGallery
-              controlsElement={
-                <>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <SearchBar
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        onSearch={handleSearch}
-                        placeholder="Поиск стикеров..."
-                        disabled={isLoading}
-                      />
-                    </Box>
-                    <SortButton
-                      sortByLikes={sortByLikes}
-                      onToggle={handleSortToggle}
-                      disabled={isLoading || !!searchTerm || categories.length === 0}
-                    />
-                  </Box>
-                  {categories.length > 0 ? (
-                    <div className="gallery-controls__filter">
-                      <CategoryFilter
-                        categories={categories}
-                        selectedCategories={selectedCategories}
-                        onCategoryToggle={handleCategoryToggle}
-                        disabled={isLoading}
-                      />
-                    </div>
-                  ) : null}
-                </>
-              }
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
               hasNextPage={currentPage < totalPages - 1}
               isLoadingMore={isLoadingMore}
               onLoadMore={loadMoreStickerSets}
               enablePreloading={true}
-              addButtonElement={
-                <AddStickerPackButton
-                  variant="gallery"
-                  onClick={() => setIsUploadModalOpen(true)}
-                />
-              }
               isRefreshing={isRefreshing}
+              scrollMode="page"
             />
           </div>
         )}
