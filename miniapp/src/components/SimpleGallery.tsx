@@ -71,44 +71,12 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
   const [hideControls, setHideControls] = useState(false);
-  const [topPadding, setTopPadding] = useState(285); // Default fallback
   
   // Случайные амплитуды для колонок (8-16px)
   const [floatAmplitudes] = useState(() => ({
     left: Math.floor(Math.random() * 9) + 8, // 8-16px
     right: Math.floor(Math.random() * 9) + 8 // 8-16px
   }));
-  
-  // Calculate top padding dynamically based on header and controls bar height
-  useEffect(() => {
-    if (!controlsElement && !addButtonElement) {
-      const calculateTopPadding = () => {
-        const header = document.querySelector('.stixly-top-header');
-        const controlsBar = document.querySelector('.compact-controls-bar') || document.querySelector('.gallery-controls-bar');
-        
-        if (header && controlsBar) {
-          const headerRect = header.getBoundingClientRect();
-          const controlsRect = controlsBar.getBoundingClientRect();
-          const totalHeight = headerRect.height + controlsRect.height;
-          setTopPadding(totalHeight);
-        }
-      };
-
-      // Initial calculation
-      calculateTopPadding();
-      
-      // Recalculate on resize
-      window.addEventListener('resize', calculateTopPadding);
-      
-      // Also recalculate after a short delay to ensure elements are rendered
-      const timeoutId = setTimeout(calculateTopPadding, 100);
-      
-      return () => {
-        window.removeEventListener('resize', calculateTopPadding);
-        clearTimeout(timeoutId);
-      };
-    }
-  }, [controlsElement, addButtonElement]);
   
   // Умное кэширование
   const { 
@@ -523,9 +491,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           flex: '1 1 auto',
           minHeight: 0,
           position: 'relative',
-          // Add padding for fixed controls bar (only if no controls/add button are passed as props)
-          // Dynamically calculated based on actual header and controls bar height
-          paddingTop: (!controlsElement && !addButtonElement) ? `${topPadding}px` : undefined
+          // Add padding top for fixed header (140px) + controls bar (~60px) = 200px
+          paddingTop: isPageScroll ? undefined : '200px'
         }}
         data-testid="gallery-container"
       >
@@ -537,7 +504,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           display: 'flex',
           gap: '8px',
           padding: '0 calc(1rem * 0.382)',
-          paddingTop: '0.618rem', // Small top padding for visual separation
+          paddingTop: '2.2rem', // Top padding equal to Add button height
           width: '100%',
           alignItems: 'flex-start'
         }}>

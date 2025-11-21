@@ -518,26 +518,24 @@ export const GalleryPage: React.FC = () => {
       <TelegramLayout>
 
         {/* Compact Controls Bar - always visible */}
-        {!isInitialLoading && !error && (
-          <CompactControlsBar
-            searchValue={searchTerm}
-            onSearchChange={handleSearchChange}
-            onSearch={handleSearch}
-            searchDisabled={false}
-            categories={categories}
-            selectedCategories={selectedCategories}
-            onCategoryToggle={handleCategoryToggle}
-            categoriesDisabled={false}
-            sortByLikes={sortByLikes}
-            onSortToggle={handleSortToggle}
-            sortDisabled={!!searchTerm || categories.length === 0}
-            selectedStickerTypes={selectedStickerTypes}
-            onStickerTypeToggle={handleStickerTypeToggle}
-            selectedDate={selectedDate}
-            onDateChange={handleDateChange}
-            onAddClick={handleAddClick}
-          />
-        )}
+        <CompactControlsBar
+          searchValue={searchTerm}
+          onSearchChange={handleSearchChange}
+          onSearch={handleSearch}
+          searchDisabled={false}
+          categories={categories}
+          selectedCategories={selectedCategories}
+          onCategoryToggle={handleCategoryToggle}
+          categoriesDisabled={false}
+          sortByLikes={sortByLikes}
+          onSortToggle={handleSortToggle}
+          sortDisabled={!!searchTerm || categories.length === 0}
+          selectedStickerTypes={selectedStickerTypes}
+          onStickerTypeToggle={handleStickerTypeToggle}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          onAddClick={handleAddClick}
+        />
 
         {/* Content */}
         {isInitialLoading ? (
@@ -571,7 +569,7 @@ export const GalleryPage: React.FC = () => {
               onLoadMore={loadMoreStickerSets}
               enablePreloading={true}
               isRefreshing={isRefreshing}
-              scrollMode="page"
+              scrollMode="inner"
             />
           </div>
         )}
