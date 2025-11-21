@@ -38,6 +38,9 @@ interface CompactControlsBarProps {
   
   // Add button
   onAddClick: () => void;
+  
+  // Position variant
+  variant?: 'fixed' | 'static';
 }
 
 const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
@@ -57,6 +60,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   selectedDate,
   onDateChange,
   onAddClick,
+  variant = 'fixed',
 }) => {
   const { tg } = useTelegram();
   const scheme = tg?.colorScheme;
@@ -186,15 +190,17 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     gap: '0.42rem',
   };
 
+  const isFixed = variant === 'fixed';
+  
   return (
     <div
       className="compact-controls-bar"
       style={{
-        position: 'fixed',
-        top: 'calc(var(--stixly-header-height) + env(safe-area-inset-top))',
-        left: 0,
-        right: 0,
-        zIndex: 998,
+        position: isFixed ? 'fixed' : 'relative',
+        top: isFixed ? 'calc(var(--stixly-header-height) + env(safe-area-inset-top))' : 'auto',
+        left: isFixed ? 0 : 'auto',
+        right: isFixed ? 0 : 'auto',
+        zIndex: isFixed ? 998 : 'auto',
         backgroundColor: 'transparent',
         padding: '0.5rem 0.618rem',
       }}

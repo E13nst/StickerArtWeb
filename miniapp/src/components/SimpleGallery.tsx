@@ -49,6 +49,8 @@ interface SimpleGalleryProps {
   usePageScroll?: boolean;
   // Режим скролла: 'inner' - внутренний скролл галереи, 'page' - скролл всей страницы
   scrollMode?: 'inner' | 'page';
+  // Пустое состояние (отображается внутри галереи когда packs пустой)
+  emptyState?: React.ReactNode;
 }
 
 const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
@@ -63,7 +65,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   controlsElement,
   isRefreshing = false,
   usePageScroll = false,
-  scrollMode
+  scrollMode,
+  emptyState
 }) => {
   // Определяем режим скролла: приоритет у scrollMode, затем usePageScroll для обратной совместимости
   const isPageScroll = scrollMode === 'page' || (scrollMode === undefined && usePageScroll);
@@ -130,10 +133,14 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   // Если packs пустой, используем обычный режим
   const shouldUseVirtualization = virtualizationDecisionRef.current === true;
 
-  // Показываем skeleton при пустом списке
+  // Показываем skeleton только при пустом списке, если нет emptyState
+  // Если есть emptyState, skeleton не показываем (будем показывать emptyState)
   useEffect(() => {
-    setShowSkeleton(packs.length === 0);
-  }, [packs.length]);
+    // Skeleton показываем только если:
+    // 1. packs пустой
+    // 2. Нет emptyState (если есть emptyState, показываем его вместо skeleton)
+    setShowSkeleton(packs.length === 0 && !emptyState);
+  }, [packs.length, emptyState]);
 
   // Кэширование паков
   useEffect(() => {
@@ -405,6 +412,13 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     </div>
   ) : null;
 
+  // Проверяем, нужно ли показать пустое состояние
+  // Показываем emptyState, если:
+  // 1. emptyState передан
+  // 2. packs пустой
+  // 3. Не показываем skeleton (skeleton имеет приоритет при загрузке)
+  const showEmptyState = emptyState && packs.length === 0 && !showSkeleton;
+
   if (shouldUseVirtualization) {
     return (
       <>
@@ -429,18 +443,22 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         >
         {renderOverlay}
         {isRefreshing && <LoadingSpinner message="Обновление..." />}
-        <div className="gallery-items">
-          <VirtualizedGallery
-            packs={packs}
-            onPackClick={onPackClick}
-            itemHeight={200}
-            overscan={6}
-            hasNextPage={hasNextPage}
-            isLoadingMore={isLoadingMore}
-            onLoadMore={onLoadMore}
-            scrollContainerRef={isPageScroll ? undefined : containerRef}
-          />
-        </div>
+        {showEmptyState ? (
+          emptyState
+        ) : (
+          <div className="gallery-items">
+            <VirtualizedGallery
+              packs={packs}
+              onPackClick={onPackClick}
+              itemHeight={200}
+              overscan={6}
+              hasNextPage={hasNextPage}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={onLoadMore}
+              scrollContainerRef={isPageScroll ? undefined : containerRef}
+            />
+          </div>
+        )}
       </div>
     </>
     );
@@ -498,16 +516,33 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       >
         {renderOverlay}
         {isRefreshing && <LoadingSpinner message="Обновление..." />}
-        <div
-          className="gallery-items"
-          style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '0 calc(1rem * 0.382)',
-          paddingTop: '2.2rem', // Top padding equal to Add button height
-          width: '100%',
-          alignItems: 'flex-start'
-        }}>
+        {showEmptyState ? (
+          emptyState
+        ) : (
+          <div
+            className="gallery-items"
+            style={{
+            display: 'flex',
+            gap: '8px',
+            padding: '0 calc(1rem * 0.382)',
+            // Отступ сверху: если есть controlsElement, учитываем его высоту (2.2rem высота + 0.5rem padding снизу)
+            // Если есть только addButtonElement, используем 2.2rem (высота кнопки)
+            // Отступ сверху: если есть controlsElement (CompactControlsBar), учитываем его высоту
+            // CompactControlsBar: высота кнопки 2.2rem + padding 0.5rem сверху = 2.7rem минимум
+            // Если expanded (категории/фильтры): + gap 0.5rem = 3.2rem
+            // Используем минимальный отступ для collapsed состояния
+            // Отступ сверху:
+            // - Если есть controlsElement, не добавляем отступ (controlsElement уже над gallery-items)
+            // - Если есть addButtonElement, добавляем отступ для кнопки (2.2rem)
+            // - Если scrollMode="inner" и нет controlsElement, добавляем отступ для кнопки "Добавить" из CompactControlsBar (2.2rem)
+            paddingTop: controlsElement 
+              ? '0' 
+              : (addButtonElement 
+                  ? '2.2rem' 
+                  : (isPageScroll ? '0' : '2.2rem')), // Для inner scroll добавляем отступ для кнопки "Добавить"
+            width: '100%',
+            alignItems: 'flex-start'
+          }}>
         {/* Левая колонка */}
         <div 
           className="gallery-column-float-1"
@@ -814,10 +849,11 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
             );
           })}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Индикатор загрузки - показываем только при локальной ленивой загрузке (без пагинации) */}
-      {!onLoadMore && !hasNextPage && visibleCount < packs.length && (
+      {!showEmptyState && !onLoadMore && !hasNextPage && visibleCount < packs.length && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -829,7 +865,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       )}
 
       {/* Триггер для загрузки следующей страницы */}
-      {hasNextPage && (
+      {!showEmptyState && hasNextPage && (
         <div
           ref={sentinelRef}
           style={{

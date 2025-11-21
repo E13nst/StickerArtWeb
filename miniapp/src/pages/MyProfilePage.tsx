@@ -20,7 +20,6 @@ import { StickerSetResponse } from '@/types/sticker';
 // Компоненты
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { FloatingAvatar } from '@/components/FloatingAvatar';
-import { SearchBar } from '@/components/SearchBar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
@@ -32,8 +31,9 @@ import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
-import { SortButton } from '@/components/SortButton';
-import { ProfileFilterTabs } from '@/components/ProfileFilterTabs';
+import { CompactControlsBar } from '@/components/CompactControlsBar';
+import { StickerSetsTabs } from '@/components/StickerSetsTabs';
+import { Category } from '@/components/CategoryFilter';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -86,7 +86,12 @@ export const MyProfilePage: React.FC = () => {
   }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
-  const [setsFilter, setSetsFilter] = useState<'published' | 'liked'>('published');
+  // Используем индекс таба: 0 = 'published', 1 = 'liked'
+  const [setsFilterTab, setSetsFilterTab] = useState<number>(0);
+  const setsFilter = setsFilterTab === 0 ? 'published' : 'liked';
+  
+  // Категории для фильтрации (не используются на странице профиля, но требуются для CompactControlsBar)
+  const [categories] = useState<Category[]>([]);
   const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
   // Флаг: был ли список загружен с сервера (для оптимизации - не загружаем повторно)
   const [isLikedListLoaded, setIsLikedListLoaded] = useState(false);
@@ -693,19 +698,19 @@ export const MyProfilePage: React.FC = () => {
   
   // Загружаем с сервера только при первом открытии вкладки "Понравившиеся"
   useEffect(() => {
-    if (setsFilter === 'liked' && !isLikedListLoaded && !isStickerSetsLoading && !isLikedLoadingMore) {
+    if (setsFilterTab === 1 && setsFilter === 'liked' && !isLikedListLoaded && !isStickerSetsLoading && !isLikedLoadingMore) {
       loadLikedStickerSets(0, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setsFilter, isLikedListLoaded, isStickerSetsLoading, isLikedLoadingMore]);
+  }, [setsFilterTab, setsFilter, isLikedListLoaded, isStickerSetsLoading, isLikedLoadingMore]);
   
   // Локально обновляем список при изменении лайков (без запроса к серверу)
   useEffect(() => {
-    if (setsFilter === 'liked' && isLikedListLoaded) {
+    if (setsFilterTab === 1 && setsFilter === 'liked' && isLikedListLoaded) {
       updateLikedListLocally();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [likedIdsHash, setsFilter, isLikedListLoaded]);
+  }, [likedIdsHash, setsFilterTab, setsFilter, isLikedListLoaded]);
 
 
   const handleCreateSticker = () => {
@@ -1085,6 +1090,13 @@ export const MyProfilePage: React.FC = () => {
         <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
+              {/* Табы для переключения между Загруженные и Понравившиеся */}
+              <StickerSetsTabs
+                activeTab={setsFilterTab}
+                onChange={setSetsFilterTab}
+                disabled={isStickerSetsLoading}
+              />
+              
               {/* Контент стикерсетов */}
               {isStickerSetsLoading ? (
                 <LoadingSpinner message="Загрузка стикерсетов..." />
@@ -1093,48 +1105,31 @@ export const MyProfilePage: React.FC = () => {
                   error={stickerSetsError} 
                   onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)} 
                 />
-              ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
-                <EmptyState
-                  title={setsFilter === 'liked' ? '❤️ Понравившихся пока нет' : '📁 У вас пока нет стикерсетов'}
-                  message={
-                    setsFilter === 'liked' 
-                      ? 'Лайкните понравившиеся наборы в галерее, и они появятся здесь'
-                      : (searchTerm 
-                          ? 'По вашему запросу ничего не найдено' 
-                          : 'Создайте свой первый набор стикеров!')
-                  }
-                  actionLabel="Создать стикер"
-                  onAction={handleCreateSticker}
-                />
               ) : (
                 <div className="fade-in">
                   <SimpleGallery
                     controlsElement={
-                      <>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
-                          <Box sx={{ flex: 1 }}>
-                            <SearchBar
-                              value={searchTerm}
-                              onChange={handleSearchChange}
-                              onSearch={handleSearch}
-                              placeholder="Поиск моих стикерсетов..."
-                              disabled={isStickerSetsLoading}
-                            />
-                          </Box>
-                          <SortButton
-                            sortByLikes={sortByLikes}
-                            onToggle={handleSortToggle}
-                            disabled={isStickerSetsLoading || !!searchTerm}
-                          />
-                        </Box>
-                        <div className="gallery-controls__filter">
-                          <ProfileFilterTabs
-                            activeFilter={setsFilter}
-                            onFilterChange={setSetsFilter}
-                            disabled={isStickerSetsLoading}
-                          />
-                        </div>
-                      </>
+                      <Box sx={{ mb: 2 }}>
+                        <CompactControlsBar
+                          variant="static"
+                          searchValue={searchTerm}
+                          onSearchChange={handleSearchChange}
+                          onSearch={handleSearch}
+                          searchDisabled={isStickerSetsLoading}
+                          categories={categories}
+                          selectedCategories={[]}
+                          onCategoryToggle={() => {}}
+                          categoriesDisabled={true}
+                          sortByLikes={sortByLikes}
+                          onSortToggle={handleSortToggle}
+                          sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
+                          selectedStickerTypes={[]}
+                          onStickerTypeToggle={() => {}}
+                          selectedDate={null}
+                          onDateChange={() => {}}
+                          onAddClick={() => setIsUploadModalOpen(true)}
+                        />
+                      </Box>
                     }
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
@@ -1148,12 +1143,22 @@ export const MyProfilePage: React.FC = () => {
                     enablePreloading={true}
                     scrollMode="page"
                     isRefreshing={isStickerSetsLoading && (setsFilter === 'liked' ? likedStickerSets.length > 0 : filteredStickerSets.length > 0)}
-                    addButtonElement={setsFilter === 'published' ? (
-                      <AddStickerPackButton
-                        variant="gallery"
-                        onClick={() => setIsUploadModalOpen(true)}
-                      />
-                    ) : undefined}
+                    emptyState={
+                      (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
+                        <EmptyState
+                          title={setsFilter === 'liked' ? '❤️ Понравившихся пока нет' : '📁 У вас пока нет стикерсетов'}
+                          message={
+                            setsFilter === 'liked' 
+                              ? 'Лайкните понравившиеся наборы в галерее, и они появятся здесь'
+                              : (searchTerm 
+                                  ? 'По вашему запросу ничего не найдено' 
+                                  : 'Добавьте стикер')
+                          }
+                          actionLabel="Создать стикер"
+                          onAction={handleCreateSticker}
+                        />
+                      ) : undefined
+                    }
                   />
                 </div>
               )}
