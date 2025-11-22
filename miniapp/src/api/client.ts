@@ -269,6 +269,7 @@ class ApiClient {
       userId?: number;          // Фильтр по пользователю (Telegram ID)
       hasAuthorOnly?: boolean;
       officialOnly?: boolean;
+      type?: 'USER' | 'OFFICIAL'; // Фильтр по типу стикерсета
       likedOnly?: boolean;     // Только лайкнутые
       sort?: string;           // Поле для сортировки
       direction?: 'ASC' | 'DESC'; // Направление сортировки
@@ -308,6 +309,11 @@ class ApiClient {
 
     if (typeof options?.officialOnly === 'boolean') {
       params.officialOnly = options.officialOnly;
+    }
+
+    // Добавляем поддержку фильтра по типу стикерсета
+    if (options?.type) {
+      params.type = options.type;
     }
 
     if (typeof options?.preview === 'boolean') {

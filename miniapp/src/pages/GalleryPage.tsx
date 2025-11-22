@@ -229,12 +229,22 @@ export const GalleryPage: React.FC = () => {
       }
 
       // Вычисляем параметр type для API
-      // Если выбраны оба типа или ни один - null (показать все)
+      // Если выбраны оба типа или ни один - undefined (показать все)
       // Если выбран один - передать его
       let typeFilter: 'USER' | 'OFFICIAL' | undefined = undefined;
       if (selectedStickerSetTypes.length === 1) {
         typeFilter = selectedStickerSetTypes[0];
+      } else if (selectedStickerSetTypes.length === 0) {
+        // Если ничего не выбрано - показываем все (undefined)
+        typeFilter = undefined;
       }
+      // Если выбраны оба типа (length === 2) - тоже undefined (показать все)
+
+      console.log('🔍 Фильтр по типу стикерсетов:', {
+        selectedStickerSetTypes,
+        typeFilter,
+        length: selectedStickerSetTypes.length
+      });
 
       // Опции для API запроса
       const apiOptions = {
