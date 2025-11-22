@@ -13,7 +13,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
   try {
     // Регистрируем Service Worker
-    const registration = await navigator.serviceWorker.register('/sw.js', {
+    const registration = await navigator.serviceWorker.register('/miniapp/sw.js', {
       scope: '/'
     });
 
