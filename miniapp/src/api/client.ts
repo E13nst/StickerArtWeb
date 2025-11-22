@@ -999,11 +999,11 @@ class ApiClient {
   // Поиск стикерсетов пользователя по названию
   async searchUserStickerSets(userId: number, query: string, page: number = 0, size: number = 20, preview?: boolean): Promise<StickerSetListResponse> {
     try {
-      const params: Record<string, any> = { name: query, page, size };
+      const params: Record<string, any> = { query, page, size, userId };
       if (typeof preview === 'boolean') {
         params.preview = preview;
       }
-      const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}/search`, {
+      const response = await this.client.get<StickerSetListResponse>(`/stickersets/search`, {
         params
       });
       return response.data;
@@ -1025,6 +1025,39 @@ class ApiClient {
         first: page === 0,
         last: page >= Math.ceil(userMockSets.length / size) - 1,
         numberOfElements: userMockSets.length
+      };
+    }
+  }
+
+  // Поиск стикерсетов автора по названию
+  async searchAuthorStickerSets(authorId: number, query: string, page: number = 0, size: number = 20, preview?: boolean): Promise<StickerSetListResponse> {
+    try {
+      const params: Record<string, any> = { query, page, size, authorId };
+      if (typeof preview === 'boolean') {
+        params.preview = preview;
+      }
+      const response = await this.client.get<StickerSetListResponse>(`/stickersets/search`, {
+        params
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('⚠️ API поиска недоступен, используем локальную фильтрацию');
+      // Локальная фильтрация мок данных
+       const authorMockSets = mockStickerSets.filter(set => 
+        ((set as any).authorId === authorId || authorId === 777000) &&
+        (set.title.toLowerCase().includes(query.toLowerCase()) ||
+         set.name.toLowerCase().includes(query.toLowerCase()))
+      );
+      
+      return {
+        content: authorMockSets,
+        totalElements: authorMockSets.length,
+        totalPages: Math.ceil(authorMockSets.length / size),
+        size: size,
+        number: page,
+        first: page === 0,
+        last: page >= Math.ceil(authorMockSets.length / size) - 1,
+        numberOfElements: authorMockSets.length
       };
     }
   }

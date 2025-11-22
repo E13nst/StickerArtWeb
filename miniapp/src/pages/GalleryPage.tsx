@@ -256,7 +256,7 @@ export const GalleryPage: React.FC = () => {
       };
 
       // Определяем, нужно ли использовать поиск или обычный запрос
-      const searchQuery = debouncedSearchTerm.trim();
+      const searchQuery = lastFiltersRef.current.searchTerm.trim();
       let response;
 
       if (searchQuery) {
@@ -309,7 +309,7 @@ export const GalleryPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes, selectedStickerSetTypes, debouncedSearchTerm]);
+  }, [initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes, selectedStickerSetTypes]); // Убрали debouncedSearchTerm из зависимостей
 
   // Загрузка следующей страницы с учетом фильтров
   const loadMoreStickerSets = useCallback(() => {
@@ -355,10 +355,16 @@ export const GalleryPage: React.FC = () => {
   }, []);
 
   const handleSearch = useCallback((searchTerm: string) => {
-    // Поиск теперь происходит автоматически через debounce в fetchStickerSets
-    // Этот обработчик оставлен для совместимости с SearchBar
+    // Обновляем searchTerm и выполняем поиск явно
     setSearchTerm(searchTerm);
-  }, []);
+    // Обновляем ref для отслеживания изменений
+    lastFiltersRef.current = {
+      ...lastFiltersRef.current,
+      searchTerm: searchTerm
+    };
+    // Выполняем поиск
+    fetchStickerSets(0, false, selectedCategories);
+  }, [fetchStickerSets, selectedCategories]);
 
   const handleCategoryToggle = useCallback((categoryId: string) => {
     setSelectedCategories(prev => {
@@ -453,27 +459,26 @@ export const GalleryPage: React.FC = () => {
     searchTerm: ''
   });
 
-  // Перезагрузка при изменении выбранных категорий, сортировки, типов или поискового запроса
+  // Перезагрузка при изменении выбранных категорий, сортировки, типов (поиск вручную через handleSearch)
   useEffect(() => {
     if (!isReady || !hasInitializedRef.current) return;
     
-    // Проверяем, действительно ли изменились фильтры
+    // Проверяем, действительно ли изменились фильтры (без searchTerm - поиск только вручную)
     const categoriesChanged = JSON.stringify(selectedCategories) !== JSON.stringify(lastFiltersRef.current.categories);
     const sortChanged = sortByLikes !== lastFiltersRef.current.sortByLikes;
     const typesChanged = JSON.stringify(selectedStickerSetTypes) !== JSON.stringify(lastFiltersRef.current.stickerSetTypes);
-    const searchChanged = debouncedSearchTerm !== lastFiltersRef.current.searchTerm;
     
-    if (categoriesChanged || sortChanged || typesChanged || searchChanged) {
+    if (categoriesChanged || sortChanged || typesChanged) {
       lastFiltersRef.current = {
         categories: [...selectedCategories],
         sortByLikes: sortByLikes,
         stickerSetTypes: [...selectedStickerSetTypes],
-        searchTerm: debouncedSearchTerm
+        searchTerm: lastFiltersRef.current.searchTerm // Сохраняем текущий searchTerm
       };
       fetchStickerSets(0, false, selectedCategories);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategories, sortByLikes, selectedStickerSetTypes, debouncedSearchTerm, isReady]); // Убрали fetchStickerSets из зависимостей
+  }, [selectedCategories, sortByLikes, selectedStickerSetTypes, isReady]); // Убрали debouncedSearchTerm из зависимостей
 
   // Инициализация - только при первом монтировании или изменении initData
   useEffect(() => {
@@ -483,7 +488,7 @@ export const GalleryPage: React.FC = () => {
         categories: [...selectedCategories],
         sortByLikes: sortByLikes,
         stickerSetTypes: [...selectedStickerSetTypes],
-        searchTerm: debouncedSearchTerm
+        searchTerm: '' // Инициализация с пустой строкой поиска
       };
       fetchStickerSets(0, false, selectedCategories);
     }

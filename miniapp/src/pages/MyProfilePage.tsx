@@ -1111,29 +1111,31 @@ export const MyProfilePage: React.FC = () => {
                 <div className="fade-in">
                   <SimpleGallery
                     controlsElement={
-                      <Box sx={{ mb: 2 }}>
-                        <CompactControlsBar
-                          variant="static"
-                          searchValue={searchTerm}
-                          onSearchChange={handleSearchChange}
-                          onSearch={handleSearch}
-                          searchDisabled={isStickerSetsLoading}
-                          categories={categories}
-                          selectedCategories={[]}
-                          onCategoryToggle={() => {}}
-                          categoriesDisabled={true}
-                          sortByLikes={sortByLikes}
-                          onSortToggle={handleSortToggle}
-                          sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
-                          selectedStickerTypes={[]}
-                          onStickerTypeToggle={() => {}}
-                          selectedStickerSetTypes={[]}
-                          onStickerSetTypeToggle={() => {}}
-                          selectedDate={null}
-                          onDateChange={() => {}}
-                          onAddClick={() => setIsUploadModalOpen(true)}
-                        />
-                      </Box>
+                      setsFilterTab === 1 ? undefined : (
+                        <Box sx={{ mb: 2 }}>
+                          <CompactControlsBar
+                            variant="static"
+                            searchValue={searchTerm}
+                            onSearchChange={handleSearchChange}
+                            onSearch={handleSearch}
+                            searchDisabled={isStickerSetsLoading}
+                            categories={categories}
+                            selectedCategories={[]}
+                            onCategoryToggle={() => {}}
+                            categoriesDisabled={true}
+                            sortByLikes={sortByLikes}
+                            onSortToggle={handleSortToggle}
+                            sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
+                            selectedStickerTypes={[]}
+                            onStickerTypeToggle={() => {}}
+                            selectedStickerSetTypes={[]}
+                            onStickerSetTypeToggle={() => {}}
+                            selectedDate={null}
+                            onDateChange={() => {}}
+                            onAddClick={() => setIsUploadModalOpen(true)}
+                          />
+                        </Box>
+                      )
                     }
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}

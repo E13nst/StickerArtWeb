@@ -110,7 +110,7 @@ export const AuthorPage: React.FC = () => {
   const effectiveInitData = useMemo(() => initData || window.Telegram?.WebApp?.initData || '', [initData]);
 
   const fetchStickerSets = useCallback(
-    async (page: number = 0, append: boolean = false) => {
+    async (page: number = 0, append: boolean = false, searchQuery?: string) => {
       if (!authorId || Number.isNaN(authorId)) {
         return;
       }
@@ -129,14 +129,27 @@ export const AuthorPage: React.FC = () => {
       }
 
       try {
-        const response = await apiClient.getStickerSetsByAuthor(
-          authorId,
-          page,
-          PAGE_SIZE,
-          sortByLikes ? 'likesCount' : 'createdAt',
-          'DESC',
-          true
-        );
+        let response;
+        
+        // Если есть поисковый запрос, используем специальный эндпоинт поиска
+        if (searchQuery && searchQuery.trim()) {
+          response = await apiClient.searchAuthorStickerSets(
+            authorId,
+            searchQuery,
+            page,
+            PAGE_SIZE,
+            true
+          );
+        } else {
+          response = await apiClient.getStickerSetsByAuthor(
+            authorId,
+            page,
+            PAGE_SIZE,
+            sortByLikes ? 'likesCount' : 'createdAt',
+            'DESC',
+            true
+          );
+        }
 
         const content = response.content || [];
 
@@ -373,27 +386,18 @@ export const AuthorPage: React.FC = () => {
   }, [stickerSets]);
 
   const displayedStickerSets = useMemo(() => {
-    const trimmed = searchTerm.trim().toLowerCase();
-    let base = stickerSets;
-
-    if (trimmed) {
-      base = stickerSets.filter((set) => {
-        const title = (set.title || '').toLowerCase();
-        const name = (set.name || '').toLowerCase();
-        return title.includes(trimmed) || name.includes(trimmed);
-      });
-    }
-
+    // Если есть активный поиск, то данные уже отфильтрованы на сервере
+    // Локальная фильтрация не нужна
     if (sortByLikes) {
-      return [...base].sort((a, b) => {
+      return [...stickerSets].sort((a, b) => {
         const likesA = (a.likesCount ?? a.likes ?? 0);
         const likesB = (b.likesCount ?? b.likes ?? 0);
         return likesB - likesA;
       });
     }
 
-    return base;
-  }, [stickerSets, searchTerm, sortByLikes]);
+    return stickerSets;
+  }, [stickerSets, sortByLikes]);
 
   const packs = useMemo(() => adaptStickerSetsToGalleryPacks(displayedStickerSets), [displayedStickerSets]);
 
@@ -423,7 +427,17 @@ export const AuthorPage: React.FC = () => {
 
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
-  }, []);
+    if (!authorId || Number.isNaN(authorId)) {
+      return;
+    }
+    // Сбрасываем на первую страницу при поиске
+    // НЕ очищаем stickerSets, чтобы SearchBar оставался видимым
+    setCurrentPage(0);
+    setTotalPages(0);
+    setTotalElements(0);
+    // Если строка поиска пустая, загружаем все стикерсеты, иначе выполняем поиск
+    fetchStickerSets(0, false, value.trim() || undefined);
+  }, [authorId, fetchStickerSets]);
 
   const handleSortToggle = useCallback(() => {
     setSortByLikes((prev) => !prev);
@@ -438,8 +452,8 @@ export const AuthorPage: React.FC = () => {
     if (!hasNextPage) {
       return;
     }
-    fetchStickerSets(currentPage + 1, true);
-  }, [currentPage, fetchStickerSets, hasNextPage, isLoadingMore, isSetsLoading]);
+    fetchStickerSets(currentPage + 1, true, searchTerm);
+  }, [currentPage, fetchStickerSets, hasNextPage, isLoadingMore, isSetsLoading, searchTerm]);
 
   if (!authorId || Number.isNaN(authorId)) {
     return null;
@@ -589,6 +603,24 @@ export const AuthorPage: React.FC = () => {
           </Alert>
         )}
 
+        {/* SearchBar и SortButton всегда видны */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem', mb: '0.618rem' }}>
+          <Box sx={{ flex: 1 }}>
+            <SearchBar
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onSearch={handleSearch}
+              placeholder="Поиск стикерсетов автора..."
+              disabled={isSetsLoading && stickerSets.length === 0}
+            />
+          </Box>
+          <SortButton
+            sortByLikes={sortByLikes}
+            onToggle={handleSortToggle}
+            disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
+          />
+        </Box>
+
         {isSetsLoading && stickerSets.length === 0 ? (
           <LoadingSpinner message="Загрузка стикерсетов..." />
         ) : displayedStickerSets.length === 0 ? (
@@ -603,24 +635,6 @@ export const AuthorPage: React.FC = () => {
         ) : (
           <div className="fade-in">
             <SimpleGallery
-              controlsElement={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
-                  <Box sx={{ flex: 1 }}>
-                    <SearchBar
-                      value={searchTerm}
-                      onChange={handleSearchChange}
-                      onSearch={handleSearch}
-                      placeholder="Поиск стикерсетов автора..."
-                      disabled={isSetsLoading && stickerSets.length === 0}
-                    />
-                  </Box>
-                  <SortButton
-                    sortByLikes={sortByLikes}
-                    onToggle={handleSortToggle}
-                    disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
-                  />
-                </Box>
-              }
               packs={packs}
               onPackClick={handlePackClick}
               hasNextPage={hasNextPage}
