@@ -1316,10 +1316,89 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           </Typography>
         )}
       </Box>
-      {/* Основной блок: кнопки слева, превью справа */}
+      {/* Основной блок: превью слева, кнопки справа */}
       {stickerCount > 0 && (
         <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '13px', paddingX: '13px' }}>
-          {/* Левая часть: вертикальный столбец кнопок на всю высоту превью */}
+          {/* Левая часть: большое превью */}
+          <Box 
+            ref={previewRef}
+            key={stickers[activeIndex]?.file_id || `preview-${activeIndex}`}
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+            position: 'relative',
+            width: 'min(75vw, 42vh)',
+            maxWidth: 377,
+            aspectRatio: '1 / 1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Box
+              sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: stickerCount > 1 ? 'pointer' : 'default',
+                touchAction: 'pan-y'
+              }}
+              onClick={(event) => {
+                if (touchHandledRef.current) {
+                  touchHandledRef.current = false;
+                  return;
+                }
+                if (stickerCount <= 1) return;
+                const rect = event.currentTarget.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                if (clickX < rect.width / 2) {
+                  goToPrevSticker();
+                } else {
+                  goToNextSticker();
+                }
+              }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchCancel}
+            >
+              {!isMainLoaded && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.08)',
+                    pointerEvents: 'none',
+                    transition: 'opacity 120ms ease',
+                    opacity: isMainLoaded ? 0 : 1
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      border: '3px solid rgba(255,255,255,0.35)',
+                      borderTopColor: 'rgba(255,255,255,0.9)',
+                      animation: 'spin 1s linear infinite'
+                    }}
+                  />
+                </Box>
+              )}
+              {renderStickerMedia(stickers[activeIndex], {
+                className: '',
+                width: '100%',
+                height: '100%',
+                onLoad: () => setIsMainLoaded(true)
+              })}
+            </Box>
+          </Box>
+          
+          {/* Правая часть: вертикальный столбец кнопок на всю высоту превью */}
           <Box 
             onClick={(e) => e.stopPropagation()}
             sx={{ 
@@ -1441,85 +1520,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             >
               <DownloadIcon sx={{ fontSize: '32px' }} />
             </IconButton>
-          </Box>
-          
-          {/* Правая часть: большое превью */}
-          <Box 
-            ref={previewRef}
-            key={stickers[activeIndex]?.file_id || `preview-${activeIndex}`}
-            onClick={(e) => e.stopPropagation()}
-            sx={{
-            position: 'relative',
-            width: 'min(75vw, 42vh)',
-            maxWidth: 377,
-            aspectRatio: '1 / 1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Box
-              sx={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: stickerCount > 1 ? 'pointer' : 'default',
-                touchAction: 'pan-y'
-              }}
-              onClick={(event) => {
-                if (touchHandledRef.current) {
-                  touchHandledRef.current = false;
-                  return;
-                }
-                if (stickerCount <= 1) return;
-                const rect = event.currentTarget.getBoundingClientRect();
-                const clickX = event.clientX - rect.left;
-                if (clickX < rect.width / 2) {
-                  goToPrevSticker();
-                } else {
-                  goToNextSticker();
-                }
-              }}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onTouchCancel={handleTouchCancel}
-            >
-              {!isMainLoaded && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(0,0,0,0.08)',
-                    pointerEvents: 'none',
-                    transition: 'opacity 120ms ease',
-                    opacity: isMainLoaded ? 0 : 1
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      border: '3px solid rgba(255,255,255,0.35)',
-                      borderTopColor: 'rgba(255,255,255,0.9)',
-                      animation: 'spin 1s linear infinite'
-                    }}
-                  />
-                </Box>
-              )}
-              {renderStickerMedia(stickers[activeIndex], {
-                className: '',
-                width: '100%',
-                height: '100%',
-                onLoad: () => setIsMainLoaded(true)
-              })}
-            </Box>
           </Box>
         </Box>
       )}
