@@ -13,7 +13,8 @@ declare const process: any;
  * 2. Если availableActions содержит BLOCK - показывается кнопка "Заблокировать"
  * 3. Если availableActions содержит UNBLOCK - показывается кнопка "Разблокировать"
  * 4. Если availableActions содержит DELETE - показывается кнопка "Удалить"
- * 5. Кнопки не дублируются и правильно переключаются
+ * 5. Если availableActions содержит EDIT_CATEGORIES - показывается кнопка "Редактировать категории"
+ * 6. Кнопки не дублируются и правильно переключаются
  * 
  * Тест НЕ кликает по кнопкам, только проверяет их наличие/отсутствие
  */
@@ -101,11 +102,15 @@ test.describe('StickerSet Actions: UI Display Check (Read-Only)', () => {
       const publishButton = page.locator('button[aria-label="publish"]');
       const unpublishButton = page.locator('button[aria-label="unpublish"]');
       
+      // Кнопка редактирования категорий (с иконкой EditIcon)
+      const editCategoriesButton = page.locator('button').filter({ has: page.locator('svg[data-testid="EditIcon"]') });
+      
       const hasBlock = await blockButton.isVisible().catch(() => false);
       const hasUnblock = await unblockButton.isVisible().catch(() => false);
       const hasDelete = await deleteButton.isVisible().catch(() => false);
       const hasPublish = await publishButton.isVisible().catch(() => false);
       const hasUnpublish = await unpublishButton.isVisible().catch(() => false);
+      const hasEditCategories = await editCategoriesButton.isVisible().catch(() => false);
       
       console.log('📊 Доступные кнопки действий:');
       console.log(`  🚫 Заблокировать:    ${hasBlock ? '✅ ВИДИМА' : '❌ скрыта'}`);
@@ -113,6 +118,7 @@ test.describe('StickerSet Actions: UI Display Check (Read-Only)', () => {
       console.log(`  🗑️  Удалить:         ${hasDelete ? '✅ ВИДИМА' : '❌ скрыта'}`);
       console.log(`  📤 Опубликовать:     ${hasPublish ? '✅ ВИДИМА' : '❌ скрыта'}`);
       console.log(`  📥 Снять публикацию: ${hasUnpublish ? '✅ ВИДИМА' : '❌ скрыта'}`);
+      console.log(`  🏷️  Редактировать категории: ${hasEditCategories ? '✅ ВИДИМА' : '❌ скрыта'}`);
       
       // ════════════════════════════════════════════════════════════════════
       // Проверяем логику взаимоисключающих кнопок

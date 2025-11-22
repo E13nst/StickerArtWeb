@@ -83,7 +83,7 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
           ? 'backdropFadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1)' 
           : 'backdropFadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         justifyContent: 'center',
         willChange: 'opacity, backdrop-filter',
         transform: 'translateZ(0)', // Принудительное использование GPU
@@ -135,7 +135,7 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'flex-end',
+          alignItems: 'center',
           justifyContent: 'center',
         }}
       >

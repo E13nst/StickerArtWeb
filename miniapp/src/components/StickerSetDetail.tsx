@@ -384,10 +384,26 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const isAdmin = normalizedRole.includes('ADMIN');
   const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
   const canToggleVisibility = (isAuthor || isAdmin) && Boolean(stickerSet.id);
+  
   // Редактирование категорий доступно, если:
   // 1. Явно разрешено через enableCategoryEditing (например, на странице "Мои стикеры"), И
   // 2. Пользователь - автор стикерсета (загрузил его) или администратор
-  const canEditCategories = enableCategoryEditing && (isAuthor || isAdmin);
+  // ИЛИ
+  // 3. В availableActions присутствует EDIT_CATEGORIES (бэкенд проверил права)
+  const canEditCategories = 
+    (enableCategoryEditing && (isAuthor || isAdmin)) || 
+    (effectiveStickerSet.availableActions?.includes('EDIT_CATEGORIES') ?? false);
+
+  // Отладочный лог для проверки прав редактирования категорий
+  console.log('🏷️ Права редактирования категорий:', {
+    stickerSetId: effectiveStickerSet.id,
+    canEditCategories,
+    enableCategoryEditing,
+    isAuthor,
+    isAdmin,
+    hasEditCategoriesAction: effectiveStickerSet.availableActions?.includes('EDIT_CATEGORIES'),
+    availableActions: effectiveStickerSet.availableActions
+  });
 
   useEffect(() => {
     if (!isCategoriesDialogOpen) {
@@ -1624,22 +1640,30 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               justifyContent: 'space-between',
               gap: '5px',
               marginTop: '8px',
-              flexWrap: 'wrap'
+              flexWrap: 'nowrap',
+              width: '100%'
             }}
           >
             <Box
               sx={{
                 flexGrow: 1,
+                flexShrink: 1,
+                minWidth: 0, // Важно для корректной работы flexbox
                 display: 'flex',
                 gap: '5px',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                padding: '5px',
+                padding: '5px 2px',
                 scrollbarWidth: 'none',
                 '&::-webkit-scrollbar': { display: 'none' },
-                maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-                minHeight: 44
+                maskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
+                WebkitMaskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
+                minHeight: 44,
+                // На маленьких экранах уменьшаем минимальную высоту
+                '@media (max-width: 400px)': {
+                  minHeight: 38,
+                  gap: '4px'
+                }
               }}
             >
               {displayedCategories.length > 0 ? (
@@ -1648,7 +1672,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     key={category.id}
                     sx={{
                       flexShrink: 0,
-                      padding: '6px 13px',
+                      padding: '6px 12px',
                       borderRadius: '13px',
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       backdropFilter: 'blur(8px)',
@@ -1659,7 +1683,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                       whiteSpace: 'nowrap',
                       border: '1px solid rgba(255, 255, 255, 0.25)',
                       textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-                      maxWidth: '120px',
+                      maxWidth: '140px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       transition: 'all 150ms ease',
@@ -1667,6 +1691,20 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                         backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         border: '1px solid rgba(255, 255, 255, 0.35)',
                         transform: 'scale(1.02)'
+                      },
+                      // Адаптивность для маленьких экранов
+                      '@media (max-width: 400px)': {
+                        padding: '5px 10px',
+                        fontSize: '12px',
+                        maxWidth: '110px',
+                        borderRadius: '10px'
+                      },
+                      // Для очень маленьких экранов
+                      '@media (max-width: 350px)': {
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        maxWidth: '90px',
+                        borderRadius: '8px'
                       }
                     }}
                   >
@@ -1674,51 +1712,67 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   </Box>
                 ))
               ) : (
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: 'rgba(255,255,255,0.7)', 
+                    fontWeight: 500,
+                    '@media (max-width: 400px)': {
+                      fontSize: '12px'
+                    }
+                  }}
+                >
                   Категории не назначены
                 </Typography>
               )}
             </Box>
-            {(canEditCategories || (effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0)) && (
+            {canEditCategories && (
               <Box
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '5px',
-                  flexShrink: 0
-                }}
-              >
-            {canEditCategories && (
-              <IconButton
-                onClick={handleOpenCategoriesDialog}
-                sx={{
-                  width: 40,
-                  height: 40,
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  backdropFilter: 'blur(8px)',
-                  WebkitBackdropFilter: 'blur(8px)',
-                  color: 'white',
-                  borderRadius: '13px',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  transition: 'all 150ms ease',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                    border: '1px solid rgba(255, 255, 255, 0.35)',
-                    transform: 'scale(1.05)'
+                  flexShrink: 0,
+                  '@media (max-width: 400px)': {
+                    gap: '4px'
                   }
                 }}
               >
-                <EditIcon sx={{ fontSize: '20px' }} />
-              </IconButton>
-                )}
-                {/* Динамические кнопки действий на основе availableActions */}
-                {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
-                  <StickerSetActions
-                    stickerSet={effectiveStickerSet}
-                    availableActions={effectiveStickerSet.availableActions}
-                    onActionComplete={handleActionComplete}
-                  />
-                )}
+                <IconButton
+                  onClick={handleOpenCategoriesDialog}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    color: 'white',
+                    borderRadius: '13px',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    transition: 'all 150ms ease',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      border: '1px solid rgba(255, 255, 255, 0.35)',
+                      transform: 'scale(1.05)'
+                    },
+                    // Адаптивность для маленьких экранов
+                    '@media (max-width: 400px)': {
+                      width: 36,
+                      height: 36,
+                      borderRadius: '10px'
+                    },
+                    '@media (max-width: 350px)': {
+                      width: 32,
+                      height: 32,
+                      borderRadius: '8px',
+                      '& svg': {
+                        fontSize: '18px'
+                      }
+                    }
+                  }}
+                >
+                  <EditIcon sx={{ fontSize: '20px' }} />
+                </IconButton>
               </Box>
             )}
           </Box>
@@ -1735,6 +1789,27 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             >
               Набор заблокирован {currentBlockReason ? `— ${currentBlockReason}` : 'без указания причины'}.
             </Alert>
+          )}
+
+          {/* Кнопки действий внизу модального окна */}
+          {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
+            <Box
+              sx={{
+                mt: 3,
+                pt: 2,
+                borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <StickerSetActions
+                stickerSet={effectiveStickerSet}
+                availableActions={effectiveStickerSet.availableActions}
+                onActionComplete={handleActionComplete}
+              />
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -1755,7 +1830,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             borderRadius: '21px',
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-            margin: '21px'
+            margin: '21px',
+            position: 'relative'
+          }
+        }}
+        sx={{
+          '& .MuiDialog-container': {
+            alignItems: 'center',
+            justifyContent: 'center'
           }
         }}
         BackdropProps={{

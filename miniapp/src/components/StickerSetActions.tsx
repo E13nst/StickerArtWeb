@@ -68,6 +68,24 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
     shouldShowDelete
   });
 
+  // Общий адаптивный стиль для кнопок действий
+  const baseButtonSx = {
+    width: 36,
+    height: 36,
+    fontSize: '18px',
+    borderRadius: 'var(--tg-radius-s)',
+    '@media (max-width: 400px)': {
+      width: 32,
+      height: 32,
+      fontSize: '16px'
+    },
+    '@media (max-width: 350px)': {
+      width: 28,
+      height: 28,
+      fontSize: '14px'
+    }
+  };
+
   // Открытие диалога
   const handleOpenDialog = useCallback((action: ActionType) => {
     setDialogState({
@@ -246,7 +264,10 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--tg-spacing-2)',
-          flexShrink: 0
+          flexShrink: 0,
+          '@media (max-width: 400px)': {
+            gap: '4px'
+          }
         }}
       >
         {shouldShowDelete && (
@@ -254,13 +275,10 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             <IconButton
               onClick={() => handleOpenDialog('DELETE')}
               sx={{
-                width: 36,
-                height: 36,
-                fontSize: '18px',
+                ...baseButtonSx,
                 backgroundColor: 'rgba(244, 67, 54, 0.15)',
                 border: '1px solid rgba(244, 67, 54, 0.4)',
                 color: 'white',
-                borderRadius: 'var(--tg-radius-s)',
                 '&:hover': {
                   backgroundColor: 'rgba(244, 67, 54, 0.25)',
                   border: '1px solid rgba(244, 67, 54, 0.6)'
@@ -277,13 +295,10 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             <IconButton
               onClick={() => handleOpenDialog('BLOCK')}
               sx={{
-                width: 36,
-                height: 36,
-                fontSize: '18px',
+                ...baseButtonSx,
                 backgroundColor: 'rgba(244, 67, 54, 0.15)',
                 border: '1px solid rgba(244, 67, 54, 0.4)',
                 color: 'white',
-                borderRadius: 'var(--tg-radius-s)',
                 '&:hover': {
                   backgroundColor: 'rgba(244, 67, 54, 0.25)',
                   border: '1px solid rgba(244, 67, 54, 0.6)'
@@ -300,13 +315,10 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             <IconButton
               onClick={() => handleOpenDialog('UNBLOCK')}
               sx={{
-                width: 36,
-                height: 36,
-                fontSize: '18px',
+                ...baseButtonSx,
                 backgroundColor: 'rgba(76, 175, 80, 0.15)',
                 border: '1px solid rgba(76, 175, 80, 0.4)',
                 color: 'white',
-                borderRadius: 'var(--tg-radius-s)',
                 '&:hover': {
                   backgroundColor: 'rgba(76, 175, 80, 0.25)',
                   border: '1px solid rgba(76, 175, 80, 0.6)'
@@ -323,13 +335,10 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             <IconButton
               onClick={() => handleOpenDialog('PUBLISH')}
               sx={{
-                width: 36,
-                height: 36,
-                fontSize: '18px',
+                ...baseButtonSx,
                 backgroundColor: 'rgba(33, 150, 243, 0.15)',
                 border: '1px solid rgba(33, 150, 243, 0.4)',
                 color: 'white',
-                borderRadius: 'var(--tg-radius-s)',
                 '&:hover': {
                   backgroundColor: 'rgba(33, 150, 243, 0.25)',
                   border: '1px solid rgba(33, 150, 243, 0.6)'
@@ -346,13 +355,10 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             <IconButton
               onClick={() => handleOpenDialog('UNPUBLISH')}
               sx={{
-                width: 36,
-                height: 36,
-                fontSize: '18px',
+                ...baseButtonSx,
                 backgroundColor: 'rgba(255, 152, 0, 0.15)',
                 border: '1px solid rgba(255, 152, 0, 0.4)',
                 color: 'white',
-                borderRadius: 'var(--tg-radius-s)',
                 '&:hover': {
                   backgroundColor: 'rgba(255, 152, 0, 0.25)',
                   border: '1px solid rgba(255, 152, 0, 0.6)'
@@ -383,7 +389,14 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
               borderRadius: '21px',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-              margin: '21px'
+              margin: '21px',
+              position: 'relative'
+            }
+          }}
+          sx={{
+            '& .MuiDialog-container': {
+              alignItems: 'center',
+              justifyContent: 'center'
             }
           }}
           BackdropProps={{

@@ -132,20 +132,49 @@ export const DashboardPage: React.FC = () => {
         // Всего стикерпаков в базе - получаем из API если totalElements не загружен
         let totalStickerPacksInBase = totalElements || 0;
         
-        // Загружаем топ-3 стикерсета по лайкам с preview=true для оптимизации
-        let loadedStickerSets: StickerSetResponse[] = [];
+        // Загружаем топ-3 ОФИЦИАЛЬНЫХ стикерсета по лайкам с preview=true для оптимизации
+        let officialStickerSets: StickerSetResponse[] = [];
         try {
-          const response = await apiClient.getStickerSets(0, 3, {
+          const officialResponse = await apiClient.getStickerSets(0, 3, {
+            type: 'OFFICIAL',
             sort: 'likesCount',
             direction: 'DESC',
-            preview: true  // ✅ Возвращает только 3 превью-стикера для каждого сета
+            preview: true
           });
-          totalStickerPacksInBase = response.totalElements || totalStickerPacksInBase || 0;
-          loadedStickerSets = response.content || [];
-          console.log('📊 Загружено топ-3 стикерсета по лайкам с preview:', loadedStickerSets.length);
+          officialStickerSets = officialResponse.content || [];
+          console.log('📊 Загружено топ-3 ОФИЦИАЛЬНЫХ стикерсета по лайкам:', officialStickerSets.length);
         } catch (e) {
-          console.warn('⚠️ Не удалось загрузить стикерсеты:', e);
+          console.warn('⚠️ Не удалось загрузить официальные стикерсеты:', e);
         }
+        
+        // Загружаем топ-3 ПОЛЬЗОВАТЕЛЬСКИХ стикерсета по лайкам с preview=true для оптимизации
+        let userStickerSets: StickerSetResponse[] = [];
+        try {
+          const userResponse = await apiClient.getStickerSets(0, 3, {
+            type: 'USER',
+            sort: 'likesCount',
+            direction: 'DESC',
+            preview: true
+          });
+          userStickerSets = userResponse.content || [];
+          console.log('📊 Загружено топ-3 ПОЛЬЗОВАТЕЛЬСКИХ стикерсета по лайкам:', userStickerSets.length);
+        } catch (e) {
+          console.warn('⚠️ Не удалось загрузить пользовательские стикерсеты:', e);
+        }
+        
+        // Получаем общее количество элементов из первого успешного ответа
+        try {
+          const countResponse = await apiClient.getStickerSets(0, 1, {
+            sort: 'id',
+            direction: 'DESC'
+          });
+          totalStickerPacksInBase = countResponse.totalElements || totalStickerPacksInBase || 0;
+        } catch (e) {
+          console.warn('⚠️ Не удалось загрузить общее количество стикерсетов:', e);
+        }
+        
+        // Объединяем загруженные данные для подсчета статистики
+        const loadedStickerSets = [...officialStickerSets, ...userStickerSets];
         
         // Используем загруженные данные или данные из store
         const setsForStats = loadedStickerSets.length > 0 ? loadedStickerSets : stickerSets;
@@ -154,7 +183,8 @@ export const DashboardPage: React.FC = () => {
           totalElements,
           totalStickerPacksInBase,
           stickerSetsCount: stickerSets.length,
-          loadedStickerSetsCount: loadedStickerSets.length,
+          officialCount: officialStickerSets.length,
+          userCount: userStickerSets.length,
           setsForStatsCount: setsForStats.length,
           likesCount: Object.values(likes).length
         });
@@ -207,21 +237,16 @@ export const DashboardPage: React.FC = () => {
         const getStickerLikes = (stickerSet: StickerSetResponse): number =>
           likes[stickerSet.id.toString()]?.likesCount ?? stickerSet.likesCount ?? stickerSet.likes ?? 0;
 
+        // Сортируем все загруженные стикерсеты для общего топа
         const sortedSets = [...setsForStats]
           .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
           .slice(0, MAX_TOP_STICKERS);
 
-        console.log('📊 Отсортировано стикерсетов для топ-5:', sortedSets.length);
+        console.log('📊 Отсортировано стикерсетов для топа:', sortedSets.length);
 
-        const officialTopSets = [...setsForStats]
-          .filter((set) => isOfficialStickerSet(set))
-          .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
-          .slice(0, MAX_TOP_STICKERS);
-
-        const userTopSets = [...setsForStats]
-          .filter((set) => !isOfficialStickerSet(set))
-          .sort((a, b) => getStickerLikes(b) - getStickerLikes(a))
-          .slice(0, MAX_TOP_STICKERS);
+        // Используем загруженные данные напрямую (они уже отсортированы по лайкам)
+        const officialTopSets = officialStickerSets.slice(0, MAX_TOP_STICKERS);
+        const userTopSets = userStickerSets.slice(0, MAX_TOP_STICKERS);
 
         const stickersByCategoryMap: Record<string, StickerSetResponse[]> = {
           all: sortedSets,

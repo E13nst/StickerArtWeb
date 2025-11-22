@@ -165,7 +165,23 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      sx={{
+        '& .MuiDialog-container': {
+          alignItems: 'center',
+          justifyContent: 'center'
+        }
+      }}
+      PaperProps={{
+        sx: {
+          position: 'relative'
+        }
+      }}
+    >
       <DialogTitle>Авторизация</DialogTitle>
       <DialogContent>
         {renderContent()}
