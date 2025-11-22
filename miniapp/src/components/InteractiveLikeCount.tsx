@@ -107,7 +107,7 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
     },
     medium: {
       iconSize: 68,
-      fontSize: '11px'
+      fontSize: '12px'
     },
     large: {
       iconSize: 96,
@@ -117,8 +117,9 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
 
   const currentSize = sizeStyles[size];
   const baseIconSize = currentSize.iconSize;
-  const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize;
-  const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize;
+  // Для top-right уменьшаем размер круга, но увеличиваем размер иконки
+  const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize * 0.75;
+  const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize * 1.3;
   
   const getThemeColor = () => {
     const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-bg-color').trim();
@@ -224,23 +225,23 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
           ? 'none'
           : '0 8px 20px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.18)',
         background: 'transparent',
-        borderRadius: '50%'
+        borderRadius: '50%',
+        overflow: 'visible'
       }}
       title={isLiked ? `${likesCount} лайков (нажмите чтобы убрать)` : `${likesCount} лайков (нажмите чтобы лайкнуть)`}
     >
       {/* Иконка на заднем слое */}
       <div style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
+        top: '50%',
+        left: '50%',
+        transform: `translate(-50%, -50%) ${isAnimating ? 'rotate(15deg)' : 'rotate(0deg)'}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1,
         transition: 'transform 0.233s ease',
-        transform: isAnimating ? 'rotate(15deg)' : 'rotate(0deg)'
+        overflow: 'visible'
       }}>
         <LikeIcon 
           color={placement === 'bottom-center' ? '#ffffff' : getThemeColor()}
