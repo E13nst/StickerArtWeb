@@ -98,10 +98,14 @@ const mapToPreview = (stickers: any[]): GalleryPack['previewStickers'] => {
 
 export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]): GalleryPack[] {
   return stickerSets.map(stickerSet => {
-    const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}`;
+    // 🔥 FIX: Используем только id для кэширования, игнорируем updatedAt
+    // Если данные стикерсета реально изменились, это будет другой id или перезагрузка страницы
+    const cacheKey = `${stickerSet.id}`;
 
     if (adapterCache.has(cacheKey)) {
       const cachedPack = adapterCache.get(cacheKey)!;
+      // 🔥 FIX: Возвращаем кэшированный объект со стабильными ссылками
+      // Это предотвратит лишние re-renders в PackCard
       if (cachedPack.previewStickers && cachedPack.previewStickers.length > 0) {
         return cachedPack;
       }
