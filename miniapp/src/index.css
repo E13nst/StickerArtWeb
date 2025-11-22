@@ -497,13 +497,15 @@ a {
 
 /* Исключаем карточку с информацией о стикерсете из глобальных стилей */
 .MuiCard-root.sticker-detail-info-card {
-  background-color: rgba(0, 0, 0, 0.4) !important; /* Увеличена прозрачность (было 0.6) */
+  background-color: rgba(0, 0, 0, 0.25) !important; /* Увеличена прозрачность */
   color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
 }
 
 .MuiCard-root.sticker-detail-info-card .MuiCardContent-root {
-  background-color: rgba(0, 0, 0, 0.4) !important; /* Увеличена прозрачность (было 0.6) */
+  background-color: rgba(0, 0, 0, 0.25) !important; /* Увеличена прозрачность */
   color: white !important;
 }
 
@@ -575,6 +577,17 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   to {
     opacity: 0;
     transform: scale(0.95) translateY(20px);
+  }
+}
+
+@keyframes modalSlideUpFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

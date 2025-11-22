@@ -21,6 +21,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import DownloadIcon from '@mui/icons-material/Download';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import EditIcon from '@mui/icons-material/Edit';
 import { StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
@@ -138,11 +140,13 @@ const renderStickerMedia = (
   if (sticker.is_video || sticker.isVideo || cachedType === 'video') {
     return (
       <video
+        key={sticker.file_id}
         src={cachedUrl || getStickerImageUrl(sticker.file_id)}
         autoPlay
         loop
         muted
         playsInline
+        preload="auto"
         className={className}
         style={{
           width,
@@ -150,6 +154,16 @@ const renderStickerMedia = (
           objectFit: 'contain'
         }}
         onLoadedData={onLoad}
+        onError={(e) => {
+          console.error('Video load error:', sticker.file_id, e);
+          onLoad?.();
+        }}
+        onCanPlay={() => {
+          const video = document.querySelector(`video[src="${cachedUrl || getStickerImageUrl(sticker.file_id)}"]`) as HTMLVideoElement;
+          if (video && video.paused) {
+            video.play().catch((err) => console.warn('Video autoplay failed:', err));
+          }
+        }}
       />
     );
   }
@@ -197,10 +211,10 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
       onClick={() => onClick(index)}
       sx={{
         flex: '0 0 auto',
-        width: 128,
-        height: 128,
-        minWidth: 128,
-        minHeight: 128,
+        width: 72,
+        height: 72,
+        minWidth: 72,
+        minHeight: 72,
         borderRadius: 'var(--tg-radius-m)',
         border: '1px solid',
         borderColor: isActive ? 'primary.main' : 'rgba(255,255,255,0.2)',
@@ -220,15 +234,15 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
             fileId={sticker.file_id}
             thumbFileId={sticker.thumb?.file_id}
             emoji={sticker.emoji}
-            size={128}
+            size={72}
           />
           {sticker.emoji && (
             <Box sx={{
               position: 'absolute',
-              bottom: 'var(--tg-spacing-2)',
-              left: 'var(--tg-spacing-2)',
+              bottom: '3px',
+              left: '3px',
               color: 'white',
-              fontSize: 'var(--tg-font-size-xl)',
+              fontSize: '14px',
               textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
             }}>
               {sticker.emoji}
@@ -865,40 +879,40 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       isPublic: updatedData.isPublic
     });
     
-    const mergedUpdate: StickerSetResponse = {
+      const mergedUpdate: StickerSetResponse = {
       ...(fullStickerSet ?? stickerSet),
       ...updatedData,
-      telegramStickerSetInfo:
+        telegramStickerSetInfo:
         updatedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
       previewStickers: updatedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
-      // Сохраняем availableActions из ответа API
+        // Сохраняем availableActions из ответа API
       availableActions: updatedData.availableActions
-    };
+      };
 
     console.log('✅ Стикерсет обновлён:', { 
-      id: mergedUpdate.id, 
-      action, 
+        id: mergedUpdate.id, 
+        action, 
       availableActions: mergedUpdate.availableActions,
       isBlocked: mergedUpdate.isBlocked,
       isPublic: mergedUpdate.isPublic
-    });
+      });
 
-    // Обновляем локальное состояние
-    setFullStickerSet(mergedUpdate);
+      // Обновляем локальное состояние
+      setFullStickerSet(mergedUpdate);
 
-    // Обновляем кеш
-    stickerSetCache.set(stickerSet.id, {
-      data: mergedUpdate,
-      timestamp: Date.now(),
-      ttl: CACHE_TTL
-    });
+      // Обновляем кеш
+      stickerSetCache.set(stickerSet.id, {
+        data: mergedUpdate,
+        timestamp: Date.now(),
+        ttl: CACHE_TTL
+      });
 
-    // Обновляем глобальные stores
-    useStickerStore.getState().updateStickerSet(stickerSet.id, mergedUpdate);
-    useProfileStore.getState().updateUserStickerSet(stickerSet.id, mergedUpdate);
+      // Обновляем глобальные stores
+      useStickerStore.getState().updateStickerSet(stickerSet.id, mergedUpdate);
+      useProfileStore.getState().updateUserStickerSet(stickerSet.id, mergedUpdate);
 
-    // Уведомляем родительский компонент
-    onStickerSetUpdated?.(mergedUpdate);
+      // Уведомляем родительский компонент
+      onStickerSetUpdated?.(mergedUpdate);
   }, [stickerSet.id, isModal, onBack, fullStickerSet, stickerSet, onStickerSetUpdated]);
 
 
@@ -1172,17 +1186,36 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       ref={modalContentRef}
       onClick={handleOutsidePreviewClick}
       sx={{ 
-      height: isModal ? 'auto' : '100vh', 
+      position: 'relative',
+      height: isModal ? '76.4vh' : '100vh',
+      maxHeight: isModal ? '76.4vh' : 'none',
+      minHeight: isModal ? '68vh' : 'none',
       overflow: 'hidden', 
+      overflowY: 'auto',
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center', 
-      justifyContent: 'center', 
-      gap: 'var(--tg-spacing-3)',
-      padding: 'var(--tg-spacing-4)',
-      backgroundColor: 'transparent', // Делаем фон полностью прозрачным
-      touchAction: 'pan-y', // Разрешаем только вертикальный скролл
-      animation: 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+      justifyContent: 'flex-start',
+      gap: '5px',
+      padding: '8px',
+      paddingTop: '5px',
+      backgroundColor: isModal ? 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.75)' : 'transparent',
+      backdropFilter: isModal ? 'blur(15px)' : 'none',
+      WebkitBackdropFilter: isModal ? 'blur(15px)' : 'none',
+      borderTopLeftRadius: isModal ? '24px' : 0,
+      borderTopRightRadius: isModal ? '24px' : 0,
+      touchAction: 'pan-y',
+      animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+      '@keyframes modalSlideUpFromBottom': {
+        '0%': {
+          opacity: 0,
+          transform: 'translateY(100%)',
+        },
+        '100%': {
+          opacity: 1,
+          transform: 'translateY(0)',
+        },
+      },
       '@keyframes modalContentSlideIn': {
         '0%': {
           opacity: 0,
@@ -1194,29 +1227,236 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         },
       },
     }}>
-      {/* Основной квадратный превью блок */}
+      {/* Grab handle для свайпа */}
+      {isModal && (
+        <Box
+          sx={{
+            width: '34px',
+            height: '3px',
+            backgroundColor: 'var(--tg-theme-hint-color)',
+            opacity: 0.4,
+            borderRadius: '2px',
+            marginTop: '3px',
+            marginBottom: '3px',
+            flexShrink: 0,
+          }}
+        />
+      )}
+      
+      {/* Крестик закрытия */}
+      {isModal && (
+        <IconButton
+          onClick={onBack}
+          sx={{
+            position: 'absolute',
+            top: '5px',
+            right: '5px',
+            zIndex: 10,
+            width: 26,
+            height: 26,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            },
+          }}
+        >
+          <CloseIcon sx={{ fontSize: '16px' }} />
+        </IconButton>
+      )}
+      
+      {/* Название и автор вверху */}
+      <Box sx={{ 
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '5px',
+        paddingX: '13px',
+        paddingTop: '8px',
+        marginBottom: '13px'
+      }}>
+        <Typography
+          variant="h5"
+          sx={{
+            textAlign: 'center',
+            fontWeight: 700,
+            color: 'white !important',
+            fontSize: '21px',
+            lineHeight: '1.2',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)',
+          }}
+        >
+          {displayTitle}
+        </Typography>
+        {infoVariant === 'default' && authorUsername && stickerSet.authorId && (
+          <Typography
+            variant="body2"
+            component={Link}
+            to={`/author/${stickerSet.authorId}`}
+            sx={{
+              textAlign: 'center',
+              textDecoration: 'none',
+              fontWeight: 600,
+              fontSize: '13px',
+              color: '#81d4fa',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                color: '#b3e5fc'
+              }
+            }}
+          >
+            {authorUsername}
+          </Typography>
+        )}
+      </Box>
+      {/* Основной блок: кнопки слева, превью справа */}
       {stickerCount > 0 && (
-        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '13px', paddingX: '13px' }}>
+          {/* Левая часть: вертикальный столбец кнопок на всю высоту превью */}
+          <Box 
+            onClick={(e) => e.stopPropagation()}
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '13px', 
+              flexShrink: 0,
+              height: '100%',
+              justifyContent: 'space-between'
+            }}>
+            {/* Донат Stars с количеством - теперь первая */}
+            <Tooltip title="Поддержать Stars" arrow>
+              <IconButton
+                aria-label="donate-stars"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Placeholder для будущего функционала доната
+                  console.log('Donate Stars clicked for sticker set:', stickerSet.id);
+                }}
+                sx={{
+                  width: 55,
+                  flex: 1,
+                  backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                  color: '#FFD700',
+                  borderRadius: 'var(--tg-radius-l)',
+                  border: '1px solid rgba(255, 215, 0, 0.4)',
+                  transition: 'transform 150ms ease, background-color 150ms ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+                    border: '1px solid rgba(255, 215, 0, 0.6)',
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              >
+                <StarBorderIcon sx={{ fontSize: '32px' }} />
+                <Typography variant="caption" sx={{
+                  fontSize: '13px',
+                  lineHeight: 1,
+                  fontWeight: 700,
+                  color: '#FFD700',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {/* Placeholder */}
+                  {/* 0 */}
+                </Typography>
+              </IconButton>
+            </Tooltip>
+            
+            {/* Лайк с количеством внутри */}
+            <IconButton
+              aria-label="like"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLikeClick();
+              }}
+              sx={{
+                width: 55,
+                flex: 1,
+                backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.2)',
+                color: liked ? 'error.main' : 'white',
+                borderRadius: 'var(--tg-radius-l)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
+                transform: likeAnim ? 'scale(1.2)' : 'scale(1.0)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px',
+                '&:hover': {
+                  backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)'
+                }
+              }}
+            >
+              <FavoriteIcon sx={{ fontSize: '32px' }} />
+              <Typography variant="caption" sx={{
+                fontSize: '13px',
+                lineHeight: 1,
+                fontWeight: 700,
+                color: 'white !important',
+                textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+                letterSpacing: '-0.5px'
+              }}>
+                {likes}
+              </Typography>
+            </IconButton>
+            
+            <IconButton
+              aria-label="share"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShareClick();
+              }}
+              sx={{
+                width: 55,
+                flex: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                borderRadius: 'var(--tg-radius-l)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  transform: 'scale(1.05)'
+                }
+              }}
+            >
+              <DownloadIcon sx={{ fontSize: '32px' }} />
+            </IconButton>
+          </Box>
+          
+          {/* Правая часть: большое превью */}
           <Box 
             ref={previewRef}
             key={stickers[activeIndex]?.file_id || `preview-${activeIndex}`}
             onClick={(e) => e.stopPropagation()}
             sx={{
             position: 'relative',
-            width: 'min(82vw, 44vh)',
-            maxWidth: 480,
+            width: 'min(75vw, 42vh)',
+            maxWidth: 377,
             aspectRatio: '1 / 1',
-            borderRadius: 'var(--tg-radius-l)',
-            border: '1px solid',
-            borderColor: 'rgba(255,255,255,0.2)',
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginTop: 'var(--tg-spacing-3)'
+            flexShrink: 0
           }}>
             <Box
               sx={{
@@ -1292,12 +1532,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           sx={{
             width: 'min(92vw, 720px)',
             display: 'flex',
-            gap: 'var(--tg-spacing-3)',
+            gap: '5px',
             overflowX: 'auto',
             overflowY: 'hidden',
             scrollBehavior: 'smooth',
-            paddingX: 'var(--tg-spacing-3)',
-            paddingY: 'var(--tg-spacing-3)',
+            paddingX: '5px',
+            paddingY: '5px',
             maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             scrollbarWidth: 'none',
@@ -1311,9 +1551,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               alignItems: 'center', 
               justifyContent: 'center',
               width: '100%',
-              height: 128,
+              height: 72,
               color: 'text.secondary',
-              padding: 'var(--tg-spacing-3)'
+              padding: '5px'
             }}>
               <Typography 
                 variant="body2"
@@ -1344,18 +1584,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         onClick={(e) => e.stopPropagation()}
         sx={{ 
           width: 'min(92vw, 720px)', 
-          marginTop: 'var(--tg-spacing-3)', 
+          marginTop: '5px', 
           zIndex: 9999, // Очень высокий z-index
           position: 'relative',
-          backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
-          border: '1px solid rgba(255, 255, 255, 0.2) !important', // Тонкая рамка как у превью
+          backgroundColor: 'rgba(0, 0, 0, 0.25) !important', // Увеличена прозрачность (было 0.6)
+          border: '1px solid rgba(255, 255, 255, 0.15) !important', // Тонкая рамка как у превью
           borderRadius: 'var(--tg-radius-l)',
-          backdropFilter: 'blur(6px)', // Blur как у превью стикеров
-          WebkitBackdropFilter: 'blur(6px)',
+          backdropFilter: 'blur(15px)', // Blur как у превью стикеров
+          WebkitBackdropFilter: 'blur(15px)',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)', // Мягкая тень
           // Переопределяем стили MUI для темного полупрозрачного фона
           '& .MuiCardContent-root': {
-            backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
+            backgroundColor: 'rgba(0, 0, 0, 0.25) !important', // Увеличена прозрачность (было 0.6)
             padding: 'var(--tg-spacing-4)',
             color: 'white', // Белый текст для хорошей видимости
             '&:last-child': {
@@ -1365,111 +1605,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         }}
       >
         <CardContent sx={{ 
-          padding: 'var(--tg-spacing-4)',
-          backgroundColor: 'rgba(0, 0, 0, 0.4) !important', // Увеличена прозрачность (было 0.6)
+          padding: '8px',
+          backgroundColor: 'rgba(0, 0, 0, 0.25) !important', // Увеличена прозрачность (было 0.6)
           color: 'white !important' // Белый цвет текста для контраста
         }}>
-          <Typography
-            variant="h5"
-            sx={{
-              textAlign: 'center',
-              fontWeight: 700,
-              color: 'white !important',
-              fontSize: 'var(--tg-font-size-xxl)',
-              textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)',
-              marginBottom: 'var(--tg-spacing-2)'
-            }}
-          >
-            {displayTitle}
-          </Typography>
-          {infoVariant === 'default' && authorUsername && stickerSet.authorId && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 'calc(var(--tg-spacing-4) * 0.382)'
-              }}
-            >
-              <Typography
-                variant="body2"
-                component={Link}
-                to={`/author/${stickerSet.authorId}`}
-                sx={{
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  fontSize: 'var(--tg-font-size-s)',
-                  color: '#81d4fa',
-                  '&:hover': {
-                    color: '#b3e5fc'
-                  }
-                }}
-              >
-                {authorUsername}
-              </Typography>
-            </Box>
-          )}
-          {infoVariant === 'default' && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--tg-spacing-4)', marginTop: 'var(--tg-spacing-3)' }}>
-              <IconButton
-                aria-label="like"
-                onClick={handleLikeClick}
-                sx={{
-                  width: 48,
-                  height: 48,
-                  backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.2)',
-                  color: liked ? 'error.main' : 'white',
-                  borderRadius: 'var(--tg-radius-l)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
-                  transform: likeAnim ? 'scale(1.2)' : 'scale(1.0)',
-                  '&:hover': {
-                    backgroundColor: liked ? 'error.light' : 'rgba(255, 255, 255, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.5)'
-                  }
-                }}
-              >
-                <FavoriteIcon />
-              </IconButton>
-              <Typography variant="body2" sx={{
-                minWidth: 24,
-                textAlign: 'center',
-                color: 'white !important',
-                fontWeight: 600,
-                fontSize: 'var(--tg-font-size-m)',
-                textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,0.7)'
-              }}>
-                {likes}
-              </Typography>
-              <IconButton
-                aria-label="share"
-                onClick={handleShareClick}
-                sx={{
-                  width: 44,
-                  height: 44,
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  borderRadius: 'var(--tg-radius-l)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  transition: 'transform 150ms ease, background-color 150ms ease, color 150ms ease',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.5)',
-                    transform: 'scale(1.05)'
-                  }
-                }}
-              >
-                <DownloadIcon />
-              </IconButton>
-            </Box>
-          )}
+          {/* Только категории и кнопки управления */}
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 'var(--tg-spacing-3)',
-              marginTop: 'var(--tg-spacing-3)',
+              gap: '5px',
+              marginTop: '8px',
               flexWrap: 'wrap'
             }}
           >
@@ -1477,10 +1624,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               sx={{
                 flexGrow: 1,
                 display: 'flex',
-                gap: '8px',
+                gap: '5px',
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                padding: 'var(--tg-spacing-3)',
+                padding: '5px',
                 scrollbarWidth: 'none',
                 '&::-webkit-scrollbar': { display: 'none' },
                 maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
@@ -1494,22 +1641,33 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     key={category.id}
                     sx={{
                       flexShrink: 0,
-                      padding: '4px 12px',
+                      padding: '6px 13px',
                       borderRadius: '13px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
                       color: 'white !important',
-                      fontSize: '14px',
+                      fontSize: '13px',
                       fontWeight: 600,
                       whiteSpace: 'nowrap',
-                      border: '1px solid rgba(255, 255, 255, 0.4)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                      maxWidth: '120px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      transition: 'all 150ms ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.35)',
+                        transform: 'scale(1.02)'
+                      }
                     }}
                   >
                     {category.name}
                   </Box>
                 ))
               ) : (
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
                   Категории не назначены
                 </Typography>
               )}
@@ -1519,21 +1677,32 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 'var(--tg-spacing-2)',
+                  gap: '5px',
                   flexShrink: 0
                 }}
               >
             {canEditCategories && (
-              <Button
-                variant="contained"
-                size="small"
+              <IconButton
                 onClick={handleOpenCategoriesDialog}
                 sx={{
-                      whiteSpace: 'nowrap'
+                  width: 40,
+                  height: 40,
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  color: 'white',
+                  borderRadius: '13px',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  transition: 'all 150ms ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                    border: '1px solid rgba(255, 255, 255, 0.35)',
+                    transform: 'scale(1.05)'
+                  }
                 }}
               >
-                Изменить
-              </Button>
+                <EditIcon sx={{ fontSize: '20px' }} />
+              </IconButton>
                 )}
                 {/* Динамические кнопки действий на основе availableActions */}
                 {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
@@ -1571,15 +1740,26 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         PaperProps={{
           onClick: (e) => e.stopPropagation(),
           sx: {
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            color: 'var(--tg-theme-text-color, #000000)',
-            backgroundImage: 'none'
+            backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            color: 'white',
+            backgroundImage: 'none',
+            borderRadius: '21px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+            margin: '21px'
           }
         }}
         BackdropProps={{
           onClick: (e) => {
             e.stopPropagation();
             handleCloseCategoriesDialog();
+          },
+          sx: {
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)'
           }
         }}
       >
@@ -1587,96 +1767,219 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           component="div"
           sx={{ 
             pb: 2,
-            color: 'var(--tg-theme-text-color, #000000)',
-            fontSize: '1.25rem',
-            fontWeight: 600
+            pt: 3,
+            px: 3,
+            color: 'white',
+            fontSize: '1.4rem',
+            fontWeight: 700,
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            textAlign: 'center'
           }}
         >
           Добавьте категории
         </DialogTitle>
         <DialogContent 
-          dividers 
+          dividers={false}
           onClick={(e) => e.stopPropagation()}
           sx={{
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            color: 'var(--tg-theme-text-color, #000000)',
-            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+            backgroundColor: 'transparent',
+            color: 'white',
+            borderColor: 'transparent',
+            px: 3,
+            py: 2
           }}
         >
           {categorySaveError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2,
+                backgroundColor: 'rgba(244, 67, 54, 0.15)',
+                backdropFilter: 'blur(8px)',
+                color: 'white',
+                border: '1px solid rgba(244, 67, 54, 0.4)',
+                '& .MuiAlert-icon': {
+                  color: '#ff6b6b'
+                }
+              }}
+            >
               {categorySaveError}
             </Alert>
           )}
 
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color, #000000)', mb: 1 }}>
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              fontWeight: 600, 
+              color: 'rgba(255, 255, 255, 0.9)', 
+              mb: 2,
+              fontSize: '0.95rem',
+              textShadow: '0 1px 3px rgba(0,0,0,0.5)'
+            }}
+          >
             Доступные категории
           </Typography>
           {categoriesLoading && availableCategories.length === 0 ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <CircularProgress size={18} sx={{ color: 'var(--tg-theme-button-color, #2481cc)' }} />
-              <Typography variant="body2" sx={{ color: 'var(--tg-theme-text-color, #000000)' }}>Загрузка категорий…</Typography>
+              <CircularProgress size={18} sx={{ color: 'white' }} />
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>Загрузка категорий…</Typography>
             </Box>
           ) : categoriesLoadError ? (
-            <Alert severity="error" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 1,
+                backgroundColor: 'rgba(244, 67, 54, 0.15)',
+                backdropFilter: 'blur(8px)',
+                color: 'white',
+                border: '1px solid rgba(244, 67, 54, 0.4)',
+                '& .MuiAlert-icon': {
+                  color: '#ff6b6b'
+                }
+              }}
+            >
               <span>{categoriesLoadError}</span>
-              <Button variant="outlined" size="small" onClick={loadCategories}>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={loadCategories}
+                sx={{
+                  color: 'white',
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  '&:hover': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }}
+              >
                 Повторить загрузку
               </Button>
             </Alert>
           ) : (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, mb: 2 }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mb: 2 }}>
               {availableCategories.map((category) => {
                 const isSelected = selectedCategoryKeys.includes(category.key);
                 return (
-                  <Chip
+                  <Box
                     key={category.key}
-                    label={category.name}
-                    color={isSelected ? 'primary' : 'default'}
-                    variant={isSelected ? 'filled' : 'outlined'}
                     onClick={() => handleToggleCategory(category.key)}
-                    sx={{ cursor: 'pointer' }}
-                  />
+                    sx={{
+                      padding: '8px 16px',
+                      borderRadius: '13px',
+                      backgroundColor: isSelected 
+                        ? 'rgba(33, 150, 243, 0.3)' 
+                        : 'rgba(255, 255, 255, 0.15)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: isSelected ? 700 : 600,
+                      whiteSpace: 'nowrap',
+                      border: isSelected 
+                        ? '2px solid rgba(33, 150, 243, 0.6)' 
+                        : '1px solid rgba(255, 255, 255, 0.25)',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease',
+                      '&:hover': {
+                        backgroundColor: isSelected 
+                          ? 'rgba(33, 150, 243, 0.4)' 
+                          : 'rgba(255, 255, 255, 0.25)',
+                        border: isSelected 
+                          ? '2px solid rgba(33, 150, 243, 0.8)' 
+                          : '1px solid rgba(255, 255, 255, 0.4)',
+                        transform: 'scale(1.03)'
+                      }
+                    }}
+                  >
+                    {category.name}
+                  </Box>
                 );
               })}
             </Box>
           )}
 
-          <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color, #999999)' }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.9rem',
+              textAlign: 'center',
+              fontWeight: 500
+            }}
+          >
             Выбрано категорий: {selectedCategoryKeys.length}
           </Typography>
         </DialogContent>
         <DialogActions 
           onClick={(e) => e.stopPropagation()}
           sx={{
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+            px: 3,
+            pb: 3,
+            pt: 2,
+            gap: '13px',
+            justifyContent: 'center'
           }}
         >
-          <Button 
+          <IconButton
             onClick={handleCloseCategoriesDialog} 
             disabled={isSavingCategories}
             sx={{
-              color: 'var(--tg-theme-button-color, #2481cc)'
-            }}
-          >
-            Отмена
-          </Button>
-          <Button
-            onClick={handleSaveCategories}
-            variant="contained"
-            disabled={isSavingCategories}
-            sx={{
-              backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
-              color: 'var(--tg-theme-button-text-color, #ffffff)',
+              width: 55,
+              height: 55,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              borderRadius: 'var(--tg-radius-l)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              transition: 'transform 150ms ease, background-color 150ms ease',
               '&:hover': {
-                backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
-                opacity: 0.9
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                transform: 'scale(1.05)'
+              },
+              '&:disabled': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(255, 255, 255, 0.4)'
               }
             }}
           >
-            {isSavingCategories ? 'Сохраняем…' : 'Сохранить'}
-          </Button>
+            <CloseIcon sx={{ fontSize: '24px' }} />
+          </IconButton>
+          <IconButton
+            onClick={handleSaveCategories}
+            disabled={isSavingCategories}
+            sx={{
+              width: 55,
+              height: 55,
+              backgroundColor: 'rgba(76, 175, 80, 0.3)',
+              color: '#4CAF50',
+              borderRadius: 'var(--tg-radius-l)',
+              border: '1px solid rgba(76, 175, 80, 0.5)',
+              transition: 'transform 150ms ease, background-color 150ms ease',
+              '&:hover': {
+                backgroundColor: 'rgba(76, 175, 80, 0.4)',
+                border: '1px solid rgba(76, 175, 80, 0.7)',
+                transform: 'scale(1.05)'
+              },
+              '&:disabled': {
+                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                color: 'rgba(76, 175, 80, 0.4)'
+              }
+            }}
+          >
+            {isSavingCategories ? (
+              <CircularProgress size={24} sx={{ color: '#4CAF50' }} />
+            ) : (
+              <SvgIcon sx={{ fontSize: '24px' }}>
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+              </SvgIcon>
+            )}
+          </IconButton>
         </DialogActions>
       </Dialog>
       <Dialog
@@ -1687,15 +1990,26 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         PaperProps={{
           onClick: (e) => e.stopPropagation(),
           sx: {
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            color: 'var(--tg-theme-text-color, #000000)',
-            backgroundImage: 'none'
+            backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            color: 'white',
+            backgroundImage: 'none',
+            borderRadius: '21px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+            margin: '21px'
           }
         }}
         BackdropProps={{
           onClick: (e) => {
             e.stopPropagation();
             handleCloseBlockDialog();
+          },
+          sx: {
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)'
           }
         }}
       >
@@ -1703,31 +2017,56 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           component="div"
           sx={{
             pb: 2,
-            color: 'var(--tg-theme-text-color, #000000)',
-            fontSize: '1.25rem',
-            fontWeight: 600
+            pt: 3,
+            px: 3,
+            color: 'white',
+            fontSize: '1.4rem',
+            fontWeight: 700,
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            textAlign: 'center'
           }}
         >
           Заблокировать стикерсет
         </DialogTitle>
         <DialogContent
-          dividers
+          dividers={false}
           onClick={(e) => e.stopPropagation()}
           sx={{
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            color: 'var(--tg-theme-text-color, #000000)',
-            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))',
+            backgroundColor: 'transparent',
+            color: 'white',
+            borderColor: 'transparent',
             display: 'flex',
             flexDirection: 'column',
-            gap: 2
+            gap: 2,
+            px: 3,
+            py: 2
           }}
         >
           {blockError && (
-            <Alert severity="error" sx={{ mb: 1 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 1,
+                backgroundColor: 'rgba(244, 67, 54, 0.15)',
+                backdropFilter: 'blur(8px)',
+                color: 'white',
+                border: '1px solid rgba(244, 67, 54, 0.4)',
+                '& .MuiAlert-icon': {
+                  color: '#ff6b6b'
+                }
+              }}
+            >
               {blockError}
             </Alert>
           )}
-          <Typography variant="body2" sx={{ color: 'var(--tg-theme-text-color, #000000)' }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: '0.95rem',
+              lineHeight: 1.5
+            }}
+          >
             Стикерсет будет скрыт из галереи для всех пользователей. Укажите причину блокировки
             (опционально), чтобы авторам было понятно, что нужно исправить.
           </Typography>
@@ -1739,26 +2078,97 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             value={blockReasonInput}
             onChange={(event) => setBlockReasonInput(event.target.value)}
             fullWidth
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                color: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '13px',
+                '& fieldset': {
+                  borderColor: 'rgba(255, 255, 255, 0.3)'
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(255, 255, 255, 0.5)'
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'rgba(255, 255, 255, 0.7)'
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255, 255, 255, 0.7)'
+              },
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: 'white'
+              }
+            }}
           />
         </DialogContent>
         <DialogActions
           onClick={(e) => e.stopPropagation()}
           sx={{
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            borderColor: 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+            px: 3,
+            pb: 3,
+            pt: 2,
+            gap: '13px',
+            justifyContent: 'center'
           }}
         >
-          <Button onClick={handleCloseBlockDialog} disabled={isBlocking}>
-            Отмена
-          </Button>
-          <Button
-            onClick={handleBlockStickerSet}
-            variant="contained"
-            color="error"
+          <IconButton
+            onClick={handleCloseBlockDialog}
             disabled={isBlocking}
+            sx={{
+              width: 55,
+              height: 55,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              borderRadius: 'var(--tg-radius-l)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              transition: 'transform 150ms ease, background-color 150ms ease',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                transform: 'scale(1.05)'
+              },
+              '&:disabled': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(255, 255, 255, 0.4)'
+              }
+            }}
           >
-            {isBlocking ? 'Блокируем…' : 'Заблокировать'}
-          </Button>
+            <CloseIcon sx={{ fontSize: '24px' }} />
+          </IconButton>
+          <IconButton
+            onClick={handleBlockStickerSet}
+            disabled={isBlocking}
+            sx={{
+              width: 55,
+              height: 55,
+              backgroundColor: 'rgba(244, 67, 54, 0.3)',
+              color: '#f44336',
+              borderRadius: 'var(--tg-radius-l)',
+              border: '1px solid rgba(244, 67, 54, 0.5)',
+              transition: 'transform 150ms ease, background-color 150ms ease',
+              '&:hover': {
+                backgroundColor: 'rgba(244, 67, 54, 0.4)',
+                border: '1px solid rgba(244, 67, 54, 0.7)',
+                transform: 'scale(1.05)'
+              },
+              '&:disabled': {
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                color: 'rgba(244, 67, 54, 0.4)'
+              }
+            }}
+          >
+            {isBlocking ? (
+              <CircularProgress size={24} sx={{ color: '#f44336' }} />
+            ) : (
+              <SvgIcon sx={{ fontSize: '24px' }}>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z" />
+              </SvgIcon>
+            )}
+          </IconButton>
         </DialogActions>
       </Dialog>
     </Box>

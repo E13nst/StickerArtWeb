@@ -60,6 +60,7 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
+    // Клик по самому backdrop (области выше/ниже модалки) закрывает окно
     if (e.target === e.currentTarget && onClose) {
       onClose();
     }
@@ -76,13 +77,13 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
         bottom: 0,
         zIndex: 1300, // Выше чем у обычных модальных окон
         backgroundColor: getBackdropColor(),
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        backdropFilter: 'blur(15px)',
+        WebkitBackdropFilter: 'blur(15px)',
         animation: open 
           ? 'backdropFadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1)' 
           : 'backdropFadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
         willChange: 'opacity, backdrop-filter',
         transform: 'translateZ(0)', // Принудительное использование GPU
@@ -94,15 +95,15 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
           },
           '100%': {
             opacity: 1,
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
+            backdropFilter: 'blur(15px)',
+            WebkitBackdropFilter: 'blur(15px)',
           },
         },
         '@keyframes backdropFadeOut': {
           '0%': {
             opacity: 1,
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
+            backdropFilter: 'blur(15px)',
+            WebkitBackdropFilter: 'blur(15px)',
           },
           '100%': {
             opacity: 0,
@@ -112,11 +113,11 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
         },
         // Адаптивность для разных размеров экрана
         '@media (max-width: 480px)': {
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         },
         // Поддержка для устройств без backdrop-filter
-        '@supports not (backdrop-filter: blur(6px))': {
+        '@supports not (backdrop-filter: blur(15px))': {
           backgroundColor: themeParams?.colorScheme === 'dark' 
             ? 'rgba(0, 0, 0, 0.6)' 
             : 'rgba(0, 0, 0, 0.5)',
@@ -134,7 +135,7 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'center',
         }}
       >
