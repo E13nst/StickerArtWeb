@@ -88,7 +88,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Единая точка входа для всех типов ресурсов
       const loadPromise = firstSticker.isVideo
         ? imageLoader.loadVideo(firstSticker.fileId, firstSticker.url, priority)
-        : imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority);
+        : firstSticker.isAnimated
+          ? imageLoader.loadAnimation(firstSticker.fileId, firstSticker.url, priority)
+          : imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority);
 
       // 🔥 ФИКС: Добавляем timeout для промисов загрузки (10 секунд)
       // Если промис зависает - показываем контент все равно
@@ -103,15 +105,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
             console.log(`✅ First ${type} sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
           }
           setIsFirstStickerReady(true);
-          
-          // 🔥 Для анимаций загружаем JSON ПОСЛЕ изображения
-          // Это гарантирует что изображение покажется быстро, а анимация подгрузится
-          if (firstSticker.isAnimated && !firstSticker.isVideo) {
-            imageLoader.loadAnimation(firstSticker.fileId, firstSticker.url, LoadPriority.TIER_3_ADDITIONAL)
-              .catch(() => {
-                // Игнорируем ошибки загрузки JSON - изображение уже есть
-              });
-          }
         })
         .catch((error) => {
           if ((import.meta as any).env?.DEV) {
@@ -169,7 +162,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       // 🔥 УНИФИЦИРОВАНО: Единая точка входа через imageLoader
       const loadPromise = sticker.isVideo
         ? imageLoader.loadVideo(sticker.fileId, sticker.url, priority)
-        : imageLoader.loadImage(sticker.fileId, sticker.url, priority);
+        : sticker.isAnimated
+          ? imageLoader.loadAnimation(sticker.fileId, sticker.url, priority)
+          : imageLoader.loadImage(sticker.fileId, sticker.url, priority);
 
       loadPromise
         .then(() => {

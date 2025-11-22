@@ -1100,6 +1100,67 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     console.log('\n⏳ Ожидание финальной стабилизации...');
     await page.waitForTimeout(5000); // 🔥 УВЕЛИЧЕНО: с 3s до 5s
     
+    // 🔍 DEBUG: Получаем статистику вызовов imageLoader
+    console.log('\n🔍 СТАТИСТИКА ВЫЗОВОВ imageLoader:');
+    console.log('─'.repeat(80));
+    
+    // Проверяем доступность imageLoader
+    const imageLoaderCheck = await page.evaluate(() => {
+      return {
+        exists: typeof (window as any).imageLoader !== 'undefined',
+        hasGetCallStats: typeof (window as any).imageLoader?.getCallStats === 'function',
+        hasCallCounter: typeof (window as any).imageLoader?.callCounter !== 'undefined',
+        imageLoaderType: typeof (window as any).imageLoader,
+        callCounterType: typeof (window as any).imageLoader?.callCounter
+      };
+    });
+    
+    console.log(`  🔍 imageLoader.exists: ${imageLoaderCheck.exists}`);
+    console.log(`  🔍 imageLoader.hasGetCallStats: ${imageLoaderCheck.hasGetCallStats}`);
+    console.log(`  🔍 imageLoader.hasCallCounter: ${imageLoaderCheck.hasCallCounter}`);
+    console.log(`  🔍 callCounter type: ${imageLoaderCheck.callCounterType}`);
+    
+    const callStats = await page.evaluate(() => {
+      // @ts-ignore - доступ к глобальному imageLoader
+      const loader = (window as any).imageLoader;
+      if (!loader) return null;
+      
+      // Пробуем через метод getCallStats
+      if (typeof loader.getCallStats === 'function') {
+        return loader.getCallStats();
+      }
+      
+      // Если метода нет, пробуем напрямую через callCounter
+      if (loader.callCounter && typeof loader.callCounter.forEach === 'function') {
+        const stats: { fileId: string; count: number }[] = [];
+        loader.callCounter.forEach((count: number, fileId: string) => {
+          stats.push({ fileId, count });
+        });
+        stats.sort((a, b) => b.count - a.count);
+        return stats;
+      }
+      
+      return null;
+    });
+    
+    if (callStats && callStats.length > 0) {
+      console.log(`  📊 Всего уникальных fileId: ${callStats.length}`);
+      console.log(`  📊 Общее количество вызовов: ${callStats.reduce((sum: number, item: any) => sum + item.count, 0)}`);
+      console.log(`\n  🔝 ТОП-10 fileId по количеству вызовов:`);
+      callStats.slice(0, 10).forEach((stat: any, index: number) => {
+        console.log(`     ${index + 1}. ${stat.count}x - ${stat.fileId.slice(-12)}`);
+      });
+      
+      // Анализ дубликатов
+      const duplicates = callStats.filter((s: any) => s.count > 1);
+      console.log(`\n  ⚠️  FileId с дубликатами: ${duplicates.length} из ${callStats.length} (${(duplicates.length / callStats.length * 100).toFixed(1)}%)`);
+      const avgCallsPerFileId = callStats.reduce((sum: number, item: any) => sum + item.count, 0) / callStats.length;
+      console.log(`  📊 Среднее количество вызовов на fileId: ${avgCallsPerFileId.toFixed(2)}`);
+    } else {
+      console.log(`  ⚠️  Статистика недоступна (imageLoader.getCallStats не найден)`);
+    }
+    console.log('');
+    
     // Собираем FPS метрики
     console.log('📊 Сбор FPS метрик...');
     await collector.collectFPS(5000);

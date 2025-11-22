@@ -150,6 +150,9 @@ class ImageLoader {
   // Это предотвращает загрузку одного и того же ресурса с разными query-параметрами
   private urlInFlight: Map<string, Promise<string>> = new Map();
   
+  // 🔍 DEBUG: Счётчик вызовов для каждого fileId
+  private callCounter: Map<string, number> = new Map();
+  
   // Резервирование слотов для высокоприоритетных загрузок
   // Гарантируем минимум 6 слотов для высокого приоритета (TIER_0, TIER_1, TIER_2)
   // Низкоприоритетные (TIER_3, TIER_4) используют оставшиеся слоты
@@ -247,6 +250,13 @@ class ImageLoader {
     packId?: string,
     imageIndex?: number
   ): Promise<string> {
+    // 🔍 DEBUG: Счётчик вызовов
+    const currentCount = (this.callCounter.get(fileId) || 0) + 1;
+    this.callCounter.set(fileId, currentCount);
+    
+    // Логируем каждый вызов (временно без isDev)
+    console.log(`🔵 loadResource #${currentCount} for: ${fileId.slice(-8)} (${resourceType})`);
+    
     if (isDev) {
       console.log(`🔵 loadResource called: ${resourceType} ${fileId.substring(0, 20)}... URL: ${url.substring(0, 50)}...`);
     }
@@ -677,10 +687,9 @@ class ImageLoader {
             // Запускаем загрузку
             img.src = normalizedUrl;
           }),
-          // 🔥 FIX: Увеличили timeout с 20s до 30s чтобы медленные стикеры успевали загрузиться
-          // Это уменьшает количество ненужных retries и дубликатов
+          // 🔥 ФИКС: Timeout для загрузки изображения
           new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Image load timeout')), 30000);
+            setTimeout(() => reject(new Error('Image load timeout')), 20000); // 🔥 УВЕЛИЧЕНО: с 8s до 20s
           })
         ]);
         
@@ -973,10 +982,36 @@ class ImageLoader {
       cached: cacheStats
     };
   }
+
+  /**
+   * 🔍 DEBUG: Получить статистику вызовов
+   */
+  getCallStats(): { fileId: string; count: number }[] {
+    const stats: { fileId: string; count: number }[] = [];
+    this.callCounter.forEach((count, fileId) => {
+      stats.push({ fileId, count });
+    });
+    // Сортируем по количеству вызовов (от большего к меньшему)
+    stats.sort((a, b) => b.count - a.count);
+    return stats;
+  }
+
+  /**
+   * 🔍 DEBUG: Сбросить счётчики
+   */
+  resetCallCounter(): void {
+    this.callCounter.clear();
+  }
 }
 
 // Глобальный экземпляр загрузчика
 export const imageLoader = new ImageLoader();
+
+// 🔍 DEBUG: Экспортируем imageLoader в window для доступа из тестов
+if (typeof window !== 'undefined') {
+  (window as any).imageLoader = imageLoader;
+}
+
 
 // Экспортируем CacheManager для прямого доступа
 export { cacheManager };
