@@ -54,6 +54,17 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
   const shouldShowPublish = availableActions.includes('PUBLISH');
   const shouldShowUnpublish = availableActions.includes('UNPUBLISH');
 
+  // Отладочный лог для E2E тестов
+  console.log('🎯 StickerSetActions render:', {
+    stickerSetId: stickerSet.id,
+    availableActions,
+    shouldShowBlock,
+    shouldShowUnblock,
+    shouldShowPublish,
+    shouldShowUnpublish,
+    shouldShowDelete
+  });
+
   // Открытие диалога
   const handleOpenDialog = useCallback((action: ActionType) => {
     setDialogState({

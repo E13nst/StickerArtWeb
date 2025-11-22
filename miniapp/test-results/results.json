@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "C:\\Users\\Notebook\\StickerArtWeb-1\\miniapp\\playwright.config.ts",
-    "rootDir": "C:/Users/Notebook/StickerArtWeb-1/tests",
+    "configFile": "/Users/andrey/Documents/Projects/StickerArtWeb/miniapp/playwright.config.ts",
+    "rootDir": "/Users/andrey/Documents/Projects/StickerArtWeb/tests",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 2
+      "actualWorkers": 1
     },
     "preserveOutput": "always",
     "reporter": [
@@ -39,15 +39,15 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "C:/Users/Notebook/StickerArtWeb-1/test-results",
+        "outputDir": "/Users/andrey/Documents/Projects/StickerArtWeb/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 2
+          "actualWorkers": 1
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "C:/Users/Notebook/StickerArtWeb-1/tests",
+        "testDir": "/Users/andrey/Documents/Projects/StickerArtWeb/tests",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -55,15 +55,15 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Notebook/StickerArtWeb-1/test-results",
+        "outputDir": "/Users/andrey/Documents/Projects/StickerArtWeb/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 2
+          "actualWorkers": 1
         },
         "id": "mobile",
         "name": "mobile",
-        "testDir": "C:/Users/Notebook/StickerArtWeb-1/tests",
+        "testDir": "/Users/andrey/Documents/Projects/StickerArtWeb/tests",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -75,7 +75,7 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.56.1",
-    "workers": 6,
+    "workers": 1,
     "webServer": {
       "command": "cd .. && npm run dev",
       "url": "http://localhost:3001",
@@ -85,27 +85,25 @@
   },
   "suites": [
     {
-      "title": "gallery-benchmark.spec.ts",
-      "file": "gallery-benchmark.spec.ts",
+      "title": "stickerset-actions.spec.ts",
+      "file": "stickerset-actions.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Gallery Benchmark: Загрузка 40 стикер-карточек (2 страницы)",
-          "file": "gallery-benchmark.spec.ts",
-          "line": 672,
+          "title": "StickerSet Actions: UI Display Check (Read-Only)",
+          "file": "stickerset-actions.spec.ts",
+          "line": 21,
           "column": 6,
           "specs": [
             {
-              "title": "Бенчмарк производительности загрузки галереи с пагинацией @benchmark",
-              "ok": false,
-              "tags": [
-                "benchmark"
-              ],
+              "title": "проверка отображения кнопок действий на основе availableActions (без изменений)",
+              "ok": true,
+              "tags": [],
               "tests": [
                 {
-                  "timeout": 180000,
+                  "timeout": 60000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -114,980 +112,194 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 94539,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m35\u001b[39m\nReceived:    \u001b[31m20\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m35\u001b[39m\nReceived:    \u001b[31m20\u001b[39m\n    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery-benchmark.spec.ts:892:26",
-                        "location": {
-                          "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery-benchmark.spec.ts",
-                          "column": 26,
-                          "line": 892
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 890 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m`📊 Итого загружено стикер-карточек: ${stickerCount}`\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 891 |\u001b[39m     \n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 892 |\u001b[39m     expect(stickerCount)\u001b[33m.\u001b[39mtoBeGreaterThanOrEqual(\u001b[35m35\u001b[39m)\u001b[33m;\u001b[39m \u001b[90m// Минимум 35 из 40\u001b[39m\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 893 |\u001b[39m     expect(page2MediaStats\u001b[33m.\u001b[39mtotalCards \u001b[33m-\u001b[39m page2MediaStats\u001b[33m.\u001b[39memptyMedia)\u001b[33m.\u001b[39mtoBeGreaterThanOrEqual(\u001b[35m35\u001b[39m)\u001b[33m;\u001b[39m \u001b[90m// Минимум 35 с медиа\u001b[39m\n \u001b[90m 894 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 895 |\u001b[39m   \u001b[0m"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery-benchmark.spec.ts",
-                            "column": 26,
-                            "line": 892
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m35\u001b[39m\nReceived:    \u001b[31m20\u001b[39m\n\n\u001b[0m \u001b[90m 890 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m`📊 Итого загружено стикер-карточек: ${stickerCount}`\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 891 |\u001b[39m     \n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 892 |\u001b[39m     expect(stickerCount)\u001b[33m.\u001b[39mtoBeGreaterThanOrEqual(\u001b[35m35\u001b[39m)\u001b[33m;\u001b[39m \u001b[90m// Минимум 35 из 40\u001b[39m\n \u001b[90m     |\u001b[39m                          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 893 |\u001b[39m     expect(page2MediaStats\u001b[33m.\u001b[39mtotalCards \u001b[33m-\u001b[39m page2MediaStats\u001b[33m.\u001b[39memptyMedia)\u001b[33m.\u001b[39mtoBeGreaterThanOrEqual(\u001b[35m35\u001b[39m)\u001b[33m;\u001b[39m \u001b[90m// Минимум 35 с медиа\u001b[39m\n \u001b[90m 894 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 895 |\u001b[39m   \u001b[0m\n\u001b[2m    at C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery-benchmark.spec.ts:892:26\u001b[22m"
-                        }
-                      ],
-                      "stdout": [
-                        {
-                          "text": "🚀 Запуск бенчмарка галереи (2 страницы по 20 карточек)...\n\n"
-                        },
-                        {
-                          "text": "✅ Авторизация настроена через X-Telegram-Init-Data\n"
-                        },
-                        {
-                          "text": "📄 Переход на страницу галереи...\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание загрузки контейнера галереи...\n"
-                        },
-                        {
-                          "text": "\n📄 СТРАНИЦА 1: Загрузка первых 20 стикеров\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание первого стикера...\n"
-                        },
-                        {
-                          "text": "✅ Первый стикер загружен за 64ms\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание первых 6 стикеров...\n"
-                        },
-                        {
-                          "text": "✅ Первые 6 стикеров загружены за 18ms\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание всех 20 стикеров первой страницы...\n"
-                        },
-                        {
-                          "text": "✅ Все 20 стикеров первой страницы загружены за 20ms\n"
-                        },
-                        {
-                          "text": "🔍 Проверка загрузки медиа для первых 20 карточек...\n"
-                        },
-                        {
-                          "text": "  📊 Медиа статистика страницы 1:\n"
-                        },
-                        {
-                          "text": "     - Изображений с src: 0\n"
-                        },
-                        {
-                          "text": "     - Видео с src: 0\n"
-                        },
-                        {
-                          "text": "     - Карточек без медиа: 20\n"
-                        },
-                        {
-                          "text": "     - Всего карточек: 20\n"
-                        },
-                        {
-                          "text": "⏳ Стабилизация страницы 1...\n"
-                        },
-                        {
-                          "text": "\n📄 СТРАНИЦА 2: Скролл и загрузка следующих 20 стикеров\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "📜 Скроллинг вниз для загрузки второй страницы...\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание начала загрузки страницы 2...\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание загрузки 30 стикеров...\n"
-                        },
-                        {
-                          "text": "⚠️ Timeout waiting for 30 stickers\n"
-                        },
-                        {
-                          "text": "✅ 30 стикеров загружено за 30.02s\n"
-                        },
-                        {
-                          "text": "⏳ Ожидание всех 40 стикеров...\n"
-                        },
-                        {
-                          "text": "⚠️ Timeout waiting for 40 stickers\n"
-                        },
-                        {
-                          "text": "✅ Все 40 стикеров загружены за 45.01s\n"
-                        },
-                        {
-                          "text": "🔍 Проверка загрузки медиа для всех 40 карточек...\n"
-                        },
-                        {
-                          "text": "  📊 Медиа статистика для всех страниц:\n"
-                        },
-                        {
-                          "text": "     - Изображений с src: 15\n"
-                        },
-                        {
-                          "text": "     - Видео с src: 2\n"
-                        },
-                        {
-                          "text": "     - Карточек без медиа: 3\n"
-                        },
-                        {
-                          "text": "     - Всего карточек: 20\n"
-                        },
-                        {
-                          "text": "  📊 Медиа на странице 2 (карточки 21-40):\n"
-                        },
-                        {
-                          "text": "     - С медиа: 0/0\n"
-                        },
-                        {
-                          "text": "     - Без медиа: 0/0\n"
-                        },
-                        {
-                          "text": "\n⏳ Ожидание финальной стабилизации...\n"
-                        },
-                        {
-                          "text": "📊 Сбор FPS метрик...\n"
-                        },
-                        {
-                          "text": "📝 Генерация отчета...\n"
-                        },
-                        {
-                          "text": "\n════════════════════════════════════════════════════════════════════════════════\n"
-                        },
-                        {
-                          "text": "🎯 BENCHMARK REPORT: Галерея с 20 стикер-карточками\n"
-                        },
-                        {
-                          "text": "════════════════════════════════════════════════════════════════════════════════\n\n"
-                        },
-                        {
-                          "text": "🕒 ВРЕМЯ ЗАГРУЗКИ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  ⏱️  Первый стикер (TTFS):           64ms\n"
-                        },
-                        {
-                          "text": "  ⏱️  Первые 6 стикеров:             18ms\n"
-                        },
-                        {
-                          "text": "  ⏱️  Все 20 стикеров:               20ms\n"
-                        },
-                        {
-                          "text": "  📄 DOMContentLoaded:               1.51s\n"
-                        },
-                        {
-                          "text": "  🎨 First Contentful Paint (FCP):   1.86s\n"
-                        },
-                        {
-                          "text": "  🖼️  Largest Contentful Paint (LCP): 20.18s\n"
-                        },
-                        {
-                          "text": "  ⚡ Time to Interactive (TTI):      406ms\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "🌐 СЕТЕВЫЕ МЕТРИКИ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  📡 Всего запросов:                 167\n"
-                        },
-                        {
-                          "text": "  🔌 API запросы:                    6\n"
-                        },
-                        {
-                          "text": "  🖼️  Изображения стикеров:           80\n"
-                        },
-                        {
-                          "text": "  📋 JSON (анимации):                0\n"
-                        },
-                        {
-                          "text": "  🎬 Видео:                          0\n"
-                        },
-                        {
-                          "text": "  ♻️  Дубликаты запросов:             53\n"
-                        },
-                        {
-                          "text": "  ❌ Неудачные запросы:              0\n"
-                        },
-                        {
-                          "text": "  💾 Объем данных:                   9.08 MB\n"
-                        },
-                        {
-                          "text": "  ⏱️  Среднее время ответа:          331ms\n"
-                        },
-                        {
-                          "text": "  🔀 Макс. параллельность:           29\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "  🐌 Самые медленные запросы:\n"
-                        },
-                        {
-                          "text": "     1. 2.14s - CAACAgIAAxUAAWkXmx6lA5qKEbHoHUzUCLpuNm0OAALymgACS\n"
-                        },
-                        {
-                          "text": "     2. 2.01s - CAACAgIAAxUAAWkXmygh5bk1RD-A-JMH8GvA3aStAAKfAwACz\n"
-                        },
-                        {
-                          "text": "     3. 1.94s - CAACAgEAAxUAAWkXmxtl2nn_nCLWunENNrZTwWPEAAKWAwAC1\n"
-                        },
-                        {
-                          "text": "     4. 1.92s - CAACAgIAAxUAAWkXmxVMQ2D_E1Khhcphin0_7fD9AAKiDAACD\n"
-                        },
-                        {
-                          "text": "     5. 1.90s - CAACAgEAAxUAAWkXmyGVt66vTHTap0HwCwwS84ScAAITAAOk4\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "🎨 РЕНДЕРИНГ И АНИМАЦИЯ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  📊 Средний FPS:                    24.3\n"
-                        },
-                        {
-                          "text": "  📉 Минимальный FPS:                23.3\n"
-                        },
-                        {
-                          "text": "  📐 Layout Shifts (CLS):            0.000\n"
-                        },
-                        {
-                          "text": "  🔨 DOM узлов:                      1525\n"
-                        },
-                        {
-                          "text": "  ⏳ Долгие задачи (>50ms):          11\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "💾 ИСПОЛЬЗОВАНИЕ РЕСУРСОВ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  🧠 Память JS Heap:                 37.8 MB\n"
-                        },
-                        {
-                          "text": "  📏 Лимит памяти:                   3585.8 MB\n"
-                        },
-                        {
-                          "text": "  📊 Использование памяти:           1.1%\n"
-                        },
-                        {
-                          "text": "  🌳 DOM элементов:                  1525\n"
-                        },
-                        {
-                          "text": "  🎨 Canvas контекстов:              0\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "📦 КЭШИРОВАНИЕ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  ✅ Cache Hits:                     1\n"
-                        },
-                        {
-                          "text": "  ❌ Cache Misses:                   15\n"
-                        },
-                        {
-                          "text": "  📈 Эффективность кеша:             6.3%\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "📊 ВОДОПАД ЗАГРУЗКИ (первые 20 запросов):\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "   1. 71ms     | 56ms     █\n"
-                        },
-                        {
-                          "text": "      document      (2.84 KB)\n"
-                        },
-                        {
-                          "text": "   2. 149ms    | 95ms     █\n"
-                        },
-                        {
-                          "text": "      script       client (134.84 KB)\n"
-                        },
-                        {
-                          "text": "   3. 158ms    | 279ms    █████\n"
-                        },
-                        {
-                          "text": "      script       telegram-web-app.js (111.32 KB)\n"
-                        },
-                        {
-                          "text": "   4. 164ms    | 109ms    ██\n"
-                        },
-                        {
-                          "text": "      script       main.tsx (9.92 KB)\n"
-                        },
-                        {
-                          "text": "   5. 178ms    | 116ms    ██\n"
-                        },
-                        {
-                          "text": "      script       @react-refresh (114.82 KB)\n"
-                        },
-                        {
-                          "text": "   6. 250ms    | 50ms     █\n"
-                        },
-                        {
-                          "text": "      script       env.mjs (3.93 KB)\n"
-                        },
-                        {
-                          "text": "   7. 466ms    | 129ms    ██\n"
-                        },
-                        {
-                          "text": "      script       react_jsx-dev-runtime.js?v=7f3e94e7 (36.26 KB)\n"
-                        },
-                        {
-                          "text": "   8. 472ms    | 115ms    ██\n"
-                        },
-                        {
-                          "text": "      script       react.js?v=7f3e94e7 (311.00 B)\n"
-                        },
-                        {
-                          "text": "   9. 482ms    | 109ms    ██\n"
-                        },
-                        {
-                          "text": "      script       react-dom_client.js?v=7f3e94e7 (1.23 KB)\n"
-                        },
-                        {
-                          "text": "  10. 490ms    | 142ms    ██\n"
-                        },
-                        {
-                          "text": "      script       App.tsx (20.17 KB)\n"
-                        },
-                        {
-                          "text": "  11. 494ms    | 208ms    ████\n"
-                        },
-                        {
-                          "text": "      script       index.css (83.83 KB)\n"
-                        },
-                        {
-                          "text": "  12. 500ms    | 173ms    ███\n"
-                        },
-                        {
-                          "text": "      script       performanceMonitor.ts (26.55 KB)\n"
-                        },
-                        {
-                          "text": "  13. 599ms    | 195ms    ███\n"
-                        },
-                        {
-                          "text": "      script       chunk-QJTFJ6OV.js?v=7f3e94e7 (76.04 KB)\n"
-                        },
-                        {
-                          "text": "  14. 616ms    | 168ms    ███\n"
-                        },
-                        {
-                          "text": "      script       chunk-V4OQ3NZ2.js?v=7f3e94e7 (1.73 KB)\n"
-                        },
-                        {
-                          "text": "  15. 624ms    | 319ms    ██████\n"
-                        },
-                        {
-                          "text": "      script       chunk-GKJBSOWT.js?v=7f3e94e7 (906.43 KB)\n"
-                        },
-                        {
-                          "text": "  16. 636ms    | 213ms    ████\n"
-                        },
-                        {
-                          "text": "      script       react-router-dom.js?v=7f3e94e7 (204.04 KB)\n"
-                        },
-                        {
-                          "text": "  17. 645ms    | 161ms    ███\n"
-                        },
-                        {
-                          "text": "      script       MainLayout.tsx (11.08 KB)\n"
-                        },
-                        {
-                          "text": "  18. 655ms    | 181ms    ███\n"
-                        },
-                        {
-                          "text": "      script       useLikesStore.ts (34.50 KB)\n"
-                        },
-                        {
-                          "text": "  19. 660ms    | 153ms    ███\n"
-                        },
-                        {
-                          "text": "      script       useProfileStore.ts (31.36 KB)\n"
-                        },
-                        {
-                          "text": "  20. 667ms    | 185ms    ███\n"
-                        },
-                        {
-                          "text": "      script       useTelegram.ts (60.07 KB)\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "🚨 ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  ⚠️  ПРЕДУПРЕЖДЕНИЯ:\n"
-                        },
-                        {
-                          "text": "     • Медленный LCP: 20.18s (норма <4s)\n"
-                        },
-                        {
-                          "text": "     • Низкий FPS: 24.3 (норма >30)\n"
-                        },
-                        {
-                          "text": "     • Много дубликатов: 53 повторных запросов\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "  🔍 УЗКИЕ МЕСТА:\n"
-                        },
-                        {
-                          "text": "     • Много долгих задач: 11 задач >50ms\n"
-                        },
-                        {
-                          "text": "     • Низкая эффективность кеша: 6.3%\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "💡 РЕКОМЕНДАЦИИ ПО ОПТИМИЗАЦИИ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  1. Улучшите систему кеширования для предотвращения дублирующих запросов\n"
-                        },
-                        {
-                          "text": "  2. Оптимизируйте анимации и рендеринг (используйте CSS transforms, will-change)\n"
-                        },
-                        {
-                          "text": "  3. Улучшите стратегию кеширования (увеличьте TTL, prefetch)\n"
-                        },
-                        {
-                          "text": "  4. Разбейте долгие задачи на более мелкие части (используйте Web Workers)\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "════════════════════════════════════════════════════════════════════════════════\n"
-                        },
-                        {
-                          "text": "✅ BENCHMARK ЗАВЕРШЕН\n"
-                        },
-                        {
-                          "text": "════════════════════════════════════════════════════════════════════════════════\n\n"
-                        },
-                        {
-                          "text": "\n📊 СТАТИСТИКА ПАГИНАЦИИ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  📄 Страница 1 (карточки 1-20): 20ms\n"
-                        },
-                        {
-                          "text": "  📄 Страница 2 (карточки 21-40): 44.99s\n"
-                        },
-                        {
-                          "text": "  📊 Общее время загрузки 40 карточек: 45.01s\n"
-                        },
-                        {
-                          "text": "  ⚡ Средняя скорость: 0.89 карточек/сек\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "🎯 РЕЗУЛЬТАТЫ ПРОВЕРОК:\n"
-                        },
-                        {
-                          "text": "  ✅ TTFS < 5s: 64ms\n"
-                        },
-                        {
-                          "text": "  ❌ LCP < 4s: 20.18s\n"
-                        },
-                        {
-                          "text": "  ❌ FPS >= 30: 24.3\n"
-                        },
-                        {
-                          "text": "  ✅ CLS < 0.25: 0.000\n"
-                        },
-                        {
-                          "text": "  ❌ Дубликаты < 15: 53\n"
-                        },
-                        {
-                          "text": "  ✅ Нет ошибок: Да\n"
-                        },
-                        {
-                          "text": "  ✅ Медиа загружено: 17/20\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "📊 Итого загружено стикер-карточек: 20\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-11-18T09:20:58.065Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\Notebook\\StickerArtWeb-1\\test-results\\gallery-benchmark-Gallery--9833a-ереи-с-пагинацией-benchmark-chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\Notebook\\StickerArtWeb-1\\test-results\\gallery-benchmark-Gallery--9833a-ереи-с-пагинацией-benchmark-chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\Notebook\\StickerArtWeb-1\\test-results\\gallery-benchmark-Gallery--9833a-ереи-с-пагинацией-benchmark-chromium\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\Notebook\\StickerArtWeb-1\\tests\\gallery-benchmark.spec.ts",
-                        "column": 26,
-                        "line": 892
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "ebe0e7dcb04c2d072fc8-0d5e4977b59f605b3772",
-              "file": "gallery-benchmark.spec.ts",
-              "line": 675,
-              "column": 3
-            },
-            {
-              "title": "Тест производительности на мобильном устройстве @mobile @benchmark",
-              "ok": true,
-              "tags": [
-                "mobile",
-                "benchmark"
-              ],
-              "tests": [
-                {
-                  "timeout": 180000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
                       "status": "passed",
-                      "duration": 13665,
+                      "duration": 18730,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "📱 Бенчмарк для мобильного устройства...\n\n"
+                          "text": "✅ TELEGRAM_INIT_DATA загружен из переменной окружения\n"
                         },
                         {
                           "text": "✅ Авторизация настроена через X-Telegram-Init-Data\n"
                         },
                         {
-                          "text": "\n════════════════════════════════════════════════════════════════════════════════\n"
+                          "text": "\n🔍 Проверка UI: Отображение кнопок действий (read-only)...\n\n"
                         },
                         {
-                          "text": "🎯 BENCHMARK REPORT: Галерея с 20 стикер-карточками\n"
+                          "text": "📄 Переход в галерею...\n"
                         },
                         {
-                          "text": "════════════════════════════════════════════════════════════════════════════════\n\n"
+                          "text": "✅ Галерея загружена\n"
                         },
                         {
-                          "text": "🕒 ВРЕМЯ ЗАГРУЗКИ:\n"
+                          "text": "✅ Найдено 20 карточек стикерсетов\n\n"
                         },
                         {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
+                          "text": "================================================================================\n"
                         },
                         {
-                          "text": "  ⏱️  Первый стикер (TTFS):           94ms\n"
+                          "text": "📦 Проверка стикерсета #1 из 3\n"
                         },
                         {
-                          "text": "  ⏱️  Первые 6 стикеров:             32ms\n"
+                          "text": "================================================================================\n\n"
                         },
                         {
-                          "text": "  ⏱️  Все 20 стикеров:               21ms\n"
+                          "text": "✅ Модальное окно открыто\n"
                         },
                         {
-                          "text": "  📄 DOMContentLoaded:               1.45s\n"
+                          "text": "📊 Доступные кнопки действий:\n"
                         },
                         {
-                          "text": "  🎨 First Contentful Paint (FCP):   1.82s\n"
+                          "text": "  🚫 Заблокировать:    ❌ скрыта\n"
                         },
                         {
-                          "text": "  🖼️  Largest Contentful Paint (LCP): 10.36s\n"
+                          "text": "  🔄 Разблокировать:   ❌ скрыта\n"
                         },
                         {
-                          "text": "  ⚡ Time to Interactive (TTI):      409ms\n"
+                          "text": "  🗑️  Удалить:         ❌ скрыта\n"
                         },
                         {
-                          "text": "\n"
+                          "text": "  📤 Опубликовать:     ❌ скрыта\n"
                         },
                         {
-                          "text": "🌐 СЕТЕВЫЕ МЕТРИКИ:\n"
+                          "text": "  📥 Снять публикацию: ❌ скрыта\n"
                         },
                         {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
+                          "text": "\n🔍 Проверка логики:\n"
                         },
                         {
-                          "text": "  📡 Всего запросов:                 130\n"
+                          "text": "  ✅ Кнопки BLOCK/UNBLOCK взаимоисключающие\n"
                         },
                         {
-                          "text": "  🔌 API запросы:                    6\n"
+                          "text": "  ✅ Кнопки PUBLISH/UNPUBLISH взаимоисключающие\n"
                         },
                         {
-                          "text": "  🖼️  Изображения стикеров:           43\n"
+                          "text": "\n📌 Состояние стикерсета:\n"
                         },
                         {
-                          "text": "  📋 JSON (анимации):                0\n"
-                        },
-                        {
-                          "text": "  🎬 Видео:                          0\n"
-                        },
-                        {
-                          "text": "  ♻️  Дубликаты запросов:             17\n"
-                        },
-                        {
-                          "text": "  ❌ Неудачные запросы:              0\n"
-                        },
-                        {
-                          "text": "  💾 Объем данных:                   7.63 MB\n"
-                        },
-                        {
-                          "text": "  ⏱️  Среднее время ответа:          425ms\n"
-                        },
-                        {
-                          "text": "  🔀 Макс. параллельность:           30\n"
+                          "text": "\n🔙 Закрываем модальное окно...\n"
                         },
                         {
                           "text": "\n"
                         },
                         {
-                          "text": "  🐌 Самые медленные запросы:\n"
+                          "text": "================================================================================\n"
                         },
                         {
-                          "text": "     1. 2.60s - CAACAgEAAxUAAWkXmxcEtdMM-NKWxDCJMVhsMhmmAAI5AAMgd\n"
+                          "text": "📦 Проверка стикерсета #2 из 3\n"
                         },
                         {
-                          "text": "     2. 2.58s - CAACAgIAAxUAAWkXmxkBGB1Z-Wtt8igTeEGTjhNGAAIvCAACQ\n"
+                          "text": "================================================================================\n\n"
                         },
                         {
-                          "text": "     3. 1.91s - CAACAgIAAxUAAWkXmyhD7q6UAAG9wa8sxdu6oztoSQACqAMAA\n"
+                          "text": "✅ Модальное окно открыто\n"
                         },
                         {
-                          "text": "     4. 1.59s - CAACAgUAAxUAAWkXmx1S-0u166S3VHl48k62lbY0AAIjAQAC6\n"
+                          "text": "📊 Доступные кнопки действий:\n"
                         },
                         {
-                          "text": "     5. 1.51s - CAACAgIAAxUAAWkXmx6sJ7tFRAN7Pf-u8vl8f9tVAAIfXgACu\n"
+                          "text": "  🚫 Заблокировать:    ❌ скрыта\n"
                         },
                         {
-                          "text": "\n"
+                          "text": "  🔄 Разблокировать:   ❌ скрыта\n"
                         },
                         {
-                          "text": "🎨 РЕНДЕРИНГ И АНИМАЦИЯ:\n"
+                          "text": "  🗑️  Удалить:         ❌ скрыта\n"
                         },
                         {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
+                          "text": "  📤 Опубликовать:     ❌ скрыта\n"
                         },
                         {
-                          "text": "  📊 Средний FPS:                    22.2\n"
+                          "text": "  📥 Снять публикацию: ❌ скрыта\n"
                         },
                         {
-                          "text": "  📉 Минимальный FPS:                20.7\n"
+                          "text": "\n🔍 Проверка логики:\n"
                         },
                         {
-                          "text": "  📐 Layout Shifts (CLS):            0.000\n"
+                          "text": "  ✅ Кнопки BLOCK/UNBLOCK взаимоисключающие\n"
                         },
                         {
-                          "text": "  🔨 DOM узлов:                      703\n"
+                          "text": "  ✅ Кнопки PUBLISH/UNPUBLISH взаимоисключающие\n"
                         },
                         {
-                          "text": "  ⏳ Долгие задачи (>50ms):          9\n"
+                          "text": "\n📌 Состояние стикерсета:\n"
                         },
                         {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "💾 ИСПОЛЬЗОВАНИЕ РЕСУРСОВ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  🧠 Память JS Heap:                 29.8 MB\n"
-                        },
-                        {
-                          "text": "  📏 Лимит памяти:                   3585.8 MB\n"
-                        },
-                        {
-                          "text": "  📊 Использование памяти:           0.8%\n"
-                        },
-                        {
-                          "text": "  🌳 DOM элементов:                  703\n"
-                        },
-                        {
-                          "text": "  🎨 Canvas контекстов:              0\n"
+                          "text": "\n🔙 Закрываем модальное окно...\n"
                         },
                         {
                           "text": "\n"
                         },
                         {
-                          "text": "📦 КЭШИРОВАНИЕ:\n"
+                          "text": "================================================================================\n"
                         },
                         {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
+                          "text": "📦 Проверка стикерсета #3 из 3\n"
                         },
                         {
-                          "text": "  ✅ Cache Hits:                     1\n"
+                          "text": "================================================================================\n\n"
                         },
                         {
-                          "text": "  ❌ Cache Misses:                   13\n"
+                          "text": "✅ Модальное окно открыто\n"
                         },
                         {
-                          "text": "  📈 Эффективность кеша:             7.1%\n"
+                          "text": "📊 Доступные кнопки действий:\n"
                         },
                         {
-                          "text": "\n"
+                          "text": "  🚫 Заблокировать:    ❌ скрыта\n"
                         },
                         {
-                          "text": "📊 ВОДОПАД ЗАГРУЗКИ (первые 20 запросов):\n"
+                          "text": "  🔄 Разблокировать:   ❌ скрыта\n"
                         },
                         {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
+                          "text": "  🗑️  Удалить:         ❌ скрыта\n"
                         },
                         {
-                          "text": "   1. 60ms     | 57ms     █\n"
+                          "text": "  📤 Опубликовать:     ❌ скрыта\n"
                         },
                         {
-                          "text": "      document      (2.84 KB)\n"
+                          "text": "  📥 Снять публикацию: ❌ скрыта\n"
                         },
                         {
-                          "text": "   2. 140ms    | 115ms    ██\n"
+                          "text": "\n🔍 Проверка логики:\n"
                         },
                         {
-                          "text": "      script       client (134.84 KB)\n"
+                          "text": "  ✅ Кнопки BLOCK/UNBLOCK взаимоисключающие\n"
                         },
                         {
-                          "text": "   3. 147ms    | 288ms    █████\n"
+                          "text": "  ✅ Кнопки PUBLISH/UNPUBLISH взаимоисключающие\n"
                         },
                         {
-                          "text": "      script       telegram-web-app.js (111.32 KB)\n"
+                          "text": "\n📌 Состояние стикерсета:\n"
                         },
                         {
-                          "text": "   4. 156ms    | 122ms    ██\n"
-                        },
-                        {
-                          "text": "      script       main.tsx (9.92 KB)\n"
-                        },
-                        {
-                          "text": "   5. 186ms    | 108ms    ██\n"
-                        },
-                        {
-                          "text": "      script       @react-refresh (114.82 KB)\n"
-                        },
-                        {
-                          "text": "   6. 261ms    | 40ms     \n"
-                        },
-                        {
-                          "text": "      script       env.mjs (3.93 KB)\n"
-                        },
-                        {
-                          "text": "   7. 461ms    | 82ms     █\n"
-                        },
-                        {
-                          "text": "      script       react_jsx-dev-runtime.js?v=7f3e94e7 (36.26 KB)\n"
-                        },
-                        {
-                          "text": "   8. 474ms    | 108ms    ██\n"
-                        },
-                        {
-                          "text": "      script       react.js?v=7f3e94e7 (311.00 B)\n"
-                        },
-                        {
-                          "text": "   9. 478ms    | 110ms    ██\n"
-                        },
-                        {
-                          "text": "      script       react-dom_client.js?v=7f3e94e7 (1.23 KB)\n"
-                        },
-                        {
-                          "text": "  10. 484ms    | 108ms    ██\n"
-                        },
-                        {
-                          "text": "      script       App.tsx (20.17 KB)\n"
-                        },
-                        {
-                          "text": "  11. 489ms    | 151ms    ███\n"
-                        },
-                        {
-                          "text": "      script       index.css (83.83 KB)\n"
-                        },
-                        {
-                          "text": "  12. 495ms    | 158ms    ███\n"
-                        },
-                        {
-                          "text": "      script       performanceMonitor.ts (26.55 KB)\n"
-                        },
-                        {
-                          "text": "  13. 547ms    | 138ms    ██\n"
-                        },
-                        {
-                          "text": "      script       chunk-QJTFJ6OV.js?v=7f3e94e7 (76.04 KB)\n"
-                        },
-                        {
-                          "text": "  14. 556ms    | 121ms    ██\n"
-                        },
-                        {
-                          "text": "      script       chunk-V4OQ3NZ2.js?v=7f3e94e7 (1.73 KB)\n"
-                        },
-                        {
-                          "text": "  15. 596ms    | 276ms    █████\n"
-                        },
-                        {
-                          "text": "      script       chunk-GKJBSOWT.js?v=7f3e94e7 (906.43 KB)\n"
-                        },
-                        {
-                          "text": "  16. 604ms    | 227ms    ████\n"
-                        },
-                        {
-                          "text": "      script       react-router-dom.js?v=7f3e94e7 (204.04 KB)\n"
-                        },
-                        {
-                          "text": "  17. 611ms    | 171ms    ███\n"
-                        },
-                        {
-                          "text": "      script       MainLayout.tsx (11.08 KB)\n"
-                        },
-                        {
-                          "text": "  18. 619ms    | 170ms    ███\n"
-                        },
-                        {
-                          "text": "      script       useLikesStore.ts (34.50 KB)\n"
-                        },
-                        {
-                          "text": "  19. 630ms    | 162ms    ███\n"
-                        },
-                        {
-                          "text": "      script       useProfileStore.ts (31.36 KB)\n"
-                        },
-                        {
-                          "text": "  20. 636ms    | 178ms    ███\n"
-                        },
-                        {
-                          "text": "      script       useTelegram.ts (60.07 KB)\n"
+                          "text": "\n🔙 Закрываем модальное окно...\n"
                         },
                         {
                           "text": "\n"
                         },
                         {
-                          "text": "🚨 ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ:\n"
+                          "text": "================================================================================\n"
                         },
                         {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
+                          "text": "✅ ТЕСТ ЗАВЕРШЕН УСПЕШНО\n"
                         },
                         {
-                          "text": "  ⚠️  ПРЕДУПРЕЖДЕНИЯ:\n"
+                          "text": "================================================================================\n"
                         },
                         {
-                          "text": "     • Медленный LCP: 10.36s (норма <4s)\n"
+                          "text": "📊 Результат: Кнопки действий корректно отображаются на основе availableActions\n"
                         },
                         {
-                          "text": "     • Низкий FPS: 22.2 (норма >30)\n"
+                          "text": "ℹ️  Никакие действия не были выполнены - только проверка отображения UI\n"
                         },
                         {
-                          "text": "     • Много дубликатов: 17 повторных запросов\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "  🔍 УЗКИЕ МЕСТА:\n"
-                        },
-                        {
-                          "text": "     • Низкая эффективность кеша: 7.1%\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "💡 РЕКОМЕНДАЦИИ ПО ОПТИМИЗАЦИИ:\n"
-                        },
-                        {
-                          "text": "────────────────────────────────────────────────────────────────────────────────\n"
-                        },
-                        {
-                          "text": "  1. Улучшите систему кеширования для предотвращения дублирующих запросов\n"
-                        },
-                        {
-                          "text": "  2. Оптимизируйте анимации и рендеринг (используйте CSS transforms, will-change)\n"
-                        },
-                        {
-                          "text": "  3. Улучшите стратегию кеширования (увеличьте TTL, prefetch)\n"
-                        },
-                        {
-                          "text": "\n"
-                        },
-                        {
-                          "text": "════════════════════════════════════════════════════════════════════════════════\n"
-                        },
-                        {
-                          "text": "✅ BENCHMARK ЗАВЕРШЕН\n"
-                        },
-                        {
-                          "text": "════════════════════════════════════════════════════════════════════════════════\n\n"
+                          "text": "================================================================================\n\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-11-18T09:20:58.082Z",
+                      "startTime": "2025-11-22T10:19:12.084Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1095,9 +307,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "ebe0e7dcb04c2d072fc8-ff705998039f0511bc52",
-              "file": "gallery-benchmark.spec.ts",
-              "line": 896,
+              "id": "a1cb04cf04b9db9435b5-be986b510ed6267dd4ca",
+              "file": "stickerset-actions.spec.ts",
+              "line": 51,
               "column": 3
             }
           ]
@@ -1107,11 +319,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-11-18T09:20:56.367Z",
-    "duration": 98494.128,
+    "startTime": "2025-11-22T10:19:10.426Z",
+    "duration": 20972.461,
     "expected": 1,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }

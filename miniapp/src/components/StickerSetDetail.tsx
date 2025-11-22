@@ -315,6 +315,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [isBlocking, setIsBlocking] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
   const effectiveStickerSet = fullStickerSet ?? stickerSet;
+  
+  // Отладочный лог для E2E тестов
+  console.log('🔵 StickerSetDetail render:', {
+    stickerSetId: effectiveStickerSet.id,
+    hasFullStickerSet: !!fullStickerSet,
+    availableActions: effectiveStickerSet.availableActions,
+    isBlocked: effectiveStickerSet.isBlocked
+  });
+  
   const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() =>
     deriveVisibilityState(fullStickerSet ?? stickerSet)
   );
@@ -830,6 +839,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
   // Обработчик завершения действия из StickerSetActions
   const handleActionComplete = useCallback(async (action: string, updatedData?: StickerSetResponse) => {
+    console.log('🎬 handleActionComplete вызван:', { action, hasUpdatedData: !!updatedData });
+    
     if (action === 'DELETE') {
       // Для DELETE закрываем модальное окно или возвращаемся назад
       if (isModal) {
@@ -840,57 +851,54 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       return;
     }
 
-    // Для остальных действий перезапрашиваем данные с сервера
-    try {
-      const refreshedData = await apiClient.getStickerSet(stickerSet.id);
-      const mergedUpdate: StickerSetResponse = {
-        ...refreshedData,
-        telegramStickerSetInfo:
-          refreshedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
-        previewStickers: refreshedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
-        // Сохраняем availableActions из ответа API
-        availableActions: refreshedData.availableActions
-      };
-
-      console.log('✅ Стикерсет обновлён после действия:', { 
-        id: mergedUpdate.id, 
-        action, 
-        availableActions: mergedUpdate.availableActions 
-      });
-
-      // Обновляем локальное состояние
-      setFullStickerSet(mergedUpdate);
-
-      // Обновляем кеш
-      stickerSetCache.set(stickerSet.id, {
-        data: mergedUpdate,
-        timestamp: Date.now(),
-        ttl: CACHE_TTL
-      });
-
-      // Обновляем глобальные stores
-      useStickerStore.getState().updateStickerSet(stickerSet.id, mergedUpdate);
-      useProfileStore.getState().updateUserStickerSet(stickerSet.id, mergedUpdate);
-
-      // Уведомляем родительский компонент
-      onStickerSetUpdated?.(mergedUpdate);
-    } catch (error) {
-      console.error('❌ Ошибка при обновлении данных стикерсета:', error);
-      // Если не удалось перезапросить, используем данные из ответа API (если есть)
-      if (updatedData) {
-        const mergedUpdate: StickerSetResponse = {
-          ...(fullStickerSet ?? stickerSet),
-          ...updatedData,
-          telegramStickerSetInfo:
-            updatedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
-          previewStickers: updatedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
-          // Сохраняем availableActions из ответа API
-          availableActions: updatedData.availableActions
-        };
-        setFullStickerSet(mergedUpdate);
-        onStickerSetUpdated?.(mergedUpdate);
-      }
+    // Если есть updatedData от API действия, используем его напрямую
+    // (он уже содержит актуальное состояние после операции)
+    if (!updatedData) {
+      console.error('❌ handleActionComplete: updatedData не передан для действия', action);
+      return;
     }
+
+    console.log('📦 Используем updatedData от API действия:', {
+      id: updatedData.id,
+      availableActions: updatedData.availableActions,
+      isBlocked: updatedData.isBlocked,
+      isPublic: updatedData.isPublic
+    });
+    
+    const mergedUpdate: StickerSetResponse = {
+      ...(fullStickerSet ?? stickerSet),
+      ...updatedData,
+      telegramStickerSetInfo:
+        updatedData.telegramStickerSetInfo || fullStickerSet?.telegramStickerSetInfo || stickerSet.telegramStickerSetInfo,
+      previewStickers: updatedData.previewStickers || fullStickerSet?.previewStickers || stickerSet.previewStickers,
+      // Сохраняем availableActions из ответа API
+      availableActions: updatedData.availableActions
+    };
+
+    console.log('✅ Стикерсет обновлён:', { 
+      id: mergedUpdate.id, 
+      action, 
+      availableActions: mergedUpdate.availableActions,
+      isBlocked: mergedUpdate.isBlocked,
+      isPublic: mergedUpdate.isPublic
+    });
+
+    // Обновляем локальное состояние
+    setFullStickerSet(mergedUpdate);
+
+    // Обновляем кеш
+    stickerSetCache.set(stickerSet.id, {
+      data: mergedUpdate,
+      timestamp: Date.now(),
+      ttl: CACHE_TTL
+    });
+
+    // Обновляем глобальные stores
+    useStickerStore.getState().updateStickerSet(stickerSet.id, mergedUpdate);
+    useProfileStore.getState().updateUserStickerSet(stickerSet.id, mergedUpdate);
+
+    // Уведомляем родительский компонент
+    onStickerSetUpdated?.(mergedUpdate);
   }, [stickerSet.id, isModal, onBack, fullStickerSet, stickerSet, onStickerSetUpdated]);
 
 
