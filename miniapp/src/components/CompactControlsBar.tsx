@@ -9,6 +9,7 @@ import { CategoryFilter, Category } from './CategoryFilter';
 import { StickerTypeDropdown } from './StickerTypeDropdown';
 import { DateFilterDropdown } from './DateFilterDropdown';
 import { SortDropdown } from './SortDropdown';
+import { StickerSetTypeFilter, StickerSetType } from './StickerSetTypeFilter';
 
 interface CompactControlsBarProps {
   // Search
@@ -31,6 +32,10 @@ interface CompactControlsBarProps {
   // Sticker Type Filter
   selectedStickerTypes: string[];
   onStickerTypeToggle: (typeId: string) => void;
+  
+  // Sticker Set Type Filter (USER/OFFICIAL)
+  selectedStickerSetTypes: StickerSetType[];
+  onStickerSetTypeToggle: (type: StickerSetType) => void;
   
   // Date Filter
   selectedDate: string | null;
@@ -57,6 +62,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   sortDisabled = false,
   selectedStickerTypes,
   onStickerTypeToggle,
+  selectedStickerSetTypes,
+  onStickerSetTypeToggle,
   selectedDate,
   onDateChange,
   onAddClick,
@@ -123,6 +130,13 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     //   }
     // });
     
+    // StickerSet Type filter - reset to all (empty array = all types)
+    if (selectedStickerSetTypes.length > 0) {
+      selectedStickerSetTypes.forEach(type => {
+        onStickerSetTypeToggle(type);
+      });
+    }
+    
     // Date filter - СКРЫТО: ждем API
     // if (selectedDate !== 'all') {
     //   onDateChange('all');
@@ -132,7 +146,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     if (sortByLikes) {
       onSortToggle();
     }
-  }, [tg, sortByLikes, onSortToggle]);
+  }, [tg, sortByLikes, onSortToggle, selectedStickerSetTypes, onStickerSetTypeToggle]);
 
   // Close filters menu when clicking outside
   useEffect(() => {
@@ -473,6 +487,15 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               />
             </Box> */}
             
+            {/* StickerSet Type Filter (USER/OFFICIAL) */}
+            <Box>
+              <StickerSetTypeFilter
+                selectedTypes={selectedStickerSetTypes}
+                onTypeToggle={onStickerSetTypeToggle}
+                disabled={false}
+              />
+            </Box>
+            
             {/* Date Filter - СКРЫТО: ждем API */}
             {/* <Box>
               <DateFilterDropdown
@@ -542,6 +565,13 @@ const arePropsEqual = (
     return false;
   }
 
+  if (
+    prevProps.selectedStickerSetTypes.length !== nextProps.selectedStickerSetTypes.length ||
+    prevProps.selectedStickerSetTypes.some((type, i) => type !== nextProps.selectedStickerSetTypes[i])
+  ) {
+    return false;
+  }
+
   if (prevProps.selectedDate !== nextProps.selectedDate) {
     return false;
   }
@@ -561,6 +591,7 @@ const arePropsEqual = (
     prevProps.onCategoryToggle !== nextProps.onCategoryToggle ||
     prevProps.onSortToggle !== nextProps.onSortToggle ||
     prevProps.onStickerTypeToggle !== nextProps.onStickerTypeToggle ||
+    prevProps.onStickerSetTypeToggle !== nextProps.onStickerSetTypeToggle ||
     prevProps.onDateChange !== nextProps.onDateChange ||
     prevProps.onAddClick !== nextProps.onAddClick
   ) {

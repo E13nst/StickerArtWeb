@@ -363,10 +363,53 @@ class ApiClient {
     }
   }
 
-  // Поиск стикерсетов по названию
-  async searchStickerSets(query: string, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
+  // Поиск стикерсетов по названию с поддержкой фильтров
+  async searchStickerSets(
+    query: string,
+    page: number = 0,
+    size: number = 20,
+    options?: {
+      categoryKeys?: string[];
+      type?: 'USER' | 'OFFICIAL';
+      authorId?: number;
+      userId?: number;
+      likedOnly?: boolean;
+      sort?: string;
+      direction?: 'ASC' | 'DESC';
+    }
+  ): Promise<StickerSetListResponse> {
+    const params: Record<string, any> = { query, page, size };
+    
+    if (options?.categoryKeys && options.categoryKeys.length > 0) {
+      params.categoryKeys = options.categoryKeys.join(',');
+    }
+    
+    if (options?.type) {
+      params.type = options.type;
+    }
+    
+    if (options?.likedOnly) {
+      params.likedOnly = true;
+    }
+    
+    if (options?.sort) {
+      params.sort = options.sort;
+    }
+    
+    if (options?.direction) {
+      params.direction = options.direction;
+    }
+
+    if (typeof options?.authorId === 'number') {
+      params.authorId = options.authorId;
+    }
+
+    if (typeof options?.userId === 'number') {
+      params.userId = options.userId;
+    }
+    
     const response = await this.client.get<StickerSetListResponse>('/stickersets/search', {
-      params: { name: query, page, size }
+      params
     });
     return response.data;
   }

@@ -24,6 +24,7 @@ import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 import { Category } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
 import { CompactControlsBar } from '../components/CompactControlsBar';
+import { StickerSetType } from '../components/StickerSetTypeFilter';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -94,6 +95,7 @@ export const GalleryPage: React.FC = () => {
   const [sortByLikes, setSortByLikes] = useState(getInitialSortByLikes);
   const [selectedStickerTypes, setSelectedStickerTypes] = useState<string[]>(['static', 'animated', 'video', 'official']);
   const [selectedDate, setSelectedDate] = useState<string | null>('all');
+  const [selectedStickerSetTypes, setSelectedStickerSetTypes] = useState<StickerSetType[]>([]);
 
   // Debounced search term для оптимизации поиска
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -226,14 +228,34 @@ export const GalleryPage: React.FC = () => {
         console.log('🔧 Режим без авторизации: загружаем публичные данные');
       }
 
-      // Загружаем данные с фильтром по категориям и сортировкой
-      // При включенной сортировке по лайкам: сортировка по likesCount DESC (от самых лайкнутых)
-      // При выключенной: сортировка по id DESC (последние добавленные)
-      const response = await apiClient.getStickerSets(page, 20, {
+      // Вычисляем параметр type для API
+      // Если выбраны оба типа или ни один - null (показать все)
+      // Если выбран один - передать его
+      let typeFilter: 'USER' | 'OFFICIAL' | undefined = undefined;
+      if (selectedStickerSetTypes.length === 1) {
+        typeFilter = selectedStickerSetTypes[0];
+      }
+
+      // Опции для API запроса
+      const apiOptions = {
         categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined,
+        type: typeFilter,
         sort: sortByLikesRef.current ? 'likesCount' : 'id',
-        direction: 'DESC'
-      });
+        direction: 'DESC' as const
+      };
+
+      // Определяем, нужно ли использовать поиск или обычный запрос
+      const searchQuery = debouncedSearchTerm.trim();
+      let response;
+
+      if (searchQuery) {
+        // Используем поиск
+        console.log('🔍 Выполняем поиск стикерсетов с query:', searchQuery);
+        response = await apiClient.searchStickerSets(searchQuery, page, 20, apiOptions);
+      } else {
+        // Обычная загрузка без поиска
+        response = await apiClient.getStickerSets(page, 20, apiOptions);
+      }
       
       if (isLoadMore) {
         // Добавляем новые стикерсеты к существующим
@@ -276,7 +298,7 @@ export const GalleryPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes]);
+  }, [initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes, selectedStickerSetTypes, debouncedSearchTerm]);
 
   // Загрузка следующей страницы с учетом фильтров
   const loadMoreStickerSets = useCallback(() => {
@@ -284,38 +306,6 @@ export const GalleryPage: React.FC = () => {
       fetchStickerSets(currentPage + 1, true, selectedCategories);
     }
   }, [currentPage, totalPages, isLoadingMore, selectedCategories, fetchStickerSets]);
-
-  // Поиск стикерсетов
-  const searchStickerSets = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      fetchStickerSets();
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await apiClient.searchStickerSets(query);
-      setStickerSets(response.content || []);
-      
-      // Инициализируем лайки из результатов поиска
-      if (response.content && response.content.length > 0) {
-        console.log('🔍 DEBUG: Инициализация лайков из поиска:', response.content.map(s => ({
-          id: s.id,
-          title: s.title,
-          likes: s.likes,
-          isLiked: s.isLiked
-        })));
-        initializeLikes(response.content);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка поиска стикеров';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchStickerSets, setLoading, setError, setStickerSets, initializeLikes]);
 
   // Мемоизированные обработчики
   const handleViewStickerSet = useCallback((id: number | string) => {
@@ -354,12 +344,10 @@ export const GalleryPage: React.FC = () => {
   }, []);
 
   const handleSearch = useCallback((searchTerm: string) => {
-    if (searchTerm.trim()) {
-      searchStickerSets(searchTerm);
-    } else {
-      fetchStickerSets();
-    }
-  }, [searchStickerSets, fetchStickerSets]);
+    // Поиск теперь происходит автоматически через debounce в fetchStickerSets
+    // Этот обработчик оставлен для совместимости с SearchBar
+    setSearchTerm(searchTerm);
+  }, []);
 
   const handleCategoryToggle = useCallback((categoryId: string) => {
     setSelectedCategories(prev => {
@@ -380,6 +368,16 @@ export const GalleryPage: React.FC = () => {
       return isSelected
         ? prev.filter(id => id !== typeId)
         : [...prev, typeId];
+    });
+  }, []);
+
+  const handleStickerSetTypeToggle = useCallback((type: StickerSetType) => {
+    setSelectedStickerSetTypes(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(t => t !== type);
+      } else {
+        return [...prev, type];
+      }
     });
   }, []);
 
@@ -437,28 +435,34 @@ export const GalleryPage: React.FC = () => {
   // Флаг для отслеживания первой загрузки
   const hasInitializedRef = useRef(false);
   // Храним последние значения фильтров для предотвращения лишних перезагрузок
-  const lastFiltersRef = useRef<{ categories: string[], sortByLikes: boolean }>({
+  const lastFiltersRef = useRef<{ categories: string[], sortByLikes: boolean, stickerSetTypes: StickerSetType[], searchTerm: string }>({
     categories: [],
-    sortByLikes: sortByLikes
+    sortByLikes: sortByLikes,
+    stickerSetTypes: [],
+    searchTerm: ''
   });
 
-  // Перезагрузка при изменении выбранных категорий или сортировки
+  // Перезагрузка при изменении выбранных категорий, сортировки, типов или поискового запроса
   useEffect(() => {
     if (!isReady || !hasInitializedRef.current) return;
     
     // Проверяем, действительно ли изменились фильтры
     const categoriesChanged = JSON.stringify(selectedCategories) !== JSON.stringify(lastFiltersRef.current.categories);
     const sortChanged = sortByLikes !== lastFiltersRef.current.sortByLikes;
+    const typesChanged = JSON.stringify(selectedStickerSetTypes) !== JSON.stringify(lastFiltersRef.current.stickerSetTypes);
+    const searchChanged = debouncedSearchTerm !== lastFiltersRef.current.searchTerm;
     
-    if (categoriesChanged || sortChanged) {
+    if (categoriesChanged || sortChanged || typesChanged || searchChanged) {
       lastFiltersRef.current = {
         categories: [...selectedCategories],
-        sortByLikes: sortByLikes
+        sortByLikes: sortByLikes,
+        stickerSetTypes: [...selectedStickerSetTypes],
+        searchTerm: debouncedSearchTerm
       };
       fetchStickerSets(0, false, selectedCategories);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategories, sortByLikes, isReady]); // Убрали fetchStickerSets из зависимостей
+  }, [selectedCategories, sortByLikes, selectedStickerSetTypes, debouncedSearchTerm, isReady]); // Убрали fetchStickerSets из зависимостей
 
   // Инициализация - только при первом монтировании или изменении initData
   useEffect(() => {
@@ -466,7 +470,9 @@ export const GalleryPage: React.FC = () => {
       hasInitializedRef.current = true;
       lastFiltersRef.current = {
         categories: [...selectedCategories],
-        sortByLikes: sortByLikes
+        sortByLikes: sortByLikes,
+        stickerSetTypes: [...selectedStickerSetTypes],
+        searchTerm: debouncedSearchTerm
       };
       fetchStickerSets(0, false, selectedCategories);
     }
@@ -532,6 +538,8 @@ export const GalleryPage: React.FC = () => {
           sortDisabled={!!searchTerm || categories.length === 0}
           selectedStickerTypes={selectedStickerTypes}
           onStickerTypeToggle={handleStickerTypeToggle}
+          selectedStickerSetTypes={selectedStickerSetTypes}
+          onStickerSetTypeToggle={handleStickerSetTypeToggle}
           selectedDate={selectedDate}
           onDateChange={handleDateChange}
           onAddClick={handleAddClick}
