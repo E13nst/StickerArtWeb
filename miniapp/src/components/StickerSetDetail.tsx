@@ -335,6 +335,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [blockReasonInput, setBlockReasonInput] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
+  const [starsInfoAnchor, setStarsInfoAnchor] = useState<HTMLElement | null>(null);
   const effectiveStickerSet = fullStickerSet ?? stickerSet;
   
   // Отладочный лог для E2E тестов
@@ -1438,8 +1439,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 aria-label="donate-stars"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Placeholder для будущего функционала доната
-                  console.log('Donate Stars clicked for sticker set:', stickerSet.id);
+                  setStarsInfoAnchor(e.currentTarget);
                 }}
                 sx={{
                   width: 55,
@@ -2260,6 +2260,48 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           </IconButton>
         </DialogActions>
       </Dialog>
+
+      {/* Popover с информацией о Stars */}
+      <Popover
+        open={Boolean(starsInfoAnchor)}
+        anchorEl={starsInfoAnchor}
+        onClose={() => setStarsInfoAnchor(null)}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            color: 'white',
+            borderRadius: '13px',
+            border: '1px solid rgba(255, 215, 0, 0.3)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+            padding: '16px 20px',
+            maxWidth: '280px',
+            mt: 1
+          }
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            fontSize: '14px',
+            lineHeight: 1.5,
+            color: 'white',
+            textAlign: 'center',
+            fontWeight: 500
+          }}
+        >
+          Скоро вы сможете поддержать автора стикерпака и продвинуть его стикерпак за Telegram Stars
+        </Typography>
+      </Popover>
     </Box>
   );
 };
