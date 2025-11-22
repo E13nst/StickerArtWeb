@@ -2299,7 +2299,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             fontWeight: 500
           }}
         >
-          Скоро вы сможете поддержать автора стикерпака и продвинуть его стикерпак за Telegram Stars
+          Скоро вы сможете поддержать автора и продвинуть его стикерпак за Telegram Stars
         </Typography>
       </Popover>
     </Box>
