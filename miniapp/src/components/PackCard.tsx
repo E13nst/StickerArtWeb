@@ -45,9 +45,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   isHighPriority = false, // Оставлено для обратной совместимости, но не используется
   onClick
 }) => {
-  // 🔍 DEBUG: Логирование рендеров
-  console.log(`🔄 PackCard RENDER: ${pack.id.slice(-4)}`);
-  
   const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
   
   // 🔥 НОВОЕ: Динамическое определение видимости в viewport
@@ -72,7 +69,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   // 🔥 УНИФИЦИРОВАННАЯ предзагрузка первого стикера через единую систему
   // ✅ FIX: Загружаем ОДИН РАЗ при монтировании, не перезагружаем при изменении видимости
   useEffect(() => {
-    console.log(`📸 PackCard ${pack.id.slice(-4)}: Loading first sticker`);
     if (pack.previewStickers.length > 0) {
       const firstSticker = pack.previewStickers[0];
       
@@ -88,8 +84,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       } else {
         priority = LoadPriority.TIER_4_BACKGROUND;
       }
-
-      console.log(`  ➡️ Calling imageLoader for: ${firstSticker.fileId.slice(-6)}, priority: ${priority}`);
 
       // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Единая точка входа для всех типов ресурсов
       const loadPromise = firstSticker.isVideo
@@ -155,7 +149,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   // 🔥 УНИФИЦИРОВАННАЯ предзагрузка остальных стикеров для плавной ротации
   // ✅ FIX: Загружаем ОДИН РАЗ при монтировании, не перезагружаем при изменении видимости
   useEffect(() => {
-    console.log(`🔄 PackCard ${pack.id.slice(-4)}: Loading rotating stickers (${pack.previewStickers.length - 1} extra)`);
     // Загружаем только если есть стикеры для ротации
     if (pack.previewStickers.length <= 1) {
       return; // Нет дополнительных стикеров для ротации
@@ -172,8 +165,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       const priority = isInViewport
         ? LoadPriority.TIER_2_NEAR_VIEWPORT  // Видимая карточка - высокий приоритет для ротации
         : LoadPriority.TIER_3_ADDITIONAL;     // Невидимая - средний приоритет
-
-      console.log(`  ➡️ Rotating sticker ${i+1}: ${sticker.fileId.slice(-6)}, priority: ${priority}`);
 
       // 🔥 УНИФИЦИРОВАНО: Единая точка входа через imageLoader
       const loadPromise = sticker.isVideo
