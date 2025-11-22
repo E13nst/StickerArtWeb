@@ -449,11 +449,13 @@ export const AuthorPage: React.FC = () => {
   return (
     <Box
       sx={{
+        width: '100%',
         minHeight: '100vh',
         backgroundColor: 'var(--tg-theme-bg-color)',
         color: 'var(--tg-theme-text-color)',
         paddingBottom: isInTelegramApp ? 0 : 8,
-        overflowX: 'hidden'
+        overflowX: 'hidden',
+        overflowY: 'visible'
       }}
     >
       <StixlyTopHeader

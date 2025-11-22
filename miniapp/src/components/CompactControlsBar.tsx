@@ -552,22 +552,22 @@ const arePropsEqual = (
 
   // Check arrays
   if (
-    prevProps.selectedCategories.length !== nextProps.selectedCategories.length ||
-    prevProps.selectedCategories.some((cat, i) => cat !== nextProps.selectedCategories[i])
+    prevProps.selectedCategories?.length !== nextProps.selectedCategories?.length ||
+    prevProps.selectedCategories?.some((cat, i) => cat !== nextProps.selectedCategories[i])
   ) {
     return false;
   }
 
   if (
-    prevProps.selectedStickerTypes.length !== nextProps.selectedStickerTypes.length ||
-    prevProps.selectedStickerTypes.some((type, i) => type !== nextProps.selectedStickerTypes[i])
+    prevProps.selectedStickerTypes?.length !== nextProps.selectedStickerTypes?.length ||
+    prevProps.selectedStickerTypes?.some((type, i) => type !== nextProps.selectedStickerTypes?.[i])
   ) {
     return false;
   }
 
   if (
-    prevProps.selectedStickerSetTypes.length !== nextProps.selectedStickerSetTypes.length ||
-    prevProps.selectedStickerSetTypes.some((type, i) => type !== nextProps.selectedStickerSetTypes[i])
+    prevProps.selectedStickerSetTypes?.length !== nextProps.selectedStickerSetTypes?.length ||
+    prevProps.selectedStickerSetTypes?.some((type, i) => type !== nextProps.selectedStickerSetTypes?.[i])
   ) {
     return false;
   }
@@ -578,8 +578,8 @@ const arePropsEqual = (
 
   // Check categories array
   if (
-    prevProps.categories.length !== nextProps.categories.length ||
-    prevProps.categories.some((cat, i) => cat.id !== nextProps.categories[i]?.id)
+    prevProps.categories?.length !== nextProps.categories?.length ||
+    prevProps.categories?.some((cat, i) => cat.id !== nextProps.categories?.[i]?.id)
   ) {
     return false;
   }

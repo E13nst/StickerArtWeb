@@ -901,11 +901,13 @@ export const MyProfilePage: React.FC = () => {
 
   return (
     <Box sx={{ 
+      width: '100%',
       minHeight: '100vh', 
       backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
       color: 'var(--tg-theme-text-color, #000000)',
       paddingBottom: isInTelegramApp ? 0 : 8,
-      overflowX: 'hidden'
+      overflowX: 'hidden',
+      overflowY: 'visible'
     }}>
       {/* Профильный header */}
       <StixlyTopHeader
@@ -1125,6 +1127,8 @@ export const MyProfilePage: React.FC = () => {
                           sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
                           selectedStickerTypes={[]}
                           onStickerTypeToggle={() => {}}
+                          selectedStickerSetTypes={[]}
+                          onStickerSetTypeToggle={() => {}}
                           selectedDate={null}
                           onDateChange={() => {}}
                           onAddClick={() => setIsUploadModalOpen(true)}
