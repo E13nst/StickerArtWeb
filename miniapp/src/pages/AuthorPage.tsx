@@ -134,7 +134,8 @@ export const AuthorPage: React.FC = () => {
           page,
           PAGE_SIZE,
           sortByLikes ? 'likesCount' : 'createdAt',
-          'DESC'
+          'DESC',
+          true
         );
 
         const content = response.content || [];

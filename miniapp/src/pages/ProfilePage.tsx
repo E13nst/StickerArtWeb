@@ -146,13 +146,13 @@ export const ProfilePage: React.FC = () => {
       
       // Если есть поисковый запрос, используем специальный эндпоинт поиска
       if (searchQuery && searchQuery.trim()) {
-        response = await apiClient.searchUserStickerSets(id, searchQuery);
+        response = await apiClient.searchUserStickerSets(id, searchQuery, page, 20, true);
       } else {
         // Загружаем стикерсеты пользователя с пагинацией
         // При включенной сортировке по лайкам: сортировка по likesCount DESC (от самых лайкнутых)
         // При выключенной: сортировка по createdAt DESC (последние добавленные)
         const sortField = sortByLikesParam ? 'likesCount' : 'createdAt';
-        response = await apiClient.getUserStickerSets(id, page, 20, sortField, 'DESC');
+        response = await apiClient.getUserStickerSets(id, page, 20, sortField, 'DESC', true);
       }
       
       // Инициализируем лайки из загруженных данных

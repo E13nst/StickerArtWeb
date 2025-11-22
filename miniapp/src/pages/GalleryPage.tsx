@@ -241,7 +241,8 @@ export const GalleryPage: React.FC = () => {
         categoryKeys: filterCategories && filterCategories.length > 0 ? filterCategories : undefined,
         type: typeFilter,
         sort: sortByLikesRef.current ? 'likesCount' : 'id',
-        direction: 'DESC' as const
+        direction: 'DESC' as const,
+        preview: true
       };
 
       // Определяем, нужно ли использовать поиск или обычный запрос

@@ -272,6 +272,7 @@ class ApiClient {
       likedOnly?: boolean;     // Только лайкнутые
       sort?: string;           // Поле для сортировки
       direction?: 'ASC' | 'DESC'; // Направление сортировки
+      preview?: boolean;       // Возвращать только 3 случайных стикера для предпросмотра
     }
   ): Promise<StickerSetListResponse> {
     const params: Record<string, any> = { page, size };
@@ -308,6 +309,10 @@ class ApiClient {
     if (typeof options?.officialOnly === 'boolean') {
       params.officialOnly = options.officialOnly;
     }
+
+    if (typeof options?.preview === 'boolean') {
+      params.preview = options.preview;
+    }
     
     // ✅ P1 OPTIMIZATION: Request deduplication для предотвращения дублирующихся запросов
     // ⚠️ FIX: Запросы с likedOnly не кэшируем (они часто меняются)
@@ -324,17 +329,21 @@ class ApiClient {
     );
   }
 
-  async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC'): Promise<StickerSetListResponse> {
+  async getStickerSetsByAuthor(authorId: number, page: number = 0, size: number = 20, sort: string = 'createdAt', direction: 'ASC' | 'DESC' = 'DESC', preview?: boolean): Promise<StickerSetListResponse> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
       `/stickersets/author/${authorId}`,
       async () => {
+        const params: Record<string, any> = { page, size, sort, direction };
+        if (typeof preview === 'boolean') {
+          params.preview = preview;
+        }
         const response = await this.client.get<StickerSetListResponse>(`/stickersets/author/${authorId}`, {
-          params: { page, size, sort, direction }
+          params
         });
         return response.data;
       },
-      { authorId, page, size, sort, direction }, // Параметры для ключа кэша
+      { authorId, page, size, sort, direction, preview }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
   }
@@ -376,6 +385,7 @@ class ApiClient {
       likedOnly?: boolean;
       sort?: string;
       direction?: 'ASC' | 'DESC';
+      preview?: boolean;       // Возвращать только 3 случайных стикера для предпросмотра
     }
   ): Promise<StickerSetListResponse> {
     const params: Record<string, any> = { query, page, size };
@@ -406,6 +416,10 @@ class ApiClient {
 
     if (typeof options?.userId === 'number') {
       params.userId = options.userId;
+    }
+
+    if (typeof options?.preview === 'boolean') {
+      params.preview = options.preview;
     }
     
     const response = await this.client.get<StickerSetListResponse>('/stickersets/search', {
@@ -938,15 +952,20 @@ class ApiClient {
     page: number = 0,
     size: number = 20,
     sort: 'createdAt' | 'title' | 'name' = 'createdAt',
-    direction: 'ASC' | 'DESC' = 'DESC'
+    direction: 'ASC' | 'DESC' = 'DESC',
+    preview?: boolean
   ): Promise<StickerSetListResponse> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
       `/stickersets/user/${userId}`,
       async () => {
         try {
+          const params: Record<string, any> = { page, size, sort, direction };
+          if (typeof preview === 'boolean') {
+            params.preview = preview;
+          }
           const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
-            params: { page, size, sort, direction }
+            params
           });
           return response.data;
         } catch (error) {
@@ -966,16 +985,20 @@ class ApiClient {
           };
         }
       },
-      { userId, page, size, sort, direction }, // Параметры для ключа кэша
+      { userId, page, size, sort, direction, preview }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
   }
 
   // Поиск стикерсетов пользователя по названию
-  async searchUserStickerSets(userId: number, query: string, page: number = 0, size: number = 20): Promise<StickerSetListResponse> {
+  async searchUserStickerSets(userId: number, query: string, page: number = 0, size: number = 20, preview?: boolean): Promise<StickerSetListResponse> {
     try {
+      const params: Record<string, any> = { name: query, page, size };
+      if (typeof preview === 'boolean') {
+        params.preview = preview;
+      }
       const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}/search`, {
-        params: { name: query, page, size }
+        params
       });
       return response.data;
     } catch (error) {

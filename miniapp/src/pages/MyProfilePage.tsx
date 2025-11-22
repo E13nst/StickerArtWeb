@@ -412,7 +412,7 @@ export const MyProfilePage: React.FC = () => {
       // Если есть поисковый запрос, используем специальный эндпоинт поиска
       if (searchQuery && searchQuery.trim()) {
         console.log('🔍 Выполняем поиск стикерсетов...');
-        const response = await apiClient.searchUserStickerSets(userIdParam, searchQuery, page, 20);
+        const response = await apiClient.searchUserStickerSets(userIdParam, searchQuery, page, 20, true);
         console.log('✅ Поиск завершен:', { count: response.content?.length || 0, page: response.number, totalPages: response.totalPages });
         const filteredContent = response.content || [];
         
@@ -440,7 +440,7 @@ export const MyProfilePage: React.FC = () => {
       }
       
       console.log('🔍 Загружаем стикерсеты пользователя...');
-      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC');
+      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true);
       console.log('✅ Ответ от API получен:', { 
         hasResponse: !!response, 
         contentLength: response?.content?.length || 0,
@@ -574,7 +574,7 @@ export const MyProfilePage: React.FC = () => {
       }
       
       console.log('🔍 Загружаем понравившиеся стикерсеты...');
-      const response = await apiClient.getStickerSets(page, 20, { likedOnly: true });
+      const response = await apiClient.getStickerSets(page, 20, { likedOnly: true, preview: true });
       console.log('✅ Ответ от API для понравившихся получен:', { 
         hasResponse: !!response, 
         contentLength: response?.content?.length || 0,

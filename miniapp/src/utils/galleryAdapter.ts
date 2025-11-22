@@ -96,16 +96,6 @@ const mapToPreview = (stickers: any[]): GalleryPack['previewStickers'] => {
     .filter((sticker): sticker is GalleryPack['previewStickers'][number] => Boolean(sticker));
 };
 
-const getRandomSubset = <T,>(items: T[], count: number): T[] => {
-  if (items.length <= count) return items;
-  const shuffled = [...items];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled.slice(0, count);
-};
-
 export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]): GalleryPack[] {
   return stickerSets.map(stickerSet => {
     const cacheKey = `${stickerSet.id}-${stickerSet.updatedAt}`;
@@ -121,7 +111,8 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
 
     const telegramInfo = parseTelegramInfo(stickerSet);
     const stickers = ensureStickers(telegramInfo);
-    const previewCandidates = getRandomSubset(stickers, 3);
+    // Теперь бекенд отдает уже отобранные 3 стикера (при preview=true), используем их напрямую
+    const previewCandidates = stickers.slice(0, 3);
     let previewStickers = mapToPreview(previewCandidates);
 
     if (previewStickers.length === 0) {
