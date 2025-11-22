@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
+import { imageLoader, getCachedStickerUrl, LoadPriority } from '@/utils/imageLoader';
 
 interface Sticker {
   id: number | string;
@@ -20,6 +21,18 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
   stickers,
   onStickerClick
 }) => {
+  // Предзагружаем все стикеры через imageLoader
+  useEffect(() => {
+    stickers.forEach(sticker => {
+      if (sticker.url && sticker.fileId) {
+        imageLoader.loadImage(sticker.fileId, sticker.url, LoadPriority.TIER_3_ADDITIONAL)
+          .catch(() => {
+            // Игнорируем ошибки - покажем плейсхолдер
+          });
+      }
+    });
+  }, [stickers]);
+
   return (
     <Box sx={{ width: '100%' }}>
       <Typography
@@ -81,9 +94,9 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
                 position: 'relative'
               }}
             >
-              {sticker.url ? (
+              {sticker.url && sticker.fileId ? (
                 <img
-                  src={sticker.url}
+                  src={getCachedStickerUrl(sticker.fileId) || sticker.url}  // ✅ Используем кеш если есть
                   alt={sticker.name}
                   style={{
                     width: '100%',

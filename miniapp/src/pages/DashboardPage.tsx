@@ -132,13 +132,17 @@ export const DashboardPage: React.FC = () => {
         // Всего стикерпаков в базе - получаем из API если totalElements не загружен
         let totalStickerPacksInBase = totalElements || 0;
         
-        // Загружаем данные из API для получения полной статистики
+        // Загружаем топ-3 стикерсета по лайкам с preview=true для оптимизации
         let loadedStickerSets: StickerSetResponse[] = [];
         try {
-          const response = await apiClient.getStickerSets(0, 50); // Загружаем больше для статистики
+          const response = await apiClient.getStickerSets(0, 3, {
+            sort: 'likesCount',
+            direction: 'DESC',
+            preview: true  // ✅ Возвращает только 3 превью-стикера для каждого сета
+          });
           totalStickerPacksInBase = response.totalElements || totalStickerPacksInBase || 0;
           loadedStickerSets = response.content || [];
-          console.log('📊 Загружено стикерсетов для статистики:', loadedStickerSets.length);
+          console.log('📊 Загружено топ-3 стикерсета по лайкам с preview:', loadedStickerSets.length);
         } catch (e) {
           console.warn('⚠️ Не удалось загрузить стикерсеты:', e);
         }

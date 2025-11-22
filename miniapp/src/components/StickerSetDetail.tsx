@@ -137,11 +137,18 @@ const renderStickerMedia = (
   const cachedUrl = getCachedStickerUrl(sticker.file_id);
   const cachedType = getCachedStickerMediaType(sticker.file_id);
 
+  // ❌ НЕ ИСПОЛЬЗУЕМ getStickerImageUrl напрямую - это вызовет дубликат!
+  // Если нет в кеше - пусть imageLoader загрузит первым
+  if (!cachedUrl) {
+    console.warn('⚠️ Sticker not in cache, should be preloaded first:', sticker.file_id);
+    return null; // Не показываем пока не загрузится через imageLoader
+  }
+
   if (sticker.is_video || sticker.isVideo || cachedType === 'video') {
     return (
       <video
         key={sticker.file_id}
-        src={cachedUrl || getStickerImageUrl(sticker.file_id)}
+        src={cachedUrl}
         autoPlay
         loop
         muted
@@ -159,7 +166,7 @@ const renderStickerMedia = (
           onLoad?.();
         }}
         onCanPlay={() => {
-          const video = document.querySelector(`video[src="${cachedUrl || getStickerImageUrl(sticker.file_id)}"]`) as HTMLVideoElement;
+          const video = document.querySelector(`video[src="${cachedUrl}"]`) as HTMLVideoElement;
           if (video && video.paused) {
             video.play().catch((err) => console.warn('Video autoplay failed:', err));
           }
@@ -182,7 +189,7 @@ const renderStickerMedia = (
 
   return (
     <img
-      src={cachedUrl || getStickerImageUrl(sticker.file_id)}
+      src={cachedUrl}  // ✅ Используем только кешированный URL
       alt={sticker.emoji || ''}
       className={className}
       style={{

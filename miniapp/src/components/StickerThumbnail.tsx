@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
+import { imageLoader, getCachedStickerUrl, LoadPriority } from '@/utils/imageLoader';
 
 interface StickerThumbnailProps {
   fileId: string;
@@ -23,6 +24,15 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
   // Используем thumbFileId если доступен, иначе основной fileId
   const actualFileId = thumbFileId || fileId;
   const imageUrl = getStickerThumbnailUrl(actualFileId, size);
+  
+  // ✅ Загружаем через imageLoader для предотвращения дубликатов
+  useEffect(() => {
+    imageLoader.loadImage(actualFileId, imageUrl, LoadPriority.TIER_3_ADDITIONAL)
+      .catch((error) => {
+        console.error('Failed to load thumbnail:', actualFileId, error);
+        setError(true);
+      });
+  }, [actualFileId, imageUrl]);
   
   // Отладочная информация
   console.log('🖼️ StickerThumbnail:', { fileId, thumbFileId, actualFileId, size, imageUrl });
@@ -90,7 +100,7 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
       )}
       <img
         ref={imgRef}
-        src={imageUrl}
+        src={getCachedStickerUrl(actualFileId) || imageUrl}  // ✅ Используем кеш если есть
         alt={emoji || ''}
         className={className}
         style={{

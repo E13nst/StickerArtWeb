@@ -257,22 +257,43 @@ class MetricsCollector {
   }
   
   async waitForStickers(count: number, timeout: number = 15000): Promise<number> {
-    const start = Date.now();
-    
     try {
       await this.page.waitForFunction(
         (expectedCount: number) => {
           const stickers = document.querySelectorAll('[data-testid="pack-card"]');
-          return stickers.length >= expectedCount;
+          if (stickers.length < expectedCount) return false;
+          
+          // Считаем карточки с загруженным медиа ТОЛЬКО для первых expectedCount карточек
+          let withMedia = 0;
+          for (let i = 0; i < expectedCount && i < stickers.length; i++) {
+            const card = stickers[i];
+            const img = card.querySelector('img.pack-card-image');
+            const video = card.querySelector('video.pack-card-video');
+            const animatedSticker = card.querySelector('.pack-card-animated-sticker');
+            const lottieCanvas = animatedSticker ? animatedSticker.querySelector('svg, canvas') : null;
+            
+            const hasImage = !!(img && img.getAttribute('src') && img.getAttribute('src') !== '');
+            const hasVideo = !!(video && video.getAttribute('src') && video.getAttribute('src') !== '');
+            const hasAnimationCanvas = !!lottieCanvas;
+            
+            if (hasImage || hasVideo || hasAnimationCanvas) {
+              withMedia++;
+            }
+          }
+          
+          // Требуем чтобы минимум 80% из первых expectedCount карточек имели загруженное медиа
+          const minMediaCount = Math.floor(expectedCount * 0.8);
+          return withMedia >= minMediaCount;
         },
         count,
         { timeout }
       );
     } catch (e) {
-      console.log(`⚠️ Timeout waiting for ${count} stickers`);
+      console.log(`⚠️ Timeout waiting for ${count} stickers with media`);
     }
     
-    return Date.now() - start;
+    // Возвращаем время от начала теста (this.startTime), а не от начала этой функции
+    return Date.now() - this.startTime;
   }
   
   async collectFPS(duration: number = 3000): Promise<void> {
@@ -726,76 +747,57 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     console.log('\n📄 СТРАНИЦА 1: Загрузка первых 20 стикеров');
     console.log('─'.repeat(80));
     
-    // Измеряем время до первого стикера
-    console.log('⏳ Ожидание первого стикера...');
+    // Измеряем время до первого стикера С МЕДИА
+    console.log('⏳ Ожидание первого стикера с медиа (80% готовности)...');
     const timeToFirstSticker = await collector.waitForStickers(1, 10000);
-    console.log(`✅ Первый стикер загружен за ${formatTime(timeToFirstSticker)}`);
+    console.log(`✅ Первый стикер с медиа загружен за ${formatTime(timeToFirstSticker)}`);
     
-    // Измеряем время до первых 6 стикеров (первый экран)
-    console.log('⏳ Ожидание первых 6 стикеров...');
+    // Измеряем время до первых 6 стикеров С МЕДИА (первый экран)
+    console.log('⏳ Ожидание первых 6 стикеров с медиа (80% готовности)...');
     const timeToFirst6 = await collector.waitForStickers(6, 15000);
-    console.log(`✅ Первые 6 стикеров загружены за ${formatTime(timeToFirst6)}`);
+    console.log(`✅ Первые 6 стикеров с медиа загружены за ${formatTime(timeToFirst6)}`);
     
-    // Измеряем время до всех 20 стикеров первой страницы
-    console.log('⏳ Ожидание всех 20 стикеров первой страницы...');
+    // Измеряем время до всех 20 стикеров С МЕДИА первой страницы
+    console.log('⏳ Ожидание всех 20 стикеров с медиа (80% готовности)...');
     const timeToAll20 = await collector.waitForStickers(20, 30000);
-    console.log(`✅ Все 20 стикеров первой страницы загружены за ${formatTime(timeToAll20)}`);
+    console.log(`✅ Все 20 стикеров с медиа загружены за ${formatTime(timeToAll20)}`);
     
-    // 🎯 НОВОЕ: Ждем пока загрузится 50% медиа (10 из 20 карточек)
-    console.log('⏳ Ожидание загрузки 50% медиа первой страницы (минимум 10/20)...');
-    const mediaLoadStart = Date.now();
-    const minMediaCount = 10; // 50% от 20 карточек
-    const maxWaitTime = 10000; // Максимум 10 секунд ожидания
-    
-    let page1MediaStats;
-    let attempts = 0;
-    
-    while (Date.now() - mediaLoadStart < maxWaitTime) {
-      page1MediaStats = await page.evaluate(() => {
+    // Проверяем финальную статистику медиа после загрузки
+    const page1MediaStats = await page.evaluate(() => {
         const cards = document.querySelectorAll('[data-testid="pack-card"]');
         let imagesWithSrc = 0;
         let videosWithSrc = 0;
+        let animationsWithCanvas = 0;
         let emptyMedia = 0;
         
         cards.forEach(card => {
           const img = card.querySelector('img.pack-card-image');
           const video = card.querySelector('video.pack-card-video');
+          const animatedSticker = card.querySelector('.pack-card-animated-sticker');
+          const lottieCanvas = animatedSticker ? animatedSticker.querySelector('svg, canvas') : null;
           
           if (img && img.getAttribute('src') && img.getAttribute('src') !== '') {
             imagesWithSrc++;
           } else if (video && video.getAttribute('src') && video.getAttribute('src') !== '') {
             videosWithSrc++;
+          } else if (lottieCanvas) {
+            animationsWithCanvas++;
           } else {
             emptyMedia++;
           }
         });
         
-        return { imagesWithSrc, videosWithSrc, emptyMedia, totalCards: cards.length };
-      });
-      
-      const loadedMedia = page1MediaStats.imagesWithSrc + page1MediaStats.videosWithSrc;
-      
-      if (attempts % 5 === 0) { // Логируем каждые 500ms
-        console.log(`  🔄 Попытка ${attempts + 1}: ${loadedMedia}/20 медиа загружено (цель: ${minMediaCount})`);
-      }
-      
-      if (loadedMedia >= minMediaCount) {
-        const waitedTime = Date.now() - mediaLoadStart;
-        console.log(`✅ 50% медиа загружено за ${formatTime(waitedTime)}`);
-        break;
-      }
-      
-      await page.waitForTimeout(100); // Проверяем каждые 100ms
-      attempts++;
-    }
+        return { imagesWithSrc, videosWithSrc, animationsWithCanvas, emptyMedia, totalCards: cards.length };
+    });
     
-    const finalLoadedMedia = page1MediaStats!.imagesWithSrc + page1MediaStats!.videosWithSrc;
-    console.log(`  📊 Медиа статистика страницы 1 после ожидания:`);
-    console.log(`     - Изображений с src: ${page1MediaStats!.imagesWithSrc}`);
-    console.log(`     - Видео с src: ${page1MediaStats!.videosWithSrc}`);
-    console.log(`     - Карточек без медиа: ${page1MediaStats!.emptyMedia}`);
-    console.log(`     - Всего карточек: ${page1MediaStats!.totalCards}`);
-    console.log(`     - Загружено медиа: ${finalLoadedMedia}/20 (${(finalLoadedMedia / 20 * 100).toFixed(1)}%)`);
+    const loadedMedia = page1MediaStats.imagesWithSrc + page1MediaStats.videosWithSrc + page1MediaStats.animationsWithCanvas;
+    console.log(`  📊 Медиа статистика страницы 1:`);
+    console.log(`     - Изображений с src: ${page1MediaStats.imagesWithSrc}`);
+    console.log(`     - Видео с src: ${page1MediaStats.videosWithSrc}`);
+    console.log(`     - Анимаций с canvas: ${page1MediaStats.animationsWithCanvas}`);
+    console.log(`     - Карточек без медиа: ${page1MediaStats.emptyMedia}`);
+    console.log(`     - Всего карточек: ${page1MediaStats.totalCards}`);
+    console.log(`     - Загружено медиа: ${loadedMedia}/20 (${(loadedMedia / 20 * 100).toFixed(1)}%)`);
     
     // ════════════════════════════════════════════════════════════════════════
     // СКРОЛЛ И СТРАНИЦА 2: Следующие 20 стикеров
@@ -835,17 +837,17 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     console.log('⏳ Ожидание начала загрузки страницы 2...');
     await page.waitForTimeout(2000); // 🔥 УВЕЛИЧЕНО: 2 сек для API запроса (с 1.5s)
     
-    // Измеряем время до 30 стикеров (первые 20 + первые 10 со второй страницы)
-    console.log('⏳ Ожидание загрузки 30 стикеров...');
+    // Измеряем время до 30 стикеров С МЕДИА (первые 20 + первые 10 со второй страницы)
+    console.log('⏳ Ожидание загрузки 30 стикеров с медиа (80% готовности)...');
     const timeTo30Start = Date.now();
     const timeTo30 = await collector.waitForStickers(30, 30000);
-    console.log(`✅ 30 стикеров загружено за ${formatTime(timeTo30)}`);
+    console.log(`✅ 30 стикеров с медиа загружено за ${formatTime(timeTo30)}`);
     
-    // Измеряем время до всех 40 стикеров
-    console.log('⏳ Ожидание всех 40 стикеров...');
+    // Измеряем время до всех 40 стикеров С МЕДИА
+    console.log('⏳ Ожидание всех 40 стикеров с медиа (80% готовности)...');
     const timeTo40Start = Date.now();
     const timeTo40 = await collector.waitForStickers(40, 45000);
-    console.log(`✅ Все 40 стикеров загружены за ${formatTime(timeTo40)}`);
+    console.log(`✅ Все 40 стикеров с медиа загружены за ${formatTime(timeTo40)}`);
     
     // 🎯 КРИТИЧНО: Активно ждем загрузки медиа для ВСЕХ карточек
     console.log('⏳ Активное ожидание загрузки медиа для всех 40 карточек...');
@@ -1177,9 +1179,11 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     await page.goto('/miniapp/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="gallery-container"]', { timeout: 15000 }).catch(() => {});
     
+    console.log('⏳ Ожидание стикеров с медиа...');
     const timeToFirst = await collector.waitForStickers(1, 10000);
     const timeToFirst6 = await collector.waitForStickers(6, 15000);
     const timeToAll20 = await collector.waitForStickers(20, 30000);
+    console.log(`✅ Загружено: 1 за ${formatTime(timeToFirst)}, 6 за ${formatTime(timeToFirst6)}, 20 за ${formatTime(timeToAll20)}`);
     
     await page.waitForTimeout(2000);
     await collector.collectFPS(3000);
