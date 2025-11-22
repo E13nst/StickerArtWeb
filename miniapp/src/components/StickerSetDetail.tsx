@@ -811,6 +811,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         // Сохраняем availableActions из ответа API
         availableActions: updated.availableActions
       };
+      console.log('✅ Стикерсет обновлён после блокировки:', { 
+        id: mergedUpdate.id, 
+        isBlocked: mergedUpdate.isBlocked, 
+        availableActions: mergedUpdate.availableActions 
+      });
       setFullStickerSet(mergedUpdate);
       onStickerSetUpdated?.(mergedUpdate);
       setIsBlockDialogOpen(false);
@@ -846,6 +851,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         // Сохраняем availableActions из ответа API
         availableActions: refreshedData.availableActions
       };
+
+      console.log('✅ Стикерсет обновлён после действия:', { 
+        id: mergedUpdate.id, 
+        action, 
+        availableActions: mergedUpdate.availableActions 
+      });
 
       // Обновляем локальное состояние
       setFullStickerSet(mergedUpdate);

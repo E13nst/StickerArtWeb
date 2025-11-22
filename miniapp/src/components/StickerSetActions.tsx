@@ -47,11 +47,12 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
   });
 
   // Логика отображения кнопок - бэкенд уже проверил права, показываем только на основе availableActions
+  // Полагаемся ТОЛЬКО на availableActions от бэкенда, так как он содержит актуальное состояние
   const shouldShowDelete = availableActions.includes('DELETE');
-  const shouldShowBlock = availableActions.includes('BLOCK') && !stickerSet.isBlocked;
-  const shouldShowUnblock = availableActions.includes('UNBLOCK') && stickerSet.isBlocked;
-  const shouldShowPublish = availableActions.includes('PUBLISH') && !stickerSet.isPublic;
-  const shouldShowUnpublish = availableActions.includes('UNPUBLISH') && stickerSet.isPublic;
+  const shouldShowBlock = availableActions.includes('BLOCK');
+  const shouldShowUnblock = availableActions.includes('UNBLOCK');
+  const shouldShowPublish = availableActions.includes('PUBLISH');
+  const shouldShowUnpublish = availableActions.includes('UNPUBLISH');
 
   // Открытие диалога
   const handleOpenDialog = useCallback((action: ActionType) => {
