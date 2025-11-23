@@ -63,7 +63,7 @@ export const StickerSetTypeFilter: React.FC<StickerSetTypeFilterProps> = ({
           letterSpacing: '0.5px',
         }}
       >
-        Тип стикерсетов
+        Тип сетов
       </Box>
 
       {/* Checkboxes */}

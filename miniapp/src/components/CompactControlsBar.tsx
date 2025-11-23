@@ -44,6 +44,9 @@ interface CompactControlsBarProps {
   // Add button
   onAddClick: () => void;
   
+  // Apply filters callback
+  onApplyFilters?: () => void;
+  
   // Position variant
   variant?: 'fixed' | 'static';
 }
@@ -67,6 +70,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   selectedDate,
   onDateChange,
   onAddClick,
+  onApplyFilters,
   variant = 'fixed',
 }) => {
   const { tg } = useTelegram();
@@ -79,6 +83,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   
   // Ref for filters dropdown to handle clicks outside
   const filtersMenuRef = useRef<HTMLDivElement>(null);
+  // Ref for filters button to exclude it from outside click handler
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
 
   // Glass effect colors
   const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
@@ -98,7 +104,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   }, [tg, filtersExpanded]);
 
   // Toggle filters expansion
-  const handleFiltersToggle = useCallback(() => {
+  const handleFiltersToggle = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
     tg?.HapticFeedback?.impactOccurred('light');
     setFiltersExpanded(prev => !prev);
     if (searchExpanded) {
@@ -146,16 +153,32 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     if (sortByLikes) {
       onSortToggle();
     }
+    
+    // Close filters menu after reset
+    setFiltersExpanded(false);
   }, [tg, sortByLikes, onSortToggle, selectedStickerSetTypes, onStickerSetTypeToggle]);
+
+  // Handle apply filters
+  const handleApplyFilters = useCallback(() => {
+    tg?.HapticFeedback?.impactOccurred('medium');
+    onApplyFilters?.();
+    setFiltersExpanded(false);
+  }, [tg, onApplyFilters]);
 
   // Close filters menu when clicking outside
   useEffect(() => {
     if (!filtersExpanded) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (filtersMenuRef.current && !filtersMenuRef.current.contains(event.target as Node)) {
-        setFiltersExpanded(false);
+      const target = event.target as Node;
+      // Don't close if clicking on the filters button or inside the filters menu
+      if (
+        filtersButtonRef.current?.contains(target) ||
+        filtersMenuRef.current?.contains(target)
+      ) {
+        return;
       }
+      setFiltersExpanded(false);
     };
 
     // Add a small delay to prevent immediate closing
@@ -230,6 +253,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
       >
         {/* Filters button */}
         <button
+          ref={filtersButtonRef}
           onClick={handleFiltersToggle}
           aria-label={filtersExpanded ? "Скрыть фильтры" : "Показать фильтры"}
           style={{
@@ -427,54 +451,34 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
                 }}>
                   Фильтры
                 </span>
-                {/* Reset button */}
-                <button
-                  onClick={handleResetFilters}
-                  aria-label="Сбросить фильтры"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: textColorResolved,
-                    fontSize: '0.65rem',
-                    fontWeight: 500,
-                    padding: 0,
-                    opacity: 0.6,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '2px',
-                    transition: 'opacity 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0.6';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                >
-                  Сброс
-                </button>
               </Box>
-              {/* Close button */}
+              {/* Reset button */}
               <button
-                onClick={handleFiltersToggle}
-                aria-label="Закрыть фильтры"
+                onClick={handleResetFilters}
+                aria-label="Сбросить фильтры"
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   color: textColorResolved,
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0.25rem',
-                  opacity: 0.7,
+                  fontSize: '0.65rem',
+                  fontWeight: 500,
+                  padding: 0,
+                  opacity: 0.6,
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '2px',
                   transition: 'opacity 0.2s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '0.6';
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
               >
-                <CloseIcon sx={{ fontSize: '1rem' }} />
+                Сброс
               </button>
             </Box>
 
@@ -593,7 +597,8 @@ const arePropsEqual = (
     prevProps.onStickerTypeToggle !== nextProps.onStickerTypeToggle ||
     prevProps.onStickerSetTypeToggle !== nextProps.onStickerSetTypeToggle ||
     prevProps.onDateChange !== nextProps.onDateChange ||
-    prevProps.onAddClick !== nextProps.onAddClick
+    prevProps.onAddClick !== nextProps.onAddClick ||
+    prevProps.onApplyFilters !== nextProps.onApplyFilters
   ) {
     return false;
   }

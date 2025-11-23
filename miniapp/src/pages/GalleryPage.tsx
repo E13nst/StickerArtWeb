@@ -459,6 +459,19 @@ export const GalleryPage: React.FC = () => {
     searchTerm: ''
   });
 
+  // Функция применения фильтров (вызывается вручную через кнопку "Применить")
+  const handleApplyFilters = useCallback(() => {
+    if (!isReady || !hasInitializedRef.current) return;
+    
+    lastFiltersRef.current = {
+      categories: [...selectedCategories],
+      sortByLikes: sortByLikes,
+      stickerSetTypes: [...selectedStickerSetTypes],
+      searchTerm: lastFiltersRef.current.searchTerm // Сохраняем текущий searchTerm
+    };
+    fetchStickerSets(0, false, selectedCategories);
+  }, [isReady, selectedCategories, sortByLikes, selectedStickerSetTypes]);
+
   // Перезагрузка при изменении выбранных категорий, сортировки, типов (поиск вручную через handleSearch)
   useEffect(() => {
     if (!isReady || !hasInitializedRef.current) return;
@@ -559,6 +572,7 @@ export const GalleryPage: React.FC = () => {
           selectedDate={selectedDate}
           onDateChange={handleDateChange}
           onAddClick={handleAddClick}
+          onApplyFilters={handleApplyFilters}
         />
 
         {/* Content */}

@@ -1153,14 +1153,71 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const handleOutsidePreviewClick = useCallback((event: React.MouseEvent) => {
     if (!isModal) return;
     
+    const target = event.target as HTMLElement;
+    
+    // Не закрываем, если Popover открыт - проверяем классы MUI Popover
+    if (starsInfoAnchor) {
+      // Проверяем, был ли клик внутри Popover или на его backdrop
+      const isPopoverElement = target.closest('.MuiPopover-root') || 
+                               target.closest('[role="presentation"]') ||
+                               target.classList.contains('MuiPopover-root') ||
+                               target.classList.contains('MuiPaper-root');
+      if (isPopoverElement) {
+        return;
+      }
+    }
+    
+    // Не закрываем, если клик внутри Popover через ref
+    if (starsPopoverRef.current && starsPopoverRef.current.contains(target)) {
+      return;
+    }
+    
     // Проверяем, был ли клик вне области большого превью
-    if (previewRef.current && !previewRef.current.contains(event.target as Node)) {
+    if (previewRef.current && !previewRef.current.contains(target)) {
       onBack();
     }
-  }, [isModal, onBack]);
+  }, [isModal, onBack, starsInfoAnchor]);
+
+  // Обработчик клика выше модального окна (в backdrop области)
+  useEffect(() => {
+    if (!isModal) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Не закрываем, если Popover открыт
+      if (starsInfoAnchor) {
+        const isPopoverElement = target.closest('.MuiPopover-root') || 
+                                 target.closest('[role="presentation"]') ||
+                                 target.classList.contains('MuiPopover-root') ||
+                                 target.classList.contains('MuiPaper-root');
+        if (isPopoverElement) {
+          return;
+        }
+      }
+      
+      // Проверяем, был ли клик выше модального окна
+      if (modalContentRef.current) {
+        const modalRect = modalContentRef.current.getBoundingClientRect();
+        const clickY = event.clientY;
+        
+        // Если клик выше модального окна (выше его верхней границы)
+        if (clickY < modalRect.top) {
+          onBack();
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleBackdropClick);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleBackdropClick);
+    };
+  }, [isModal, onBack, starsInfoAnchor]);
 
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+  const starsPopoverRef = useRef<HTMLDivElement | null>(null);
 
   // Упрощенная логика: свайп вниз закрывает модальное окно
   useEffect(() => {
@@ -1210,10 +1267,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       ref={modalContentRef}
       onClick={handleOutsidePreviewClick}
       sx={{ 
-      position: 'relative',
-      height: isModal ? '76.4vh' : '100vh',
-      maxHeight: isModal ? '76.4vh' : 'none',
-      minHeight: isModal ? '68vh' : 'none',
+      position: isModal ? 'fixed' : 'relative',
+      top: isModal ? 'auto' : 'auto',
+      left: isModal ? 0 : 'auto',
+      right: isModal ? 0 : 'auto',
+      bottom: isModal ? 0 : 'auto',
+      width: '100%',
+      height: isModal ? '72vh' : '100vh',
+      maxHeight: isModal ? '72vh' : 'none',
+      minHeight: isModal ? '72vh' : 'none',
       overflow: 'hidden', 
       overflowY: 'auto',
       display: 'flex', 
@@ -1229,6 +1291,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       borderTopLeftRadius: isModal ? '24px' : 0,
       borderTopRightRadius: isModal ? '24px' : 0,
       touchAction: 'pan-y',
+      zIndex: isModal ? 1301 : 'auto', // Выше чем ModalBackdrop (1300) и BottomNav (1000)
       animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
       '@keyframes modalSlideUpFromBottom': {
         '0%': {
@@ -2275,6 +2338,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           horizontal: 'center',
         }}
         PaperProps={{
+          ref: starsPopoverRef,
+          onClick: (e) => e.stopPropagation(),
           sx: {
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
             backdropFilter: 'blur(20px)',
@@ -2288,6 +2353,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             mt: 1
           }
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         <Typography
           variant="body2"
