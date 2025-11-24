@@ -47,6 +47,12 @@ interface BenchmarkMetrics {
     videoRequests: number;                // Видео стикеры
     duplicateRequests: number;            // Повторные запросы одного ресурса
     failedRequests: number;               // Ошибки загрузки
+    failedRequestsList?: Array<{          // 🔍 Детали неудачных запросов
+      url: string;
+      status: number;
+      method: string;
+      resourceType: string;
+    }>;
     totalBytesTransferred: number;        // Всего байт передано
     averageResponseTime: number;          // Средние время ответа
     maxConcurrency: number;               // Максимальная параллельность
@@ -395,9 +401,10 @@ class MetricsCollector {
     }
     
     // Неудачные запросы
-    const failedRequests = this.networkRequests.filter(r => 
+    const failedRequestsList = this.networkRequests.filter(r => 
       r.status && r.status >= 400
-    ).length;
+    );
+    const failedRequests = failedRequestsList.length;
     
     // Общий объем данных
     const totalBytes = this.networkRequests.reduce((sum, r) => sum + (r.size || 0), 0);
@@ -511,6 +518,12 @@ class MetricsCollector {
         videoRequests: videoRequests.length,
         duplicateRequests: duplicateCount,
         failedRequests,
+        failedRequestsList: failedRequestsList.map(r => ({
+          url: r.url,
+          status: r.status || 0,
+          method: r.method,
+          resourceType: r.resourceType
+        })),
         totalBytesTransferred: totalBytes,
         averageResponseTime: avgResponseTime,
         maxConcurrency: this.maxConcurrency,
@@ -578,6 +591,17 @@ function printBenchmarkReport(metrics: BenchmarkMetrics) {
   console.log(`  ⏱️  Среднее время ответа:          ${formatTime(metrics.network.averageResponseTime)}`);
   console.log(`  🔀 Макс. параллельность:           ${metrics.network.maxConcurrency}`);
   console.log('');
+  
+  // 🔴 Детали неудачных запросов
+  if (metrics.network.failedRequests > 0 && (metrics.network as any).failedRequestsList) {
+    console.log('  🔴 ДЕТАЛИ НЕУДАЧНЫХ ЗАПРОСОВ:');
+    (metrics.network as any).failedRequestsList.forEach((req: any, i: number) => {
+      const shortUrl = req.url.length > 80 ? req.url.substring(0, 77) + '...' : req.url;
+      console.log(`     ${i + 1}. [${req.status}] ${req.method} ${shortUrl}`);
+      console.log(`        Тип: ${req.resourceType}`);
+    });
+    console.log('');
+  }
   
   if (metrics.network.slowestRequests.length > 0) {
     console.log('  🐌 Самые медленные запросы:');
@@ -1022,13 +1046,15 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
           return {
             index,
             hasSkeletonLoader: !!hasPulseAnimation || !!emojiPlaceholder,
-            cardText: card.textContent?.substring(0, 50)
+            cardText: card.textContent?.substring(0, 50) || ''
           };
-        }).filter(Boolean);
+        }).filter(item => Boolean(item));
       }, cardsWithoutMedia.slice(0, 5).map(c => c.index));
       
       detailedCardInfo.forEach(info => {
-        console.log(`     - Карточка ${info.index}: hasSkeletonLoader=${info.hasSkeletonLoader} (isFirstStickerReady=false)`);
+        if (info) {
+          console.log(`     - Карточка ${info.index}: hasSkeletonLoader=${info.hasSkeletonLoader} (isFirstStickerReady=false)`);
+        }
       });
     }
     
@@ -1106,38 +1132,57 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     
     // Проверяем доступность imageLoader
     const imageLoaderCheck = await page.evaluate(() => {
+      const win = window as any;
       return {
-        exists: typeof (window as any).imageLoader !== 'undefined',
-        hasGetCallStats: typeof (window as any).imageLoader?.getCallStats === 'function',
-        hasCallCounter: typeof (window as any).imageLoader?.callCounter !== 'undefined',
-        imageLoaderType: typeof (window as any).imageLoader,
-        callCounterType: typeof (window as any).imageLoader?.callCounter
+        exists: typeof win.imageLoader !== 'undefined',
+        hasGetCallStats: typeof win.imageLoader?.getCallStats === 'function',
+        hasCallCounter: typeof win.imageLoader?.callCounter !== 'undefined',
+        hasGetImageLoaderStats: typeof win.getImageLoaderStats === 'function',
+        imageLoaderType: typeof win.imageLoader,
+        callCounterType: typeof win.imageLoader?.callCounter
       };
     });
     
     console.log(`  🔍 imageLoader.exists: ${imageLoaderCheck.exists}`);
     console.log(`  🔍 imageLoader.hasGetCallStats: ${imageLoaderCheck.hasGetCallStats}`);
     console.log(`  🔍 imageLoader.hasCallCounter: ${imageLoaderCheck.hasCallCounter}`);
+    console.log(`  🔍 window.getImageLoaderStats: ${imageLoaderCheck.hasGetImageLoaderStats}`);
     console.log(`  🔍 callCounter type: ${imageLoaderCheck.callCounterType}`);
     
     const callStats = await page.evaluate(() => {
-      // @ts-ignore - доступ к глобальному imageLoader
-      const loader = (window as any).imageLoader;
-      if (!loader) return null;
+      const win = window as any;
       
-      // Пробуем через метод getCallStats
-      if (typeof loader.getCallStats === 'function') {
-        return loader.getCallStats();
+      // Пробуем через window.getImageLoaderStats (явно экспортированная функция)
+      if (typeof win.getImageLoaderStats === 'function') {
+        try {
+          return win.getImageLoaderStats();
+        } catch (e) {
+          console.error('Error calling getImageLoaderStats:', e);
+        }
+      }
+      
+      // Пробуем через метод getCallStats напрямую
+      const loader = win.imageLoader;
+      if (loader && typeof loader.getCallStats === 'function') {
+        try {
+          return loader.getCallStats();
+        } catch (e) {
+          console.error('Error calling loader.getCallStats:', e);
+        }
       }
       
       // Если метода нет, пробуем напрямую через callCounter
-      if (loader.callCounter && typeof loader.callCounter.forEach === 'function') {
-        const stats: { fileId: string; count: number }[] = [];
-        loader.callCounter.forEach((count: number, fileId: string) => {
-          stats.push({ fileId, count });
-        });
-        stats.sort((a, b) => b.count - a.count);
-        return stats;
+      if (loader?.callCounter && typeof loader.callCounter.forEach === 'function') {
+        try {
+          const stats: { fileId: string; count: number }[] = [];
+          loader.callCounter.forEach((count: number, fileId: string) => {
+            stats.push({ fileId, count });
+          });
+          stats.sort((a, b) => b.count - a.count);
+          return stats;
+        } catch (e) {
+          console.error('Error accessing callCounter:', e);
+        }
       }
       
       return null;
