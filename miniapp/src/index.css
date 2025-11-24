@@ -246,6 +246,14 @@ body.modal-lock .TelegramLayout {
   overflow: hidden;
 }
 
+/* Скрываем/затемняем нижнюю навигацию при открытом модальном окне */
+body.modal-lock .bottom-nav-paper,
+html.modal-lock .bottom-nav-paper {
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 999 !important; /* Ниже модального окна (1400) */
+}
+
 /* Убираем стандартные стили для ссылок */
 a {
   color: var(--tg-theme-link-color, #2481cc);

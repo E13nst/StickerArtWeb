@@ -35,11 +35,13 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
       };
 
       document.body.style.overflow = 'hidden';
-      document.body.classList.add('modal-open');
+      document.body.classList.add('modal-open', 'modal-lock');
+      document.documentElement.classList.add('modal-open', 'modal-lock');
 
       return () => {
         document.body.style.overflow = originalStyle.overflow;
-        document.body.classList.remove('modal-open');
+        document.body.classList.remove('modal-open', 'modal-lock');
+        document.documentElement.classList.remove('modal-open', 'modal-lock');
       };
     }
   }, [open]);

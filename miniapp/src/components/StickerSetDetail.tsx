@@ -1293,6 +1293,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   return (
     <Box 
       ref={modalContentRef}
+      data-modal-content
       onClick={handleOutsidePreviewClick}
       sx={{ 
       position: isModal ? 'fixed' : 'relative',
@@ -1302,7 +1303,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       bottom: isModal ? 0 : 'auto',
       width: '100%',
       height: isModal ? 'auto' : '100vh',
-      maxHeight: isModal ? '95vh' : 'none',
+      maxHeight: isModal ? '100vh' : 'none', // Перекрывает весь экран, включая навигацию
       minHeight: isModal ? 'auto' : 'none',
       overflow: 'hidden', 
       overflowY: 'hidden',
@@ -1319,7 +1320,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       borderTopLeftRadius: isModal ? '24px' : 0,
       borderTopRightRadius: isModal ? '24px' : 0,
       touchAction: 'pan-y',
-      zIndex: isModal ? 1301 : 'auto', // Выше чем ModalBackdrop (1300) и BottomNav (1000)
+      zIndex: isModal ? 1400 : 'auto', // Поверх ModalBackdrop (1300) и BottomNav (1000)
       animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
       '@keyframes modalSlideUpFromBottom': {
         '0%': {

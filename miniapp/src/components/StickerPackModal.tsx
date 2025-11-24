@@ -34,11 +34,37 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
 
     const applyLock = (shouldLock: boolean) => {
       if (shouldLock) {
-        document.body.classList.add('modal-lock');
-        document.documentElement.classList.add('modal-lock');
+        document.body.classList.add('modal-lock', 'modal-open');
+        document.documentElement.classList.add('modal-lock', 'modal-open');
+        
+        // Останавливаем все видео на фоне (кроме видео внутри модального окна)
+        const videos = document.querySelectorAll('video');
+        videos.forEach((video) => {
+          const isInModal = video.closest('[data-modal-content]');
+          if (!isInModal) {
+            const wasPlaying = !video.paused;
+            if (wasPlaying) {
+              video.pause();
+              video.setAttribute('data-was-playing', 'true');
+            } else {
+              video.setAttribute('data-was-playing', 'false');
+            }
+          }
+        });
       } else {
-        document.body.classList.remove('modal-lock');
-        document.documentElement.classList.remove('modal-lock');
+        document.body.classList.remove('modal-lock', 'modal-open');
+        document.documentElement.classList.remove('modal-lock', 'modal-open');
+        
+        // Возобновляем видео, которые были воспроизведены до открытия модального окна
+        const videos = document.querySelectorAll('video[data-was-playing="true"]');
+        videos.forEach((video) => {
+          const rect = video.getBoundingClientRect();
+          const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+          if (isVisible) {
+            video.play().catch(() => {});
+          }
+          video.removeAttribute('data-was-playing');
+        });
       }
     };
 
