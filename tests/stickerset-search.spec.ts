@@ -189,7 +189,51 @@ test.describe('StickerSet Search and View: Cattea Chaos', () => {
     console.log('✅ Модальное окно просмотра открыто (modal-lock активен)');
     
     // ════════════════════════════════════════════════════════════════════════
-    // 5. ПРОВЕРКА ЗАГРУЗКИ ПЕРВЫХ 10 МИНИАТЮР
+    // 5. ПРОВЕРКА ЗАГРУЗКИ ПЕРВОЙ АНИМАЦИИ
+    // ════════════════════════════════════════════════════════════════════════
+    console.log('\n🎬 Проверка загрузки первой анимации...');
+    
+    // Ждем пока загрузится первая (главная) анимация в модальном окне
+    const firstAnimationLoaded = await page.waitForFunction(() => {
+      // Ищем большой элемент (главное превью, не миниатюры) с загруженным медиа
+      const allMedia = document.querySelectorAll('img, video, canvas, svg');
+      
+      for (const el of Array.from(allMedia)) {
+        const rect = el.getBoundingClientRect();
+        
+        // Ищем крупный элемент (>150px) - это главное превью
+        if (rect.width > 150 && rect.height > 150 && rect.top >= 0 && rect.left >= 0) {
+          if (el.tagName === 'IMG') {
+            const img = el as HTMLImageElement;
+            if (img.src && img.src !== '' && img.complete && img.naturalWidth > 0) {
+              return true;
+            }
+          } else if (el.tagName === 'VIDEO') {
+            const video = el as HTMLVideoElement;
+            if (video.src && video.src !== '' && video.readyState >= 2) {
+              return true;
+            }
+          } else if (el.tagName === 'CANVAS') {
+            const canvas = el as HTMLCanvasElement;
+            if (canvas.width > 0 && canvas.height > 0) {
+              return true;
+            }
+          } else if (el.tagName === 'svg') {
+            const svg = el as SVGElement;
+            if (svg.children.length > 0) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }, { timeout: 15000 });
+    
+    expect(firstAnimationLoaded).toBeTruthy();
+    console.log('✅ Первая анимация загружена и отображается');
+    
+    // ════════════════════════════════════════════════════════════════════════
+    // 6. ПРОВЕРКА ЗАГРУЗКИ ПЕРВЫХ 10 МИНИАТЮР
     // ════════════════════════════════════════════════════════════════════════
     console.log('\n🖼️  Проверка загрузки миниатюр...');
     
@@ -231,7 +275,7 @@ test.describe('StickerSet Search and View: Cattea Chaos', () => {
     }
     
     // ════════════════════════════════════════════════════════════════════════
-    // 6. КЛИК ПО КАЖДОЙ МИНИАТЮРЕ И ПРОВЕРКА АНИМАЦИИ
+    // 7. КЛИК ПО КАЖДОЙ МИНИАТЮРЕ И ПРОВЕРКА АНИМАЦИИ
     // ════════════════════════════════════════════════════════════════════════
     console.log('\n🎬 Проверка анимаций при клике по миниатюрам...');
     
