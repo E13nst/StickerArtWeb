@@ -27,7 +27,7 @@ import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerThumbnail } from './StickerThumbnail';
 import { useLikesStore } from '@/store/useLikesStore';
-import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAsGallerySticker, LoadPriority } from '@/utils/imageLoader';
+import { prefetchSticker, getCachedStickerUrl, getCachedStickerMediaType, markAsGallerySticker, LoadPriority, videoBlobCache, imageLoader } from '@/utils/imageLoader';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
 import { imageCache } from '@/utils/imageLoader';
@@ -160,6 +160,36 @@ const renderStickerMedia = (
         }}
         onLoadedData={onLoad}
         onError={(e) => {
+          // ✅ FIX: Если blob URL недействителен, загружаем заново
+          const video = e.currentTarget;
+          const blobUrl = cachedUrl;
+          if (blobUrl && blobUrl.startsWith('blob:')) {
+            console.warn(`[StickerSetDetail] Invalid blob URL for video ${sticker.file_id}, reloading...`);
+            // Удаляем из кеша и загружаем заново
+            videoBlobCache.delete(sticker.file_id).catch(() => {});
+            // Загружаем через imageLoader заново
+            imageLoader.loadVideo(
+              sticker.file_id,
+              sticker.url || sticker.file_id,
+              LoadPriority.TIER_1_VIEWPORT
+            ).then(() => {
+              // После загрузки обновляем src
+              const newBlobUrl = videoBlobCache.get(sticker.file_id);
+              if (newBlobUrl && video) {
+                video.src = newBlobUrl;
+              }
+            }).catch(() => {
+              // Если загрузка не удалась, используем оригинальный URL
+              if (video && sticker.url) {
+                video.src = sticker.url;
+              }
+            });
+          } else {
+            // Если это не blob URL или его нет, используем оригинальный URL
+            if (video && sticker.url) {
+              video.src = sticker.url;
+            }
+          }
           console.error('Video load error:', sticker.file_id, e);
           onLoad?.();
         }}

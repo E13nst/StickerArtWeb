@@ -14,9 +14,14 @@ export default defineConfig(({ mode }) => {
       {
         name: 'miniapp-trailing-slash',
         configureServer(server) {
-          server.middlewares.use((req, _res, next) => {
+          server.middlewares.use((req, res, next) => {
             if (req.url === '/miniapp') {
               req.url = '/miniapp/';
+            }
+            // ✅ FIX: Добавляем заголовок Service-Worker-Allowed для sw.js
+            // Это позволяет Service Worker использовать scope '/' даже если скрипт в /miniapp/
+            if (req.url === '/miniapp/sw.js' || req.url === '/sw.js') {
+              res.setHeader('Service-Worker-Allowed', '/');
             }
             next();
           });

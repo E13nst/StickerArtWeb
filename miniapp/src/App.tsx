@@ -6,6 +6,10 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+// 🔍 Импортируем animationMonitor для диагностики производительности
+import '@/utils/animationMonitor';
+// ✅ FIX: Импортируем для обработки ошибок blob URLs
+import { videoBlobCache, imageLoader, LoadPriority } from '@/utils/imageLoader';
 
 // Lazy load страниц для code splitting
 const GalleryPage = lazy(() => import('@/pages/GalleryPage').then(m => ({ default: m.GalleryPage })));
@@ -50,6 +54,37 @@ const App: React.FC = () => {
 
     initializeCurrentUser(user?.id ?? null).catch(() => undefined);
   }, [initData, user?.id, hasMyProfileLoaded, initializeCurrentUser]);
+
+  // ✅ FIX: Глобальная обработка ошибок загрузки blob URLs
+  useEffect(() => {
+    const handleBlobError = (event: ErrorEvent) => {
+      const target = event.target;
+      if (target && (target instanceof HTMLVideoElement || target instanceof HTMLImageElement)) {
+        const src = target.src;
+        if (src && src.startsWith('blob:')) {
+          // Извлекаем fileId из атрибута data-file-id или из других источников
+          const fileId = (target as any).dataset?.fileId || 
+                        (target as any).getAttribute('data-file-id') ||
+                        src.split('/').pop()?.split('-').slice(0, 4).join('-');
+          
+          if (fileId) {
+            console.warn(`[App] Invalid blob URL detected for ${fileId}, removing from cache`);
+            // Удаляем недействительный blob URL из кеша
+            videoBlobCache.delete(fileId).catch(() => {});
+            // Пытаемся найти оригинальный URL и перезагрузить
+            // Это будет обработано компонентами через их обработчики onError
+          }
+        }
+      }
+    };
+
+    // Обрабатываем ошибки загрузки ресурсов
+    window.addEventListener('error', handleBlobError, true);
+    
+    return () => {
+      window.removeEventListener('error', handleBlobError, true);
+    };
+  }, []);
 
   return (
     <Router basename="/miniapp">

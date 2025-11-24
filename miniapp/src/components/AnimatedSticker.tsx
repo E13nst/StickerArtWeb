@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Lottie from 'lottie-react';
 import type { LottieRefCurrentProps } from 'lottie-react';
-import { animationCache } from '../utils/imageLoader';
+import { animationCache, imageLoader, LoadPriority, getCachedAnimation } from '../utils/imageLoader';
 
 interface AnimatedStickerProps {
   fileId: string;
@@ -48,49 +48,47 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
           return;
         }
 
-        // Проверяем кеш
-        if (animationCache.has(fileId)) {
+        // ✅ FIX: Используем imageLoader для дедупликации запросов
+        // Проверяем кеш сначала
+        const cachedData = animationCache.get(fileId) || getCachedAnimation(fileId);
+        if (cachedData) {
           console.log('🎬 Loaded from cache:', fileId);
           if (!cancelled) {
-            setAnimationData(animationCache.get(fileId));
+            setAnimationData(cachedData);
             setLoading(false);
             // onReady будет вызван в useEffect для Lottie
           }
           return;
         }
 
-        // Загружаем JSON анимации
-        const response = await fetch(imageUrl);
-        
-        if (!response.ok) {
-          // Если 404 или другая ошибка, сразу переходим к fallback
-          console.log('🎬 Animation not found, using fallback:', fileId);
-          if (!cancelled) {
-            setError(true);
-            setLoading(false);
-          }
-          return;
-        }
-
-        const contentType = response.headers.get('content-type');
-        
-        // Проверяем, что это JSON
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
+        // Загружаем через imageLoader (с дедупликацией и приоритетом)
+        try {
+          await imageLoader.loadAnimation(
+            fileId, 
+            imageUrl, 
+            LoadPriority.TIER_1_VIEWPORT // Высокий приоритет для видимых анимаций
+          );
+          
+          // После загрузки получаем данные из кеша
+          const loadedData = animationCache.get(fileId) || getCachedAnimation(fileId);
           
           if (!cancelled) {
-            // Сохраняем в кеш
-            animationCache.set(fileId, data);
-            console.log('🎬 Cached animation:', fileId);
-            setAnimationData(data);
-            setLoading(false);
-            // onReady будет вызван в useEffect для Lottie
+            if (loadedData) {
+              console.log('🎬 Animation loaded via imageLoader:', fileId);
+              setAnimationData(loadedData);
+              setLoading(false);
+            } else {
+              // Если данных нет в кеше после загрузки - это ошибка
+              console.log('🎬 Animation not found after load, using fallback:', fileId);
+              setError(true);
+              setLoading(false);
+            }
           }
-        } else {
-          // Если это не JSON (webp/png/gif), используем fallback к <img>
-          console.log('🎬 Not a JSON animation, will use fallback image:', fileId);
+        } catch (err) {
+          console.log('🎬 Failed to load animation via imageLoader, using fallback:', fileId, err);
           if (!cancelled) {
             setError(true);
+            setLoading(false);
           }
         }
       } catch (err) {
@@ -112,26 +110,45 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
     };
   }, [fileId, imageUrl]);
 
-  // IntersectionObserver для паузы анимаций вне viewport
+  // IntersectionObserver для оптимизации рендеринга анимаций вне viewport
   useEffect(() => {
     if (!animationRef.current || !containerRef.current || !animationData) return;
 
+    // Убеждаемся, что начальное состояние правильное (видимый)
+    if (containerRef.current) {
+      containerRef.current.style.visibility = 'visible';
+      containerRef.current.style.pointerEvents = 'auto';
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!animationRef.current) return;
+        if (!animationRef.current || !containerRef.current) return;
         
         // Не возобновляем если модальное окно открыто
-        if (document.body.classList.contains('modal-open')) return;
+        if (document.body.classList.contains('modal-open')) {
+          animationRef.current.pause();
+          return;
+        }
         
         if (!entry.isIntersecting) {
+          // 🔥 ОПТИМИЗАЦИЯ: паузим анимацию и останавливаем рендеринг, но элемент остается в DOM
           animationRef.current.pause();
+          // Используем visibility: hidden вместо display: none - элемент остается в DOM и занимает место
+          // Это предотвращает пустые карточки, но останавливает рендеринг (экономит CPU/GPU)
+          containerRef.current.style.visibility = 'hidden';
+          containerRef.current.style.pointerEvents = 'none';
+          containerRef.current.setAttribute('data-lottie-paused', 'true');
         } else {
+          // Возобновляем рендеринг и воспроизведение
+          containerRef.current.style.visibility = 'visible';
+          containerRef.current.style.pointerEvents = 'auto';
+          containerRef.current.removeAttribute('data-lottie-paused');
           animationRef.current.play();
         }
       },
       {
         threshold: 0.1,
-        rootMargin: '50px'
+        rootMargin: '300px' // Останавливаем только когда элемент действительно далеко от viewport (300px)
       }
     );
 
@@ -259,6 +276,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   return (
     <div
       ref={containerRef}
+      data-lottie-container="true"
       style={{
         width: '100%',
         height: '100%',
@@ -278,6 +296,13 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
           height: '100%',
           maxWidth: '100%',
           maxHeight: '100%'
+        }}
+        // Добавляем атрибут для мониторинга
+        onLoadedData={() => {
+          const canvas = containerRef.current?.querySelector('canvas, svg');
+          if (canvas) {
+            canvas.setAttribute('data-lottie', 'true');
+          }
         }}
       />
     </div>
