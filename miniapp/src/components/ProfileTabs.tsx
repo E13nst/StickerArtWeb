@@ -34,7 +34,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: '0.382rem', pb: '0.764rem' }}>
+        <Box sx={{ pt: 0, pb: '0.764rem' }}>
           {children}
         </Box>
       )}
@@ -72,12 +72,11 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   return (
     <Box sx={{ 
       width: '100%',
-      mb: spacing.golden, // 0.618rem вместо 2
+      mb: 0, // Убираем отступ снизу
       backgroundColor: 'transparent',
       color: 'var(--tg-theme-text-color, #000000)',
       borderRadius: 0,
       borderTop: 'none',
-      borderBottom: 'none',
       boxShadow: 'none'
     }}>
       <Tabs

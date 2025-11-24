@@ -237,7 +237,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
         top: isFixed ? 'calc(var(--stixly-header-height) + env(safe-area-inset-top))' : 'auto',
         left: isFixed ? 0 : 'auto',
         right: isFixed ? 0 : 'auto',
-        zIndex: isFixed ? 998 : 'auto',
+        zIndex: isFixed ? 1001 : 1001, // Выше карточек (z-index: 10) и табов (z-index: 998)
         backgroundColor: 'transparent',
         padding: '0.5rem 0.618rem',
       }}
@@ -404,34 +404,56 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
         </Box>
       )}
 
-      {/* Filters dropdown menu (when filters are expanded) */}
+      {/* Filters dropdown menu (when filters are expanded) - Overlay */}
       {filtersExpanded && (
-        <Box
-          ref={filtersMenuRef}
-          sx={{
-            mt: '0.5rem',
-            animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        >
+        <>
+          {/* Backdrop для закрытия по клику мимо - невидимый */}
           <Box
+            onClick={handleFiltersToggle}
             sx={{
-              backgroundColor: bgColor,
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              borderRadius: '0.75rem',
-              border: `1px solid ${borderColor}`,
-              boxShadow: isLight 
-                ? '0 8px 32px rgba(30, 72, 185, 0.15)' 
-                : '0 8px 32px rgba(0, 0, 0, 0.4)',
-              padding: '0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.4rem',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 1002,
+              backgroundColor: 'transparent',
+              pointerEvents: 'auto',
+            }}
+          />
+          {/* Окно фильтров */}
+          <Box
+            ref={filtersMenuRef}
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: isFixed ? 'fixed' : 'absolute',
+              top: isFixed 
+                ? 'calc(var(--stixly-header-height) + env(safe-area-inset-top) + 3.5rem)' 
+                : '100%',
+              left: '0.618rem',
+              right: 'auto',
+              mt: isFixed ? 0 : '0.5rem',
+              zIndex: 1003,
+              animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               maxWidth: '200px',
-              marginLeft: '0.618rem',
-              marginRight: 'auto',
             }}
           >
+            <Box
+              sx={{
+                backgroundColor: bgColor,
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                borderRadius: '0.75rem',
+                border: `1px solid ${borderColor}`,
+                boxShadow: isLight 
+                  ? '0 8px 32px rgba(30, 72, 185, 0.15)' 
+                  : '0 8px 32px rgba(0, 0, 0, 0.4)',
+                padding: '0.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.4rem',
+              }}
+            >
             {/* Filter section title */}
             <Box
               sx={{
@@ -452,34 +474,66 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
                   Фильтры
                 </span>
               </Box>
-              {/* Reset button */}
-              <button
-                onClick={handleResetFilters}
-                aria-label="Сбросить фильтры"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: textColorResolved,
-                  fontSize: '0.65rem',
-                  fontWeight: 500,
-                  padding: 0,
-                  opacity: 0.6,
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '2px',
-                  transition: 'opacity 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                  e.currentTarget.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.6';
-                  e.currentTarget.style.textDecoration = 'underline';
-                }}
-              >
-                Сброс
-              </button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {/* Reset button */}
+                <button
+                  onClick={handleResetFilters}
+                  aria-label="Сбросить фильтры"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: textColorResolved,
+                    fontSize: '0.65rem',
+                    fontWeight: 500,
+                    padding: 0,
+                    opacity: 0.6,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '2px',
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.6';
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                >
+                  Сброс
+                </button>
+                {/* Close button */}
+                <button
+                  onClick={handleFiltersToggle}
+                  aria-label="Закрыть фильтры"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: textColorResolved,
+                    padding: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: 0.7,
+                    transition: 'opacity 0.2s',
+                    borderRadius: '0.25rem',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.backgroundColor = isLight 
+                      ? 'rgba(0, 0, 0, 0.05)' 
+                      : 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.7';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <CloseIcon sx={{ fontSize: '0.875rem' }} />
+                </button>
+              </Box>
             </Box>
 
             {/* Sticker Type Filter - СКРЫТО: ждем API */}
@@ -519,6 +573,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
             </Box>
           </Box>
         </Box>
+        </>
       )}
 
       {/* Animation styles */}
@@ -531,6 +586,14 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
           }
         }
       `}</style>
