@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   IconButton,
-  Card,
-  CardContent,
   Button,
   Chip,
   CircularProgress,
@@ -1665,36 +1663,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       </Box>
 
       {/* Информация о наборе: полупрозрачная карточка как превью стикеров */}
-      <Card 
+      <Box 
         className="sticker-detail-info-card"
         onClick={(e) => e.stopPropagation()}
         sx={{ 
           width: 'min(92vw, 720px)', 
-          marginTop: '5px', 
           zIndex: 9999, // Очень высокий z-index
-          position: 'relative',
-          backgroundColor: 'rgba(0, 0, 0, 0.25) !important', // Увеличена прозрачность (было 0.6)
-          border: '1px solid rgba(255, 255, 255, 0.15) !important', // Тонкая рамка как у превью
-          borderRadius: 'var(--tg-radius-l)',
-          backdropFilter: 'blur(15px)', // Blur как у превью стикеров
-          WebkitBackdropFilter: 'blur(15px)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)', // Мягкая тень
-          // Переопределяем стили MUI для темного полупрозрачного фона
-          '& .MuiCardContent-root': {
-            backgroundColor: 'rgba(0, 0, 0, 0.25) !important', // Увеличена прозрачность (было 0.6)
-            padding: 'var(--tg-spacing-4)',
-            color: 'white', // Белый текст для хорошей видимости
-            '&:last-child': {
-              paddingBottom: 'var(--tg-spacing-4)' // Убираем стандартный отступ MUI
-            }
-          }
+          position: 'relative'
         }}
       >
-        <CardContent sx={{ 
-          padding: '8px',
-          backgroundColor: 'rgba(0, 0, 0, 0.25) !important', // Увеличена прозрачность (было 0.6)
-          color: 'white !important' // Белый цвет текста для контраста
-        }}>
           {/* Только категории и кнопки управления */}
           <Box
             sx={{
@@ -1702,9 +1679,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '5px',
-              marginTop: '8px',
               flexWrap: 'nowrap',
-              width: '100%'
+              width: '100%',
+              padding: '8px',
+              // На очень маленьких экранах уменьшаем отступы
+              '@media (max-width: 400px)': {
+                padding: '6px',
+                gap: '4px'
+              },
+              '@media (max-width: 350px)': {
+                padding: '4px',
+                gap: '3px'
+              }
             }}
           >
             <Box
@@ -1721,11 +1707,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 '&::-webkit-scrollbar': { display: 'none' },
                 maskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
                 WebkitMaskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
-                minHeight: 44,
-                // На маленьких экранах уменьшаем минимальную высоту
+                alignItems: 'center', // Выравнивание по центру для адаптивности
+                // На маленьких экранах уменьшаем отступы
                 '@media (max-width: 400px)': {
-                  minHeight: 38,
-                  gap: '4px'
+                  gap: '4px',
+                  padding: '4px 2px'
                 }
               }}
             >
@@ -1804,47 +1790,61 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 <IconButton
                   onClick={handleOpenCategoriesDialog}
                   sx={{
-                    width: 40,
-                    height: 40,
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    color: 'white',
-                    borderRadius: '13px',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    width: 32,
+                    height: 32,
+                    minWidth: 28, // Минимальный размер для кликабельности
+                    minHeight: 28,
+                    backgroundColor: 'transparent',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    padding: '4px',
                     transition: 'all 150ms ease',
+                    flexShrink: 0, // Не сжимается
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                      border: '1px solid rgba(255, 255, 255, 0.35)',
-                      transform: 'scale(1.05)'
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.8)'
+                    },
+                    '&:active': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)'
                     },
                     // Адаптивность для маленьких экранов
                     '@media (max-width: 400px)': {
-                      width: 36,
-                      height: 36,
-                      borderRadius: '10px'
+                      width: 28,
+                      height: 28,
+                      '& svg': {
+                        fontSize: '16px'
+                      }
                     },
                     '@media (max-width: 350px)': {
-                      width: 32,
-                      height: 32,
-                      borderRadius: '8px',
+                      width: 24,
+                      height: 24,
                       '& svg': {
-                        fontSize: '18px'
+                        fontSize: '14px'
                       }
                     }
                   }}
                 >
-                  <EditIcon sx={{ fontSize: '20px' }} />
+                  <EditIcon sx={{ fontSize: '18px' }} />
                 </IconButton>
               </Box>
             )}
           </Box>
+          {/* Минималистичная горизонтальная черта под категориями */}
+          <Box
+            sx={{
+              width: '100%',
+              height: '1px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              marginTop: '8px',
+              marginBottom: '8px'
+            }}
+          />
           {isStickerSetBlocked && (
             <Alert
               severity="error"
               variant="outlined"
               sx={{
                 mt: 2,
+                mx: '8px',
                 color: 'rgba(255, 255, 255, 0.9)',
                 borderColor: 'rgba(244, 67, 54, 0.4)',
                 backgroundColor: 'rgba(244, 67, 54, 0.12)'
@@ -1858,9 +1858,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
             <Box
               sx={{
-                mt: 3,
-                pt: 2,
-                borderTop: '1px solid rgba(255, 255, 255, 0.15)',
+                mt: 2,
+                px: '8px',
+                pb: '8px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -1874,8 +1874,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               />
             </Box>
           )}
-        </CardContent>
-      </Card>
+      </Box>
 
       <Dialog
         open={isCategoriesDialogOpen}

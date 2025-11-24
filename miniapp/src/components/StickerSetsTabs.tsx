@@ -36,7 +36,7 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
     large: `${0.764 * baseUnit}rem`    // 0.764
   };
   
-  const dividerWidth = '1px';
+  const dividerWidth = '0.5px'; // Уменьшаем толщину линии
   const dividerColor = 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))';
   const dividerOpacity = 0.618; // Золотое сечение
   const dividerTop = '23.6%'; // 0.236 пропорция Фибоначчи
@@ -45,12 +45,12 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
   return (
     <Box sx={{ 
       width: '100%',
-      mb: spacing.golden, // 0.618rem
+      mb: 0, // Убираем отступ снизу
       backgroundColor: 'transparent',
       color: 'var(--tg-theme-text-color, #000000)',
       borderRadius: 0,
       borderTop: 'none',
-      borderBottom: 'none',
+      borderBottom: `${dividerWidth} solid ${dividerColor}`, // Уменьшенная линия
       boxShadow: 'none',
       opacity: disabled ? 0.5 : 1,
       pointerEvents: disabled ? 'none' : 'auto'
@@ -60,6 +60,10 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
         onChange={handleChange}
         variant="fullWidth"
         sx={{
+          border: 'none',
+          '& .MuiTabs-root': {
+            border: 'none'
+          },
           '& .MuiTab-root': {
             minHeight: 48,
             height: 48,

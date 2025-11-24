@@ -20,29 +20,6 @@ type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePho
 
 const PAGE_SIZE = 24;
 
-const computeStickerCount = (stickerSet: StickerSetResponse): number => {
-  if (typeof (stickerSet as any).stickerCount === 'number') {
-    return (stickerSet as any).stickerCount;
-  }
-
-  const info = stickerSet.telegramStickerSetInfo as any;
-
-  if (!info) {
-    return 0;
-  }
-
-  if (typeof info === 'string') {
-    try {
-      const parsed = JSON.parse(info);
-      return Array.isArray(parsed?.stickers) ? parsed.stickers.length : 0;
-    } catch {
-      return 0;
-    }
-  }
-
-  return Array.isArray(info?.stickers) ? info.stickers.length : 0;
-};
-
 const mapProfileToUserInfo = (profile: AuthorProfile): UserInfo => ({
   id: profile.userId,
   telegramId: profile.userId,
@@ -381,10 +358,6 @@ export const AuthorPage: React.FC = () => {
     return combined || null;
   }, [profile]);
 
-  const totalStickers = useMemo(() => {
-    return stickerSets.reduce((sum, set) => sum + computeStickerCount(set), 0);
-  }, [stickerSets]);
-
   const displayedStickerSets = useMemo(() => {
     // Если есть активный поиск, то данные уже отфильтрованы на сервере
     // Локальная фильтрация не нужна
@@ -479,9 +452,7 @@ export const AuthorPage: React.FC = () => {
           enabled: true,
           backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           pattern: 'dots',
-          content: isProfileLoading ? (
-            <LoadingSpinner message="Загрузка профиля..." />
-          ) : avatarUserInfo ? (
+          content: avatarUserInfo ? (
             <Box
               sx={{
                 width: '100%',
@@ -525,8 +496,8 @@ export const AuthorPage: React.FC = () => {
           </Alert>
         )}
 
-        {isProfileLoading ? (
-          <LoadingSpinner message="Загрузка профиля..." />
+        {(isProfileLoading || (isSetsLoading && stickerSets.length === 0)) ? (
+          <LoadingSpinner message="Загрузка..." />
         ) : profile ? (
           <Card
             sx={{
@@ -550,7 +521,7 @@ export const AuthorPage: React.FC = () => {
               <Box
                 sx={{
                   display: 'flex',
-                  justifyContent: 'space-around',
+                  justifyContent: 'center',
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: 2
@@ -566,19 +537,6 @@ export const AuthorPage: React.FC = () => {
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
                     Наборов
-                  </Typography>
-                </Box>
-
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography
-                    variant="h5"
-                    fontWeight="bold"
-                    sx={{ color: 'var(--tg-theme-button-color)' }}
-                  >
-                    {totalStickers}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
-                    Стикеров
                   </Typography>
                 </Box>
               </Box>
@@ -604,7 +562,16 @@ export const AuthorPage: React.FC = () => {
         )}
 
         {/* SearchBar и SortButton всегда видны */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem', mb: '0.618rem' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.618rem', 
+          width: '100%', 
+          mt: '0.75rem', 
+          mb: '0.618rem',
+          position: 'relative',
+          zIndex: 10
+        }}>
           <Box sx={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
@@ -621,9 +588,7 @@ export const AuthorPage: React.FC = () => {
           />
         </Box>
 
-        {isSetsLoading && stickerSets.length === 0 ? (
-          <LoadingSpinner message="Загрузка стикерсетов..." />
-        ) : displayedStickerSets.length === 0 ? (
+        {displayedStickerSets.length === 0 && !isProfileLoading && !isSetsLoading ? (
           <EmptyState
             title={isSearchActive ? 'Поиск не дал результатов' : '📁 Стикерсетов пока нет'}
             message={
@@ -633,7 +598,7 @@ export const AuthorPage: React.FC = () => {
             }
           />
         ) : (
-          <div className="fade-in">
+          <div className="fade-in" style={{ position: 'relative', zIndex: 1 }}>
             <SimpleGallery
               packs={packs}
               onPackClick={handlePackClick}
