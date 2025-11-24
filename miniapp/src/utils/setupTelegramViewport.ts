@@ -34,8 +34,12 @@ async function isTMA(): Promise<boolean> {
  * 
  * Последовательность действий:
  * 1. Проверяет, что мы в Telegram Mini App
- * 2. Разворачивает Mini App в full size (expand)
- * 3. На мобильных устройствах запрашивает fullscreen
+ * 2. Ждет полной инициализации Telegram WebApp
+ * 3. Разворачивает Mini App в full size (expand) с проверкой состояния
+ * 4. На мобильных устройствах обеспечивает полноэкранный режим через expand()
+ * 
+ * Важно: Telegram MiniApps не поддерживают стандартный браузерный fullscreen API.
+ * Вместо этого используется метод expand(), который разворачивает приложение на весь экран.
  */
 export async function setupTelegramViewportSafe(): Promise<void> {
   try {
@@ -50,30 +54,51 @@ export async function setupTelegramViewportSafe(): Promise<void> {
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
       const webApp = window.Telegram.WebApp;
 
-      // Разворачиваем Mini App в full size
+      // Ждем немного, чтобы Telegram WebApp полностью инициализировался
+      // Это критично для мобильных устройств, где expand() может не сработать сразу
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 3. Разворачиваем Mini App в full size только если она еще не развернута
       if (typeof webApp.expand === "function") {
         try {
-          webApp.expand();
-          console.log("[TMA Viewport] Mini App развернута в full size (@twa-dev/sdk)");
+          // Проверяем текущее состояние перед вызовом expand()
+          const wasExpanded = webApp.isExpanded;
+          
+          if (!wasExpanded) {
+            webApp.expand();
+            console.log("[TMA Viewport] Mini App развернута в full size (@twa-dev/sdk)");
+            
+            // На мобильных устройствах делаем дополнительную попытку через небольшую задержку
+            // Это помогает, если первый вызов expand() не сработал из-за тайминга
+            if (isMobile()) {
+              setTimeout(() => {
+                if (!webApp.isExpanded) {
+                  console.log("[TMA Viewport] Повторная попытка expand() на мобильном устройстве");
+                  webApp.expand();
+                }
+              }, 300);
+            }
+          } else {
+            console.log("[TMA Viewport] Mini App уже развернута, пропускаем expand()");
+          }
         } catch (e) {
           console.warn("[TMA Viewport] Ошибка expand (@twa-dev/sdk):", e);
         }
       }
 
-      // 3. На мобильных устройствах пытаемся запросить fullscreen
-      if (isMobile()) {
-        // @twa-dev/sdk не имеет прямого метода requestFullscreen
-        // Используем DOM API для запроса fullscreen (если доступно)
-        if (typeof document !== "undefined" && document.documentElement.requestFullscreen) {
-          try {
-            await document.documentElement.requestFullscreen();
-            console.log("[TMA Viewport] Fullscreen запрошен через DOM API");
-          } catch (e) {
-            console.warn("[TMA Viewport] Ошибка requestFullscreen через DOM API:", e);
+      // 4. Подписываемся на события изменения viewport для поддержания fullscreen
+      if (typeof webApp.onEvent === "function") {
+        webApp.onEvent("viewportChanged", () => {
+          // Если приложение свернулось - разворачиваем обратно
+          if (!webApp.isExpanded && isMobile()) {
+            console.log("[TMA Viewport] Viewport изменился, разворачиваем обратно");
+            setTimeout(() => {
+              if (typeof webApp.expand === "function") {
+                webApp.expand();
+              }
+            }, 50);
           }
-        }
-      } else {
-        console.log("[TMA Viewport] Десктоп устройство, пропускаем fullscreen");
+        });
       }
     }
   } catch (e) {

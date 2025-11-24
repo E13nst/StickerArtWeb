@@ -507,6 +507,7 @@ export default function StixlyTopHeader({
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         minHeight: "100px",
         maxHeight: "140px",
+        paddingTop: "env(safe-area-inset-top)", // Заходим в safe area на iOS
         zIndex: 1,
         overflow: "visible",
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
@@ -547,6 +548,7 @@ export default function StixlyTopHeader({
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         minHeight: "100px",
         maxHeight: "140px",
+        paddingTop: "env(safe-area-inset-top)", // Заходим в safe area на iOS
         zIndex: 1,
         overflow: "hidden",
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport

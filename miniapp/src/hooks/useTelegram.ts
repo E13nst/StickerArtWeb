@@ -215,10 +215,10 @@ export const useTelegram = () => {
       
       // Инициализация Telegram Web App
       telegram.ready();
-      telegram.expand();
       
       // Безопасная настройка viewport (expand + fullscreen на мобильных)
       // Работает с официальным SDK (@telegram-apps/sdk) или fallback на @twa-dev/sdk
+      // Важно: expand() вызывается внутри setupTelegramViewportSafe() с правильной задержкой
       setupTelegramViewportSafe().catch((error) => {
         console.warn('[TMA] Ошибка при настройке viewport:', error);
       });
