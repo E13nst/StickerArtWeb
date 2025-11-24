@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { AnimatedPackCard } from './AnimatedPackCard';
+import { useScrollElement } from '../contexts/ScrollContext';
 
 interface Pack {
   id: string;
@@ -45,6 +46,7 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   onLoadMore,
   scrollContainerRef
 }) => {
+  const scrollElement = useScrollElement();
   const localContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerWidth, setContainerWidth] = useState(400);
@@ -108,8 +110,11 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   }, [scrollTop, packs.length, itemHeight, overscan, containerWidth, measuredHeight]);
 
   useEffect(() => {
-    // Если scrollContainerRef равен null, используем скролл страницы
-    if (!scrollContainerRef) {
+    // Используем scrollElement из контекста, если доступен, иначе scrollContainerRef, иначе window
+    const targetElement = scrollElement || getContainerNode() || null;
+    
+    if (!targetElement) {
+      // Fallback на window если нет scrollElement и scrollContainerRef
       const handleScroll = () => {
         setScrollTop(window.scrollY || document.documentElement.scrollTop);
       };
@@ -119,15 +124,12 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
       return () => window.removeEventListener('scroll', handleScroll);
     }
 
-    const node = getContainerNode();
-    if (!node) return;
-
-    const handleScroll = () => setScrollTop(node.scrollTop);
+    const handleScroll = () => setScrollTop(targetElement.scrollTop);
 
     handleScroll();
-    node.addEventListener('scroll', handleScroll, { passive: true });
-    return () => node.removeEventListener('scroll', handleScroll);
-  }, [getContainerNode, scrollContainerRef]);
+    targetElement.addEventListener('scroll', handleScroll, { passive: true });
+    return () => targetElement.removeEventListener('scroll', handleScroll);
+  }, [getContainerNode, scrollContainerRef, scrollElement]);
 
   // Пагинация: sentinel внутри scroll-контейнера
   useEffect(() => {

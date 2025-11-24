@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHeaderColor } from '@/hooks/useHeaderColor';
+import { ScrollProvider } from '@/contexts/ScrollContext';
 
 interface Props {
   children: React.ReactNode;
@@ -18,6 +19,8 @@ export default function MainLayout({ children }: Props) {
   const isNftSoonPage = location.pathname.startsWith('/nft-soon');
   const { updateHeaderColor, isReady } = useTelegram();
   const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+  const isHeaderVisible = !isProfilePage && !isAuthorPage;
   
   // Используем хук для определения цвета header
   const headerColor = useHeaderColor({
@@ -35,6 +38,13 @@ export default function MainLayout({ children }: Props) {
       updateHeaderColor(headerColor);
     }
   }, [headerColor, updateHeaderColor]);
+
+  // Сброс scroll позиции при навигации между страницами с header
+  useEffect(() => {
+    if (mainScrollRef.current && isHeaderVisible) {
+      mainScrollRef.current.scrollTop = 0;
+    }
+  }, [location.pathname, isHeaderVisible]);
   
   // Не рендерим layout до стабильного viewport
   if (!isReady) {
@@ -62,24 +72,31 @@ export default function MainLayout({ children }: Props) {
         overflow: isNftSoonPage ? 'hidden' : 'visible'
       }}
     >
-      {!isProfilePage && !isAuthorPage && (
+      {isHeaderVisible && (
         <StixlyTopHeader
           onSlideChange={setCurrentSlideBg}
           fixedSlideId={isDashboardPage ? 2 : undefined}
           showThemeToggle={false}
         />
       )}
-      <div
-        style={{
-          flex: '1 1 auto',
-          paddingBottom: isNftSoonPage
-            ? 0
-            : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
-          overflow: isNftSoonPage ? 'hidden' : 'visible'
-        }}
-      >
-        {children}
-      </div>
+      <ScrollProvider scrollElement={mainScrollRef.current}>
+        <div
+          ref={mainScrollRef}
+          className="stixly-main-scroll"
+          style={{
+            flex: '1 1 auto',
+            height: isNftSoonPage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
+            overflowY: isNftSoonPage ? 'hidden' : 'auto',
+            overflowX: 'hidden',
+            paddingBottom: isNftSoonPage
+              ? 0
+              : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {children}
+        </div>
+      </ScrollProvider>
       <BottomNav />
     </div>
   );

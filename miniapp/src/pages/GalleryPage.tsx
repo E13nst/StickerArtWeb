@@ -10,7 +10,6 @@ import { apiClient } from '../api/client';
 import { StickerSetResponse } from '../types/sticker';
 
 // Новые Telegram-style компоненты
-import { TelegramLayout } from '../components/TelegramLayout';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
@@ -25,9 +24,11 @@ import { Category } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
 import { CompactControlsBar } from '../components/CompactControlsBar';
 import { StickerSetType } from '../components/StickerSetTypeFilter';
+import { useScrollElement } from '../contexts/ScrollContext';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
+  const scrollElement = useScrollElement();
   const {
     isLoading,
     stickerSets,
@@ -550,71 +551,71 @@ export const GalleryPage: React.FC = () => {
 
   return (
     <>
-      <TelegramLayout>
-        {/* Compact Controls Bar - fixed position, привязан к StixlyTopHeader */}
-        {/* Показываем ControlsBar всегда после начальной загрузки, чтобы он не исчезал при обновлении контента */}
-        {!isInitialLoading && (
-          <CompactControlsBar
-            searchValue={searchTerm}
-            onSearchChange={handleSearchChange}
-            onSearch={handleSearch}
-            searchDisabled={false}
-            categories={categories}
-            selectedCategories={selectedCategories}
-            onCategoryToggle={handleCategoryToggle}
-            categoriesDisabled={false}
-            sortByLikes={sortByLikes}
-            onSortToggle={handleSortToggle}
-            sortDisabled={!!searchTerm || categories.length === 0}
-            selectedStickerTypes={selectedStickerTypes}
-            onStickerTypeToggle={handleStickerTypeToggle}
-            selectedStickerSetTypes={selectedStickerSetTypes}
-            onStickerSetTypeToggle={handleStickerSetTypeToggle}
-            selectedDate={selectedDate}
-            onDateChange={handleDateChange}
-            onAddClick={handleAddClick}
-            onApplyFilters={handleApplyFilters}
-            variant="fixed"
-          />
-        )}
+      {/* Compact Controls Bar - fixed position, привязан к StixlyTopHeader */}
+      {/* Показываем ControlsBar всегда после начальной загрузки, чтобы он не исчезал при обновлении контента */}
+      {!isInitialLoading && (
+        <CompactControlsBar
+          searchValue={searchTerm}
+          onSearchChange={handleSearchChange}
+          onSearch={handleSearch}
+          searchDisabled={false}
+          categories={categories}
+          selectedCategories={selectedCategories}
+          onCategoryToggle={handleCategoryToggle}
+          categoriesDisabled={false}
+          sortByLikes={sortByLikes}
+          onSortToggle={handleSortToggle}
+          sortDisabled={!!searchTerm || categories.length === 0}
+          selectedStickerTypes={selectedStickerTypes}
+          onStickerTypeToggle={handleStickerTypeToggle}
+          selectedStickerSetTypes={selectedStickerSetTypes}
+          onStickerSetTypeToggle={handleStickerSetTypeToggle}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          onAddClick={handleAddClick}
+          onApplyFilters={handleApplyFilters}
+          variant="fixed"
+        />
+      )}
 
-        {/* Content */}
-        {isInitialLoading ? (
-          <LoadingSpinner message="Загрузка стикеров..." />
-        ) : error ? (
-          <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
-        ) : filteredStickerSets.length === 0 ? (
-          <EmptyState
-            title="🎨 Стикеры не найдены"
-            message={
-              selectedCategories.length > 0 
-                ? `Нет стикеров с выбранными категориями. Попробуйте снять фильтр или выбрать другие категории.`
-                : searchTerm 
-                  ? 'По вашему запросу ничего не найдено' 
-                  : 'У вас пока нет созданных наборов стикеров'
+      {/* Content */}
+      {isInitialLoading ? (
+        <LoadingSpinner message="Загрузка стикеров..." />
+      ) : error ? (
+        <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+      ) : filteredStickerSets.length === 0 ? (
+        <EmptyState
+          title="🎨 Стикеры не найдены"
+          message={
+            selectedCategories.length > 0 
+              ? `Нет стикеров с выбранными категориями. Попробуйте снять фильтр или выбрать другие категории.`
+              : searchTerm 
+                ? 'По вашему запросу ничего не найдено' 
+                : 'У вас пока нет созданных наборов стикеров'
+          }
+          actionLabel={selectedCategories.length > 0 ? undefined : "Создать стикер"}
+          onAction={selectedCategories.length > 0 ? undefined : () => {
+            if (tg) {
+              tg.openTelegramLink('https://t.me/StickerGalleryBot');
             }
-            actionLabel={selectedCategories.length > 0 ? undefined : "Создать стикер"}
-            onAction={selectedCategories.length > 0 ? undefined : () => {
-              if (tg) {
-                tg.openTelegramLink('https://t.me/StickerGalleryBot');
-              }
-            }}
+          }}
+        />
+      ) : (
+        <div className="fade-in">
+          <SimpleGallery
+            packs={galleryPacks}
+            onPackClick={handleViewStickerSet}
+            hasNextPage={currentPage < totalPages - 1}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMoreStickerSets}
+            enablePreloading={true}
+            isRefreshing={isRefreshing}
+            scrollMode="page"
+            externalScrollElement={scrollElement}
+            needsControlsBarOffset={true}
           />
-        ) : (
-          <div className="fade-in">
-            <SimpleGallery
-              packs={galleryPacks}
-              onPackClick={handleViewStickerSet}
-              hasNextPage={currentPage < totalPages - 1}
-              isLoadingMore={isLoadingMore}
-              onLoadMore={loadMoreStickerSets}
-              enablePreloading={true}
-              isRefreshing={isRefreshing}
-              scrollMode="inner"
-            />
-          </div>
-        )}
-      </TelegramLayout>
+        </div>
+      )}
       <DebugPanel initData={initData} />
       <UploadStickerPackModal
         open={isUploadModalOpen}

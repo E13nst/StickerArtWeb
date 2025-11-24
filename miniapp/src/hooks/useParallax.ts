@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useScrollElement } from '../contexts/ScrollContext';
 
 interface ParallaxOptions {
   speed?: number; // Скорость параллакса (0-1, где 0 = статично, 1 = обычная скорость)
@@ -24,6 +25,7 @@ export const useParallax = (options: ParallaxOptions = {}) => {
     enabled = true
   } = options;
 
+  const scrollElement = useScrollElement();
   const [scrollY, setScrollY] = useState(0);
   const [windowHeight, setWindowHeight] = useState(0);
   const elementsRef = useRef<Map<string, ParallaxElement>>(new Map());
@@ -31,9 +33,12 @@ export const useParallax = (options: ParallaxOptions = {}) => {
 
   // Обновление позиции скролла
   const updateScrollPosition = useCallback(() => {
-    setScrollY(window.scrollY);
-    setWindowHeight(window.innerHeight);
-  }, []);
+    const scrollTop = scrollElement 
+      ? scrollElement.scrollTop 
+      : (window.scrollY || document.documentElement.scrollTop);
+    setScrollY(scrollTop);
+    setWindowHeight(scrollElement?.clientHeight || window.innerHeight);
+  }, [scrollElement]);
 
   // Обработчик скролла с requestAnimationFrame
   const handleScroll = useCallback(() => {
@@ -132,18 +137,19 @@ export const useParallax = (options: ParallaxOptions = {}) => {
   useEffect(() => {
     updateScrollPosition();
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    const targetElement = scrollElement || window;
+    targetElement.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', updateScrollPosition, { passive: true });
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      targetElement.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', updateScrollPosition);
       
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [handleScroll, updateScrollPosition]);
+  }, [handleScroll, updateScrollPosition, scrollElement]);
 
   // Обновление элементов при изменении скролла
   useEffect(() => {

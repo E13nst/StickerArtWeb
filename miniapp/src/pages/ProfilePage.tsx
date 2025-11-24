@@ -28,11 +28,13 @@ import { SimpleGallery } from '@/components/SimpleGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { useStickerFeed } from '@/hooks/useStickerFeed';
+import { useScrollElement } from '@/contexts/ScrollContext';
 
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { tg, user, isInTelegramApp, initData } = useTelegram();
+  const scrollElement = useScrollElement();
 
   const {
     isLoading,
@@ -618,6 +620,7 @@ export const ProfilePage: React.FC = () => {
                     onLoadMore={loadMoreStickerSets}
                     enablePreloading={true}
                     scrollMode="page"
+                    externalScrollElement={scrollElement}
                     isRefreshing={isRefreshing}
                   />
                 </div>

@@ -15,6 +15,7 @@ import { UserInfo } from '../store/useProfileStore';
 import { SearchBar } from '../components/SearchBar';
 import { SortButton } from '../components/SortButton';
 import { getAvatarUrl } from '../utils/avatarUtils';
+import { useScrollElement } from '../contexts/ScrollContext';
 
 type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
@@ -62,6 +63,7 @@ const fetchAuthorPhoto = async (authorId: number) => {
 
 export const AuthorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const scrollElement = useScrollElement();
   const authorId = id ? Number(id) : null;
   const { tg, initData, user, isInTelegramApp } = useTelegram();
 
@@ -607,6 +609,7 @@ export const AuthorPage: React.FC = () => {
               onLoadMore={hasNextPage ? handleLoadMore : undefined}
               enablePreloading={true}
               scrollMode="page"
+              externalScrollElement={scrollElement}
               isRefreshing={isSetsLoading && stickerSets.length > 0}
             />
           </div>

@@ -69,21 +69,49 @@ header.stixlytopheader > .stixly-top-header > * {
 }
 
 /* Avoid scroll gap under fixed header - only apply when header exists */
-.stixly-main-layout:has(header#stixlytopheader) > div:not([class*="bottom"]):not([class*="Bottom"]) {
+/* ИСКЛЮЧАЕМ .stixly-main-scroll, так как он сам управляет padding-top */
+.stixly-main-layout:has(header#stixlytopheader) > div:not([class*="bottom"]):not([class*="Bottom"]):not(.stixly-main-scroll) {
   /* adjust the page content start to account for fixed header */
   padding-top: var(--stixly-header-height) !important;
 }
 
 /* For pages with profile mode header, adjust padding accordingly */
-.stixly-main-layout:has(.stixly-top-header--profile) > div:not([class*="bottom"]):not([class*="Bottom"]) {
+.stixly-main-layout:has(.stixly-top-header--profile) > div:not([class*="bottom"]):not([class*="Bottom"]):not(.stixly-main-scroll) {
   padding-top: var(--stixly-header-height) !important;
 }
 
 /* Fallback for browsers that don't support :has() - apply to all content divs */
 @supports not selector(:has(*)) {
-  .stixly-main-layout > div:first-of-type:not([class*="bottom"]):not([class*="Bottom"]) {
+  .stixly-main-layout > div:first-of-type:not([class*="bottom"]):not([class*="Bottom"]):not(.stixly-main-scroll) {
     padding-top: var(--stixly-header-height) !important;
   }
+}
+
+/* Main scroll container */
+.stixly-main-scroll {
+  flex: 1 1 auto;
+  height: calc(100vh - var(--stixly-bottom-nav-height, 0px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Conditional padding-top only when header is visible */
+/* Добавляем отступ только к первому дочернему элементу, который не является fixed/sticky */
+.stixly-main-layout:has(header#stixlytopheader) .stixly-main-scroll > *:first-child:not(.compact-controls-bar) {
+  padding-top: var(--stixly-header-height, 0px);
+}
+
+/* Отступ для GalleryPage теперь управляется внутри SimpleGallery через paddingTop gallery-items */
+
+/* Для DashboardPage - добавляем отступ к Box с Container */
+.stixly-main-layout:has(header#stixlytopheader) .stixly-main-scroll > .MuiBox-root:first-child {
+  padding-top: var(--stixly-header-height, 0px);
+}
+
+/* For pages without header (profile/author), no padding-top */
+.stixly-main-layout:not(:has(header#stixlytopheader)) .stixly-main-scroll > *:first-child {
+  padding-top: 0;
 }
 
 /* Defensive: if env() is unsupported, keep it neat */

@@ -51,6 +51,10 @@ interface SimpleGalleryProps {
   scrollMode?: 'inner' | 'page';
   // Пустое состояние (отображается внутри галереи когда packs пустой)
   emptyState?: React.ReactNode;
+  // Внешний scroll-элемент для использования вместо window (для единого scroll-контейнера)
+  externalScrollElement?: HTMLElement | null;
+  // Нужен ли отступ сверху для fixed CompactControlsBar (только для GalleryPage)
+  needsControlsBarOffset?: boolean;
 }
 
 const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
@@ -66,10 +70,14 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   isRefreshing = false,
   usePageScroll = false,
   scrollMode,
-  emptyState
+  emptyState,
+  externalScrollElement,
+  needsControlsBarOffset = false
 }) => {
   // Определяем режим скролла: приоритет у scrollMode, затем usePageScroll для обратной совместимости
   const isPageScroll = scrollMode === 'page' || (scrollMode === undefined && usePageScroll);
+  // Используем externalScrollElement если передан, иначе window для page scroll или containerRef для inner
+  const scrollElement = isPageScroll ? (externalScrollElement || null) : null;
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
@@ -183,12 +191,16 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   useEffect(() => {
     if (isLoadingMore) {
       if (isPageScroll) {
-        scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+        if (scrollElement) {
+          scrollPositionRef.current = scrollElement.scrollTop;
+        } else {
+          scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+        }
       } else if (containerRef.current) {
         scrollPositionRef.current = containerRef.current.scrollTop;
       }
     }
-  }, [isLoadingMore, isPageScroll]);
+  }, [isLoadingMore, isPageScroll, scrollElement]);
 
   // Восстанавливаем позицию скролла после загрузки
   useEffect(() => {
@@ -196,13 +208,17 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       // Используем requestAnimationFrame для плавного восстановления
       requestAnimationFrame(() => {
         if (isPageScroll) {
-          window.scrollTo(0, scrollPositionRef.current);
+          if (scrollElement) {
+            scrollElement.scrollTo(0, scrollPositionRef.current);
+          } else {
+            window.scrollTo(0, scrollPositionRef.current);
+          }
         } else if (containerRef.current) {
           containerRef.current.scrollTop = scrollPositionRef.current;
         }
       });
     }
-  }, [isLoadingMore, packs.length, isPageScroll]);
+  }, [isLoadingMore, packs.length, isPageScroll, scrollElement]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -214,8 +230,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       return;
     }
 
-    // Если используем скролл страницы, используем window/document как root
-    const rootElement = isPageScroll ? null : container;
+    // Если используем скролл страницы, используем scrollElement или window/document как root
+    const rootElement = isPageScroll ? (scrollElement || null) : container;
 
     console.log('🔍 InfiniteScroll: настройка IntersectionObserver', {
       hasNextPage,
@@ -238,7 +254,11 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           console.log('✅ InfiniteScroll: загрузка следующей страницы');
           // Сохраняем позицию скролла перед загрузкой
           if (isPageScroll) {
-            scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+            if (scrollElement) {
+              scrollPositionRef.current = scrollElement.scrollTop;
+            } else {
+              scrollPositionRef.current = window.scrollY || document.documentElement.scrollTop;
+            }
           } else if (containerRef.current) {
             scrollPositionRef.current = containerRef.current.scrollTop;
           }
@@ -257,7 +277,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll]);
+  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll, scrollElement]);
 
   // ✅ P2 OPTIMIZATION: Prefetching следующей страницы при приближении к концу
   useEffect(() => {
@@ -271,7 +291,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     prefetchSentinel.style.pointerEvents = 'none';
     
     const container = isPageScroll 
-      ? document.documentElement 
+      ? (scrollElement || document.documentElement)
       : containerRef.current;
     
     if (!container) {
@@ -293,7 +313,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         }
       },
       {
-        root: isPageScroll ? null : containerRef.current,
+        root: isPageScroll ? (scrollElement || null) : containerRef.current,
         rootMargin: '400px', // Prefetch за 400px до конца
         threshold: 0.1
       }
@@ -305,7 +325,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       prefetchObserver.disconnect();
       prefetchSentinel.remove();
     };
-  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll]);
+  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll, scrollElement]);
 
   // ✅ P1 OPTIMIZATION: Throttle scroll handler для лучшего FPS
   // Создаем throttled функцию один раз через useMemo
@@ -323,18 +343,34 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
 
   useEffect(() => {
     if (isPageScroll) {
-      // Используем скролл страницы
-      const onScrollDirection = () => {
-        const current = window.scrollY || document.documentElement.scrollTop;
-        throttledScrollHandler(current);
-      };
+      // Используем скролл страницы (scrollElement или window)
+      if (!scrollElement) {
+        // Fallback на window если scrollElement не передан
+        const onScrollDirection = () => {
+          const current = window.scrollY || document.documentElement.scrollTop;
+          throttledScrollHandler(current);
+        };
 
-      window.addEventListener('scroll', onScrollDirection, { passive: true });
+        window.addEventListener('scroll', onScrollDirection, { passive: true });
 
-      return () => {
-        window.removeEventListener('scroll', onScrollDirection);
-        throttledScrollHandler.cancel(); // Важно: очищаем throttle при unmount
-      };
+        return () => {
+          window.removeEventListener('scroll', onScrollDirection);
+          throttledScrollHandler.cancel();
+        };
+      } else {
+        // Используем scrollElement
+        const onScrollDirection = () => {
+          const current = scrollElement.scrollTop;
+          throttledScrollHandler(current);
+        };
+
+        scrollElement.addEventListener('scroll', onScrollDirection, { passive: true });
+
+        return () => {
+          scrollElement.removeEventListener('scroll', onScrollDirection);
+          throttledScrollHandler.cancel();
+        };
+      }
     } else {
       // Используем скролл контейнера
       const node = containerRef.current;
@@ -354,7 +390,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
         throttledScrollHandler.cancel(); // Важно: очищаем throttle при unmount
       };
     }
-  }, [isPageScroll, throttledScrollHandler]);
+  }, [isPageScroll, throttledScrollHandler, scrollElement]);
 
   // Ленивая загрузка при скролле (для локального отображения)
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -525,21 +561,15 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
             display: 'flex',
             gap: '8px',
             padding: '0 calc(1rem * 0.382)',
-            // Отступ сверху: если есть controlsElement, учитываем его высоту (2.2rem высота + 0.5rem padding снизу)
-            // Если есть только addButtonElement, используем 2.2rem (высота кнопки)
-            // Отступ сверху: если есть controlsElement (CompactControlsBar), учитываем его высоту
-            // CompactControlsBar: высота кнопки 2.2rem + padding 0.5rem сверху = 2.7rem минимум
-            // Если expanded (категории/фильтры): + gap 0.5rem = 3.2rem
-            // Используем минимальный отступ для collapsed состояния
-            // Отступ сверху:
-            // - Если есть controlsElement, не добавляем отступ (controlsElement уже над gallery-items)
-            // - Если есть addButtonElement, добавляем отступ для кнопки (2.2rem)
-            // - Если scrollMode="inner" и нет controlsElement, добавляем отступ для кнопки "Добавить" из CompactControlsBar (2.2rem)
-            paddingTop: controlsElement 
-              ? '0' 
-              : (addButtonElement 
-                  ? '2.2rem' 
-                  : (isPageScroll ? '0' : '2.2rem')), // Для inner scroll добавляем отступ для кнопки "Добавить"
+            // Отступ сверху для page scroll: учитываем высоту fixed CompactControlsBar (~56px) только если нужен
+            // controlsElement отсутствует, так как CompactControlsBar рендерится вне SimpleGallery
+            paddingTop: isPageScroll && needsControlsBarOffset && !controlsElement ? '56px' : (
+              controlsElement 
+                ? '0' 
+                : (addButtonElement 
+                    ? '2.2rem' 
+                    : (isPageScroll ? '0' : '2.2rem'))
+            ),
             width: '100%',
             alignItems: 'flex-start'
           }}>

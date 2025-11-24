@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { PackCard } from './PackCard';
+import { useScrollElement } from '../contexts/ScrollContext';
 
 interface Pack {
   id: string;
@@ -29,6 +30,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 export const GalleryGrid: React.FC<GalleryGridProps> = ({ packs, onPackClick }) => {
+  const scrollElement = useScrollElement();
   const leftColumnRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
   const [shuffledPacks, setShuffledPacks] = useState<Pack[]>([]);
@@ -48,7 +50,9 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({ packs, onPackClick }) 
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      const scrollY = scrollElement 
+        ? scrollElement.scrollTop 
+        : (window.scrollY || document.documentElement.scrollTop);
       const delta = scrollY - lastScrollY.current;
       lastScrollY.current = scrollY;
       setScrollVelocity(delta);
@@ -67,18 +71,22 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({ packs, onPackClick }) 
     const handleMouseMove = (e: MouseEvent) => detectColumn(e.clientX);
     const handleTouchMove = (e: TouchEvent) => e.touches[0] && detectColumn(e.touches[0].clientX);
     
-    lastScrollY.current = window.scrollY || document.documentElement.scrollTop;
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    lastScrollY.current = scrollElement 
+      ? scrollElement.scrollTop 
+      : (window.scrollY || document.documentElement.scrollTop);
+    
+    const targetElement = scrollElement || window;
+    targetElement.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      targetElement.removeEventListener('scroll', handleScroll);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-  }, []);
+  }, [scrollElement]);
 
   const getScrollBoost = useCallback((column: 'left' | 'right') => {
     if (!activeColumn || Math.abs(scrollVelocity) < 1) return 0;

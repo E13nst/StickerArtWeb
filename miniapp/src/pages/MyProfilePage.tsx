@@ -34,10 +34,12 @@ import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { CompactControlsBar } from '@/components/CompactControlsBar';
 import { StickerSetsTabs } from '@/components/StickerSetsTabs';
 import { Category } from '@/components/CategoryFilter';
+import { useScrollElement } from '@/contexts/ScrollContext';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { tg, user, initData, isInTelegramApp } = useTelegram();
+  const scrollElement = useScrollElement();
 
   const {
     isLoading,
@@ -1162,6 +1164,7 @@ export const MyProfilePage: React.FC = () => {
                     onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
                     enablePreloading={true}
                     scrollMode="page"
+                    externalScrollElement={scrollElement}
                     isRefreshing={isStickerSetsLoading && (setsFilter === 'liked' ? likedStickerSets.length > 0 : filteredStickerSets.length > 0)}
                     emptyState={
                       (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (

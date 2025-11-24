@@ -54,14 +54,12 @@ export const TelegramLayout: React.FC<TelegramLayoutProps> = ({
   );
 };
 
-// CSS для layout
+// CSS для layout (упрощённый, без влияния на scroll)
 const styles = `
 .tg-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   width: 100%;
-  overflow: hidden;
 }
 
 .tg-layout__header {
@@ -80,23 +78,13 @@ const styles = `
 }
 
 .tg-layout__content {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  overflow: hidden;
   padding: 0;
   margin: 0;
   position: relative;
-}
-
-.tg-layout__content > * {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 `;
 

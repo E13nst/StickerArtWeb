@@ -10,6 +10,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import SearchIcon from '@mui/icons-material/Search';
 import { throttle } from '../utils/throttle';
 import { useTelegram } from '../hooks/useTelegram';
+import { useScrollElement } from '../contexts/ScrollContext';
 
 type FilterMode = null | 'stickerType' | 'dateAdded';
 
@@ -66,6 +67,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
   scrollContainerRef,
 }) => {
   const { tg } = useTelegram();
+  const scrollElement = useScrollElement();
   const scheme = tg?.colorScheme;
   const isLight = scheme ? scheme === 'light' : true;
   
@@ -100,17 +102,20 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScroll = window.scrollY || document.documentElement.scrollTop;
+      const currentScroll = scrollElement 
+        ? scrollElement.scrollTop 
+        : (window.scrollY || document.documentElement.scrollTop);
       throttledScrollHandler(currentScroll);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    const targetElement = scrollElement || window;
+    targetElement.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      targetElement.removeEventListener('scroll', handleScroll);
       throttledScrollHandler.cancel();
     };
-  }, [throttledScrollHandler]);
+  }, [throttledScrollHandler, scrollElement]);
 
   const handleFilterClick = () => {
     tg?.HapticFeedback?.impactOccurred('light');

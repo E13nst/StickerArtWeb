@@ -817,7 +817,7 @@ export default function StixlyTopHeader({
       const headerElement = document.querySelector('.stixly-top-header');
       if (!headerElement) return;
       
-      const height = headerElement.getBoundingClientRect().height;
+        const height = headerElement.getBoundingClientRect().height;
       // height уже включает paddingTop с env(safe-area-inset-top)
       document.documentElement.style.setProperty('--stixly-header-height', `${height}px`);
       
