@@ -219,8 +219,23 @@ export const useTelegram = () => {
       // Безопасная настройка viewport (expand + fullscreen на мобильных)
       // Работает с официальным SDK (@telegram-apps/sdk) или fallback на @twa-dev/sdk
       // Важно: expand() вызывается внутри setupTelegramViewportSafe() с правильной задержкой
+      // requestFullscreen() вызывается после успешного expand() на мобильных устройствах
       setupTelegramViewportSafe().catch((error) => {
-        console.warn('[TMA] Ошибка при настройке viewport:', error);
+        // Детальное логирование ошибок с контекстом
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
+        console.warn('[TMA] Ошибка при настройке viewport:', {
+          message: errorMessage,
+          stack: errorStack,
+          context: 'setupTelegramViewportSafe',
+          platform: telegram.platform,
+          version: telegram.version,
+          isMobile: typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        });
+        
+        // Ошибки fullscreen не должны прерывать инициализацию приложения
+        // Приложение продолжит работать даже если fullscreen недоступен
       });
       
       // Отключаем вертикальные свайпы, которые сворачивают Mini App (Bot API 7.7+)
