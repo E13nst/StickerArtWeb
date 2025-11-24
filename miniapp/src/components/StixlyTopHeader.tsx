@@ -504,7 +504,7 @@ export default function StixlyTopHeader({
       style={{
         position: "relative",
         width: "100%",
-        height: "calc(100vh * 0.146)", // 14.6% от высоты viewport (упрощенная золотая пропорция)
+        height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         minHeight: "100px",
         maxHeight: "140px",
         zIndex: 1,
@@ -544,7 +544,7 @@ export default function StixlyTopHeader({
       style={{
         position: "relative",
         width: "100%",
-        height: "calc(100vh * 0.146)", // 14.6% от высоты viewport (упрощенная золотая пропорция)
+        height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         minHeight: "100px",
         maxHeight: "140px",
         zIndex: 1,
@@ -793,15 +793,75 @@ export default function StixlyTopHeader({
     ? activeProfileMode.backgroundColor
     : current.bg;
 
-  // Update CSS variable for header height
+  // Helper function to get safe area inset top value
+  const getSafeAreaTop = (): number => {
+    try {
+      // Create a temporary element to measure safe area
+      const testElement = document.createElement('div');
+      testElement.style.position = 'fixed';
+      testElement.style.top = '0';
+      testElement.style.left = '0';
+      testElement.style.width = '1px';
+      testElement.style.height = '1px';
+      testElement.style.paddingTop = 'env(safe-area-inset-top)';
+      testElement.style.visibility = 'hidden';
+      testElement.style.pointerEvents = 'none';
+      document.body.appendChild(testElement);
+      
+      const computedStyle = window.getComputedStyle(testElement);
+      const safeAreaValue = computedStyle.paddingTop;
+      document.body.removeChild(testElement);
+      
+      // Parse the value (e.g., "44px" -> 44)
+      const numericValue = parseFloat(safeAreaValue);
+      return isNaN(numericValue) ? 0 : numericValue;
+    } catch (error) {
+      console.warn('Failed to get safe area inset top:', error);
+      return 0;
+    }
+  };
+
+  // Helper function to get viewport height (with fallback)
+  const getViewportHeight = (): number => {
+    // Check for official Telegram viewport CSS variables first
+    const rootStyle = getComputedStyle(document.documentElement);
+    const viewportHeight = rootStyle.getPropertyValue('--tg-viewport-height');
+    const viewportStableHeight = rootStyle.getPropertyValue('--tg-viewport-stable-height');
+    
+    // Use stable height if available, otherwise regular height, otherwise fallback to window
+    if (viewportStableHeight) {
+      const value = parseFloat(viewportStableHeight);
+      if (!isNaN(value) && value > 0) return value;
+    }
+    if (viewportHeight) {
+      const value = parseFloat(viewportHeight);
+      if (!isNaN(value) && value > 0) return value;
+    }
+    
+    // Fallback to window.innerHeight or 100vh calculation
+    return window.innerHeight || document.documentElement.clientHeight || 600;
+  };
+
+  // Update CSS variables for header height and viewport
   useEffect(() => {
     const updateHeaderHeight = () => {
       const headerElement = document.querySelector('.stixly-top-header');
       if (headerElement) {
         const height = headerElement.getBoundingClientRect().height;
-        const safeAreaTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-top)') || '0');
+        const safeAreaTop = getSafeAreaTop();
         const totalHeight = height + safeAreaTop;
         document.documentElement.style.setProperty('--stixly-header-height', `${totalHeight}px`);
+      }
+      
+      // Update viewport height CSS variable (with fallback support)
+      const viewportHeight = getViewportHeight();
+      const rootStyle = getComputedStyle(document.documentElement);
+      const tgViewportHeight = rootStyle.getPropertyValue('--tg-viewport-stable-height') || 
+                               rootStyle.getPropertyValue('--tg-viewport-height');
+      
+      // Use official Telegram viewport variable if available, otherwise use calculated value
+      if (!tgViewportHeight || tgViewportHeight.trim() === '') {
+        document.documentElement.style.setProperty('--stixly-viewport-height', `${viewportHeight}px`);
       }
     };
 
