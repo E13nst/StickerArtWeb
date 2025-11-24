@@ -528,7 +528,10 @@ export default function StixlyTopHeader({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "calc(100vw * 0.05)", // ~5% от ширины viewport
+            paddingTop: "50px", // отступ для кнопок Telegram MiniApps
+            paddingLeft: "calc(100vw * 0.05)",
+            paddingRight: "calc(100vw * 0.05)",
+            paddingBottom: "calc(100vw * 0.05)",
           }}
         >
           {activeProfileMode.content}
@@ -581,7 +584,7 @@ export default function StixlyTopHeader({
               textAlign: "center",
               paddingLeft: current.id === 2 ? "12px" : "8px", // минимальные отступы по золотым пропорциям
               paddingRight: current.id === 2 ? "12px" : "8px",
-              paddingTop: current.id === 2 ? "10px" : "12px", // оптимизировано для меньшей высоты
+              paddingTop: current.id === 2 ? "50px" : "50px", // отступ для кнопок Telegram MiniApps
             }}
           >
             {current.id === 2 ? (
