@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Lottie from 'lottie-react';
 import type { LottieRefCurrentProps } from 'lottie-react';
+import { CircularProgress } from '@mui/material';
 import { animationCache, imageLoader, LoadPriority, getCachedAnimation } from '../utils/imageLoader';
 
 interface AnimatedStickerProps {
@@ -10,6 +11,7 @@ interface AnimatedStickerProps {
   className?: string;
   hidePlaceholder?: boolean;
   onReady?: () => void;
+  priority?: number; // Приоритет загрузки (по умолчанию TIER_1_VIEWPORT)
 }
 
 export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
@@ -18,7 +20,8 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   emoji,
   className,
   hidePlaceholder,
-  onReady
+  onReady,
+  priority = LoadPriority.TIER_1_VIEWPORT
 }) => {
   const [animationData, setAnimationData] = useState<any>(null);
   const [error, setError] = useState(false);
@@ -63,29 +66,36 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
 
         // Загружаем через imageLoader (с дедупликацией и приоритетом)
         try {
+          console.log(`🎬 [AnimatedSticker] Загрузка анимации ${fileId.slice(-8)} с приоритетом ${priority}...`);
           await imageLoader.loadAnimation(
             fileId, 
             imageUrl, 
-            LoadPriority.TIER_1_VIEWPORT // Высокий приоритет для видимых анимаций
+            priority // Используем переданный приоритет (по умолчанию TIER_1_VIEWPORT)
           );
           
+          console.log(`🎬 [AnimatedSticker] loadAnimation завершен для ${fileId.slice(-8)}, проверяем кеш...`);
+          
           // После загрузки получаем данные из кеша
+          // Даем небольшую задержку, чтобы кеш успел обновиться
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
           const loadedData = animationCache.get(fileId) || getCachedAnimation(fileId);
           
           if (!cancelled) {
             if (loadedData) {
-              console.log('🎬 Animation loaded via imageLoader:', fileId);
+              console.log(`🎬 [AnimatedSticker] Анимация загружена из кеша: ${fileId.slice(-8)}`);
               setAnimationData(loadedData);
               setLoading(false);
             } else {
               // Если данных нет в кеше после загрузки - это ошибка
-              console.log('🎬 Animation not found after load, using fallback:', fileId);
+              console.error(`🎬 [AnimatedSticker] ❌ Анимация НЕ найдена в кеше после загрузки: ${fileId.slice(-8)}`);
+              console.error(`🎬 [AnimatedSticker] Проверка кеша: animationCache.has(${fileId.slice(-8)}): ${animationCache.has(fileId)}`);
               setError(true);
               setLoading(false);
             }
           }
         } catch (err) {
-          console.log('🎬 Failed to load animation via imageLoader, using fallback:', fileId, err);
+          console.error(`🎬 [AnimatedSticker] ❌ Ошибка загрузки анимации через imageLoader: ${fileId.slice(-8)}`, err);
           if (!cancelled) {
             setError(true);
             setLoading(false);
@@ -111,6 +121,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
   }, [fileId, imageUrl]);
 
   // IntersectionObserver для оптимизации рендеринга анимаций вне viewport
+  // ⚠️ ВАЖНО: НЕ применяем для высокоприоритетных анимаций (TIER_0_MODAL)
   useEffect(() => {
     if (!animationRef.current || !containerRef.current || !animationData) return;
 
@@ -118,6 +129,13 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
     if (containerRef.current) {
       containerRef.current.style.visibility = 'visible';
       containerRef.current.style.pointerEvents = 'auto';
+    }
+
+    // ✅ FIX: Если приоритет TIER_0_MODAL - НЕ создаем IntersectionObserver
+    // Такие анимации всегда должны быть видимыми и активными (модальные окна, главное превью)
+    if (priority === LoadPriority.TIER_0_MODAL) {
+      console.log(`🎬 [AnimatedSticker] Высокий приоритет (TIER_0_MODAL) - IntersectionObserver отключен для ${fileId.slice(-8)}`);
+      return; // Не создаем observer для высокоприоритетных анимаций
     }
 
     const observer = new IntersectionObserver(
@@ -157,11 +175,19 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [animationData, fileId]);
+  }, [animationData, fileId, priority]);
 
   // MutationObserver для паузы всех анимаций при открытии модального окна
+  // ⚠️ ВАЖНО: НЕ паузим высокоприоритетные анимации (TIER_0_MODAL)
   useEffect(() => {
     if (!animationRef.current || !containerRef.current) return;
+
+    // ✅ FIX: Если приоритет TIER_0_MODAL - НЕ создаем MutationObserver
+    // Такие анимации всегда должны воспроизводиться (модальные окна, главное превью)
+    if (priority === LoadPriority.TIER_0_MODAL) {
+      console.log(`🎬 [AnimatedSticker] Высокий приоритет (TIER_0_MODAL) - MutationObserver отключен для ${fileId.slice(-8)}`);
+      return; // Не создаем observer для высокоприоритетных анимаций
+    }
 
     const mutationObserver = new MutationObserver(() => {
       if (!animationRef.current || !containerRef.current) return;
@@ -189,7 +215,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
     return () => {
       mutationObserver.disconnect();
     };
-  }, [animationData]);
+  }, [animationData, fileId, priority]);
 
   // Вызываем onReady когда анимация/изображение готовы к показу (ВСЕГДА вызывается до return)
   useEffect(() => {
@@ -216,19 +242,26 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          fontSize: '48px' 
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: '8px'
         }}
       >
-        {hidePlaceholder ? null : (emoji || '🎨')}
+        {hidePlaceholder ? null : (
+          <CircularProgress size={40} />
+        )}
       </div>
     );
   }
 
   if (error || !animationData) {
     // Fallback - пробуем показать как обычное изображение
+    // ⚠️ Добавляем data-атрибут для определения fallback в тестах
     return (
       <div
         ref={containerRef}
+        data-animation-fallback="true"
         style={{
           width: '100%',
           height: '100%',
@@ -261,7 +294,7 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
             target.style.display = 'none';
             const parent = target.parentElement;
             if (parent) {
-              parent.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 48px;">${emoji || '🎨'}</div>`;
+              parent.innerHTML = `<div data-emoji-fallback="true" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 48px;">${emoji || '🎨'}</div>`;
             }
             if (!readyCalledRef.current) {
               readyCalledRef.current = true;

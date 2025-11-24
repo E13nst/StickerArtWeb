@@ -278,12 +278,26 @@ class ImageLoader {
     }
 
     // 2. 🔥 ОПТИМИЗАЦИЯ: Проверить dedupe по fileId
+    // ⚠️ ВАЖНО: Дедупликация должна учитывать тип ресурса!
+    // Если запрашивается анимация, а в очереди есть изображение - это разные ресурсы
     const existingPromise = this.queue.inFlight.get(fileId);
     if (existingPromise) {
-      if (isDev) {
-        console.log(`🔄 Dedupe by fileId: returning existing promise for ${resourceType}: ${fileId.substring(0, 20)}...`);
+      // Проверяем, есть ли в очереди элемент с таким же fileId и типом ресурса
+      const existingInQueue = this.queue.queue.find(item => 
+        item.fileId === fileId && item.resourceType === resourceType
+      );
+      
+      // Если есть активная загрузка с таким же типом - используем дедупликацию
+      if (existingInQueue) {
+        if (isDev) {
+          console.log(`🔄 Dedupe by fileId+type: returning existing promise for ${resourceType}: ${fileId.substring(0, 20)}...`);
+        }
+        return existingPromise;
       }
-      return existingPromise;
+      
+      // Если тип ресурса отличается - не используем дедупликацию, создаем новый промис
+      // Это важно: изображение и анимация для одного fileId - это разные ресурсы!
+      console.log(`⚠️ [imageLoader] Different resource type for ${fileId.slice(-8)}: requested ${resourceType}, but existing promise may be for different type. Creating new promise.`);
     }
 
     // 3. 🔥 ОПТИМИЗАЦИЯ: Проверить dedupe по нормализованному URL
@@ -316,7 +330,14 @@ class ImageLoader {
     this.addToQueue(fileId, url, normalizedUrl, priority, packId, imageIndex, resourceType);
     
     // 6. Запустить обработку очереди
-    this.processQueue();
+    // 🔥 ФИКС: Для высокоприоритетных элементов (TIER_0_MODAL) принудительно запускаем обработку
+    if (priority >= LoadPriority.TIER_0_MODAL) {
+      console.log(`🚀 [imageLoader] Высокий приоритет (${priority}), принудительно запускаем processQueue для ${fileId.slice(-8)}`);
+      // Используем setTimeout(0) чтобы гарантировать, что processQueue вызовется в следующем тике
+      setTimeout(() => this.processQueue(), 0);
+    } else {
+      this.processQueue();
+    }
 
     return loadPromise;
   }
@@ -481,12 +502,25 @@ class ImageLoader {
       // Проверяем текущее количество активных высокоприоритетных загрузок
       const currentActive = this.getActiveCountsByPriority();
       
+      // 🔥 ФИКС: Элементы с максимальным приоритетом (TIER_0_MODAL) всегда обрабатываются в первую очередь
+      // Проверяем, есть ли в очереди элементы с максимальным приоритетом
+      const hasMaxPriority = highPriorityItems.some(item => item.priority === LoadPriority.TIER_0_MODAL);
+      
       // Если есть низкоприоритетные элементы в очереди И уже достигнут минимум для высокого приоритета
       // И занято достаточно слотов - резервируем место для низкоприоритетных
-      if (lowPriorityItems.length > 0 &&
+      // НО: НЕ прерываем обработку, если есть элементы с максимальным приоритетом (TIER_0_MODAL)
+      if (!hasMaxPriority && 
+          lowPriorityItems.length > 0 &&
           currentActive.high >= this.HIGH_PRIORITY_MIN_SLOTS && 
           this.queue.activeCount >= this.queue.maxConcurrency - this.LOW_PRIORITY_MAX_SLOTS) {
+        if (isDev) {
+          console.log(`⏸️ Резервируем место для низкоприоритетных (high=${currentActive.high}, active=${this.queue.activeCount})`);
+        }
         break; // Резервируем место для низкоприоритетных
+      }
+      
+      if (hasMaxPriority && isDev) {
+        console.log(`🔥 Обрабатываем элемент с максимальным приоритетом (TIER_0_MODAL), игнорируем резервирование`);
       }
       
       const item = highPriorityItems.shift();
@@ -497,7 +531,10 @@ class ImageLoader {
       // - Дедупликация происходит ТОЛЬКО в loadResource(), не здесь
       // - Здесь мы РЕАЛЬНО запускаем загрузку
       
-      if (isDev) {
+      // Логируем для всех элементов с высоким приоритетом (не только в dev)
+      if (item.priority >= LoadPriority.TIER_0_MODAL) {
+        console.log(`🚀 [processQueue] STARTING to load ${item.resourceType}: ${item.fileId.slice(-8)}... priority=${item.priority} (TIER_0_MODAL)`);
+      } else if (isDev) {
         console.log(`🚀 STARTING to load ${item.resourceType}: ${item.fileId.substring(0, 20)}... priority=${item.priority}`);
       }
 
@@ -514,14 +551,24 @@ class ImageLoader {
         // 🔥 ОПТИМИЗАЦИЯ: Используем нормализованный URL из QueueItem
         this.loadResourceFromUrl(item.fileId, item.normalizedUrl, item.resourceType)
           .then((url) => {
+            // Логируем для высокоприоритетных элементов
+            if (item.priority >= LoadPriority.TIER_0_MODAL) {
+              console.log(`✅ [processQueue] Загрузка завершена для ${item.fileId.slice(-8)} (${item.resourceType}), резолвим промис`);
+            }
             // ✅ Разрешаем промис через сохраненный resolver
             const resolver = this.pendingResolvers.get(item.fileId);
             if (resolver) {
               resolver.resolve(url);
               this.pendingResolvers.delete(item.fileId);
+            } else {
+              console.error(`❌ [processQueue] Resolver не найден для ${item.fileId.slice(-8)} после загрузки!`);
             }
           })
           .catch((error) => {
+            // Логируем ошибки для высокоприоритетных элементов
+            if (item.priority >= LoadPriority.TIER_0_MODAL) {
+              console.error(`❌ [processQueue] Ошибка загрузки для ${item.fileId.slice(-8)} (${item.resourceType}):`, error);
+            }
             // ❌ Отклоняем промис через сохраненный resolver
             const resolver = this.pendingResolvers.get(item.fileId);
             if (resolver) {
@@ -728,7 +775,7 @@ class ImageLoader {
    */
   private async loadAnimationFromUrl(fileId: string, normalizedUrl: string): Promise<string> {
     if (isDev) {
-      console.log(`🎬 Fetching animation JSON for ${fileId}:`, normalizedUrl);
+      console.log(`🎬 Fetching animation for ${fileId}:`, normalizedUrl);
     }
     
     const maxRetries = 3;
@@ -741,20 +788,51 @@ class ImageLoader {
           throw new Error(`HTTP ${response.status}`);
         }
         
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Response is not JSON');
+        const contentType = response.headers.get('content-type') || '';
+        
+        if (isDev) {
+          console.log(`🎬 [loadAnimationFromUrl] Content-Type для ${fileId.slice(-8)}: ${contentType}`);
+        }
+        
+        // ✅ Поддержка WebP анимаций: если content-type image/webp, загружаем как изображение
+        if (contentType.includes('image/webp')) {
+          if (isDev) {
+            console.log(`🎬 WebP animation detected for ${fileId.slice(-8)}, loading as image`);
+          }
+          // WebP анимации загружаем как обычные изображения (браузер автоматически поддерживает анимацию)
+          return this.loadImageFromUrl(fileId, normalizedUrl);
+        }
+        
+        // Lottie анимации (JSON)
+        if (!contentType.includes('application/json')) {
+          if (isDev) {
+            console.warn(`🎬 [loadAnimationFromUrl] Неожиданный content-type для ${fileId.slice(-8)}: ${contentType}, пробуем как JSON`);
+          }
+          // Пробуем загрузить как JSON, если не WebP
+          try {
+            const testData = await response.clone().json();
+            // Если успешно распарсили как JSON, продолжаем
+          } catch {
+            throw new Error(`Unexpected content-type: ${contentType}`);
+          }
         }
         
         const data = await response.json();
         
         // Сохраняем в кеш анимаций
         try {
+          console.log(`🎬 [imageLoader] Сохранение анимации в кеш: ${fileId.slice(-8)}...`);
           await cacheManager.set(fileId, data, 'animation');
-        } catch (error) {
-          if (isDev) {
-            console.warn('Failed to cache animation:', error);
+          
+          // Проверяем, что данные попали в syncCache
+          const cached = cacheManager.getSync(fileId, 'animation');
+          if (cached) {
+            console.log(`🎬 [imageLoader] ✅ Анимация сохранена в syncCache: ${fileId.slice(-8)}`);
+          } else {
+            console.error(`🎬 [imageLoader] ❌ Анимация НЕ найдена в syncCache после сохранения: ${fileId.slice(-8)}`);
           }
+        } catch (error) {
+          console.error(`🎬 [imageLoader] ❌ Ошибка сохранения анимации в кеш: ${fileId.slice(-8)}`, error);
         }
         
         if (isDev) {
@@ -1092,8 +1170,7 @@ export const prefetchSticker = async (
     if (isVideo) {
       await imageLoader.loadVideo(fileId, url, priority);
     } else if (isAnimated) {
-      await imageLoader.loadImage(fileId, url, priority);
-      await imageLoader.loadAnimation(fileId, url, LoadPriority.TIER_4_BACKGROUND);
+      await imageLoader.loadAnimation(fileId, url, priority);
     } else {
       await imageLoader.loadImage(fileId, url, priority);
     }

@@ -29,13 +29,13 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
   useEffect(() => {
     imageLoader.loadImage(actualFileId, imageUrl, LoadPriority.TIER_3_ADDITIONAL)
       .catch((error) => {
-        console.error('Failed to load thumbnail:', actualFileId, error);
+        // Логируем только в dev режиме или при реальных ошибках
+        if (import.meta.env.DEV) {
+          console.error('Failed to load thumbnail:', actualFileId, error);
+        }
         setError(true);
       });
   }, [actualFileId, imageUrl]);
-  
-  // Отладочная информация
-  console.log('🖼️ StickerThumbnail:', { fileId, thumbFileId, actualFileId, size, imageUrl });
 
   // Проверяем готовность изображения после монтирования
   useEffect(() => {
@@ -45,18 +45,21 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
   }, []);
 
   const handleLoad = () => {
-    console.log('✅ Image loaded:', imageUrl);
+    // Убрали лог - засоряет консоль при большом количестве миниатюр
     setLoading(false);
   };
 
   const handleError = () => {
-    console.error('❌ Image load error:', imageUrl);
+    // Логируем только в dev режиме
+    if (import.meta.env.DEV) {
+      console.warn('❌ StickerThumbnail load error:', imageUrl);
+    }
     setLoading(false);
     setError(true);
   };
 
   if (error) {
-    console.log('❌ StickerThumbnail error fallback:', { fileId, imageUrl });
+    // Убрали лог - засоряет консоль
     return (
       <div 
         className={className}
