@@ -1097,7 +1097,17 @@ export const MyProfilePage: React.FC = () => {
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Табы для переключения между Загруженные и Понравившиеся */}
-              <Box ref={tabsContainerRef}>
+              <Box 
+                ref={tabsContainerRef}
+                sx={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 998,
+                  backgroundColor: 'var(--tg-theme-bg-color)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)'
+                }}
+              >
                 <StickerSetsTabs
                   activeTab={setsFilterTab}
                   onChange={setSetsFilterTab}
@@ -1105,41 +1115,29 @@ export const MyProfilePage: React.FC = () => {
                 />
               </Box>
               
-              {/* CompactControlsBar - фиксированный под табами */}
+              {/* CompactControlsBar - над карточками стикерсетов */}
               {setsFilterTab === 0 && (
-                <Box
-                  sx={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 997,
-                    backgroundColor: 'var(--tg-theme-bg-color)',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    py: 1,
-                  }}
-                >
-                  <CompactControlsBar
-                    variant="static"
-                    searchValue={searchTerm}
-                    onSearchChange={handleSearchChange}
-                    onSearch={handleSearch}
-                    searchDisabled={isStickerSetsLoading}
-                    categories={categories}
-                    selectedCategories={[]}
-                    onCategoryToggle={() => {}}
-                    categoriesDisabled={true}
-                    sortByLikes={sortByLikes}
-                    onSortToggle={handleSortToggle}
-                    sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
-                    selectedStickerTypes={[]}
-                    onStickerTypeToggle={() => {}}
-                    selectedStickerSetTypes={[]}
-                    onStickerSetTypeToggle={() => {}}
-                    selectedDate={null}
-                    onDateChange={() => {}}
-                    onAddClick={() => setIsUploadModalOpen(true)}
-                  />
-                </Box>
+                <CompactControlsBar
+                  variant="static"
+                  searchValue={searchTerm}
+                  onSearchChange={handleSearchChange}
+                  onSearch={handleSearch}
+                  searchDisabled={isStickerSetsLoading}
+                  categories={categories}
+                  selectedCategories={[]}
+                  onCategoryToggle={() => {}}
+                  categoriesDisabled={true}
+                  sortByLikes={sortByLikes}
+                  onSortToggle={handleSortToggle}
+                  sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
+                  selectedStickerTypes={[]}
+                  onStickerTypeToggle={() => {}}
+                  selectedStickerSetTypes={[]}
+                  onStickerSetTypeToggle={() => {}}
+                  selectedDate={null}
+                  onDateChange={() => {}}
+                  onAddClick={() => setIsUploadModalOpen(true)}
+                />
               )}
               
               {/* Контент стикерсетов */}

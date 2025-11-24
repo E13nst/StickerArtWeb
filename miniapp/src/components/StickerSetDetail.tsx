@@ -1352,11 +1352,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       
       {/* Название и автор вверху */}
       <Box sx={{ 
-        width: '100%',
+        width: '92vw',
+        maxWidth: '450px',
+        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         gap: '5px',
-        paddingX: '13px',
         paddingTop: '8px',
         marginBottom: '13px'
       }}>
@@ -1403,7 +1404,15 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       </Box>
       {/* Основной блок: превью слева, кнопки справа */}
       {stickerCount > 0 && (
-        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '13px', paddingX: '13px' }}>
+        <Box sx={{ 
+          width: '92vw',
+          maxWidth: '450px',
+          margin: '0 auto',
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start', 
+          gap: '13px'
+        }}>
           {/* Левая часть: большое превью */}
           <Box 
             ref={previewRef}
@@ -1609,12 +1618,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       )}
 
       {/* Нижняя горизонтальная лента */}
-      <Box sx={{ width: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+      <Box sx={{ 
+        width: '92vw',
+        maxWidth: '450px',
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'flex-start'
+      }}>
         <Box
           ref={scrollerRef}
           onClick={(e) => e.stopPropagation()}
           sx={{
-            width: 'min(92vw, 720px)',
+            width: '100%',
             display: 'flex',
             gap: '5px',
             overflowX: 'auto',
@@ -1667,7 +1682,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         className="sticker-detail-info-card"
         onClick={(e) => e.stopPropagation()}
         sx={{ 
-          width: 'min(92vw, 720px)', 
+          width: '92vw',
+          maxWidth: '450px',
+          margin: '0 auto',
           zIndex: 9999, // Очень высокий z-index
           position: 'relative'
         }}
