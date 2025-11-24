@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { TelegramWebApp, TelegramUser } from '../types/telegram';
 import WebApp from '@twa-dev/sdk';
+import { setupTelegramViewportSafe } from '../utils/setupTelegramViewport';
 
 // Функция для получения реального initData из localStorage (для тестирования с ModHeader)
 const getRealInitDataForTesting = (): string | null => {
@@ -215,6 +216,12 @@ export const useTelegram = () => {
       // Инициализация Telegram Web App
       telegram.ready();
       telegram.expand();
+      
+      // Безопасная настройка viewport (expand + fullscreen на мобильных)
+      // Работает с официальным SDK (@telegram-apps/sdk) или fallback на @twa-dev/sdk
+      setupTelegramViewportSafe().catch((error) => {
+        console.warn('[TMA] Ошибка при настройке viewport:', error);
+      });
       
       // Отключаем вертикальные свайпы, которые сворачивают Mini App (Bot API 7.7+)
       // Это глобально отключает сворачивание приложения свайпом вниз
