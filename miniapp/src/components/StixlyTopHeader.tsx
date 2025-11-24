@@ -870,8 +870,21 @@ export default function StixlyTopHeader({
     updateHeaderHeight();
     window.addEventListener('resize', updateHeaderHeight);
 
+    // Подписка на событие viewportChanged от Telegram WebApp для iOS safe area
+    const webApp = window.Telegram?.WebApp;
+    const viewportChangedHandler = () => {
+      updateHeaderHeight();
+    };
+
+    if (webApp && typeof webApp.onEvent === 'function') {
+      webApp.onEvent('viewportChanged', viewportChangedHandler);
+    }
+
     return () => {
       window.removeEventListener('resize', updateHeaderHeight);
+      if (webApp && typeof webApp.offEvent === 'function') {
+        webApp.offEvent('viewportChanged', viewportChangedHandler);
+      }
     };
   }, []);
 
