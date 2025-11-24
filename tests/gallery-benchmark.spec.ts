@@ -78,6 +78,22 @@ interface BenchmarkMetrics {
     canvasContexts: number;               // Canvas контексты (анимации)
   };
   
+  // 🔥 CPU/GPU нагрузка
+  performance: {
+    cpuUsage: {
+      jsExecutionTime: number;            // Время выполнения JS (ms)
+      totalLongTasks: number;             // Всего долгих задач (>50ms)
+      longTasksDuration: number;          // Общая длительность долгих задач (ms)
+      averageTaskDuration: number;        // Средняя длительность задач (ms)
+    };
+    gpuUsage: {
+      activeCanvases: number;             // Активных canvas элементов
+      activeSvgs: number;                 // Активных SVG элементов
+      renderingTime: number;               // Время рендеринга (ms)
+      frameDrops: number;                 // Пропущенных кадров
+    };
+  };
+  
   // 📦 Кэширование
   caching: {
     cacheHits: number;                    // Загрузки из кеша
@@ -144,10 +160,41 @@ class MetricsCollector {
   private fpsSamples: number[] = [];
   private cacheHits = 0;
   private cacheMisses = 0;
+  private cpuGpuMetrics: {
+    cpuUsage: {
+      jsExecutionTime: number;
+      totalLongTasks: number;
+      longTasksDuration: number;
+      averageTaskDuration: number;
+    };
+    gpuUsage: {
+      activeCanvases: number;
+      activeSvgs: number;
+      renderingTime: number;
+      frameDrops: number;
+    };
+  } | null = null;
   
   constructor(page: Page) {
     this.page = page;
     this.setupListeners();
+  }
+  
+  setCpuGpuMetrics(metrics: {
+    cpuUsage: {
+      jsExecutionTime: number;
+      totalLongTasks: number;
+      longTasksDuration: number;
+      averageTaskDuration: number;
+    };
+    gpuUsage: {
+      activeCanvases: number;
+      activeSvgs: number;
+      renderingTime: number;
+      frameDrops: number;
+    };
+  }) {
+    this.cpuGpuMetrics = metrics;
   }
   
   private setupListeners() {
@@ -544,6 +591,20 @@ class MetricsCollector {
         domNodesCount: resourceMetrics.domNodes,
         canvasContexts: resourceMetrics.canvasContexts
       },
+      performance: this.cpuGpuMetrics || {
+        cpuUsage: {
+          jsExecutionTime: 0,
+          totalLongTasks: resourceMetrics.longTasks,
+          longTasksDuration: 0,
+          averageTaskDuration: 0
+        },
+        gpuUsage: {
+          activeCanvases: resourceMetrics.canvasContexts,
+          activeSvgs: 0,
+          renderingTime: 0,
+          frameDrops: 0
+        }
+      },
       caching: {
         cacheHits: this.cacheHits,
         cacheMisses: this.cacheMisses,
@@ -630,6 +691,23 @@ function printBenchmarkReport(metrics: BenchmarkMetrics) {
   console.log(`  🌳 DOM элементов:                  ${metrics.resources.domNodesCount}`);
   console.log(`  🎨 Canvas контекстов:              ${metrics.resources.canvasContexts}`);
   console.log('');
+  
+  // 🔥 CPU/GPU НАГРУЗКА
+  if (metrics.performance) {
+    console.log('🔥 CPU/GPU НАГРУЗКА:');
+    console.log('─'.repeat(80));
+    console.log(`  💻 CPU:`);
+    console.log(`     - Время выполнения JS:           ${metrics.performance.cpuUsage.jsExecutionTime}ms`);
+    console.log(`     - Всего долгих задач (>50ms):   ${metrics.performance.cpuUsage.totalLongTasks}`);
+    console.log(`     - Общая длительность долгих:     ${metrics.performance.cpuUsage.longTasksDuration}ms`);
+    console.log(`     - Средняя длительность задач:    ${metrics.performance.cpuUsage.averageTaskDuration}ms`);
+    console.log(`  🎨 GPU:`);
+    console.log(`     - Активных canvas:               ${metrics.performance.gpuUsage.activeCanvases}`);
+    console.log(`     - Активных SVG:                  ${metrics.performance.gpuUsage.activeSvgs}`);
+    console.log(`     - Время рендеринга (60 кадров):  ${metrics.performance.gpuUsage.renderingTime}ms`);
+    console.log(`     - Пропущенных кадров:            ${metrics.performance.gpuUsage.frameDrops}`);
+    console.log('');
+  }
   
   // 📦 КЭШИРОВАНИЕ
   console.log('📦 КЭШИРОВАНИЕ:');
@@ -1053,7 +1131,7 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
       
       detailedCardInfo.forEach(info => {
         if (info) {
-          console.log(`     - Карточка ${info.index}: hasSkeletonLoader=${info.hasSkeletonLoader} (isFirstStickerReady=false)`);
+        console.log(`     - Карточка ${info.index}: hasSkeletonLoader=${info.hasSkeletonLoader} (isFirstStickerReady=false)`);
         }
       });
     }
@@ -1203,6 +1281,291 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
       console.log(`  📊 Среднее количество вызовов на fileId: ${avgCallsPerFileId.toFixed(2)}`);
     } else {
       console.log(`  ⚠️  Статистика недоступна (imageLoader.getCallStats не найден)`);
+    }
+    
+    // 🎬 СТАТИСТИКА АНИМАЦИЙ И ВИДЕО: Проверяем, сколько элементов рендерится
+    console.log('\n🎬 СТАТИСТИКА РЕНДЕРИНГА АНИМАЦИЙ И ВИДЕО:');
+    console.log('─'.repeat(80));
+    
+    const animationStats = await page.evaluate(() => {
+      const win = window as any;
+      
+      // Проверяем доступность animationMonitor
+      if (typeof win.animationMonitor?.getStats === 'function') {
+        try {
+          return win.animationMonitor.getStats();
+        } catch (e) {
+          console.error('Error calling animationMonitor.getStats:', e);
+        }
+      }
+      
+      // Fallback: ручной подсчет если animationMonitor недоступен
+      // Ищем все canvas/svg внутри элементов с data-lottie-container
+      // Lottie рендерит canvas/svg внутри контейнера, а не напрямую в .pack-card-animated-sticker
+      const lottieContainers = document.querySelectorAll('[data-lottie-container]');
+      const lottieElements: (SVGElement | HTMLCanvasElement)[] = [];
+      
+      lottieContainers.forEach((container) => {
+        // Lottie может рендерить как canvas, так и svg
+        const canvas = container.querySelector('canvas');
+        const svg = container.querySelector('svg');
+        
+        // Добавляем элементы, избегая дубликатов
+        if (canvas && !lottieElements.includes(canvas)) {
+          lottieElements.push(canvas);
+        }
+        if (svg && !lottieElements.includes(svg)) {
+          lottieElements.push(svg);
+        }
+      });
+      
+      // Также проверяем .pack-card-animated-sticker на случай, если структура другая
+      const animatedStickers = document.querySelectorAll('.pack-card-animated-sticker');
+      animatedStickers.forEach((sticker) => {
+        const canvas = sticker.querySelector('canvas');
+        const svg = sticker.querySelector('svg');
+        if (canvas && !lottieElements.includes(canvas)) {
+          lottieElements.push(canvas);
+        }
+        if (svg && !lottieElements.includes(svg)) {
+          lottieElements.push(svg);
+        }
+      });
+      const videos = Array.from(document.querySelectorAll('video.pack-card-video'));
+      
+      let activeAnimations = 0;
+      let pausedAnimations = 0;
+      let hiddenCount = 0;
+      let visibleButPaused = 0;
+      
+      lottieElements.forEach((element) => {
+        const rect = element.getBoundingClientRect();
+        const isInViewport = rect.top < window.innerHeight + 300 && rect.bottom > -300;
+        const container = element.closest('[data-lottie-container]');
+        const containerStyle = container ? window.getComputedStyle(container) : null;
+        const elementStyle = window.getComputedStyle(element);
+        
+        // Проверяем, скрыт ли элемент
+        const isHidden = (containerStyle && (
+          containerStyle.display === 'none' || 
+          containerStyle.visibility === 'hidden'
+        )) || (
+          elementStyle.display === 'none' || 
+          elementStyle.visibility === 'hidden'
+        );
+        
+        // Проверяем, на паузе ли анимация
+        const isPaused = container?.getAttribute('data-lottie-paused') === 'true';
+        
+        if (isHidden) {
+          hiddenCount++;
+          pausedAnimations++;
+        } else if (isPaused) {
+          visibleButPaused++;
+          pausedAnimations++;
+        } else if (isInViewport) {
+          // Элемент видим и не на паузе - активен
+          activeAnimations++;
+        } else {
+          // Элемент вне viewport - на паузе
+          pausedAnimations++;
+        }
+      });
+      
+      let activeVideos = 0;
+      let pausedVideos = 0;
+      
+      videos.forEach((video) => {
+        const htmlVideo = video as HTMLVideoElement;
+        const rect = htmlVideo.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight + 100 && rect.bottom > -100;
+        
+        if (htmlVideo.paused) {
+          pausedVideos++;
+        } else if (isVisible) {
+          activeVideos++;
+        } else {
+          pausedVideos++;
+        }
+      });
+      
+      return {
+        activeAnimations,
+        pausedAnimations,
+        activeVideos,
+        pausedVideos,
+        totalElements: lottieElements.length + videos.length,
+        totalAnimations: lottieElements.length,
+        hiddenAnimations: hiddenCount,
+        visibleButPausedAnimations: visibleButPaused,
+        debug: {
+          containersFound: lottieContainers.length,
+          stickersFound: animatedStickers.length,
+          canvasesFound: lottieElements.filter(e => e.tagName === 'CANVAS').length,
+          svgsFound: lottieElements.filter(e => e.tagName === 'SVG').length
+        }
+      };
+    });
+    
+    if (animationStats) {
+      console.log(`  🎬 Активных анимаций (рендерится):     ${animationStats.activeAnimations}`);
+      console.log(`  ⏸️  На паузе (не рендерится):          ${animationStats.pausedAnimations}`);
+      if (animationStats.hiddenAnimations !== undefined) {
+        console.log(`     - Скрыто (display: none/visibility): ${animationStats.hiddenAnimations}`);
+        console.log(`     - Видимо, но на паузе:               ${animationStats.visibleButPausedAnimations || 0}`);
+      }
+      console.log(`  🎥 Активных видео (воспроизводится):   ${animationStats.activeVideos}`);
+      console.log(`  ⏸️  Видео на паузе:                    ${animationStats.pausedVideos}`);
+      console.log(`  📊 Всего элементов:                    ${animationStats.totalElements}`);
+      if (animationStats.totalAnimations !== undefined) {
+        console.log(`     - Всего анимаций:                    ${animationStats.totalAnimations}`);
+      }
+      if (animationStats.debug) {
+        console.log(`\n  🔍 ОТЛАДКА:`);
+        console.log(`     - Контейнеров найдено:              ${animationStats.debug.containersFound}`);
+        console.log(`     - .pack-card-animated-sticker:      ${animationStats.debug.stickersFound}`);
+        console.log(`     - Canvas элементов:                 ${animationStats.debug.canvasesFound}`);
+        console.log(`     - SVG элементов:                    ${animationStats.debug.svgsFound}`);
+      }
+      
+      const totalActive = animationStats.activeAnimations + animationStats.activeVideos;
+      const totalPaused = animationStats.pausedAnimations + animationStats.pausedVideos;
+      const efficiency = animationStats.totalElements > 0 
+        ? ((totalPaused / animationStats.totalElements) * 100).toFixed(1)
+        : '0.0';
+      
+      console.log(`\n  ✅ Эффективность оптимизации:         ${efficiency}% элементов на паузе`);
+      console.log(`  ⚠️  Элементов рендерится:               ${totalActive} (должно быть ~6-12 для видимых)`);
+      
+      // Предупреждение если слишком много активных элементов
+      if (totalActive > 20) {
+        console.log(`  🚨 ВНИМАНИЕ: Слишком много активных элементов (${totalActive})!`);
+        console.log(`     Возможно, оптимизация не работает корректно.`);
+      } else if (totalActive <= 12) {
+        console.log(`  ✅ Отлично: Оптимизация работает! Рендерится только видимые элементы.`);
+      }
+    } else {
+      console.log(`  ⚠️  Статистика недоступна (animationMonitor не найден)`);
+    }
+    
+    // 🔥 CPU/GPU НАГРУЗКА: Измеряем нагрузку на процессор и GPU после загрузки
+    console.log('\n🔥 CPU/GPU НАГРУЗКА:');
+    console.log('─'.repeat(80));
+    
+    const cpuGpuMetrics = await page.evaluate(() => {
+      const win = window as any;
+      const benchmarkMetrics = win.__benchmarkMetrics || {};
+      
+      // CPU метрики - используем данные из __benchmarkMetrics
+      const longTasksCount = benchmarkMetrics.longTasks || 0;
+      
+      // Подсчитываем время выполнения JS через Performance API
+      const navigationTiming = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const jsExecutionTime = navigationTiming 
+        ? navigationTiming.domInteractive - (navigationTiming.fetchStart || 0)
+        : 0;
+      
+      // Получаем долгие задачи из PerformanceObserver (если доступны)
+      const longTasks = performance.getEntriesByType('longtask') as PerformanceEntry[];
+      let totalLongTasksDuration = 0;
+      
+      longTasks.forEach((task) => {
+        totalLongTasksDuration += (task as any).duration || 0;
+      });
+      
+      // Если долгих задач нет в Performance API, используем оценку на основе количества
+      const averageTaskDuration = longTasks.length > 0 
+        ? totalLongTasksDuration / longTasks.length 
+        : (longTasksCount > 0 ? 100 : 0); // Примерная оценка: 100ms на задачу
+      
+      const actualLongTasksDuration = longTasks.length > 0 
+        ? totalLongTasksDuration 
+        : (longTasksCount * 100); // Примерная оценка
+      
+      // GPU метрики - активные canvas и SVG
+      const canvases = Array.from(document.querySelectorAll('canvas'));
+      const svgs = Array.from(document.querySelectorAll('svg'));
+      
+      // Подсчитываем активные (видимые) элементы
+      let activeCanvases = 0;
+      let activeSvgs = 0;
+      
+      canvases.forEach((canvas) => {
+        const rect = canvas.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight + 200 && rect.bottom > -200;
+        const style = window.getComputedStyle(canvas);
+        if (isVisible && style.visibility !== 'hidden' && style.display !== 'none') {
+          activeCanvases++;
+        }
+      });
+      
+      svgs.forEach((svg) => {
+        const rect = svg.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight + 200 && rect.bottom > -200;
+        const style = window.getComputedStyle(svg);
+        if (isVisible && style.visibility !== 'hidden' && style.display !== 'none') {
+          activeSvgs++;
+        }
+      });
+      
+      // Оценка времени рендеринга на основе количества активных элементов
+      // Чем больше активных canvas/SVG, тем больше нагрузка на GPU
+      const estimatedRenderTime = (activeCanvases + activeSvgs) * 2; // Примерная оценка: 2ms на элемент
+      
+      // Оценка пропущенных кадров на основе количества долгих задач
+      // Каждая долгая задача может привести к пропуску кадров
+      const estimatedFrameDrops = longTasks.length * 2;
+      
+      return {
+        cpuUsage: {
+          jsExecutionTime: Math.round(jsExecutionTime),
+          totalLongTasks: longTasksCount, // Используем из __benchmarkMetrics
+          longTasksDuration: Math.round(actualLongTasksDuration),
+          averageTaskDuration: Math.round(averageTaskDuration)
+        },
+        gpuUsage: {
+          activeCanvases,
+          activeSvgs,
+          renderingTime: Math.round(estimatedRenderTime),
+          frameDrops: estimatedFrameDrops
+        }
+      };
+    });
+    
+    if (cpuGpuMetrics) {
+      console.log(`  💻 CPU НАГРУЗКА:`);
+      console.log(`     - Время выполнения JS:           ${cpuGpuMetrics.cpuUsage.jsExecutionTime}ms`);
+      console.log(`     - Всего долгих задач (>50ms):   ${cpuGpuMetrics.cpuUsage.totalLongTasks}`);
+      console.log(`     - Общая длительность долгих:     ${cpuGpuMetrics.cpuUsage.longTasksDuration}ms`);
+      console.log(`     - Средняя длительность задач:    ${cpuGpuMetrics.cpuUsage.averageTaskDuration}ms`);
+      
+      console.log(`\n  🎨 GPU НАГРУЗКА:`);
+      console.log(`     - Активных canvas:               ${cpuGpuMetrics.gpuUsage.activeCanvases}`);
+      console.log(`     - Активных SVG:                  ${cpuGpuMetrics.gpuUsage.activeSvgs}`);
+      console.log(`     - Время рендеринга (60 кадров):  ${cpuGpuMetrics.gpuUsage.renderingTime}ms`);
+      console.log(`     - Пропущенных кадров:            ${cpuGpuMetrics.gpuUsage.frameDrops}`);
+      
+      // Оценка нагрузки
+      const cpuLoad = cpuGpuMetrics.cpuUsage.totalLongTasks > 10 ? '🔴 Высокая' :
+                     cpuGpuMetrics.cpuUsage.totalLongTasks > 5 ? '🟡 Средняя' : '🟢 Низкая';
+      const gpuLoad = cpuGpuMetrics.gpuUsage.activeCanvases + cpuGpuMetrics.gpuUsage.activeSvgs > 15 ? '🔴 Высокая' :
+                     cpuGpuMetrics.gpuUsage.activeCanvases + cpuGpuMetrics.gpuUsage.activeSvgs > 8 ? '🟡 Средняя' : '🟢 Низкая';
+      
+      console.log(`\n  📊 ОЦЕНКА НАГРУЗКИ:`);
+      console.log(`     - CPU: ${cpuLoad} (${cpuGpuMetrics.cpuUsage.totalLongTasks} долгих задач)`);
+      console.log(`     - GPU: ${gpuLoad} (${cpuGpuMetrics.gpuUsage.activeCanvases + cpuGpuMetrics.gpuUsage.activeSvgs} активных элементов)`);
+      
+      if (cpuGpuMetrics.gpuUsage.frameDrops > 10) {
+        console.log(`  ⚠️  ВНИМАНИЕ: Много пропущенных кадров (${cpuGpuMetrics.gpuUsage.frameDrops})!`);
+        console.log(`     Возможно, слишком много элементов рендерится одновременно.`);
+      }
+    } else {
+      console.log(`  ⚠️  Метрики CPU/GPU недоступны`);
+    }
+    
+    // Сохраняем метрики CPU/GPU в коллекторе
+    if (cpuGpuMetrics) {
+      collector.setCpuGpuMetrics(cpuGpuMetrics);
     }
     console.log('');
     

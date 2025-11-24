@@ -274,13 +274,10 @@ class CacheManager {
         const map = this.syncCache[`${type}s` as 'images' | 'animations' | 'videos'];
         map.delete(fileId);
         
-        // Если это video blob URL, revoke его
-        if (type === 'video' && deleted) {
-          const url = await this.get(fileId, type);
-          if (url && url.startsWith('blob:')) {
-            URL.revokeObjectURL(url);
-          }
-        }
+        // ✅ FIX: Не отзываем blob URL сразу при удалении из кеша
+        // Компоненты могут все еще использовать его, и они обработают ошибку через onError
+        // Blob URL будет автоматически собран сборщиком мусора, когда на него не будет ссылок
+        // Это предотвращает ERR_FILE_NOT_FOUND ошибки
         
         return deleted;
       } catch (error) {
@@ -307,16 +304,10 @@ class CacheManager {
           // Revoke все video blob URLs перед удалением
           if (type === 'video') {
             const cache = await caches.open(cacheName);
-            const keys = await cache.keys();
-            for (const request of keys) {
-              const response = await cache.match(request);
-              if (response) {
-                const url = await response.text();
-                if (url.startsWith('blob:')) {
-                  URL.revokeObjectURL(url);
-                }
-              }
-            }
+            // ✅ FIX: Не отзываем blob URLs при очистке Cache API
+            // Компоненты могут все еще использовать их, и они обработают ошибку через onError
+            // Blob URLs будут автоматически собраны сборщиком мусора
+            // Это предотвращает ERR_FILE_NOT_FOUND ошибки
           }
           
           await caches.delete(cacheName);
@@ -355,12 +346,9 @@ class CacheManager {
     } else {
       this.memoryFallback.images.clear();
       this.memoryFallback.animations.clear();
-      // Revoke video blob URLs
-      for (const url of this.memoryFallback.videos.values()) {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      }
+      // ✅ FIX: Не отзываем blob URLs при очистке - компоненты могут все еще использовать их
+      // Blob URLs будут автоматически собраны сборщиком мусора, когда на них не будет ссылок
+      // Это предотвращает ERR_FILE_NOT_FOUND ошибки
       this.memoryFallback.videos.clear();
     }
   }

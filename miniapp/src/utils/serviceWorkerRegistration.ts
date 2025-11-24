@@ -13,8 +13,10 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
   try {
     // Регистрируем Service Worker
+    // ✅ FIX: Используем scope '/' с заголовком Service-Worker-Allowed
+    // Заголовок позволяет Service Worker контролировать весь сайт, даже если скрипт в /miniapp/
     const registration = await navigator.serviceWorker.register('/miniapp/sw.js', {
-      scope: '/'
+      scope: '/' // Теперь работает благодаря заголовку Service-Worker-Allowed
     });
 
     if (isDev) {

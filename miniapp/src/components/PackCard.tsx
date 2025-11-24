@@ -55,6 +55,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   
   const [isHovered, setIsHovered] = useState(false);
   const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
   
   // Получаем роль пользователя для отладочной информации
   const userInfo = useProfileStore(state => state.userInfo);
@@ -184,6 +185,44 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     // Теперь загружаем ОДИН РАЗ при монтировании
   }, [pack.id, pack.previewStickers]);
 
+  // 🔥 ПАУЗА ВИДЕО ВНЕ VIEWPORT: Останавливаем рендеринг видео для экономии ресурсов
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!video) return;
+        
+        // Не возобновляем если модальное окно открыто
+        if (document.body.classList.contains('modal-open')) {
+          video.pause();
+          return;
+        }
+        
+        if (!entry.isIntersecting) {
+          // Паузим видео вне viewport
+          video.pause();
+        } else {
+          // Возобновляем воспроизведение в viewport
+          video.play().catch((err) => {
+            console.warn('Video play failed:', err);
+          });
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '100px' // Останавливаем за 100px до выхода из viewport
+      }
+    );
+
+    observer.observe(video);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [pack.id]); // Зависимость от pack.id для пересоздания при смене карточки
+
   // Используем хук для управления ротацией стикеров
   // 🔥 НОВАЯ ЛОГИКА: Приоритет для следующего стикера в ротации
   const rotationLoadPriority = isInViewport
@@ -294,12 +333,43 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 />
               ) : activeSticker.isVideo ? (
                 <video
+                  ref={videoRef}
                   src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
                   className="pack-card-video"
                   autoPlay
                   loop
                   muted
                   playsInline
+                  onError={(e) => {
+                    // ✅ FIX: Если blob URL недействителен, загружаем заново
+                    const video = e.currentTarget;
+                    const blobUrl = videoBlobCache.get(activeSticker.fileId);
+                    if (blobUrl && blobUrl.startsWith('blob:')) {
+                      // Blob URL недействителен - удаляем из кеша и загружаем заново
+                      console.warn(`[PackCard] Invalid blob URL for video ${activeSticker.fileId}, reloading...`);
+                      videoBlobCache.delete(activeSticker.fileId).catch(() => {});
+                      // Загружаем через imageLoader заново
+                      imageLoader.loadVideo(
+                        activeSticker.fileId,
+                        activeSticker.url,
+                        isInViewport ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT
+                      ).then(() => {
+                        // После загрузки обновляем src
+                        const newBlobUrl = videoBlobCache.get(activeSticker.fileId);
+                        if (newBlobUrl && video) {
+                          video.src = newBlobUrl;
+                        }
+                      }).catch(() => {
+                        // Если загрузка не удалась, используем оригинальный URL
+                        if (video) {
+                          video.src = activeSticker.url;
+                        }
+                      });
+                    } else {
+                      // Если это не blob URL или его нет, используем оригинальный URL
+                      video.src = activeSticker.url;
+                    }
+                  }}
                   style={{
                     width: '100%',
                     height: '100%',
