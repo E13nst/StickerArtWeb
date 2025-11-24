@@ -1358,28 +1358,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         />
       )}
       
-      {/* Крестик закрытия */}
-      {isModal && (
-        <IconButton
-          onClick={onBack}
-          sx={{
-            position: 'absolute',
-            top: '5px',
-            right: '5px',
-            zIndex: 10,
-            width: 26,
-            height: 26,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            color: 'white',
-            '&:hover': {
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            },
-          }}
-        >
-          <CloseIcon sx={{ fontSize: '16px' }} />
-        </IconButton>
-      )}
-      
       {/* Название и автор вверху */}
       <Box sx={{ 
         width: '92vw',
