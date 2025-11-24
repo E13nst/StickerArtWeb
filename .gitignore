@@ -23,8 +23,14 @@ npm-debug.log*
 coverage/
 test-results/
 test-results-prod/
+**/test-results/
+**/test-results/**/*
 playwright-report/
 playwright-report-prod/
+**/playwright-report/
+**/playwright-report/**/*
+*.test-results.json
+*.test-results.xml
 
 # Temp
 .cache/
