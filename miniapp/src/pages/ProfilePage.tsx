@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Container, 
   Box,
   Alert,
   Typography,
@@ -29,6 +28,7 @@ import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { useStickerFeed } from '@/hooks/useStickerFeed';
 import { useScrollElement } from '@/contexts/ScrollContext';
+import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -425,7 +425,7 @@ export const ProfilePage: React.FC = () => {
         backgroundColor: 'var(--tg-theme-bg-color)',
         color: 'var(--tg-theme-text-color)'
       }}>
-        <Container maxWidth="lg" sx={{ py: 2 }}>
+        <StixlyPageContainer sx={{ py: 2 }}>
           <Alert severity="error" sx={{ 
             mb: 2,
             backgroundColor: 'var(--tg-theme-secondary-bg-color)',
@@ -440,7 +440,7 @@ export const ProfilePage: React.FC = () => {
             actionLabel="Вернуться на главную"
             onAction={() => navigate('/')}
           />
-        </Container>
+        </StixlyPageContainer>
       </Box>
     );
   }
@@ -495,7 +495,7 @@ export const ProfilePage: React.FC = () => {
       />
 
       {/* Карточка профиля под аватаром (как в MyProfile) */}
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
+      <StixlyPageContainer sx={{ mt: 0 }}>
         {isUserLoading ? (
           <LoadingSpinner message="Загрузка профиля..." />
         ) : userInfo ? (
@@ -579,10 +579,10 @@ export const ProfilePage: React.FC = () => {
             isInTelegramApp={isInTelegramApp}
           />
         )}
-      </Container>
+      </StixlyPageContainer>
 
       {/* Прокручиваемый контент */}
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2 }}>
+      <StixlyPageContainer>
         {viewMode === 'list' ? (
           <>
 
@@ -677,7 +677,7 @@ export const ProfilePage: React.FC = () => {
             </TabPanel>
           </>
         ) : null}
-      </Container>
+      </StixlyPageContainer>
 
       {/* Debug панель */}
       {initData && <DebugPanel initData={initData} />}

@@ -466,17 +466,18 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
             -webkit-overflow-scrolling: touch;
           }
         `}</style>
-        <div
-          ref={containerRef}
-          className={isPageScroll ? "simpleGallery simpleGallery--pageScroll" : "simpleGallery simpleGallery--innerScroll gallery-scroll"}
-          data-testid="gallery-container"
-          style={{ 
-            width: '100%', 
-            flex: '1 1 auto', 
-            minHeight: 0,
-            ...(isPageScroll ? {} : {})
-          }}
-        >
+        <div className="stixly-content-600">
+          <div
+            ref={containerRef}
+            className={isPageScroll ? "simpleGallery simpleGallery--pageScroll" : "simpleGallery simpleGallery--innerScroll gallery-scroll"}
+            data-testid="gallery-container"
+            style={{ 
+              width: '100%', 
+              flex: '1 1 auto', 
+              minHeight: 0,
+              ...(isPageScroll ? {} : {})
+            }}
+          >
         {renderOverlay}
         {isRefreshing && <LoadingSpinner message="Обновление..." />}
         {showEmptyState ? (
@@ -495,7 +496,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
             />
           </div>
         )}
-      </div>
+          </div>
+        </div>
     </>
     );
   }
@@ -536,20 +538,21 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           max-height: none;
         }
       `}</style>
-      <div
-        ref={containerRef}
-        onScroll={isPageScroll ? undefined : handleScroll}
-        className={isPageScroll ? "simpleGallery simpleGallery--pageScroll" : "simpleGallery simpleGallery--innerScroll gallery-scroll"}
-        style={{
-          width: '100%',
-          flex: '1 1 auto',
-          minHeight: 0,
-          position: 'relative',
-          // Add padding top for fixed header (140px) + controls bar (~60px) = 200px
-          paddingTop: isPageScroll ? undefined : '200px'
-        }}
-        data-testid="gallery-container"
-      >
+      <div className="stixly-content-600">
+        <div
+          ref={containerRef}
+          onScroll={isPageScroll ? undefined : handleScroll}
+          className={isPageScroll ? "simpleGallery simpleGallery--pageScroll" : "simpleGallery simpleGallery--innerScroll gallery-scroll"}
+          style={{
+            width: '100%',
+            flex: '1 1 auto',
+            minHeight: 0,
+            position: 'relative',
+            // Add padding top for fixed header (140px) + controls bar (~60px) = 200px
+            paddingTop: isPageScroll ? undefined : '200px'
+          }}
+          data-testid="gallery-container"
+        >
         {renderOverlay}
         {isRefreshing && <LoadingSpinner message="Обновление..." />}
         {showEmptyState ? (
@@ -930,7 +933,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
           )}
         </div>
       )}
-    </div>
+        </div>
+      </div>
     </>
   );
 };

@@ -147,9 +147,11 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
       style={{
         position: 'fixed',
         top: 'var(--stixly-header-height)',
-        left: 0,
-        right: 0,
-        transform: isHidden ? 'translateY(-100%)' : 'translateY(0)',
+        left: '50%',
+        right: 'auto',
+        width: '100%',
+        maxWidth: '600px', // узкий лейаут для основного контента
+        transform: isHidden ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
         transition: 'transform 0.3s ease-out',
         zIndex: 998,
         backgroundColor: bgColor,

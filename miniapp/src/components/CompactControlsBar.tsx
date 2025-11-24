@@ -235,13 +235,17 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
       style={{
         position: isFixed ? 'fixed' : 'relative',
         top: isFixed ? 'var(--stixly-header-height, 0px)' : 'auto',
-        left: isFixed ? 0 : 'auto',
-        right: isFixed ? 0 : 'auto',
+        left: isFixed ? '50%' : 'auto',
+        right: isFixed ? 'auto' : 'auto',
+        width: isFixed ? '100%' : 'auto',
+        maxWidth: isFixed ? '600px' : 'none', // узкий лейаут для основного контента
+        transform: isFixed ? 'translateX(-50%)' : 'none',
         zIndex: isFixed ? 1001 : 1001, // Выше карточек (z-index: 10) и табов (z-index: 998)
         backgroundColor: 'transparent',
-        padding: '0.5rem 0.618rem',
+        padding: 0,
       }}
     >
+      <div className="compact-controls-bar-inner">
       {/* Main controls row */}
       <Box
         sx={{
@@ -597,6 +601,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
           }
         }
       `}</style>
+      </div>
     </div>
   );
 };

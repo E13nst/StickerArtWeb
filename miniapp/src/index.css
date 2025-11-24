@@ -463,6 +463,14 @@ a {
   opacity: 1;
 }
 
+/* Общий класс для ограничения ширины контента до 600px */
+.stixly-content-600 {
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 /* Анимированные стикеры в слайдшоу */
 .slideshow-animated-sticker {
   width: 100%;

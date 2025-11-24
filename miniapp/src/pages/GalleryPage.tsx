@@ -25,6 +25,7 @@ import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
 import { CompactControlsBar } from '../components/CompactControlsBar';
 import { StickerSetType } from '../components/StickerSetTypeFilter';
 import { useScrollElement } from '../contexts/ScrollContext';
+import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -579,43 +580,45 @@ export const GalleryPage: React.FC = () => {
       )}
 
       {/* Content */}
-      {isInitialLoading ? (
-        <LoadingSpinner message="Загрузка стикеров..." />
-      ) : error ? (
-        <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
-      ) : filteredStickerSets.length === 0 ? (
-        <EmptyState
-          title="🎨 Стикеры не найдены"
-          message={
-            selectedCategories.length > 0 
-              ? `Нет стикеров с выбранными категориями. Попробуйте снять фильтр или выбрать другие категории.`
-              : searchTerm 
-                ? 'По вашему запросу ничего не найдено' 
-                : 'У вас пока нет созданных наборов стикеров'
-          }
-          actionLabel={selectedCategories.length > 0 ? undefined : "Создать стикер"}
-          onAction={selectedCategories.length > 0 ? undefined : () => {
-            if (tg) {
-              tg.openTelegramLink('https://t.me/StickerGalleryBot');
+      <StixlyPageContainer>
+        {isInitialLoading ? (
+          <LoadingSpinner message="Загрузка стикеров..." />
+        ) : error ? (
+          <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+        ) : filteredStickerSets.length === 0 ? (
+          <EmptyState
+            title="🎨 Стикеры не найдены"
+            message={
+              selectedCategories.length > 0 
+                ? `Нет стикеров с выбранными категориями. Попробуйте снять фильтр или выбрать другие категории.`
+                : searchTerm 
+                  ? 'По вашему запросу ничего не найдено' 
+                  : 'У вас пока нет созданных наборов стикеров'
             }
-          }}
-        />
-      ) : (
-        <div className="fade-in">
-          <SimpleGallery
-            packs={galleryPacks}
-            onPackClick={handleViewStickerSet}
-            hasNextPage={currentPage < totalPages - 1}
-            isLoadingMore={isLoadingMore}
-            onLoadMore={loadMoreStickerSets}
-            enablePreloading={true}
-            isRefreshing={isRefreshing}
-            scrollMode="page"
-            externalScrollElement={scrollElement}
-            needsControlsBarOffset={true}
+            actionLabel={selectedCategories.length > 0 ? undefined : "Создать стикер"}
+            onAction={selectedCategories.length > 0 ? undefined : () => {
+              if (tg) {
+                tg.openTelegramLink('https://t.me/StickerGalleryBot');
+              }
+            }}
           />
-        </div>
-      )}
+        ) : (
+          <div className="fade-in">
+            <SimpleGallery
+              packs={galleryPacks}
+              onPackClick={handleViewStickerSet}
+              hasNextPage={currentPage < totalPages - 1}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={loadMoreStickerSets}
+              enablePreloading={true}
+              isRefreshing={isRefreshing}
+              scrollMode="page"
+              externalScrollElement={scrollElement}
+              needsControlsBarOffset={true}
+            />
+          </div>
+        )}
+      </StixlyPageContainer>
       <DebugPanel initData={initData} />
       <UploadStickerPackModal
         open={isUploadModalOpen}

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Container, 
   Box,
   Alert,
   Button,
@@ -35,6 +34,7 @@ import { CompactControlsBar } from '@/components/CompactControlsBar';
 import { StickerSetsTabs } from '@/components/StickerSetsTabs';
 import { Category } from '@/components/CategoryFilter';
 import { useScrollElement } from '@/contexts/ScrollContext';
+import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -862,7 +862,7 @@ export const MyProfilePage: React.FC = () => {
         backgroundColor: 'var(--tg-theme-bg-color)',
         color: 'var(--tg-theme-text-color)'
       }}>
-        <Container maxWidth="lg" sx={{ py: 2 }}>
+        <StixlyPageContainer sx={{ py: 2 }}>
           <Alert severity="error" sx={{ 
             mb: 2,
             backgroundColor: 'var(--tg-theme-secondary-bg-color)',
@@ -877,7 +877,7 @@ export const MyProfilePage: React.FC = () => {
             actionLabel="Вернуться на главную"
             onAction={() => navigate('/')}
           />
-        </Container>
+        </StixlyPageContainer>
       </Box>
     );
   }
@@ -948,8 +948,10 @@ export const MyProfilePage: React.FC = () => {
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative'
+              justifyContent: 'flex-end',
+              position: 'relative',
+              paddingBottom: '80px', // Отступ для аватарки, чтобы она не выходила за верхний край
+              overflow: 'visible'
             }}>
               {/* Аватар с overlap - наполовину на header */}
               <Box sx={{ 
@@ -957,7 +959,11 @@ export const MyProfilePage: React.FC = () => {
                 bottom: 0,
                 left: '50%',
                 transform: 'translate(-50%, 50%)',
-                zIndex: 20
+                zIndex: 20,
+                width: '100%',
+                maxWidth: '600px', // Ограничиваем ширину аватарки до 600px
+                display: 'flex',
+                justifyContent: 'center'
               }}>
                 <FloatingAvatar userInfo={userInfoWithAvatar || userInfo} size="large" overlap={0} />
               </Box>
@@ -968,7 +974,7 @@ export const MyProfilePage: React.FC = () => {
       />
 
       {/* Карточка с достижениями под аватаром */}
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, mt: 0 }}>
+      <StixlyPageContainer sx={{ mt: 0 }}>
         {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
         {!isUserLoading && userError && !userInfo && (
           <Box sx={{ 
@@ -1091,10 +1097,10 @@ export const MyProfilePage: React.FC = () => {
             isInTelegramApp={isInTelegramApp}
           />
         )}
-      </Container>
+      </StixlyPageContainer>
 
       {/* Прокручиваемый контент */}
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, pb: 2 }}>
+      <StixlyPageContainer>
         <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
@@ -1286,7 +1292,7 @@ export const MyProfilePage: React.FC = () => {
               </Box>
             </TabPanel>
         </>
-      </Container>
+      </StixlyPageContainer>
 
       {/* Нижняя навигация */}
       {/* Модалка деталей стикерсета */}

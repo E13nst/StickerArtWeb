@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Box, Typography, Card, CardContent, Alert } from '@mui/material';
+import { Box, Typography, Card, CardContent, Alert } from '@mui/material';
 import StixlyTopHeader from '../components/StixlyTopHeader';
 import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -16,6 +16,7 @@ import { SearchBar } from '../components/SearchBar';
 import { SortButton } from '../components/SortButton';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { useScrollElement } from '../contexts/ScrollContext';
+import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 
 type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
@@ -462,8 +463,10 @@ export const AuthorPage: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative'
+                justifyContent: 'flex-end',
+                position: 'relative',
+                paddingBottom: '80px', // Отступ для аватарки, чтобы она не выходила за верхний край
+                overflow: 'visible'
               }}
             >
               <Box
@@ -472,7 +475,11 @@ export const AuthorPage: React.FC = () => {
                   bottom: 0,
                   left: '50%',
                   transform: 'translate(-50%, 50%)',
-                  zIndex: 20
+                  zIndex: 20,
+                  width: '100%',
+                  maxWidth: '600px', // Ограничиваем ширину аватарки до 600px
+                  display: 'flex',
+                  justifyContent: 'center'
                 }}
               >
                 <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
@@ -482,7 +489,7 @@ export const AuthorPage: React.FC = () => {
         }}
       />
 
-      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2, mt: 0 }}>
+      <StixlyPageContainer sx={{ mt: 0 }}>
         {profileError && (
           <Alert
             severity="error"
@@ -545,9 +552,9 @@ export const AuthorPage: React.FC = () => {
             </CardContent>
           </Card>
         ) : null}
-      </Container>
+      </StixlyPageContainer>
 
-      <Container maxWidth={isInTelegramApp ? 'sm' : 'lg'} sx={{ px: 2 }}>
+      <StixlyPageContainer>
         {setsError && !isSetsLoading && !isLoadingMore && (
           <Alert
             severity="error"
@@ -614,7 +621,7 @@ export const AuthorPage: React.FC = () => {
             />
           </div>
         )}
-      </Container>
+      </StixlyPageContainer>
 
       <StickerPackModal
         open={isModalOpen}

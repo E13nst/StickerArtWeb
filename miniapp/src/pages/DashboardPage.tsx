@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Container, Box, Typography, Grid, Card, CardContent, Skeleton, Button } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Skeleton, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useStickerStore } from '@/store/useStickerStore';
@@ -13,6 +13,7 @@ import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { StickerSetResponse } from '@/types/sticker';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
+import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 
 interface DashboardStats {
   totalStickerPacks: number; // Всего стикерпаков в базе
@@ -338,7 +339,7 @@ export const DashboardPage: React.FC = () => {
       color: 'var(--tg-theme-text-color, #000000)',
       paddingBottom: 0
     }}>
-      <Container maxWidth={isInTelegramApp ? "sm" : "lg"} sx={{ px: 2, py: 3 }}>
+      <StixlyPageContainer sx={{ py: 3 }}>
         {isLoading ? (
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
@@ -645,7 +646,7 @@ export const DashboardPage: React.FC = () => {
             </Typography>
           </Box>
         )}
-      </Container>
+      </StixlyPageContainer>
 
       {/* Модалка деталей стикерсета */}
       <StickerPackModal

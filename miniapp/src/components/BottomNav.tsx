@@ -84,8 +84,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       sx={{ 
         position: 'fixed', 
         bottom: 'calc(100vh * 0.024)', // ~2.4% отступ снизу (гармоничное значение)
-        left: 'calc(100vw * 0.118)', // 11.8% отступ слева (для ширины 76.4%)
-        right: 'calc(100vw * 0.118)', // 11.8% отступ справа (для ширины 76.4%)
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '600px', // узкий лейаут для основного контента
         zIndex: 1000,
         overflow: 'hidden', // Обрезаем анимацию, выходящую за края
         // Фоллбэк для старых браузеров

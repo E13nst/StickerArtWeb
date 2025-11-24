@@ -504,6 +504,8 @@ export default function StixlyTopHeader({
       style={{
         position: "relative",
         width: "100%",
+        maxWidth: "600px", // ограничиваем фон до 600px
+        margin: "0 auto", // центрируем
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         maxHeight: "140px",
         zIndex: 1,
@@ -516,6 +518,7 @@ export default function StixlyTopHeader({
           : activeProfileMode.backgroundColor,
         backgroundRepeat: profilePatternUrl ? 'repeat, repeat' : 'no-repeat',
         backgroundSize: profilePatternUrl ? 'auto, auto' : 'cover',
+        boxSizing: "border-box",
       }}
     >
       {/* Контент профиля */}
@@ -523,14 +526,20 @@ export default function StixlyTopHeader({
         <div
           style={{
             position: "absolute",
-            inset: 0,
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             paddingTop: "50px", // отступ для кнопок Telegram MiniApps
-            paddingLeft: "calc(100vw * 0.05)",
-            paddingRight: "calc(100vw * 0.05)",
+            paddingLeft: "16px",
+            paddingRight: "16px",
             paddingBottom: "calc(100vw * 0.05)",
+            maxWidth: "600px",
+            margin: "0 auto",
+            boxSizing: "border-box",
           }}
         >
           {activeProfileMode.content}
@@ -542,6 +551,8 @@ export default function StixlyTopHeader({
       style={{
         position: "relative",
         width: "100%",
+        maxWidth: "600px", // ограничиваем фон до 600px
+        margin: "0 auto", // центрируем
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         maxHeight: "140px",
         zIndex: 1,
@@ -549,6 +560,7 @@ export default function StixlyTopHeader({
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
         borderBottomRightRadius: "calc(100vw * 0.038)",
         pointerEvents: "auto", // разрешаем взаимодействия для кнопки
+        boxSizing: "border-box",
       }}
     >
       {/* Статичный голубой градиент */}
@@ -560,7 +572,7 @@ export default function StixlyTopHeader({
         }}
       />
 
-      <div style={{ position: "absolute", inset: 0 }}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, maxWidth: "600px", margin: "0 auto" }}>
         <AnimatePresence initial={false}>
           <motion.div
             key={`content-${current.id}`}
@@ -877,8 +889,10 @@ export default function StixlyTopHeader({
 
   return (
     <header id="stixlytopheader" className="stixly-top-header">
-      {headerContent}
-      {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
+      <div className="stixly-top-header-inner">
+        {headerContent}
+        {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
+      </div>
     </header>
   );
 }

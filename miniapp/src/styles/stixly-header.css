@@ -158,6 +158,24 @@ header.stixlytopheader > .stixly-top-header > * {
   }
 }
 
+/* Inner wrapper for header content - ограничивает ширину на широких экранах */
+.stixly-top-header-inner {
+  width: 100%;
+  max-width: 600px; /* узкий лейаут для основного контента */
+  margin: 0 auto;
+  padding: 0 16px; /* чтобы на широких экранах не липло к краям */
+  box-sizing: border-box;
+}
+
+/* Inner wrapper for CompactControlsBar - ограничивает ширину на широких экранах */
+.compact-controls-bar-inner {
+  width: 100%;
+  max-width: 600px; /* узкий лейаут для основного контента */
+  margin: 0 auto;
+  padding: 0.5rem 0.618rem;
+  box-sizing: border-box;
+}
+
 /* Hide topheader on iOS if it exists (stixlytopheader should be used instead) */
 .ios .topheader,
 .platform-ios .topheader,
