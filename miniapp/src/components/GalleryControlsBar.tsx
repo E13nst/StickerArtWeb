@@ -141,7 +141,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
       className={`gallery-controls-bar ${isHidden ? 'gallery-controls-bar--hidden' : ''}`}
       style={{
         position: 'fixed',
-        top: 'calc(var(--stixly-header-height) + env(safe-area-inset-top))',
+        top: 'var(--stixly-header-height)',
         left: 0,
         right: 0,
         transform: isHidden ? 'translateY(-100%)' : 'translateY(0)',

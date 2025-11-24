@@ -500,14 +500,12 @@ export default function StixlyTopHeader({
 
   const headerContent = isProfileMode && activeProfileMode ? (
     <div
-      className="stixly-top-header stixly-top-header--profile"
+      className="stixly-top-header--profile"
       style={{
         position: "relative",
         width: "100%",
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
-        minHeight: "100px",
         maxHeight: "140px",
-        paddingTop: "env(safe-area-inset-top)", // Заходим в safe area на iOS
         zIndex: 1,
         overflow: "visible",
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
@@ -541,14 +539,11 @@ export default function StixlyTopHeader({
     </div>
   ) : (
     <div
-      className="stixly-top-header"
       style={{
         position: "relative",
         width: "100%",
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
-        minHeight: "100px",
         maxHeight: "140px",
-        paddingTop: "env(safe-area-inset-top)", // Заходим в safe area на iOS
         zIndex: 1,
         overflow: "hidden",
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
@@ -795,34 +790,6 @@ export default function StixlyTopHeader({
     ? activeProfileMode.backgroundColor
     : current.bg;
 
-  // Helper function to get safe area inset top value
-  const getSafeAreaTop = (): number => {
-    try {
-      // Create a temporary element to measure safe area
-      const testElement = document.createElement('div');
-      testElement.style.position = 'fixed';
-      testElement.style.top = '0';
-      testElement.style.left = '0';
-      testElement.style.width = '1px';
-      testElement.style.height = '1px';
-      testElement.style.paddingTop = 'env(safe-area-inset-top)';
-      testElement.style.visibility = 'hidden';
-      testElement.style.pointerEvents = 'none';
-      document.body.appendChild(testElement);
-      
-      const computedStyle = window.getComputedStyle(testElement);
-      const safeAreaValue = computedStyle.paddingTop;
-      document.body.removeChild(testElement);
-      
-      // Parse the value (e.g., "44px" -> 44)
-      const numericValue = parseFloat(safeAreaValue);
-      return isNaN(numericValue) ? 0 : numericValue;
-    } catch (error) {
-      console.warn('Failed to get safe area inset top:', error);
-      return 0;
-    }
-  };
-
   // Helper function to get viewport height (with fallback)
   const getViewportHeight = (): number => {
     // Check for official Telegram viewport CSS variables first
@@ -848,12 +815,11 @@ export default function StixlyTopHeader({
   useEffect(() => {
     const updateHeaderHeight = () => {
       const headerElement = document.querySelector('.stixly-top-header');
-      if (headerElement) {
-        const height = headerElement.getBoundingClientRect().height;
-        const safeAreaTop = getSafeAreaTop();
-        const totalHeight = height + safeAreaTop;
-        document.documentElement.style.setProperty('--stixly-header-height', `${totalHeight}px`);
-      }
+      if (!headerElement) return;
+      
+      const height = headerElement.getBoundingClientRect().height;
+      // height уже включает paddingTop с env(safe-area-inset-top)
+      document.documentElement.style.setProperty('--stixly-header-height', `${height}px`);
       
       // Update viewport height CSS variable (with fallback support)
       const viewportHeight = getViewportHeight();
@@ -889,10 +855,10 @@ export default function StixlyTopHeader({
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <header id="stixlytopheader" className="stixly-top-header" style={{ position: "relative", width: "100%" }}>
       {headerContent}
       {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
-    </div>
+    </header>
   );
 }
 
