@@ -846,6 +846,15 @@ export default function StixlyTopHeader({
 
     updateHeaderHeight();
     window.addEventListener('resize', updateHeaderHeight);
+    
+    // Подписка на кастомное событие изменения safe area insets
+    const safeAreaInsetsChangedHandler = () => {
+      // Небольшая задержка для гарантии применения CSS
+      requestAnimationFrame(() => {
+        updateHeaderHeight();
+      });
+    };
+    window.addEventListener('safeAreaInsetsChanged', safeAreaInsetsChangedHandler);
 
     // Подписка на событие viewportChanged от Telegram WebApp для iOS safe area
     const webApp = window.Telegram?.WebApp;
@@ -859,6 +868,7 @@ export default function StixlyTopHeader({
 
     return () => {
       window.removeEventListener('resize', updateHeaderHeight);
+      window.removeEventListener('safeAreaInsetsChanged', safeAreaInsetsChangedHandler);
       if (webApp && typeof webApp.offEvent === 'function') {
         webApp.offEvent('viewportChanged', viewportChangedHandler);
       }

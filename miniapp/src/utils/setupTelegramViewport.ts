@@ -41,6 +41,61 @@ function isRequestFullscreenAvailable(webApp: any): boolean {
 }
 
 /**
+ * Применяет safe area insets из Telegram WebApp к CSS-переменным
+ * 
+ * @param webApp - Экземпляр Telegram WebApp
+ */
+function applySafeAreaInsets(webApp: any): void {
+  try {
+    const safe = webApp?.safeAreaInset;
+    const contentSafe = webApp?.contentSafeAreaInset;
+
+    if (safe) {
+      document.documentElement.style.setProperty('--tg-safe-area-inset-top', `${safe.top}px`);
+      document.documentElement.style.setProperty('--tg-safe-area-inset-right', `${safe.right}px`);
+      document.documentElement.style.setProperty('--tg-safe-area-inset-bottom', `${safe.bottom}px`);
+      document.documentElement.style.setProperty('--tg-safe-area-inset-left', `${safe.left}px`);
+      
+      if (import.meta.env.DEV) {
+        console.log('[TMA Safe Area] Применены safeAreaInset:', safe);
+      }
+    }
+
+    if (contentSafe) {
+      document.documentElement.style.setProperty('--tg-content-safe-area-inset-top', `${contentSafe.top}px`);
+      document.documentElement.style.setProperty('--tg-content-safe-area-inset-right', `${contentSafe.right}px`);
+      document.documentElement.style.setProperty('--tg-content-safe-area-inset-bottom', `${contentSafe.bottom}px`);
+      document.documentElement.style.setProperty('--tg-content-safe-area-inset-left', `${contentSafe.left}px`);
+      
+      if (import.meta.env.DEV) {
+        console.log('[TMA Safe Area] Применены contentSafeAreaInset:', contentSafe);
+      }
+    }
+
+    // Если safe area insets недоступны, переменные остаются не установленными
+    // CSS будет использовать fallback на 0px
+    if (!safe && !contentSafe && import.meta.env.DEV) {
+      console.log('[TMA Safe Area] safeAreaInset и contentSafeAreaInset недоступны (старый клиент)');
+    }
+
+    // Вызываем обновление высоты header после применения safe area
+    // Используем requestAnimationFrame для синхронизации с CSS
+    requestAnimationFrame(() => {
+      // Двойной RAF для гарантии применения CSS
+      requestAnimationFrame(() => {
+        // Триггерим resize событие для обновления высоты header
+        window.dispatchEvent(new Event('resize'));
+        // Также триггерим кастомное событие для более явного контроля
+        window.dispatchEvent(new CustomEvent('safeAreaInsetsChanged'));
+      });
+    });
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.warn('[TMA Safe Area] Ошибка при применении safe area insets:', errorMessage);
+  }
+}
+
+/**
  * Безопасно вызывает requestFullscreen() на мобильных устройствах
  * 
  * @param webApp - Экземпляр Telegram WebApp
@@ -180,7 +235,10 @@ export async function setupTelegramViewportSafe(): Promise<void> {
         }
       }
 
-      // 5. Подписываемся на события fullscreen для отслеживания изменений
+      // 5. Применяем safe area insets после expand()/requestFullscreen()
+      applySafeAreaInsets(webApp);
+
+      // 6. Подписываемся на события fullscreen для отслеживания изменений
       // Убрано: viewportChanged handler с expand() - expand() вызывается только при инициализации
       if (typeof webApp.onEvent === "function") {
         // Подписываемся на события fullscreen для отслеживания изменений
@@ -235,6 +293,60 @@ export async function setupTelegramViewportSafe(): Promise<void> {
             // Событие может быть недоступно, это нормально
             if (import.meta.env.DEV) {
               console.log(`[TMA Viewport] Событие ${eventName} недоступно`);
+            }
+          }
+        }
+      }
+
+      // 7. Подписываемся на события safe area для отслеживания изменений
+      if (typeof webApp.onEvent === "function") {
+        const safeAreaChangedEvents = ["safeAreaChanged", "safe_area_changed"];
+        const contentSafeAreaChangedEvents = ["contentSafeAreaChanged", "content_safe_area_changed"];
+
+        // Обработчик для safeAreaChanged
+        const handleSafeAreaChanged = () => {
+          applySafeAreaInsets(webApp);
+          if (import.meta.env.DEV) {
+            console.log("[TMA Safe Area] safeAreaChanged событие получено");
+          }
+        };
+
+        // Обработчик для contentSafeAreaChanged
+        const handleContentSafeAreaChanged = () => {
+          applySafeAreaInsets(webApp);
+          if (import.meta.env.DEV) {
+            console.log("[TMA Safe Area] contentSafeAreaChanged событие получено");
+          }
+        };
+
+        // Подписываемся на события safeAreaChanged (пробуем оба варианта)
+        for (const eventName of safeAreaChangedEvents) {
+          try {
+            webApp.onEvent(eventName, handleSafeAreaChanged);
+            if (import.meta.env.DEV) {
+              console.log(`[TMA Safe Area] Подписка на событие ${eventName} установлена`);
+            }
+            break; // Если успешно подписались, не пробуем другие варианты
+          } catch (e) {
+            // Событие может быть недоступно, это нормально
+            if (import.meta.env.DEV) {
+              console.log(`[TMA Safe Area] Событие ${eventName} недоступно`);
+            }
+          }
+        }
+
+        // Подписываемся на события contentSafeAreaChanged (пробуем оба варианта)
+        for (const eventName of contentSafeAreaChangedEvents) {
+          try {
+            webApp.onEvent(eventName, handleContentSafeAreaChanged);
+            if (import.meta.env.DEV) {
+              console.log(`[TMA Safe Area] Подписка на событие ${eventName} установлена`);
+            }
+            break; // Если успешно подписались, не пробуем другие варианты
+          } catch (e) {
+            // Событие может быть недоступно, это нормально
+            if (import.meta.env.DEV) {
+              console.log(`[TMA Safe Area] Событие ${eventName} недоступно`);
             }
           }
         }

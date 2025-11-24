@@ -69,7 +69,10 @@ export default function MainLayout({ children }: Props) {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        overflow: isNftSoonPage ? 'hidden' : 'visible'
+        overflow: isNftSoonPage ? 'hidden' : 'visible',
+        // Гарантируем, что header не обрезается этим контейнером
+        overflowX: 'hidden',
+        overflowY: 'visible'
       }}
     >
       {isHeaderVisible && (

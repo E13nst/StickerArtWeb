@@ -30,11 +30,19 @@ header.stixlytopheader,
   width: 100% !important;
   z-index: 999 !important; /* above content */
   
-  /* extend into the iPhone notch area */
-  padding-top: env(safe-area-inset-top) !important;
+  /* extend into the iPhone notch area using Telegram safe area insets */
+  /* Fallback to env() for old clients without Telegram safe area insets */
+  padding-top: calc(
+    var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+    var(--tg-content-safe-area-inset-top, 0px)
+  ) !important;
   
   /* background will be handled by inner elements */
   background: transparent !important;
+  
+  /* Гарантируем, что header всегда виден и не обрезается родителями */
+  transform: none !important;
+  will-change: auto !important;
 }
 
 /* Inner header content divs - these keep relative positioning but inherit safe area padding */
@@ -120,7 +128,10 @@ header.stixlytopheader > .stixly-top-header > * {
   header.stixlytopheader,
   #stixlytopheader,
   .stixlytopheader {
-    padding-top: 0 !important;
+    padding-top: calc(
+      var(--tg-safe-area-inset-top, 0px) +
+      var(--tg-content-safe-area-inset-top, 0px)
+    ) !important;
   }
   
   .stixly-top-header:not(.stixly-top-header--profile) {

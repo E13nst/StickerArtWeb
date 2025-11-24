@@ -181,7 +181,8 @@ html, body {
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  /* overflow-y: hidden - скролл управляется через .stixly-main-scroll на страницах с header */
+  overflow-y: hidden;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE & Edge */
   -webkit-font-smoothing: antialiased;
@@ -213,8 +214,9 @@ body {
   flex-direction: column;
 }
 
-/* Отключаем скролл на body для Telegram */
-body.tg-viewport-stable {
+/* Для страниц без header (profile/author) разрешаем window scroll */
+/* На страницах с header скролл управляется через .stixly-main-scroll */
+body:not(:has(header#stixlytopheader)) {
   overflow-y: auto;
 }
 
