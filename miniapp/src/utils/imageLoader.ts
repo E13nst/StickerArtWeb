@@ -151,7 +151,7 @@ class ImageLoader {
   private urlInFlight: Map<string, Promise<string>> = new Map();
   
   // 🔍 DEBUG: Счётчик вызовов для каждого fileId
-  private callCounter: Map<string, number> = new Map();
+  public callCounter: Map<string, number> = new Map(); // 🔍 DEBUG: публичный для доступа из тестов
   
   // Резервирование слотов для высокоприоритетных загрузок
   // Гарантируем минимум 6 слотов для высокого приоритета (TIER_0, TIER_1, TIER_2)
@@ -1010,6 +1010,16 @@ export const imageLoader = new ImageLoader();
 // 🔍 DEBUG: Экспортируем imageLoader в window для доступа из тестов
 if (typeof window !== 'undefined') {
   (window as any).imageLoader = imageLoader;
+  // Явно экспортируем методы отладки для доступа из Playwright
+  (window as any).getImageLoaderStats = () => imageLoader.getCallStats();
+  (window as any).resetImageLoaderCounter = () => imageLoader.resetCallCounter();
+  
+  console.log('🔍 [imageLoader] Методы отладки доступны:', {
+    imageLoader: !!imageLoader,
+    getCallStats: typeof imageLoader.getCallStats,
+    callCounter: imageLoader.callCounter instanceof Map,
+    callCounterSize: imageLoader.callCounter.size
+  });
 }
 
 
