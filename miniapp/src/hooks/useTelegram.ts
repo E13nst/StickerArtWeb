@@ -205,8 +205,6 @@ export const useTelegram = () => {
     const hasInitData = Boolean(window.Telegram?.WebApp?.initData);
     
     let telegram: TelegramWebApp;
-    let expandTimeout: ReturnType<typeof setTimeout> | null = null;
-    let handleScroll: (() => void) | null = null;
     let viewportChangedHandler: (() => void) | null = null;
     
     // Проверяем наличие реального initData в localStorage (для тестирования с ModHeader)
@@ -259,11 +257,7 @@ export const useTelegram = () => {
             setIsViewportReady(true);
             console.log('✅ Viewport готов (первый viewportChanged получен)');
           }
-          // Если viewport изменился и приложение свернулось - расширяем обратно
-          if (!telegram.isExpanded) {
-            console.log('📱 Viewport изменился, расширяем миниапп обратно');
-            telegram.expand();
-          }
+          // Убрано expand() - он вызывается только при инициализации в setupTelegramViewportSafe()
         };
         
         if (typeof telegram.onEvent === 'function') {
@@ -321,42 +315,8 @@ export const useTelegram = () => {
         console.log('⚠️ disableVerticalSwipes() не доступен в текущей версии Telegram WebApp');
       }
       
-      // Предотвращаем сворачивание миниаппа при скролле (fallback для старых версий)
-      // Примечание: для iOS viewportChanged уже обрабатывается выше
-      // Здесь оставляем только для не-iOS платформ или как fallback
-      if (!isIos && typeof telegram.onEvent === 'function') {
-        telegram.onEvent('viewportChanged', () => {
-          // Если viewport изменился и приложение свернулось - расширяем обратно
-          if (!telegram.isExpanded) {
-            console.log('📱 Viewport изменился, расширяем миниапп обратно');
-            telegram.expand();
-          }
-        });
-      }
-      
-      // Периодически вызываем expand() при скролле для предотвращения сворачивания
-      handleScroll = () => {
-        // Очищаем предыдущий таймаут
-        if (expandTimeout) {
-          clearTimeout(expandTimeout);
-        }
-        
-        // Вызываем expand() с небольшой задержкой после скролла
-        expandTimeout = setTimeout(() => {
-          if (telegram && !telegram.isExpanded) {
-            console.log('📱 Вызываем expand() после скролла');
-            telegram.expand();
-          }
-        }, 100);
-      };
-      
-      // Добавляем обработчик скролла на window
-      if (handleScroll) {
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        
-        // Также добавляем обработчик на touchmove для мобильных устройств
-        window.addEventListener('touchmove', handleScroll, { passive: true });
-      }
+      // Убрано: expand() из scroll-логики и viewportChanged handlers
+      // expand() вызывается только один раз при инициализации в setupTelegramViewportSafe()
       
       // Устанавливаем цвета header и bottom bar в соответствии с темой
       if (telegram.setHeaderColor) {
@@ -533,12 +493,6 @@ export const useTelegram = () => {
         mediaQuery.removeEventListener('change', systemThemeListenerRef.current);
       }
       
-      // Удаляем обработчики скролла
-      if (handleScroll) {
-        window.removeEventListener('scroll', handleScroll);
-        window.removeEventListener('touchmove', handleScroll);
-      }
-      
       // Отписываемся от viewportChanged
       if (viewportChangedHandler && telegram && typeof telegram.offEvent === 'function') {
         telegram.offEvent('viewportChanged', viewportChangedHandler);
@@ -547,11 +501,6 @@ export const useTelegram = () => {
       // Очищаем fallback timeout
       if (viewportChangedHandler && (viewportChangedHandler as any).__fallbackTimeout) {
         clearTimeout((viewportChangedHandler as any).__fallbackTimeout);
-      }
-      
-      // Очищаем таймаут
-      if (expandTimeout) {
-        clearTimeout(expandTimeout);
       }
     };
   }, []);

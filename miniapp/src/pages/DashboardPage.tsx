@@ -333,7 +333,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh', 
+      minHeight: '100%', 
       backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
       color: 'var(--tg-theme-text-color, #000000)',
       paddingBottom: 0

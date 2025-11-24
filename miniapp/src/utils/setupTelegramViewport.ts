@@ -180,20 +180,9 @@ export async function setupTelegramViewportSafe(): Promise<void> {
         }
       }
 
-      // 5. Подписываемся на события изменения viewport для поддержания fullscreen
+      // 5. Подписываемся на события fullscreen для отслеживания изменений
+      // Убрано: viewportChanged handler с expand() - expand() вызывается только при инициализации
       if (typeof webApp.onEvent === "function") {
-        webApp.onEvent("viewportChanged", () => {
-          // Если приложение свернулось - разворачиваем обратно
-          if (!webApp.isExpanded && isMobile()) {
-            console.log("[TMA Viewport] Viewport изменился, разворачиваем обратно");
-            setTimeout(() => {
-              if (typeof webApp.expand === "function") {
-                webApp.expand();
-              }
-            }, 50);
-          }
-        });
-
         // Подписываемся на события fullscreen для отслеживания изменений
         // Проверяем оба варианта названий событий (camelCase и snake_case)
         const fullscreenChangedEvents = ["fullscreenChanged", "fullscreen_changed"];

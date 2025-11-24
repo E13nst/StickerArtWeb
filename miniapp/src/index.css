@@ -219,9 +219,9 @@ body.tg-viewport-stable {
 }
 
 /* Telegram Safe Areas */
+/* Убрано padding-top с body - safe area обрабатывается только в header#stixlytopheader */
 @supports (padding: max(0px)) {
   body {
-    padding-top: max(0px, env(safe-area-inset-top));
     padding-bottom: 0;
   }
 }

@@ -817,9 +817,20 @@ export default function StixlyTopHeader({
       const headerElement = document.querySelector('.stixly-top-header');
       if (!headerElement) return;
       
-        const height = headerElement.getBoundingClientRect().height;
+      const rect = headerElement.getBoundingClientRect();
+      const height = rect.height;
       // height уже включает paddingTop с env(safe-area-inset-top)
       document.documentElement.style.setProperty('--stixly-header-height', `${height}px`);
+      
+      // Диагностический лог (только в DEV режиме)
+      if (import.meta.env.DEV) {
+        console.log('[StixlyTopHeader] updateHeaderHeight:', {
+          top: rect.top,
+          height: rect.height,
+          pathname: window.location.pathname,
+          isExpanded: window.Telegram?.WebApp?.isExpanded
+        });
+      }
       
       // Update viewport height CSS variable (with fallback support)
       const viewportHeight = getViewportHeight();
@@ -855,7 +866,7 @@ export default function StixlyTopHeader({
   }, []);
 
   return (
-    <header id="stixlytopheader" className="stixly-top-header" style={{ position: "relative", width: "100%" }}>
+    <header id="stixlytopheader" className="stixly-top-header">
       {headerContent}
       {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
     </header>
