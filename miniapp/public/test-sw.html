@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-weight: 500;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #logs {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    .log-entry {
+      margin: 5px 0;
+    }
+    .log-info { color: #0ff; }
+    .log-success { color: #0f0; }
+    .log-error { color: #f00; }
+    .log-warning { color: #ff0; }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .test-section h3 {
+      margin-top: 0;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Service Worker Timeout Test</h1>
+    
+    <div id="sw-status" class="status info">
+      Проверка статуса Service Worker...
+    </div>
+
+    <div class="test-section">
+      <h3>1️⃣ Регистрация Service Worker</h3>
+      <button id="register-sw">Зарегистрировать SW</button>
+      <button id="unregister-sw">Удалить SW</button>
+      <button id="update-sw">Обновить SW</button>
+    </div>
+
+    <div class="test-section">
+      <h3>2️⃣ Тест загрузки стикера (с таймаутом)</h3>
+      <p>Загрузим реальный стикер через Service Worker с новой логикой таймаутов.</p>
+      <button id="test-sticker">Загрузить тестовый стикер</button>
+      <button id="test-timeout">Симулировать таймаут (медленный URL)</button>
+      
+      <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <label for="file-id-input" style="display: block; margin-bottom: 8px; font-weight: 600;">
+          Загрузить произвольный стикер по file_id:
+        </label>
+        <input 
+          type="text" 
+          id="file-id-input" 
+          placeholder="CAACAgIAAxUAAWkVkq0qBllGCTsC8hZrZvorEpT_AAIBeQAC0uhoSrXyOR-sWh8wNgQ"
+          style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 13px; box-sizing: border-box;"
+        />
+        <div style="margin-top: 10px;">
+          <button id="load-custom-sticker" style="background: #28a745;">Загрузить стикер</button>
+          <button id="clear-file-id" style="background: #6c757d;">Очистить</button>
+        </div>
+        <div style="margin-top: 8px; font-size: 12px; color: #666;">
+          💡 Примеры file_id можно найти в модальном окне стикерсета на вашем сайте
+        </div>
+      </div>
+      
+      <div id="sticker-result" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>3️⃣ Тест retry логики</h3>
+      <p>Проверим что SW делает повторные попытки при ошибках 504/503.</p>
+      <button id="test-retry">Тест Retry (3 попытки)</button>
+    </div>
+
+    <div class="test-section">
+      <h3>4️⃣ Кеш</h3>
+      <button id="check-cache">Проверить кеш</button>
+      <button id="clear-cache">Очистить кеш</button>
+    </div>
+
+    <div id="logs">
+      <div class="log-entry log-info">Логи будут отображаться здесь...</div>
+    </div>
+  </div>
+
+  <script>
+    const logs = document.getElementById('logs');
+    const statusDiv = document.getElementById('sw-status');
+
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logs.appendChild(entry);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function updateStatus(message, type = 'info') {
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    }
+
+    // Проверка статуса SW при загрузке
+    async function checkSWStatus() {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration('/miniapp/');
+        if (registration) {
+          if (registration.active) {
+            updateStatus('✅ Service Worker активен', 'success');
+            log('✅ Service Worker активен', 'success');
+            log('   Script: ' + registration.active.scriptURL, 'info');
+            log('   Scope: ' + registration.scope, 'info');
+            log('   State: ' + registration.active.state, 'info');
+          } else if (registration.installing) {
+            updateStatus('⏳ Service Worker устанавливается...', 'info');
+            log('Service Worker устанавливается...', 'info');
+          } else if (registration.waiting) {
+            updateStatus('⏳ Service Worker ожидает активации...', 'info');
+            log('Service Worker ожидает активации (обновите страницу)', 'warning');
+          }
+        } else {
+          updateStatus('❌ Service Worker не зарегистрирован', 'error');
+          log('Service Worker не найден', 'warning');
+          log('Нажмите "Зарегистрировать SW" для установки', 'info');
+        }
+      } else {
+        updateStatus('❌ Service Worker не поддерживается браузером', 'error');
+        log('Service Worker API не поддерживается', 'error');
+      }
+    }
+
+    // Регистрация SW
+    document.getElementById('register-sw').addEventListener('click', async () => {
+      log('Регистрация Service Worker...', 'info');
+      try {
+        // Файл находится в /miniapp/sw.js, scope может контролировать весь сайт
+        const registration = await navigator.serviceWorker.register('/miniapp/sw.js', {
+          scope: '/miniapp/'
+        });
+        log('✅ Service Worker зарегистрирован', 'success');
+        log('   Scope: ' + registration.scope, 'info');
+        log('   URL: ' + registration.active?.scriptURL, 'info');
+        updateStatus('✅ Service Worker зарегистрирован', 'success');
+        
+        // Ждем активации
+        registration.addEventListener('updatefound', () => {
+          log('Найдено обновление SW...', 'info');
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            log(`SW состояние: ${newWorker.state}`, 'info');
+            if (newWorker.state === 'activated') {
+              log('✅ SW активирован!', 'success');
+              checkSWStatus();
+            }
+          });
+        });
+      } catch (error) {
+        log(`❌ Ошибка регистрации: ${error.message}`, 'error');
+        log(`   Stack: ${error.stack}`, 'error');
+        updateStatus(`❌ Ошибка: ${error.message}`, 'error');
+        
+        // Проверяем доступность файла
+        try {
+          const testFetch = await fetch('/miniapp/sw.js');
+          if (testFetch.ok) {
+            log('  ✅ Файл sw.js доступен по URL', 'success');
+          } else {
+            log(`  ❌ Файл sw.js вернул статус: ${testFetch.status}`, 'error');
+          }
+        } catch (fetchError) {
+          log(`  ❌ Не удалось загрузить sw.js: ${fetchError.message}`, 'error');
+        }
+      }
+    });
+
+    // Удаление SW
+    document.getElementById('unregister-sw').addEventListener('click', async () => {
+      log('Удаление Service Worker...', 'warning');
+      const registration = await navigator.serviceWorker.getRegistration('/miniapp/');
+      if (registration) {
+        await registration.unregister();
+        log('✅ Service Worker удален', 'success');
+        updateStatus('Service Worker удален', 'info');
+        // Перезагружаем страницу чтобы изменения вступили в силу
+        setTimeout(() => {
+          log('Перезагрузка страницы...', 'info');
+          window.location.reload();
+        }, 1000);
+      } else {
+        log('Service Worker не найден', 'warning');
+      }
+    });
+
+    // Обновление SW
+    document.getElementById('update-sw').addEventListener('click', async () => {
+      log('Обновление Service Worker...', 'info');
+      const registration = await navigator.serviceWorker.getRegistration('/miniapp/');
+      if (registration) {
+        await registration.update();
+        log('✅ Запрошено обновление SW', 'success');
+        log('Если есть обновления, они установятся автоматически', 'info');
+        // Проверяем статус через 2 секунды
+        setTimeout(() => checkSWStatus(), 2000);
+      } else {
+        log('❌ Service Worker не найден', 'error');
+      }
+    });
+
+    // Функция загрузки стикера по file_id
+    async function loadSticker(fileId) {
+      log(`🖼️ Загрузка стикера: ${fileId}`, 'info');
+      const stickerUrl = `https://sticker-art-e13nst.amvera.io/stickers/${fileId}?file=true`;
+      
+      const startTime = Date.now();
+      try {
+        const response = await fetch(stickerUrl);
+        const elapsed = Date.now() - startTime;
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const sizeKB = (blob.size / 1024).toFixed(2);
+          log(`✅ Стикер загружен за ${elapsed}ms (размер: ${sizeKB} KB)`, 'success');
+          log(`📊 Статус: ${response.status}, Cache: ${response.headers.get('X-Cache-Status') || 'N/A'}`, 'info');
+          log(`📦 Content-Type: ${response.headers.get('Content-Type')}`, 'info');
+          
+          // Показываем изображение или видео в зависимости от типа
+          const url = URL.createObjectURL(blob);
+          const contentType = response.headers.get('Content-Type') || '';
+          
+          let mediaHtml = '';
+          if (contentType.includes('video')) {
+            mediaHtml = `<video src="${url}" autoplay loop muted style="max-width: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"></video>`;
+          } else if (contentType.includes('json') || contentType.includes('tgs')) {
+            mediaHtml = `<div style="padding: 20px; background: #fff3cd; border-radius: 8px; color: #856404;">
+              📄 TGS (Lottie) анимация - требуется специальный плеер для отображения<br>
+              Размер: ${sizeKB} KB
+            </div>`;
+          } else {
+            mediaHtml = `<img src="${url}" style="max-width: 300px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">`;
+          }
+          
+          document.getElementById('sticker-result').innerHTML = `
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+              <div style="margin-bottom: 10px; font-weight: 600;">Результат:</div>
+              ${mediaHtml}
+              <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                <strong>File ID:</strong> ${fileId}<br>
+                <strong>Размер:</strong> ${sizeKB} KB<br>
+                <strong>Время загрузки:</strong> ${elapsed}ms<br>
+                <strong>Кеш:</strong> ${response.headers.get('X-Cache-Status') || 'N/A'}
+              </div>
+            </div>
+          `;
+        } else {
+          log(`❌ Ошибка: ${response.status} ${response.statusText}`, 'error');
+          document.getElementById('sticker-result').innerHTML = `
+            <div style="padding: 15px; background: #f8d7da; border-radius: 8px; color: #721c24;">
+              ❌ Не удалось загрузить стикер<br>
+              Статус: ${response.status} ${response.statusText}
+            </div>
+          `;
+        }
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        log(`❌ Таймаут или ошибка после ${elapsed}ms: ${error.message}`, 'error');
+        document.getElementById('sticker-result').innerHTML = `
+          <div style="padding: 15px; background: #f8d7da; border-radius: 8px; color: #721c24;">
+            ❌ Ошибка загрузки: ${error.message}<br>
+            Время до ошибки: ${elapsed}ms
+          </div>
+        `;
+      }
+    }
+
+    // Тест загрузки стикера
+    document.getElementById('test-sticker').addEventListener('click', async () => {
+      const testFileId = 'CAACAgIAAxUAAWkVkq0qBllGCTsC8hZrZvorEpT_AAIBeQAC0uhoSrXyOR-sWh8wNgQ';
+      await loadSticker(testFileId);
+    });
+
+    // Загрузка произвольного стикера
+    document.getElementById('load-custom-sticker').addEventListener('click', async () => {
+      const input = document.getElementById('file-id-input');
+      const fileId = input.value.trim();
+      
+      if (!fileId) {
+        log('❌ Введите file_id стикера', 'error');
+        return;
+      }
+      
+      await loadSticker(fileId);
+    });
+
+    // Очистка поля file_id
+    document.getElementById('clear-file-id').addEventListener('click', () => {
+      document.getElementById('file-id-input').value = '';
+      document.getElementById('sticker-result').innerHTML = '';
+      log('🗑️ Поле file_id очищено', 'info');
+    });
+
+    // Enter в поле file_id тоже загружает стикер
+    document.getElementById('file-id-input').addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('load-custom-sticker').click();
+      }
+    });
+
+    // Тест таймаута (медленный URL)
+    document.getElementById('test-timeout').addEventListener('click', async () => {
+      log('⏱️ Тест таймаута (будет ждать 20 секунд)...', 'warning');
+      // Используем httpbin.org/delay/20 для симуляции медленного сервера
+      const slowUrl = 'https://httpbin.org/delay/20';
+      
+      const startTime = Date.now();
+      try {
+        const response = await fetch(slowUrl);
+        const elapsed = Date.now() - startTime;
+        log(`Ответ получен за ${elapsed}ms`, 'info');
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        log(`⏱️ Таймаут после ${elapsed}ms: ${error.message}`, 'warning');
+        log('✅ Это ожидаемое поведение - SW должен прервать запрос через 15 секунд', 'success');
+      }
+    });
+
+    // Тест retry логики
+    document.getElementById('test-retry').addEventListener('click', async () => {
+      log('🔄 Тест retry логики...', 'info');
+      log('Откройте DevTools Console для просмотра попыток retry', 'info');
+      
+      // Запрашиваем стикер который может быть медленным
+      const testUrl = 'https://sticker-art-e13nst.amvera.io/stickers/TEST_SLOW_STICKER?file=true';
+      
+      const startTime = Date.now();
+      try {
+        const response = await fetch(testUrl);
+        const elapsed = Date.now() - startTime;
+        log(`Ответ: ${response.status} за ${elapsed}ms`, 'info');
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        log(`Завершено с ошибкой за ${elapsed}ms`, 'warning');
+      }
+    });
+
+    // Проверка кеша
+    document.getElementById('check-cache').addEventListener('click', async () => {
+      log('📦 Проверка кеша...', 'info');
+      const cacheNames = await caches.keys();
+      log(`Найдено кешей: ${cacheNames.length}`, 'info');
+      
+      for (const name of cacheNames) {
+        const cache = await caches.open(name);
+        const keys = await cache.keys();
+        log(`  - ${name}: ${keys.length} записей`, 'info');
+      }
+    });
+
+    // Очистка кеша
+    document.getElementById('clear-cache').addEventListener('click', async () => {
+      log('🗑️ Очистка всех кешей...', 'warning');
+      const cacheNames = await caches.keys();
+      for (const name of cacheNames) {
+        await caches.delete(name);
+        log(`  ✅ Удален: ${name}`, 'success');
+      }
+      log('✅ Все кеши очищены', 'success');
+    });
+
+    // Перехват сообщений от SW
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      log(`📨 Сообщение от SW: ${JSON.stringify(event.data)}`, 'info');
+    });
+
+    // Проверка при загрузке
+    checkSWStatus();
+
+    // Логируем все fetch запросы через Performance API
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.entryType === 'resource' && entry.name.includes('stickers')) {
+          log(`📊 Performance: ${entry.name.substring(entry.name.length - 50)} - ${entry.duration.toFixed(0)}ms`, 'info');
+        }
+      }
+    });
+    observer.observe({ entryTypes: ['resource'] });
+  </script>
+</body>
+</html>
+

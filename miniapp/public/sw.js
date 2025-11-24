@@ -1,6 +1,12 @@
-// Service Worker для кеширования стикеров
-const CACHE_NAME = 'stixly-stickers-v1';
-const STICKER_CACHE_NAME = 'stixly-stickers-media-v1';
+// Service Worker для кеширования стикеров (с таймаутами и retry)
+const CACHE_NAME = 'stixly-stickers-v2';
+const STICKER_CACHE_NAME = 'stixly-stickers-media-v2';
+
+// Таймауты для разных типов ресурсов
+const TIMEOUTS = {
+  stickers: 15000, // 15 секунд для стикеров (могут быть большими файлами)
+  api: 10000       // 10 секунд для API
+};
 
 // Стратегия кеширования для разных типов ресурсов
 const CACHE_STRATEGIES = {
@@ -10,7 +16,8 @@ const CACHE_STRATEGIES = {
     strategy: 'CacheFirst',
     cacheName: STICKER_CACHE_NAME,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
-    maxEntries: 500
+    maxEntries: 500,
+    timeout: TIMEOUTS.stickers
   },
   // API запросы - Network First с fallback на кеш
   api: {
@@ -18,7 +25,8 @@ const CACHE_STRATEGIES = {
     strategy: 'NetworkFirst',
     cacheName: CACHE_NAME,
     maxAge: 5 * 60 * 1000, // 5 минут
-    maxEntries: 100
+    maxEntries: 100,
+    timeout: TIMEOUTS.api
   }
 };
 
@@ -92,6 +100,55 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
+ * Fetch с таймаутом
+ * @param {Request} request - запрос
+ * @param {number} timeout - таймаут в миллисекундах
+ * @returns {Promise<Response>}
+ */
+function fetchWithTimeout(request, timeout = 10000) {
+  return Promise.race([
+    fetch(request),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout)
+    )
+  ]);
+}
+
+/**
+ * Fetch с retry логикой и экспоненциальной задержкой
+ * @param {Request} request - запрос
+ * @param {number} retries - количество повторных попыток
+ * @param {number} timeout - таймаут для каждой попытки
+ * @returns {Promise<Response>}
+ */
+async function fetchWithRetry(request, retries = 2, timeout = 10000) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const response = await fetchWithTimeout(request, timeout);
+      
+      // Если 504 или 503 - пробуем retry (но не на последней попытке)
+      if (i < retries && (response.status === 504 || response.status === 503)) {
+        console.log(`[SW] Got ${response.status}, retry ${i + 1}/${retries}:`, request.url.substring(request.url.length - 50));
+        // Экспоненциальная задержка: 1s, 2s, 4s... (максимум 5s)
+        await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, i), 5000)));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      console.error(`[SW] Fetch attempt ${i + 1}/${retries + 1} failed:`, error.message);
+      
+      if (i === retries) {
+        throw error; // Последняя попытка - бросаем ошибку
+      }
+      
+      // Ждем перед retry (экспоненциальная задержка)
+      await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, i), 5000)));
+    }
+  }
+}
+
+/**
  * Cache First стратегия: сначала проверяем кеш, потом сеть
  * Идеально для статических ресурсов (стикеры, изображения)
  */
@@ -116,10 +173,13 @@ async function cacheFirst(request, config) {
     }
   }
 
-  // Кеша нет или устарел - загружаем из сети
+  // Кеша нет или устарел - загружаем из сети с retry и таймаутом
   try {
-    console.log('[SW] Cache MISS, fetching:', request.url.substring(request.url.length - 50));
-    const networkResponse = await fetch(request);
+    console.log('[SW] Cache MISS, fetching with timeout:', request.url.substring(request.url.length - 50));
+    
+    // Используем timeout из конфигурации с retry (2 попытки)
+    const timeout = config.timeout || TIMEOUTS.stickers;
+    const networkResponse = await fetchWithRetry(request, 2, timeout);
     
     // Кешируем только успешные ответы
     if (networkResponse && networkResponse.status === 200) {
@@ -145,7 +205,7 @@ async function cacheFirst(request, config) {
     
     return networkResponse;
   } catch (error) {
-    console.error('[SW] Fetch failed:', error);
+    console.error('[SW] All fetch attempts failed:', error);
     
     // Если сеть недоступна - возвращаем кеш даже если устарел
     if (cachedResponse) {
@@ -153,11 +213,19 @@ async function cacheFirst(request, config) {
       return cachedResponse;
     }
     
-    // Возвращаем ошибку
-    return new Response('Network error', {
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
+    // Возвращаем понятную ошибку с деталями
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to load resource', 
+        message: error.message,
+        url: request.url.substring(request.url.length - 100)
+      }), 
+      {
+        status: 504,
+        statusText: 'Gateway Timeout (Service Worker)',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
@@ -169,8 +237,9 @@ async function networkFirst(request, config) {
   const cache = await caches.open(config.cacheName);
   
   try {
-    // Пробуем загрузить из сети
-    const networkResponse = await fetch(request);
+    // Пробуем загрузить из сети с таймаутом и retry
+    const timeout = config.timeout || TIMEOUTS.api;
+    const networkResponse = await fetchWithRetry(request, 1, timeout); // Для API - только 1 retry
     
     if (networkResponse && networkResponse.status === 200) {
       // Кешируем ответ
@@ -200,11 +269,18 @@ async function networkFirst(request, config) {
       return cachedResponse;
     }
     
-    // Ни сети, ни кеша - возвращаем ошибку
-    return new Response('Network error and no cache', {
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
+    // Ни сети, ни кеша - возвращаем понятную ошибку
+    return new Response(
+      JSON.stringify({ 
+        error: 'Network error and no cache', 
+        message: error.message 
+      }), 
+      {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
