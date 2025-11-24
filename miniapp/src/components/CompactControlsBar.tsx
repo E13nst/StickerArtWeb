@@ -234,7 +234,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
       className="compact-controls-bar"
       style={{
         position: isFixed ? 'fixed' : 'relative',
-        top: isFixed ? 'calc(var(--stixly-header-height) + env(safe-area-inset-top))' : 'auto',
+        top: isFixed ? 'calc(var(--stixly-header-height, 0px) + env(safe-area-inset-top))' : 'auto',
         left: isFixed ? 0 : 'auto',
         right: isFixed ? 0 : 'auto',
         zIndex: isFixed ? 1001 : 1001, // Выше карточек (z-index: 10) и табов (z-index: 998)
@@ -428,7 +428,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
             sx={{
               position: isFixed ? 'fixed' : 'absolute',
               top: isFixed 
-                ? 'calc(var(--stixly-header-height) + env(safe-area-inset-top) + 3.5rem)' 
+                ? 'calc(var(--stixly-header-height, 0px) + env(safe-area-inset-top) + 3.5rem)' 
                 : '100%',
               left: '0.618rem',
               right: 'auto',

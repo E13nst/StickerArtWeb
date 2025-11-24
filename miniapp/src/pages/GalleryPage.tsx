@@ -552,29 +552,6 @@ export const GalleryPage: React.FC = () => {
     <>
       <TelegramLayout>
 
-        {/* Compact Controls Bar - always visible */}
-        <CompactControlsBar
-          searchValue={searchTerm}
-          onSearchChange={handleSearchChange}
-          onSearch={handleSearch}
-          searchDisabled={false}
-          categories={categories}
-          selectedCategories={selectedCategories}
-          onCategoryToggle={handleCategoryToggle}
-          categoriesDisabled={false}
-          sortByLikes={sortByLikes}
-          onSortToggle={handleSortToggle}
-          sortDisabled={!!searchTerm || categories.length === 0}
-          selectedStickerTypes={selectedStickerTypes}
-          onStickerTypeToggle={handleStickerTypeToggle}
-          selectedStickerSetTypes={selectedStickerSetTypes}
-          onStickerSetTypeToggle={handleStickerSetTypeToggle}
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-          onAddClick={handleAddClick}
-          onApplyFilters={handleApplyFilters}
-        />
-
         {/* Content */}
         {isInitialLoading ? (
           <LoadingSpinner message="Загрузка стикеров..." />
@@ -598,18 +575,43 @@ export const GalleryPage: React.FC = () => {
             }}
           />
         ) : (
-          <div className="fade-in">
-            <SimpleGallery
-              packs={galleryPacks}
-              onPackClick={handleViewStickerSet}
-              hasNextPage={currentPage < totalPages - 1}
-              isLoadingMore={isLoadingMore}
-              onLoadMore={loadMoreStickerSets}
-              enablePreloading={true}
-              isRefreshing={isRefreshing}
-              scrollMode="inner"
+          <>
+            {/* Compact Controls Bar - fixed position, привязан к StixlyTopHeader */}
+            <CompactControlsBar
+              searchValue={searchTerm}
+              onSearchChange={handleSearchChange}
+              onSearch={handleSearch}
+              searchDisabled={false}
+              categories={categories}
+              selectedCategories={selectedCategories}
+              onCategoryToggle={handleCategoryToggle}
+              categoriesDisabled={false}
+              sortByLikes={sortByLikes}
+              onSortToggle={handleSortToggle}
+              sortDisabled={!!searchTerm || categories.length === 0}
+              selectedStickerTypes={selectedStickerTypes}
+              onStickerTypeToggle={handleStickerTypeToggle}
+              selectedStickerSetTypes={selectedStickerSetTypes}
+              onStickerSetTypeToggle={handleStickerSetTypeToggle}
+              selectedDate={selectedDate}
+              onDateChange={handleDateChange}
+              onAddClick={handleAddClick}
+              onApplyFilters={handleApplyFilters}
+              variant="fixed"
             />
-          </div>
+            <div className="fade-in">
+              <SimpleGallery
+                packs={galleryPacks}
+                onPackClick={handleViewStickerSet}
+                hasNextPage={currentPage < totalPages - 1}
+                isLoadingMore={isLoadingMore}
+                onLoadMore={loadMoreStickerSets}
+                enablePreloading={true}
+                isRefreshing={isRefreshing}
+                scrollMode="inner"
+              />
+            </div>
+          </>
         )}
       </TelegramLayout>
       <DebugPanel initData={initData} />
