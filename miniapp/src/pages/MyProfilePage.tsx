@@ -111,6 +111,9 @@ export const MyProfilePage: React.FC = () => {
   const loadingAvatarFileIdRef = useRef<string | null>(null);
   // ✅ FIX: Флаг для предотвращения повторных вызовов loadMyProfile из-за React.StrictMode
   const isProfileLoadingRef = useRef(false);
+  // Ref для измерения высоты элементов перед CompactControlsBar
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [controlsBarTop, setControlsBarTop] = useState<string>('calc(var(--stixly-header-height, 200px) + 48px + 48px + env(safe-area-inset-top, 0px))');
 
   // ✅ REFACTORED: Больше не зависим от user.id из Telegram
   // currentUserId будет получен из /api/profiles/me
@@ -899,6 +902,38 @@ export const MyProfilePage: React.FC = () => {
     };
   }, [avatarBlobUrl]);
 
+  // Вычисляем позицию CompactControlsBar (под табами, поверх карточек)
+  useEffect(() => {
+    if (!tabsContainerRef.current || activeProfileTab !== 0) return;
+
+    const updateControlsBarTop = () => {
+      if (tabsContainerRef.current) {
+        const rect = tabsContainerRef.current.getBoundingClientRect();
+        // Позиция под StickerSetsTabs (48px высота табов)
+        const top = rect.bottom;
+        setControlsBarTop(`${top}px`);
+      }
+    };
+
+    // Обновляем при монтировании и изменении размеров
+    const timeoutId = setTimeout(updateControlsBarTop, 100);
+    
+    window.addEventListener('resize', updateControlsBarTop);
+    
+    // Используем ResizeObserver для отслеживания изменений размеров элементов
+    const resizeObserver = new ResizeObserver(updateControlsBarTop);
+    if (tabsContainerRef.current) {
+      resizeObserver.observe(tabsContainerRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updateControlsBarTop);
+      resizeObserver.disconnect();
+    };
+  }, [activeProfileTab, setsFilterTab, userInfo]);
+
+
   return (
     <Box sx={{ 
       width: '100%',
@@ -1093,11 +1128,55 @@ export const MyProfilePage: React.FC = () => {
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Табы для переключения между Загруженные и Понравившиеся */}
-              <StickerSetsTabs
-                activeTab={setsFilterTab}
-                onChange={setSetsFilterTab}
-                disabled={isStickerSetsLoading}
-              />
+              <Box ref={tabsContainerRef}>
+                <StickerSetsTabs
+                  activeTab={setsFilterTab}
+                  onChange={setSetsFilterTab}
+                  disabled={isStickerSetsLoading}
+                />
+              </Box>
+              
+              {/* CompactControlsBar - фиксированный, поверх карточек, под табами */}
+              {setsFilterTab === 0 && (
+                <Box
+                  sx={{
+                    position: 'fixed',
+                    top: controlsBarTop,
+                    left: 0,
+                    right: 0,
+                    zIndex: 997,
+                    backgroundColor: 'transparent',
+                    px: 2,
+                  }}
+                >
+                  <CompactControlsBar
+                    variant="static"
+                    searchValue={searchTerm}
+                    onSearchChange={handleSearchChange}
+                    onSearch={handleSearch}
+                    searchDisabled={isStickerSetsLoading}
+                    categories={categories}
+                    selectedCategories={[]}
+                    onCategoryToggle={() => {}}
+                    categoriesDisabled={true}
+                    sortByLikes={sortByLikes}
+                    onSortToggle={handleSortToggle}
+                    sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
+                    selectedStickerTypes={[]}
+                    onStickerTypeToggle={() => {}}
+                    selectedStickerSetTypes={[]}
+                    onStickerSetTypeToggle={() => {}}
+                    selectedDate={null}
+                    onDateChange={() => {}}
+                    onAddClick={() => setIsUploadModalOpen(true)}
+                  />
+                </Box>
+              )}
+              
+              {/* Отступ для контента, чтобы не перекрывался CompactControlsBar */}
+              {setsFilterTab === 0 && (
+                <Box sx={{ height: '3.5rem', flexShrink: 0 }} />
+              )}
               
               {/* Контент стикерсетов */}
               {isStickerSetsLoading ? (
@@ -1110,33 +1189,6 @@ export const MyProfilePage: React.FC = () => {
               ) : (
                 <div className="fade-in">
                   <SimpleGallery
-                    controlsElement={
-                      setsFilterTab === 1 ? undefined : (
-                        <Box sx={{ mb: 2 }}>
-                          <CompactControlsBar
-                            variant="static"
-                            searchValue={searchTerm}
-                            onSearchChange={handleSearchChange}
-                            onSearch={handleSearch}
-                            searchDisabled={isStickerSetsLoading}
-                            categories={categories}
-                            selectedCategories={[]}
-                            onCategoryToggle={() => {}}
-                            categoriesDisabled={true}
-                            sortByLikes={sortByLikes}
-                            onSortToggle={handleSortToggle}
-                            sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
-                            selectedStickerTypes={[]}
-                            onStickerTypeToggle={() => {}}
-                            selectedStickerSetTypes={[]}
-                            onStickerSetTypeToggle={() => {}}
-                            selectedDate={null}
-                            onDateChange={() => {}}
-                            onAddClick={() => setIsUploadModalOpen(true)}
-                          />
-                        </Box>
-                      )
-                    }
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={
