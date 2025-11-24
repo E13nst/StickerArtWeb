@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { BottomNav } from '@/components/BottomNav';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHeaderColor } from '@/hooks/useHeaderColor';
 
@@ -15,7 +16,7 @@ export default function MainLayout({ children }: Props) {
   const isAuthorPage = location.pathname.startsWith('/author');
   const isDashboardPage = location.pathname === '/' || location.pathname.startsWith('/dashboard');
   const isNftSoonPage = location.pathname.startsWith('/nft-soon');
-  const { updateHeaderColor } = useTelegram();
+  const { updateHeaderColor, isReady } = useTelegram();
   const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
   
   // Используем хук для определения цвета header
@@ -35,6 +36,21 @@ export default function MainLayout({ children }: Props) {
     }
   }, [headerColor, updateHeaderColor]);
   
+  // Не рендерим layout до стабильного viewport
+  if (!isReady) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        backgroundColor: 'var(--tg-theme-bg-color, #ffffff)'
+      }}>
+        <LoadingSpinner message="Инициализация..." />
+      </div>
+    );
+  }
+
   return (
     <div
       className="stixly-main-layout"

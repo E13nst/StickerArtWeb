@@ -171,15 +171,33 @@ const createMockTelegramEnvBase = (mockUser: TelegramUser): Partial<TelegramWebA
   } as unknown as TelegramWebApp;
 };
 
+// Проверка, является ли устройство iOS в Telegram
+const isIosTelegram = (telegram: TelegramWebApp | null): boolean => {
+  if (!telegram) return false;
+  // Проверяем platform из Telegram WebApp
+  if (telegram.platform === 'ios' || telegram.platform === 'iphone' || telegram.platform === 'ipad') {
+    return true;
+  }
+  // Fallback на user agent
+  if (typeof navigator !== 'undefined') {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  }
+  return false;
+};
+
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
   const [initData, setInitData] = useState<string>('');
-  const [isReady, setIsReady] = useState(false);
+  const [isBaseReady, setIsBaseReady] = useState(false);
+  const [isViewportReady, setIsViewportReady] = useState(false);
   const [isMockMode, setIsMockMode] = useState(false);
   
   // Слушатель изменений системной темы
   const systemThemeListenerRef = useRef<((e: MediaQueryListEvent) => void) | null>(null);
+  
+  // isReady = isBaseReady && isViewportReady
+  const isReady = isBaseReady && isViewportReady;
 
   useEffect(() => {
     const isDev = import.meta.env.DEV;
@@ -189,6 +207,7 @@ export const useTelegram = () => {
     let telegram: TelegramWebApp;
     let expandTimeout: ReturnType<typeof setTimeout> | null = null;
     let handleScroll: (() => void) | null = null;
+    let viewportChangedHandler: (() => void) | null = null;
     
     // Проверяем наличие реального initData в localStorage (для тестирования с ModHeader)
     const realInitDataForTesting = getRealInitDataForTesting();
@@ -213,8 +232,60 @@ export const useTelegram = () => {
       setUser(telegram.initDataUnsafe?.user || null);
       setInitData(telegram.initData || '');
       
+      // Определяем, находимся ли мы в реальном Telegram Mini App (не в браузере/mock)
+      // Проверяем до ready(), чтобы знать, нужно ли ждать viewportChanged
+      const isRealTelegramApp = hasTelegramWebApp && hasInitData && !isMockMode;
+      const isIos = isIosTelegram(telegram);
+      
       // Инициализация Telegram Web App
       telegram.ready();
+      setIsBaseReady(true);
+      
+      // Для не-iOS платформ или не в реальном Telegram App сразу считаем viewport готовым
+      if (!isIos || !isRealTelegramApp) {
+        setIsViewportReady(true);
+        console.log('✅ Viewport готов (не iOS или не в реальном Telegram App)', {
+          isIos,
+          isRealTelegramApp,
+          isMockMode,
+          platform: telegram.platform
+        });
+      } else {
+        // Для iOS в реальном Telegram App подписываемся на viewportChanged
+        let viewportHandled = false;
+        viewportChangedHandler = () => {
+          if (!viewportHandled) {
+            viewportHandled = true;
+            setIsViewportReady(true);
+            console.log('✅ Viewport готов (первый viewportChanged получен)');
+          }
+          // Если viewport изменился и приложение свернулось - расширяем обратно
+          if (!telegram.isExpanded) {
+            console.log('📱 Viewport изменился, расширяем миниапп обратно');
+            telegram.expand();
+          }
+        };
+        
+        if (typeof telegram.onEvent === 'function') {
+          telegram.onEvent('viewportChanged', viewportChangedHandler);
+          console.log('⏳ Ожидаем viewportChanged для iOS...');
+          
+          // Fallback: если viewportChanged не пришел за 2 секунды, считаем готовым
+          const fallbackTimeout = setTimeout(() => {
+            if (!viewportHandled) {
+              viewportHandled = true;
+              setIsViewportReady(true);
+              console.log('⏰ Viewport готов (fallback timeout, viewportChanged не получен)');
+            }
+          }, 2000);
+          
+          // Сохраняем timeout для cleanup
+          (viewportChangedHandler as any).__fallbackTimeout = fallbackTimeout;
+        } else {
+          // Если onEvent недоступен, считаем готовым сразу
+          setIsViewportReady(true);
+        }
+      }
       
       // Безопасная настройка viewport (expand + fullscreen на мобильных)
       // Работает с официальным SDK (@telegram-apps/sdk) или fallback на @twa-dev/sdk
@@ -251,8 +322,9 @@ export const useTelegram = () => {
       }
       
       // Предотвращаем сворачивание миниаппа при скролле (fallback для старых версий)
-      // Подписываемся на изменение viewport и автоматически расширяем обратно
-      if (typeof telegram.onEvent === 'function') {
+      // Примечание: для iOS viewportChanged уже обрабатывается выше
+      // Здесь оставляем только для не-iOS платформ или как fallback
+      if (!isIos && typeof telegram.onEvent === 'function') {
         telegram.onEvent('viewportChanged', () => {
           // Если viewport изменился и приложение свернулось - расширяем обратно
           if (!telegram.isExpanded) {
@@ -432,8 +504,6 @@ export const useTelegram = () => {
       
       mediaQuery.addEventListener('change', systemThemeListenerRef.current);
       
-      setIsReady(true);
-      
       console.log('🔍 Telegram Web App данные:');
       console.log('Mode:', isMockMode ? 'MOCK' : 'PRODUCTION');
       console.log('tg.initData:', telegram.initData ? `present (${telegram.initData.length} chars)` : 'null');
@@ -452,7 +522,8 @@ export const useTelegram = () => {
       }
     } else {
       console.warn('⚠️ Telegram Web App не доступен');
-      setIsReady(true);
+      setIsBaseReady(true);
+      setIsViewportReady(true);
     }
     
     // Cleanup функция
@@ -466,6 +537,16 @@ export const useTelegram = () => {
       if (handleScroll) {
         window.removeEventListener('scroll', handleScroll);
         window.removeEventListener('touchmove', handleScroll);
+      }
+      
+      // Отписываемся от viewportChanged
+      if (viewportChangedHandler && telegram && typeof telegram.offEvent === 'function') {
+        telegram.offEvent('viewportChanged', viewportChangedHandler);
+      }
+      
+      // Очищаем fallback timeout
+      if (viewportChangedHandler && (viewportChangedHandler as any).__fallbackTimeout) {
+        clearTimeout((viewportChangedHandler as any).__fallbackTimeout);
       }
       
       // Очищаем таймаут

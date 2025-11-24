@@ -551,6 +551,32 @@ export const GalleryPage: React.FC = () => {
   return (
     <>
       <TelegramLayout>
+        {/* Compact Controls Bar - fixed position, привязан к StixlyTopHeader */}
+        {/* Показываем ControlsBar всегда после начальной загрузки, чтобы он не исчезал при обновлении контента */}
+        {!isInitialLoading && (
+          <CompactControlsBar
+            searchValue={searchTerm}
+            onSearchChange={handleSearchChange}
+            onSearch={handleSearch}
+            searchDisabled={false}
+            categories={categories}
+            selectedCategories={selectedCategories}
+            onCategoryToggle={handleCategoryToggle}
+            categoriesDisabled={false}
+            sortByLikes={sortByLikes}
+            onSortToggle={handleSortToggle}
+            sortDisabled={!!searchTerm || categories.length === 0}
+            selectedStickerTypes={selectedStickerTypes}
+            onStickerTypeToggle={handleStickerTypeToggle}
+            selectedStickerSetTypes={selectedStickerSetTypes}
+            onStickerSetTypeToggle={handleStickerSetTypeToggle}
+            selectedDate={selectedDate}
+            onDateChange={handleDateChange}
+            onAddClick={handleAddClick}
+            onApplyFilters={handleApplyFilters}
+            variant="fixed"
+          />
+        )}
 
         {/* Content */}
         {isInitialLoading ? (
@@ -575,43 +601,18 @@ export const GalleryPage: React.FC = () => {
             }}
           />
         ) : (
-          <>
-            {/* Compact Controls Bar - fixed position, привязан к StixlyTopHeader */}
-            <CompactControlsBar
-              searchValue={searchTerm}
-              onSearchChange={handleSearchChange}
-              onSearch={handleSearch}
-              searchDisabled={false}
-              categories={categories}
-              selectedCategories={selectedCategories}
-              onCategoryToggle={handleCategoryToggle}
-              categoriesDisabled={false}
-              sortByLikes={sortByLikes}
-              onSortToggle={handleSortToggle}
-              sortDisabled={!!searchTerm || categories.length === 0}
-              selectedStickerTypes={selectedStickerTypes}
-              onStickerTypeToggle={handleStickerTypeToggle}
-              selectedStickerSetTypes={selectedStickerSetTypes}
-              onStickerSetTypeToggle={handleStickerSetTypeToggle}
-              selectedDate={selectedDate}
-              onDateChange={handleDateChange}
-              onAddClick={handleAddClick}
-              onApplyFilters={handleApplyFilters}
-              variant="fixed"
+          <div className="fade-in">
+            <SimpleGallery
+              packs={galleryPacks}
+              onPackClick={handleViewStickerSet}
+              hasNextPage={currentPage < totalPages - 1}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={loadMoreStickerSets}
+              enablePreloading={true}
+              isRefreshing={isRefreshing}
+              scrollMode="inner"
             />
-            <div className="fade-in">
-              <SimpleGallery
-                packs={galleryPacks}
-                onPackClick={handleViewStickerSet}
-                hasNextPage={currentPage < totalPages - 1}
-                isLoadingMore={isLoadingMore}
-                onLoadMore={loadMoreStickerSets}
-                enablePreloading={true}
-                isRefreshing={isRefreshing}
-                scrollMode="inner"
-              />
-            </div>
-          </>
+          </div>
         )}
       </TelegramLayout>
       <DebugPanel initData={initData} />
