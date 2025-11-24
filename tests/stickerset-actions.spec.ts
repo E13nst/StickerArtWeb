@@ -1,7 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-
-// @ts-ignore - process доступен в Node.js окружении Playwright
-declare const process: any;
+import { setupAuth } from './helpers';
 
 /**
  * 🧪 ИНТЕГРАЦИОННЫЙ ТЕСТ: Проверка отображения кнопок действий
@@ -20,33 +18,9 @@ declare const process: any;
  */
 
 test.describe('StickerSet Actions: UI Display Check (Read-Only)', () => {
-  let adminInitData: string;
-  
-  test.beforeAll(async () => {
-    // Получаем initData для авторизации из переменной окружения
-    adminInitData = process.env.TELEGRAM_INIT_DATA || '';
-    
-    if (!adminInitData) {
-      console.warn('⚠️ TELEGRAM_INIT_DATA не установлен!');
-      console.warn('Установите переменную окружения TELEGRAM_INIT_DATA для авторизации.');
-      console.warn('Подробнее: см. tests/README.md');
-      throw new Error('TELEGRAM_INIT_DATA is required for this test');
-    }
-    
-    console.log('✅ TELEGRAM_INIT_DATA загружен из переменной окружения');
-  });
-  
   test.beforeEach(async ({ page }) => {
-    // Настройка авторизации через заголовок
-    await page.route('**/*', async (route) => {
-      const headers = {
-        ...route.request().headers(),
-        'X-Telegram-Init-Data': adminInitData
-      };
-      await route.continue({ headers });
-    });
-    
-    console.log('✅ Авторизация настроена через X-Telegram-Init-Data');
+    // Настройка авторизации
+    await setupAuth(page);
   });
   
   test('проверка отображения кнопок действий на основе availableActions (без изменений)', async ({ page }) => {

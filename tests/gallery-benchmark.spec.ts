@@ -1,4 +1,13 @@
 import { test, expect, Page } from '@playwright/test';
+import {
+  setupAuth,
+  navigateToGallery,
+  getMediaStats,
+  scrollGalleryToBottom,
+  waitForMediaLoad,
+  getCacheStats,
+  logMediaStats
+} from './helpers';
 
 // @ts-ignore - process доступен в Node.js окружении Playwright
 declare const process: any;
@@ -819,29 +828,14 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     const collector = new MetricsCollector(page);
     await collector.start();
     
-    // Установка initData для авторизации
-    const initData = process.env.TELEGRAM_INIT_DATA || '';
-    if (initData) {
-      await page.route('**/*', async (route) => {
-        const headers = {
-          ...route.request().headers(),
-          'X-Telegram-Init-Data': initData
-        };
-        await route.continue({ headers });
-      });
-      console.log('✅ Авторизация настроена через X-Telegram-Init-Data');
-    }
+    // Установка авторизации
+    await setupAuth(page);
     
     // Переход на страницу галереи
     console.log('📄 Переход на страницу галереи...');
     const navigationStart = Date.now();
     
-    await page.goto('/miniapp/', { waitUntil: 'domcontentloaded' });
-    
-    // Ждем появления контейнера галереи
-    console.log('⏳ Ожидание загрузки контейнера галереи...');
-    await page.waitForSelector('[data-testid="gallery-container"]', { timeout: 15000 })
-      .catch(() => console.log('⚠️ Gallery container не найден, продолжаем...'));
+    await navigateToGallery(page);
     
     // ════════════════════════════════════════════════════════════════════════
     // СТРАНИЦА 1: Первые 20 стикеров
@@ -865,41 +859,8 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     console.log(`✅ Все 20 стикеров с медиа загружены за ${formatTime(timeToAll20)}`);
     
     // Проверяем финальную статистику медиа после загрузки
-    const page1MediaStats = await page.evaluate(() => {
-        const cards = document.querySelectorAll('[data-testid="pack-card"]');
-        let imagesWithSrc = 0;
-        let videosWithSrc = 0;
-        let animationsWithCanvas = 0;
-        let emptyMedia = 0;
-        
-        cards.forEach(card => {
-          const img = card.querySelector('img.pack-card-image');
-          const video = card.querySelector('video.pack-card-video');
-          const animatedSticker = card.querySelector('.pack-card-animated-sticker');
-          const lottieCanvas = animatedSticker ? animatedSticker.querySelector('svg, canvas') : null;
-          
-          if (img && img.getAttribute('src') && img.getAttribute('src') !== '') {
-            imagesWithSrc++;
-          } else if (video && video.getAttribute('src') && video.getAttribute('src') !== '') {
-            videosWithSrc++;
-          } else if (lottieCanvas) {
-            animationsWithCanvas++;
-          } else {
-            emptyMedia++;
-          }
-        });
-        
-        return { imagesWithSrc, videosWithSrc, animationsWithCanvas, emptyMedia, totalCards: cards.length };
-    });
-    
-    const loadedMedia = page1MediaStats.imagesWithSrc + page1MediaStats.videosWithSrc + page1MediaStats.animationsWithCanvas;
-    console.log(`  📊 Медиа статистика страницы 1:`);
-    console.log(`     - Изображений с src: ${page1MediaStats.imagesWithSrc}`);
-    console.log(`     - Видео с src: ${page1MediaStats.videosWithSrc}`);
-    console.log(`     - Анимаций с canvas: ${page1MediaStats.animationsWithCanvas}`);
-    console.log(`     - Карточек без медиа: ${page1MediaStats.emptyMedia}`);
-    console.log(`     - Всего карточек: ${page1MediaStats.totalCards}`);
-    console.log(`     - Загружено медиа: ${loadedMedia}/20 (${(loadedMedia / 20 * 100).toFixed(1)}%)`);
+    const page1MediaStats = await getMediaStats(page);
+    logMediaStats(page1MediaStats, 'страницы 1');
     
     // ════════════════════════════════════════════════════════════════════════
     // СКРОЛЛ И СТРАНИЦА 2: Следующие 20 стикеров
@@ -910,29 +871,7 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     // 🎯 Скроллим СРАЗУ после загрузки 50% медиа первой страницы
     console.log('📜 Скроллинг вниз для загрузки второй страницы...');
     
-    // Находим gallery container и скроллим ЕГО, а не window
-    const scrollResult = await page.evaluate(() => {
-      const container = document.querySelector('[data-testid="gallery-container"]');
-      if (container) {
-        // Скроллим контейнер до конца
-        container.scrollTop = container.scrollHeight;
-        return {
-          success: true,
-          scrollTop: container.scrollTop,
-          scrollHeight: container.scrollHeight,
-          clientHeight: container.clientHeight
-        };
-      }
-      // Fallback: скроллим window
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
-      return {
-        success: false,
-        fallback: true,
-        scrollY: window.scrollY,
-        scrollHeight: document.body.scrollHeight
-      };
-    });
-    
+    const scrollResult = await scrollGalleryToBottom(page);
     console.log(`  📊 Скролл выполнен:`, scrollResult);
     
     // Даем минимальное время для InfiniteScroll и API запроса
@@ -953,73 +892,10 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     
     // 🎯 КРИТИЧНО: Активно ждем загрузки медиа для ВСЕХ карточек
     console.log('⏳ Активное ожидание загрузки медиа для всех 40 карточек...');
-    const mediaWaitStart = Date.now();
     const targetMediaCount = 38; // Минимум 95% карточек должны иметь медиа (38/40)
     const maxMediaWaitTime = 30000; // 🔥 УВЕЛИЧЕНО: Максимум 30 секунд ожидания (с 15s)
     
-    let finalMediaStats;
-    let mediaAttempts = 0;
-    
-    while (Date.now() - mediaWaitStart < maxMediaWaitTime) {
-      finalMediaStats = await page.evaluate(() => {
-        const cards = document.querySelectorAll('[data-testid="pack-card"]');
-        let imagesWithSrc = 0;
-        let videosWithSrc = 0;
-        let animationsWithCanvas = 0;
-        let emptyMedia = 0;
-        const emptyCardIndices: number[] = [];
-        
-        cards.forEach((card, index) => {
-          const img = card.querySelector('img.pack-card-image');
-          const video = card.querySelector('video.pack-card-video');
-          const animatedSticker = card.querySelector('.pack-card-animated-sticker');
-          const lottieCanvas = animatedSticker ? animatedSticker.querySelector('svg, canvas') : null;
-
-          const hasImage = !!(img && img.getAttribute('src') && img.getAttribute('src') !== '');
-          const hasVideo = !!(video && video.getAttribute('src') && video.getAttribute('src') !== '');
-          const hasAnimationCanvas = !!lottieCanvas;
-          
-          if (hasImage) {
-            imagesWithSrc++;
-          } else if (hasVideo) {
-            videosWithSrc++;
-          } else if (hasAnimationCanvas) {
-            animationsWithCanvas++;
-          } else {
-            emptyMedia++;
-            emptyCardIndices.push(index);
-          }
-        });
-        
-        const loadedMedia = imagesWithSrc + videosWithSrc + animationsWithCanvas;
-        
-        return { 
-          imagesWithSrc, 
-          videosWithSrc,
-          animationsWithCanvas,
-          emptyMedia, 
-          totalCards: cards.length,
-          emptyCardIndices,
-          loadedMedia
-        };
-      });
-      
-      if (mediaAttempts % 10 === 0) { // Логируем каждую секунду
-        console.log(`  🔄 Попытка ${mediaAttempts + 1}: ${finalMediaStats.loadedMedia}/40 медиа загружено (цель: ${targetMediaCount})`);
-        if (finalMediaStats.emptyCardIndices.length > 0 && finalMediaStats.emptyCardIndices.length <= 5) {
-          console.log(`     - Карточки без медиа: ${finalMediaStats.emptyCardIndices.join(', ')}`);
-        }
-      }
-      
-      if (finalMediaStats.loadedMedia >= targetMediaCount) {
-        const waitedTime = Date.now() - mediaWaitStart;
-        console.log(`✅ 95% медиа загружено за ${formatTime(waitedTime)}`);
-        break;
-      }
-      
-      await page.waitForTimeout(100); // Проверяем каждые 100ms
-      mediaAttempts++;
-    }
+    const finalMediaStats = await waitForMediaLoad(page, targetMediaCount, maxMediaWaitTime);
     
     // 🔍 ДИАГНОСТИКА: Проверяем состояние кеша vs рендера
     console.log('🔍 ДИАГНОСТИКА: Проверка состояния кешей и рендера...');
@@ -1042,108 +918,59 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
       }
     }
     
-    const cacheVsRenderStats = await page.evaluate(() => {
-      // Получаем доступ к кешам через window
-      const imageLoader = (window as any).imageLoader;
-      if (!imageLoader) return { error: 'imageLoader not found' };
+    const cacheVsRenderStats = await getCacheStats(page);
+    
+    if ('error' in cacheVsRenderStats) {
+      console.log('  ⚠️  Не удалось получить статистику кешей:', cacheVsRenderStats.error);
+    } else {
+      console.log('  📦 Состояние кешей:');
+      console.log(`     - Images в кеше: ${cacheVsRenderStats.cacheStats.images}`);
+      console.log(`     - Animations в кеше: ${cacheVsRenderStats.cacheStats.animations}`);
+      console.log(`     - Videos в кеше: ${cacheVsRenderStats.cacheStats.videos}`);
       
-      const { animationCache, imageCache, videoBlobCache } = imageLoader;
-      
-      // Статистика кешей
-      const cacheStats = {
-        images: imageCache ? Array.from(imageCache.keys ? imageCache.keys() : []).length : 0,
-        animations: animationCache ? Array.from(animationCache.keys ? animationCache.keys() : []).length : 0,
-        videos: videoBlobCache ? Array.from(videoBlobCache.keys ? videoBlobCache.keys() : []).length : 0
-      };
-      
-      // Проверяем карточки
-      const cards = document.querySelectorAll('[data-testid="pack-card"]');
-      const cardDetails: Array<{
-        index: number;
-        hasVisibleMedia: boolean;
-        mediaType: string;
-        hasAnimatedSticker: boolean;
-        hasLottieCanvas: boolean;
-        imgSrc: string | null;
-        videoSrc: string | null;
-      }> = [];
-      
-      cards.forEach((card, index) => {
-        const img = card.querySelector('img.pack-card-image');
-        const video = card.querySelector('video.pack-card-video');
-        const animatedSticker = card.querySelector('.pack-card-animated-sticker');
-        const lottieCanvas = animatedSticker ? animatedSticker.querySelector('svg, canvas') : null;
-        
-        const hasVisibleMedia = !!(
-          (img && img.getAttribute('src') && img.getAttribute('src') !== '') ||
-          (video && video.getAttribute('src') && video.getAttribute('src') !== '') ||
-          lottieCanvas
-        );
-        
-        const mediaType = img ? 'image' : video ? 'video' : animatedSticker ? 'animation' : 'none';
-        
-        cardDetails.push({
-          index,
-          hasVisibleMedia,
-          mediaType,
-          hasAnimatedSticker: !!animatedSticker,
-          hasLottieCanvas: !!lottieCanvas,
-          imgSrc: img ? img.getAttribute('src') : null,
-          videoSrc: video ? video.getAttribute('src') : null
+      // Анализируем проблемные карточки
+      const cardsWithoutMedia = cacheVsRenderStats.cardDetails.filter(c => !c.hasVisibleMedia);
+      if (cardsWithoutMedia.length > 0) {
+        console.log(`  ⚠️  Карточки без видимого медиа (${cardsWithoutMedia.length}):`);
+        cardsWithoutMedia.slice(0, 10).forEach(card => {
+          console.log(`     - Карточка ${card.index}: type=${card.mediaType}, hasAnimated=${card.hasAnimatedSticker}, hasCanvas=${card.hasLottieCanvas}`);
         });
-      });
-      
-      return { cacheStats, cardDetails };
-    });
-    
-    console.log('  📦 Состояние кешей:');
-    console.log(`     - Images в кеше: ${cacheVsRenderStats.cacheStats?.images || 0}`);
-    console.log(`     - Animations в кеше: ${cacheVsRenderStats.cacheStats?.animations || 0}`);
-    console.log(`     - Videos в кеше: ${cacheVsRenderStats.cacheStats?.videos || 0}`);
-    
-    // Анализируем проблемные карточки
-    const cardsWithoutMedia = cacheVsRenderStats.cardDetails?.filter(c => !c.hasVisibleMedia) || [];
-    if (cardsWithoutMedia.length > 0) {
-      console.log(`  ⚠️  Карточки без видимого медиа (${cardsWithoutMedia.length}):`);
-      cardsWithoutMedia.slice(0, 10).forEach(card => {
-        console.log(`     - Карточка ${card.index}: type=${card.mediaType}, hasAnimated=${card.hasAnimatedSticker}, hasCanvas=${card.hasLottieCanvas}`);
-      });
-      
-      // 🔍 ДЕТАЛЬНАЯ ДИАГНОСТИКА: Проверяем состояние isFirstStickerReady
-      console.log(`\n  🔬 Детальная диагностика проблемных карточек:`);
-      const detailedCardInfo = await page.evaluate((indices: number[]) => {
-        const cards = document.querySelectorAll('[data-testid="pack-card"]');
-        return indices.map(index => {
-          const card = cards[index];
-          if (!card) return null;
-          
-          // Проверяем наличие skeleton loader (эмодзи в анимации)
-          const hasPulseAnimation = card.querySelector('[style*="animation"][style*="pulse"]');
-          const emojiPlaceholder = card.querySelector('[style*="fontSize"][style*="48px"]');
-          
-          return {
-            index,
-            hasSkeletonLoader: !!hasPulseAnimation || !!emojiPlaceholder,
-            cardText: card.textContent?.substring(0, 50) || ''
-          };
-        }).filter(item => Boolean(item));
-      }, cardsWithoutMedia.slice(0, 5).map(c => c.index));
-      
-      detailedCardInfo.forEach(info => {
-        if (info) {
-        console.log(`     - Карточка ${info.index}: hasSkeletonLoader=${info.hasSkeletonLoader} (isFirstStickerReady=false)`);
-        }
-      });
+        
+        // 🔍 ДЕТАЛЬНАЯ ДИАГНОСТИКА: Проверяем состояние isFirstStickerReady
+        console.log(`\n  🔬 Детальная диагностика проблемных карточек:`);
+        const detailedCardInfo = await page.evaluate((indices: number[]) => {
+          const cards = document.querySelectorAll('[data-testid="pack-card"]');
+          return indices.map(index => {
+            const card = cards[index];
+            if (!card) return null;
+            
+            // Проверяем наличие skeleton loader (эмодзи в анимации)
+            const hasPulseAnimation = card.querySelector('[style*="animation"][style*="pulse"]');
+            const emojiPlaceholder = card.querySelector('[style*="fontSize"][style*="48px"]');
+            
+            return {
+              index,
+              hasSkeletonLoader: !!hasPulseAnimation || !!emojiPlaceholder,
+              cardText: card.textContent?.substring(0, 50) || ''
+            };
+          }).filter(item => Boolean(item));
+        }, cardsWithoutMedia.slice(0, 5).map(c => c.index));
+        
+        detailedCardInfo.forEach(info => {
+          if (info) {
+            console.log(`     - Карточка ${info.index}: hasSkeletonLoader=${info.hasSkeletonLoader} (isFirstStickerReady=false)`);
+          }
+        });
+      }
     }
     
     // Проверяем что изображения/видео реально загрузились
     console.log('🔍 Финальная проверка загрузки медиа для всех 40 карточек...');
-    const page2MediaStats = await page.evaluate(() => {
+    const page2MediaStatsFull = await getMediaStats(page);
+    
+    // Получаем детали для карточек 21-40
+    const page2CardDetails = await page.evaluate(() => {
       const cards = document.querySelectorAll('[data-testid="pack-card"]');
-      let imagesWithSrc = 0;
-      let videosWithSrc = 0;
-      let animationsWithCanvas = 0;
-      let emptyMedia = 0;
       const cardDetails: Array<{index: number, hasMedia: boolean, mediaType: string}> = [];
       
       cards.forEach((card, index) => {
@@ -1156,42 +983,25 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
         const hasVideo = !!(video && video.getAttribute('src') && video.getAttribute('src') !== '');
         const hasAnimationCanvas = !!lottieCanvas;
         
-        if (hasImage) {
-          imagesWithSrc++;
-          cardDetails.push({index, hasMedia: true, mediaType: 'image'});
-        } else if (hasVideo) {
-          videosWithSrc++;
-          cardDetails.push({index, hasMedia: true, mediaType: 'video'});
-        } else if (hasAnimationCanvas) {
-          animationsWithCanvas++;
-          cardDetails.push({index, hasMedia: true, mediaType: 'animation'});
-        } else {
-          emptyMedia++;
-          cardDetails.push({index, hasMedia: false, mediaType: 'none'});
-        }
+        const hasMedia = hasImage || hasVideo || hasAnimationCanvas;
+        const mediaType = img ? 'image' : video ? 'video' : animatedSticker ? 'animation' : 'none';
+        
+        cardDetails.push({index, hasMedia, mediaType});
       });
       
-      return { 
-        imagesWithSrc, 
-        videosWithSrc,
-        animationsWithCanvas,
-        emptyMedia, 
-        totalCards: cards.length,
-        page2Cards: cardDetails.slice(20, 40) // Только карточки 21-40
-      };
+      return { page2Cards: cardDetails.slice(20, 40) };
     });
     
-    console.log(`  📊 Финальная медиа статистика для всех страниц:`);
-    console.log(`     - Изображений с src: ${finalMediaStats!.imagesWithSrc}`);
-    console.log(`     - Видео с src: ${finalMediaStats!.videosWithSrc}`);
-    console.log(`     - Анимаций с canvas/svg: ${finalMediaStats!.animationsWithCanvas ?? 0}`);
-    console.log(`     - Карточек без медиа: ${finalMediaStats!.emptyMedia}`);
-    console.log(`     - Всего карточек: ${finalMediaStats!.totalCards}`);
-    console.log(`     - Процент загруженных: ${(finalMediaStats!.loadedMedia / finalMediaStats!.totalCards * 100).toFixed(1)}%`);
+    const page2MediaStats = {
+      ...page2MediaStatsFull,
+      page2Cards: page2CardDetails.page2Cards
+    };
+    
+    logMediaStats(finalMediaStats, 'для всех страниц');
     
     // Если есть карточки без медиа - выводим их индексы для отладки
-    if (finalMediaStats!.emptyMedia > 0) {
-      console.log(`  ⚠️  Карточки без медиа (индексы): ${finalMediaStats!.emptyCardIndices.join(', ')}`);
+    if (finalMediaStats.emptyMedia > 0 && finalMediaStats.emptyCardIndices) {
+      console.log(`  ⚠️  Карточки без медиа (индексы): ${finalMediaStats.emptyCardIndices.join(', ')}`);
     }
     
     console.log(`  📊 Медиа на странице 2 (карточки 21-40):`);
@@ -1602,7 +1412,7 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
       clsAcceptable: metrics.rendering.layoutShifts < 0.25,
       noDuplicates: metrics.network.duplicateRequests < 15, // Увеличили лимит для 2 страниц
       noFailedRequests: metrics.network.failedRequests === 0,
-      allCardsHaveMedia: page2MediaStats.emptyMedia < 5, // Макс 5 карточек без медиа допустимо
+      allCardsHaveMedia: finalMediaStats.emptyMedia < 5, // Макс 5 карточек без медиа допустимо
     };
     
     console.log('🎯 РЕЗУЛЬТАТЫ ПРОВЕРОК:');
@@ -1612,7 +1422,7 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     console.log(`  ${checks.clsAcceptable ? '✅' : '❌'} CLS < 0.25: ${metrics.rendering.layoutShifts.toFixed(3)}`);
     console.log(`  ${checks.noDuplicates ? '✅' : '❌'} Дубликаты < 15: ${metrics.network.duplicateRequests}`);
     console.log(`  ${checks.noFailedRequests ? '✅' : '❌'} Нет ошибок: ${metrics.network.failedRequests === 0 ? 'Да' : 'Нет'}`);
-    console.log(`  ${checks.allCardsHaveMedia ? '✅' : '❌'} Медиа загружено: ${page2MediaStats.totalCards - page2MediaStats.emptyMedia}/${page2MediaStats.totalCards}`);
+    console.log(`  ${checks.allCardsHaveMedia ? '✅' : '❌'} Медиа загружено: ${finalMediaStats.totalCards - finalMediaStats.emptyMedia}/${finalMediaStats.totalCards}`);
     console.log('');
     
     // Базовая проверка что стикеры загрузились
@@ -1620,7 +1430,7 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     console.log(`📊 Итого загружено стикер-карточек: ${stickerCount}`);
     
     expect(stickerCount).toBeGreaterThanOrEqual(38); // Минимум 95% карточек (38/40)
-    expect(finalMediaStats!.loadedMedia).toBeGreaterThanOrEqual(27); // 🔥 ВРЕМЕННО: 67.5% (27/40) для отладки, цель: 95% (38/40)
+    expect(finalMediaStats.loadedMedia).toBeGreaterThanOrEqual(27); // 🔥 ВРЕМЕННО: 67.5% (27/40) для отладки, цель: 95% (38/40)
   });
   
   test('Тест производительности на мобильном устройстве @mobile @benchmark', async ({ page }) => {
@@ -1632,18 +1442,8 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     const collector = new MetricsCollector(page);
     await collector.start();
     
-    // Установка initData для авторизации
-    const initData = process.env.TELEGRAM_INIT_DATA || '';
-    if (initData) {
-      await page.route('**/*', async (route) => {
-        const headers = {
-          ...route.request().headers(),
-          'X-Telegram-Init-Data': initData
-        };
-        await route.continue({ headers });
-      });
-      console.log('✅ Авторизация настроена через X-Telegram-Init-Data');
-    }
+    // Установка авторизации
+    await setupAuth(page);
     
     await page.goto('/miniapp/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="gallery-container"]', { timeout: 15000 }).catch(() => {});

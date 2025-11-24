@@ -2,25 +2,8 @@
  * Централизованный экспорт всех helper функций для тестов
  */
 
-// Auth helpers
-export { setupAuth } from './auth-helpers';
+// Common helpers
+export * from './common';
 
-// Gallery helpers
-export {
-  navigateToGallery,
-  searchStickerSet,
-  openStickerSet,
-  checkThumbnails
-} from './gallery-helpers';
-
-// Media helpers
-export {
-  waitForFirstMedia,
-  hasFallbackInMainArea,
-  getMediaStatus,
-  waitForAnimation,
-  waitForVideo,
-  clickThumbnailAndCheckMedia,
-  type MediaStatus
-} from './media-helpers';
-
+// Benchmark helpers
+export * from './benchmark';
