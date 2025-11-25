@@ -327,6 +327,12 @@ export const useTelegram = () => {
         telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
       }
       
+      // Функция для конвертации hex в RGB (используется в applyTheme и при загрузке сохраненной темы)
+      const hexToRgb = (hex: string): string => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 0, 0';
+      };
+
       // Функция применения темы
       const applyTheme = () => {
         if (telegram.themeParams) {
@@ -347,6 +353,16 @@ export const useTelegram = () => {
           root.style.setProperty('--tg-theme-border-color', isDark ? '#2a3441' : '#e0e0e0');
           root.style.setProperty('--tg-theme-shadow-color', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
           root.style.setProperty('--tg-theme-overlay-color', isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)');
+          
+          // RGB-переменные для rgba() использования
+          const bgColor = telegram.themeParams.bg_color || '#ffffff';
+          const textColor = telegram.themeParams.text_color || (isDark ? '#ffffff' : '#000000');
+          const buttonColor = telegram.themeParams.button_color || '#2481cc';
+          
+          root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(bgColor));
+          root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(textColor));
+          root.style.setProperty('--tg-theme-button-color-rgb', hexToRgb(buttonColor));
+          root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54'); // Фиксированный цвет ошибки
           
           // Применяем тему к body
           body.style.backgroundColor = telegram.themeParams.bg_color || '#ffffff';
@@ -413,6 +429,13 @@ export const useTelegram = () => {
         root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
         root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
         root.style.setProperty('--tg-theme-link-color', params.link_color);
+        root.style.setProperty('--tg-theme-border-color', '#2a3441');
+        root.style.setProperty('--tg-theme-shadow-color', 'rgba(0, 0, 0, 0.3)');
+        root.style.setProperty('--tg-theme-overlay-color', 'rgba(0, 0, 0, 0.8)');
+        root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(params.bg_color));
+        root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(params.text_color));
+        root.style.setProperty('--tg-theme-button-color-rgb', hexToRgb(params.button_color));
+        root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54');
         body.style.backgroundColor = params.bg_color;
         body.style.color = params.text_color;
         root.classList.add('tg-dark-theme');
@@ -436,6 +459,13 @@ export const useTelegram = () => {
         root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
         root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
         root.style.setProperty('--tg-theme-link-color', params.link_color);
+        root.style.setProperty('--tg-theme-border-color', '#e0e0e0');
+        root.style.setProperty('--tg-theme-shadow-color', 'rgba(0, 0, 0, 0.1)');
+        root.style.setProperty('--tg-theme-overlay-color', 'rgba(0, 0, 0, 0.7)');
+        root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(params.bg_color));
+        root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(params.text_color));
+        root.style.setProperty('--tg-theme-button-color-rgb', hexToRgb(params.button_color));
+        root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54');
         body.style.backgroundColor = params.bg_color;
         body.style.color = params.text_color;
         root.classList.add('tg-light-theme');

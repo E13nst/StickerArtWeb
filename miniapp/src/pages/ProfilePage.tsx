@@ -460,7 +460,6 @@ export const ProfilePage: React.FC = () => {
     }}>
       {/* Профильный header */}
       <StixlyTopHeader
-        showThemeToggle={false}
         profileMode={{
           enabled: true,
           backgroundColor: isPremium 

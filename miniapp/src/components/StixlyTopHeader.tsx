@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "../api/client";
 import CollectionsIcon from "@mui/icons-material/Collections";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 
 // Build asset path respecting Vite base (/miniapp/)
 const BASE = (import.meta as any).env?.BASE_URL || "/miniapp/";
@@ -21,7 +22,6 @@ export interface StixlyTopHeaderProps {
   profileMode?: ProfileModeConfig | { enabled: false };
   onSlideChange?: (slideBg: string) => void;
   fixedSlideId?: number;
-  showThemeToggle?: boolean;
 }
 
 type Slide = {
@@ -71,153 +71,6 @@ const getPatternSVG = (pattern: ProfilePattern, color: string = 'rgba(255,255,25
     default:
       return '';
   }
-};
-
-// Специальная кнопка переключения тем для StixlyTopHeader
-const StixlyThemeToggle: React.FC<{ currentBg: string }> = ({ currentBg }) => {
-  const [isDark, setIsDark] = React.useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('stixly_tg_theme');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed?.scheme === 'dark';
-      }
-    } catch {}
-    return document.documentElement.classList.contains('tg-dark-theme');
-  });
-
-  const handleToggle = () => {
-    const next = !isDark;
-    setIsDark(next);
-    
-    // Применяем тему
-    const scheme = next ? 'dark' : 'light';
-    const lightTheme = {
-      bg_color: '#ffffff',
-      text_color: '#000000',
-      hint_color: '#999999',
-      link_color: '#2481cc',
-      button_color: '#2481cc',
-      button_text_color: '#ffffff',
-      secondary_bg_color: '#f8f9fa',
-      border_color: '#e0e0e0',
-      shadow_color: 'rgba(0, 0, 0, 0.1)',
-      overlay_color: 'rgba(0, 0, 0, 0.7)',
-    };
-    
-    const darkTheme = {
-      bg_color: '#18222d',
-      text_color: '#ffffff',
-      hint_color: '#708499',
-      link_color: '#6ab2f2',
-      button_color: '#5288c1',
-      button_text_color: '#ffffff',
-      secondary_bg_color: '#131415',
-      border_color: '#2a3441',
-      shadow_color: 'rgba(0, 0, 0, 0.3)',
-      overlay_color: 'rgba(0, 0, 0, 0.8)',
-    };
-    
-    const params = next ? darkTheme : lightTheme;
-    const root = document.documentElement;
-    const body = document.body;
-    
-    root.style.setProperty('--tg-theme-bg-color', params.bg_color);
-    root.style.setProperty('--tg-theme-text-color', params.text_color);
-    root.style.setProperty('--tg-theme-hint-color', params.hint_color);
-    root.style.setProperty('--tg-theme-button-color', params.button_color);
-    root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
-    root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
-    root.style.setProperty('--tg-theme-link-color', params.link_color);
-    root.style.setProperty('--tg-theme-border-color', params.border_color);
-    root.style.setProperty('--tg-theme-shadow-color', params.shadow_color);
-    root.style.setProperty('--tg-theme-overlay-color', params.overlay_color);
-    
-    body.style.backgroundColor = params.bg_color;
-    body.style.color = params.text_color;
-    
-    if (scheme === 'dark') {
-      root.classList.add('tg-dark-theme');
-      root.classList.remove('tg-light-theme');
-    } else {
-      root.classList.add('tg-light-theme');
-      root.classList.remove('tg-dark-theme');
-    }
-    
-    // Сохраняем тему
-    try {
-      localStorage.setItem('stixly_tg_theme', JSON.stringify({ scheme, params }));
-    } catch {}
-  };
-  const topColor = isDark ? '#ffffff' : '#111111';
-  const bottomColor = isDark ? 'var(--tg-theme-bg-color, #111111)' : '#ffffff';
-  const hoverTopColor = isDark ? '#ffffff' : '#1a1a1a';
-  const hoverBottomColor = isDark ? 'var(--tg-theme-bg-color, #111111)' : '#f4f4f4';
-
-  const baseGradient = `linear-gradient(135deg, ${topColor} 0%, ${topColor} 50%, ${bottomColor} 50%, ${bottomColor} 100%)`;
-  const hoverGradient = `linear-gradient(135deg, ${hoverTopColor} 0%, ${hoverTopColor} 50%, ${hoverBottomColor} 50%, ${hoverBottomColor} 100%)`;
-
-  return (
-    <button
-      onClick={handleToggle}
-      style={{
-        position: 'absolute',
-        bottom: '-1px',
-        right: '0px',
-        width: 'calc(100vw * 0.084)', // ~8.4% от ширины viewport
-        height: 'calc(100vw * 0.084)',
-        minWidth: '28px',
-        minHeight: '28px',
-        maxWidth: '40px',
-        maxHeight: '40px',
-        borderRadius: 0,
-        borderTopLeftRadius: '10px',
-        borderBottomRightRadius: '10px',
-        border: 'none',
-        background: baseGradient,
-        color: '#111111',
-        fontSize: 'calc(100vw * 0.042)', // ~4.2% от ширины viewport
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        backdropFilter: 'blur(4px)',
-        boxShadow: 'none',
-        zIndex: 10,
-        padding: 0,
-        margin: 0,
-        outline: 'none',
-        overflow: 'hidden',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = hoverGradient;
-        e.currentTarget.style.transform = 'scale(1.05)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = baseGradient;
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-      aria-label={isDark ? 'Переключить на светлую тему' : 'Переключить на тёмную тему'}
-    >
-      <span style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        width: '100%',
-        height: '100%',
-        paddingTop: '5px',
-        paddingLeft: '2px',
-        lineHeight: 1,
-        transform: 'translateY(-1px)',
-        fontSize: '0.8em'
-      }}>
-        {isDark ? '☀️' : '🌙'}
-      </span>
-    </button>
-  );
 };
 
 type DashboardStats = {
@@ -273,8 +126,7 @@ const pickFirstNumber = (values: unknown[], visited: WeakSet<object> = new WeakS
 export default function StixlyTopHeader({
   profileMode,
   onSlideChange,
-  fixedSlideId,
-  showThemeToggle = true
+  fixedSlideId
 }: StixlyTopHeaderProps = {}) {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
@@ -652,7 +504,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <span>❤</span>
+                    <FavoriteIcon sx={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff) !important" }} />
                     <span>{formattedTotalLikes}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedLikesDailyChange})</span>
                   </div>
@@ -669,7 +521,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <CollectionsIcon sx={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "#ffffff" }} />
+                    <CollectionsIcon sx={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff) !important" }} />
                     <span>{formattedTotalPacks}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedDailyChange})</span>
                   </div>
@@ -686,7 +538,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <span>🪙</span>
+                    <span>🎨</span>
                     <span>{formattedArtTotal}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedArtDailyChange})</span>
                   </div>
@@ -828,7 +680,6 @@ export default function StixlyTopHeader({
     <header id="stixlytopheader" className="stixly-top-header">
       <div className="stixly-top-header-inner">
         {headerContent}
-        {showThemeToggle && <StixlyThemeToggle currentBg={currentBgColor} />}
       </div>
     </header>
   );

@@ -43,6 +43,7 @@
   --tg-theme-bg-color: #ffffff;
   --tg-theme-bg-color-rgb: 255, 255, 255;
   --tg-theme-text-color: #000000;
+  --tg-theme-text-color-rgb: 0, 0, 0;
   --tg-theme-hint-color: #999999;
   --tg-theme-link-color: #2481cc;
   --tg-theme-button-color: #2481cc;
@@ -55,6 +56,7 @@
   --tg-theme-success-color: #4caf50;
   --tg-theme-warning-color: #ff9800;
   --tg-theme-error-color: #f44336;
+  --tg-theme-error-color-rgb: 244, 67, 54;
 }
 
 /* Harmonious proportional utilities (container-first, minimal code) */
@@ -1385,4 +1387,15 @@ input.tg-search__input,
   .tg-sticker-card__preview-item {
     min-width: calc(50% - 0.5px);
   }
+}
+
+/* Убираем отступы у MUI Container */
+.MuiContainer-root.MuiContainer-maxWidthSm,
+.MuiContainer-root.MuiContainer-maxWidthLg {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }

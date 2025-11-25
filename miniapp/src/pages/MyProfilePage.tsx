@@ -10,6 +10,7 @@ import {
   Chip
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import AddIcon from '@mui/icons-material/Add';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
@@ -109,6 +110,48 @@ export const MyProfilePage: React.FC = () => {
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   // Отдельное состояние для загрузки следующей страницы "Мои" (аналогично GalleryPage)
   const [isLoadingMorePublished, setIsLoadingMorePublished] = useState(false);
+  
+  // Определение темы для кнопки (как в AddStickerPackButton)
+  const computeIsLightTheme = useCallback(() => {
+    if (tg?.colorScheme === 'light') return true;
+    if (tg?.colorScheme === 'dark') return false;
+    if (typeof document !== 'undefined') {
+      if (document.documentElement.classList.contains('tg-light-theme')) return true;
+      if (document.documentElement.classList.contains('tg-dark-theme')) return false;
+      const themeAttr = document.documentElement.getAttribute('data-theme');
+      if (themeAttr === 'light') return true;
+      if (themeAttr === 'dark') return false;
+    }
+    if (typeof window !== 'undefined' && 'matchMedia' in window) {
+      return window.matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    return true;
+  }, [tg]);
+  
+  const [isLightTheme, setIsLightTheme] = useState<boolean>(computeIsLightTheme);
+  
+  useEffect(() => {
+    setIsLightTheme(computeIsLightTheme());
+    const handleThemeChange = () => setIsLightTheme(computeIsLightTheme());
+    tg?.onEvent?.('themeChanged', handleThemeChange);
+    const observer = typeof MutationObserver !== 'undefined' && typeof document !== 'undefined'
+      ? new MutationObserver(handleThemeChange)
+      : null;
+    if (observer) {
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+    }
+    let mediaQuery: MediaQueryList | undefined;
+    const handleMediaQueryChange = (event: MediaQueryListEvent) => setIsLightTheme(event.matches);
+    if (typeof window !== 'undefined' && 'matchMedia' in window) {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+      mediaQuery.addEventListener('change', handleMediaQueryChange);
+    }
+    return () => {
+      tg?.offEvent?.('themeChanged', handleThemeChange);
+      observer?.disconnect();
+      mediaQuery?.removeEventListener('change', handleMediaQueryChange);
+    };
+  }, [tg, computeIsLightTheme]);
   // ✅ FIX: Отслеживаем текущий загружаемый fileId для предотвращения дублирования
   const loadingAvatarFileIdRef = useRef<string | null>(null);
   // ✅ FIX: Флаг для предотвращения повторных вызовов loadMyProfile из-за React.StrictMode
@@ -970,7 +1013,6 @@ export const MyProfilePage: React.FC = () => {
             </Box>
           ) : null
         }}
-        showThemeToggle={false}
       />
 
       {/* Карточка с достижениями под аватаром */}
@@ -1005,7 +1047,9 @@ export const MyProfilePage: React.FC = () => {
               <Box sx={{ 
                 textAlign: 'center',
                 mb: 2,
-                mt: 1
+                mt: 1,
+                position: 'relative',
+                zIndex: 11 // Выше аватарки (FloatingAvatar имеет zIndex: 10)
               }}>
                 <Typography 
                   variant="h5" 
@@ -1015,7 +1059,9 @@ export const MyProfilePage: React.FC = () => {
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    px: 2
+                    px: 2,
+                    position: 'relative',
+                    zIndex: 11
                   }}
                 >
                   {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
@@ -1100,7 +1146,7 @@ export const MyProfilePage: React.FC = () => {
       </StixlyPageContainer>
 
       {/* Прокручиваемый контент */}
-      <StixlyPageContainer>
+      <StixlyPageContainer sx={{ pt: 0 }}>
         <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
@@ -1113,7 +1159,10 @@ export const MyProfilePage: React.FC = () => {
                   zIndex: 998,
                   backgroundColor: 'var(--tg-theme-bg-color)',
                   backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)'
+                  WebkitBackdropFilter: 'blur(10px)',
+                  mt: 0,
+                  pt: 0,
+                  mb: 0
                 }}
               >
                 <StickerSetsTabs
@@ -1174,18 +1223,104 @@ export const MyProfilePage: React.FC = () => {
                     isRefreshing={isStickerSetsLoading && (setsFilter === 'liked' ? likedStickerSets.length > 0 : filteredStickerSets.length > 0)}
                     emptyState={
                       (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
-                        <EmptyState
-                          title={setsFilter === 'liked' ? '❤️ Понравившихся пока нет' : '📁 У вас пока нет стикерсетов'}
-                          message={
-                            setsFilter === 'liked' 
-                              ? 'Лайкните понравившиеся наборы в галерее, и они появятся здесь'
-                              : (searchTerm 
-                                  ? 'По вашему запросу ничего не найдено' 
-                                  : 'Добавьте стикер')
-                          }
-                          actionLabel="Создать стикер"
-                          onAction={handleCreateSticker}
-                        />
+                        setsFilter === 'liked' ? (
+                          <EmptyState
+                            title="❤️ Понравившихся пока нет"
+                            message="Лайкните понравившиеся наборы в галерее, и они появятся здесь"
+                          />
+                        ) : (
+                          <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            py: 5,
+                            px: 2
+                          }}>
+                            <Typography variant="h6" sx={{ 
+                              fontWeight: 600, 
+                              color: 'var(--tg-theme-text-color)',
+                              mb: 1
+                            }}>
+                              📁 У вас пока нет стикерсетов
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              color: 'var(--tg-theme-hint-color)',
+                              mb: 3,
+                              textAlign: 'center'
+                            }}>
+                              {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '2.5rem', px: '0.618rem', width: '100%', maxWidth: '400px' }}>
+                              <Button 
+                                fullWidth 
+                                variant="contained" 
+                                onClick={() => {
+                                  if (tg?.HapticFeedback) {
+                                    tg.HapticFeedback.impactOccurred('light');
+                                  }
+                                  handleCreateSticker();
+                                }} 
+                                startIcon={<AddIcon />}
+                                sx={{ 
+                                  height: '2.5rem', 
+                                  px: '0.618rem', 
+                                  borderRadius: '0.59rem', 
+                                  color: isLightTheme ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)',
+                                  fontSize: '0.875rem', 
+                                  fontWeight: 600, 
+                                  textTransform: 'none', 
+                                  gap: '0.5rem', 
+                                  backgroundColor: isLightTheme ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)',
+                                  background: isLightTheme 
+                                    ? 'rgba(164, 206, 255, 0.32)'
+                                    : 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)',
+                                  border: `1px solid ${isLightTheme ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)'}`,
+                                  boxShadow: '0 6px 18px rgba(30, 72, 185, 0.14)', 
+                                  backdropFilter: 'blur(18px) saturate(180%)', 
+                                  WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+                                  '& .MuiButton-startIcon': { 
+                                    margin: 0, 
+                                    '& svg': { 
+                                      fontSize: '0.955rem', 
+                                      color: 'inherit' 
+                                    } 
+                                  }, 
+                                  '&:hover': { 
+                                    background: isLightTheme
+                                      ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
+                                      : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
+                                    backgroundColor: isLightTheme
+                                      ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
+                                      : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
+                                    opacity: 1, 
+                                    transform: 'scale(0.98)', 
+                                    boxShadow: '0 10px 26px rgba(30, 72, 185, 0.18)'
+                                  }, 
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                Добавьте стикерпак
+                                <Chip 
+                                  label="+10 ART" 
+                                  size="small" 
+                                  sx={{ 
+                                    ml: 1, 
+                                    height: 'auto', 
+                                    fontSize: '0.75rem', 
+                                    backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)',
+                                    color: isLightTheme ? '#0D3B9D' : 'var(--tg-theme-button-text-color, #ffffff)',
+                                    fontWeight: 600, 
+                                    py: 0.25, 
+                                    '& .MuiChip-label': { 
+                                      color: 'inherit !important' 
+                                    } 
+                                  }} 
+                                />
+                              </Button>
+                            </Box>
+                          </Box>
+                        )
                       ) : undefined
                     }
                   />

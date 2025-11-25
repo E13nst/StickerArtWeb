@@ -122,8 +122,8 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
         minHeight: 72,
         borderRadius: 'var(--tg-radius-m)',
         border: '1px solid',
-        borderColor: isActive ? 'primary.main' : 'rgba(255,255,255,0.2)',
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderColor: isActive ? 'primary.main' : 'var(--tg-theme-border-color)',
+        backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 0, 0, 0), 0.6)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
@@ -146,7 +146,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
               position: 'absolute',
               bottom: '3px',
               left: '3px',
-              color: 'white',
+              color: 'var(--tg-theme-text-color)',
               fontSize: '14px',
               textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
             }}>
@@ -809,7 +809,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           onClick={onBack} 
           sx={{ 
             backgroundColor: 'primary.main', 
-            color: 'white',
+            color: 'var(--tg-theme-button-text-color)',
             borderRadius: 'var(--tg-radius-m)',
             width: 48,
             height: 48
@@ -1018,7 +1018,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           sx={{
             textAlign: 'center',
             fontWeight: 700,
-            color: 'white !important',
+            color: 'var(--tg-theme-text-color) !important',
             fontSize: '21px',
             lineHeight: '1.2',
             display: '-webkit-box',
@@ -1026,7 +1026,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7)',
+            textShadow: '0 2px 6px var(--tg-theme-shadow-color), 0 1px 3px var(--tg-theme-shadow-color)',
           }}
         >
           {displayTitle}
@@ -1041,12 +1041,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               textDecoration: 'none',
               fontWeight: 600,
               fontSize: '13px',
-              color: '#81d4fa',
+              color: 'var(--tg-theme-link-color)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               '&:hover': {
-                color: '#b3e5fc'
+                opacity: 0.8
               }
             }}
           >
@@ -1226,22 +1226,22 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                       flexShrink: 0,
                       padding: '6px 12px',
                       borderRadius: '13px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.15)',
                       backdropFilter: 'blur(8px)',
                       WebkitBackdropFilter: 'blur(8px)',
-                      color: 'white !important',
+                      color: 'var(--tg-theme-text-color) !important',
                       fontSize: '13px',
                       fontWeight: 600,
                       whiteSpace: 'nowrap',
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                      border: '1px solid rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.25)',
+                      textShadow: '0 1px 3px var(--tg-theme-shadow-color)',
                       maxWidth: '140px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       transition: 'all 150ms ease',
                       '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        border: '1px solid rgba(255, 255, 255, 0.35)',
+                        backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.2)',
+                        border: '1px solid rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.35)',
                         transform: 'scale(1.02)'
                       },
                       // Адаптивность для маленьких экранов
@@ -1267,7 +1267,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 <Typography 
                   variant="body2" 
                   sx={{ 
-                    color: 'rgba(255,255,255,0.7)', 
+                    color: 'var(--tg-theme-hint-color)', 
                     fontWeight: 500,
                     '@media (max-width: 400px)': {
                       fontSize: '12px'
@@ -1298,16 +1298,16 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     minWidth: 28, // Минимальный размер для кликабельности
                     minHeight: 28,
                     backgroundColor: 'transparent',
-                    color: 'rgba(255, 255, 255, 0.5)',
+                    color: 'var(--tg-theme-hint-color)',
                     padding: '4px',
                     transition: 'all 150ms ease',
                     flexShrink: 0, // Не сжимается
                     '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      color: 'rgba(255, 255, 255, 0.8)'
+                      backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.1)',
+                      color: 'var(--tg-theme-text-color)'
                     },
                     '&:active': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)'
+                      backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.15)'
                     },
                     // Адаптивность для маленьких экранов
                     '@media (max-width: 400px)': {
@@ -1336,7 +1336,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             sx={{
               width: '100%',
               height: '1px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--tg-theme-border-color)',
               marginTop: '8px',
               marginBottom: '8px'
             }}
@@ -1348,9 +1348,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               sx={{
                 mt: 2,
                 mx: '8px',
-                color: 'rgba(255, 255, 255, 0.9)',
-                borderColor: 'rgba(244, 67, 54, 0.4)',
-                backgroundColor: 'rgba(244, 67, 54, 0.12)'
+                color: 'var(--tg-theme-text-color)',
+                borderColor: 'var(--tg-theme-error-color)',
+                backgroundColor: 'rgba(var(--tg-theme-error-color-rgb, 244, 67, 54), 0.12)'
               }}
             >
               Набор заблокирован {currentBlockReason ? `— ${currentBlockReason}` : 'без указания причины'}.

@@ -8,7 +8,22 @@ export const StixlyPageContainer: React.FC<ContainerProps> = ({ children, sx, ..
   return (
     <Container
       maxWidth={isInTelegramApp ? 'sm' : 'lg'}
-      sx={{ px: 2, pb: 2, ...sx }}
+      sx={{ 
+        px: 0, 
+        pb: 0, 
+        pt: 0,
+        mt: 0,
+        mb: 0,
+        '&.MuiContainer-root': {
+          paddingLeft: 0,
+          paddingRight: 0,
+          paddingTop: 0,
+          paddingBottom: 0,
+          marginTop: 0,
+          marginBottom: 0,
+        },
+        ...sx 
+      }}
       {...rest}
     >
       {children}

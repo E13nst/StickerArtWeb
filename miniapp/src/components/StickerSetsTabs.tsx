@@ -36,7 +36,7 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
     large: `${0.764 * baseUnit}rem`    // 0.764
   };
   
-  const dividerWidth = '0.5px'; // Уменьшаем толщину линии
+  const dividerWidth = '1px'; // Толщина линии (как в ProfileTabs)
   const dividerColor = 'var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))';
   const dividerOpacity = 0.618; // Золотое сечение
   const dividerTop = '23.6%'; // 0.236 пропорция Фибоначчи
@@ -46,11 +46,13 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
     <Box sx={{ 
       width: '100%',
       mb: 0, // Убираем отступ снизу
+      mt: 0, // Убираем отступ сверху
+      pt: 0, // Убираем padding сверху
       backgroundColor: 'transparent',
       color: 'var(--tg-theme-text-color, #000000)',
       borderRadius: 0,
       borderTop: 'none',
-      borderBottom: `${dividerWidth} solid ${dividerColor}`, // Уменьшенная линия
+      borderBottom: 'none', // Убираем горизонтальную линию снизу
       boxShadow: 'none',
       opacity: disabled ? 0.5 : 1,
       pointerEvents: disabled ? 'none' : 'auto'
