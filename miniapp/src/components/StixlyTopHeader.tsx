@@ -599,18 +599,22 @@ export default function StixlyTopHeader({
             {current.id === 2 ? (
               <div
                 style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
                   width: "100%",
-                  maxWidth: "clamp(320px, 82%, 640px)",
+                  maxWidth: "600px",
                   margin: "0 auto",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "8px",
-                  color: "rgba(255,255,255,0.92)",
+                  gap: "clamp(8px, 2vw, 12px)",
+                  padding: "clamp(9px, 2.25vw, 15px) clamp(12px, 3vw, 18px)",
+                  paddingTop: "50px",
+                  color: "rgba(255,255,255,0.95)",
                   textAlign: "center",
-                  paddingLeft: "clamp(6px, 2vw, 14px)",
-                  paddingRight: "clamp(6px, 2vw, 14px)",
                 }}
               >
                 <span
@@ -620,8 +624,6 @@ export default function StixlyTopHeader({
                     letterSpacing: "1px",
                     color: "rgba(255,255,255,0.96)",
                     textShadow: "0 2px 8px rgba(0,0,0,0.3)",
-                    marginBottom: "clamp(12px, 3vw, 20px)",
-                    marginTop: "clamp(-8px, -2vw, -4px)",
                     textTransform: "uppercase",
                   }}
                 >
@@ -633,125 +635,60 @@ export default function StixlyTopHeader({
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "clamp(6px, 2vw, 12px)",
-                    flexWrap: "nowrap",
+                    gap: "clamp(6px, 2.25vw, 12px)",
                     width: "100%",
-                    paddingLeft: "clamp(4px, 1vw, 8px)",
-                    paddingRight: "clamp(4px, 1vw, 8px)",
                   }}
                 >
                   <div
                     style={{
-                      position: "relative",
                       display: "inline-flex",
                       alignItems: "center",
-                      padding: "clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px)",
-                      borderRadius: "10px",
-                      background: "rgba(255, 255, 255, 0.15)",
-                      backdropFilter: "blur(10px)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-                      fontSize: "clamp(11px, 2.8vw, 16px)",
+                      padding: "clamp(6px, 1.5vw, 9px) clamp(9px, 2.25vw, 12px)",
+                      borderRadius: "9px",
+                      background: "rgba(255, 255, 255, 0.12)",
+                      fontSize: "clamp(16.5px, 3.75vw, 21px)",
                       fontWeight: 600,
-                      textShadow: "0 2px 8px rgba(0,0,0,0.3)",
                       whiteSpace: "nowrap",
-                      flex: "1 1 0",
-                      minWidth: 0,
-                      justifyContent: "center",
-                      overflow: "visible",
+                      gap: "6px",
                     }}
                   >
-                    <span 
-                      style={{ 
-                        position: "absolute",
-                        left: "50%",
-                        top: "0",
-                        transform: "translate(-50%, -61.8%)",
-                        fontSize: "clamp(32px, 8vw, 56px)",
-                        opacity: 0.15,
-                        zIndex: 0,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      ❤️
-                    </span>
-                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(14px, 3.5vw, 20px)", fontWeight: 700 }}>{formattedTotalLikes}</span>
-                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(10px, 2.5vw, 14px)", opacity: 0.9, marginLeft: "3px", fontWeight: 500 }}>({formattedLikesDailyChange})</span>
+                    <span>❤</span>
+                    <span>{formattedTotalLikes}</span>
+                    <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedLikesDailyChange})</span>
                   </div>
                   <div
                     style={{
-                      position: "relative",
                       display: "inline-flex",
                       alignItems: "center",
-                      padding: "clamp(7px, 1.8vw, 11px) clamp(9px, 2.2vw, 13px)",
-                      borderRadius: "10px",
-                      background: "rgba(255, 255, 255, 0.15)",
-                      backdropFilter: "blur(10px)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-                      fontSize: "clamp(12px, 3.2vw, 18px)",
+                      padding: "clamp(6px, 1.5vw, 9px) clamp(9px, 2.25vw, 12px)",
+                      borderRadius: "9px",
+                      background: "rgba(255, 255, 255, 0.12)",
+                      fontSize: "clamp(16.5px, 3.75vw, 21px)",
                       fontWeight: 600,
-                      textShadow: "0 2px 8px rgba(0,0,0,0.3)",
                       whiteSpace: "nowrap",
-                      flex: "1 1 0",
-                      minWidth: 0,
-                      justifyContent: "center",
-                      overflow: "visible",
+                      gap: "6px",
                     }}
                   >
-                    <CollectionsIcon 
-                      sx={{ 
-                        position: "absolute",
-                        left: "50%",
-                        top: "0",
-                        transform: "translate(-50%, -61.8%)",
-                        fontSize: "clamp(32px, 8vw, 56px)",
-                        opacity: 0.15,
-                        zIndex: 0,
-                        pointerEvents: "none",
-                        color: "rgba(255, 255, 255, 0.95)",
-                      }} 
-                    />
-                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(15px, 4vw, 22px)", fontWeight: 700 }}>{formattedTotalPacks}</span>
-                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(11px, 2.8vw, 16px)", opacity: 0.9, marginLeft: "3px", fontWeight: 500 }}>({formattedDailyChange})</span>
+                    <CollectionsIcon sx={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "#ffffff" }} />
+                    <span>{formattedTotalPacks}</span>
+                    <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedDailyChange})</span>
                   </div>
                   <div
                     style={{
-                      position: "relative",
                       display: "inline-flex",
                       alignItems: "center",
-                      padding: "clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px)",
-                      borderRadius: "10px",
-                      background: "rgba(255, 255, 255, 0.15)",
-                      backdropFilter: "blur(10px)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-                      fontSize: "clamp(11px, 2.8vw, 16px)",
+                      padding: "clamp(6px, 1.5vw, 9px) clamp(9px, 2.25vw, 12px)",
+                      borderRadius: "9px",
+                      background: "rgba(255, 255, 255, 0.12)",
+                      fontSize: "clamp(16.5px, 3.75vw, 21px)",
                       fontWeight: 600,
-                      textShadow: "0 2px 8px rgba(0,0,0,0.3)",
                       whiteSpace: "nowrap",
-                      flex: "1 1 0",
-                      minWidth: 0,
-                      justifyContent: "center",
-                      overflow: "visible",
+                      gap: "6px",
                     }}
                   >
-                    <span 
-                      style={{ 
-                        position: "absolute",
-                        left: "50%",
-                        top: "0",
-                        transform: "translate(-50%, -61.8%)",
-                        fontSize: "clamp(32px, 8vw, 56px)",
-                        opacity: 0.15,
-                        zIndex: 0,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      🪙
-                    </span>
-                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(14px, 3.5vw, 20px)", fontWeight: 700 }}>{formattedArtTotal}</span>
-                    <span style={{ position: "relative", zIndex: 1, fontSize: "clamp(10px, 2.5vw, 14px)", opacity: 0.9, marginLeft: "3px", fontWeight: 500 }}>({formattedArtDailyChange})</span>
+                    <span>🪙</span>
+                    <span>{formattedArtTotal}</span>
+                    <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedArtDailyChange})</span>
                   </div>
                 </div>
               </div>

@@ -254,3 +254,4 @@ body.tg-viewport-stable {
 **Ссылка на документацию**: https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk/2-x/components/viewport
 
 
+
