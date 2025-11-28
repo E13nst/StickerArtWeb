@@ -69,8 +69,8 @@ export const NftSoonPage: React.FC = () => {
           backgroundColor: 'color-mix(in srgb, rgba(32, 72, 122, 0.28) 45%, rgba(15, 32, 52, 0.18))',
           border: '1px solid color-mix(in srgb, rgba(148, 198, 255, 0.42) 60%, transparent)',
           boxShadow: '0 18px 44px rgba(8, 32, 72, 0.18)',
-          backdropFilter: 'blur(2px) saturate(5%)',
-          WebkitBackdropFilter: 'blur(12px) saturate(5%)',
+          backdropFilter: 'blur(12px) saturate(65%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(65%)',
           overflow: 'hidden',
         }}
       >

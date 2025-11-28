@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Box } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { useLikesStore } from '../store/useLikesStore';
@@ -30,6 +31,7 @@ import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 export const GalleryPage: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
   const scrollElement = useScrollElement();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     isLoading,
     stickerSets,
@@ -98,6 +100,9 @@ export const GalleryPage: React.FC = () => {
   const [selectedStickerTypes, setSelectedStickerTypes] = useState<string[]>(['static', 'animated', 'video', 'official']);
   const [selectedDate, setSelectedDate] = useState<string | null>('all');
   const [selectedStickerSetTypes, setSelectedStickerSetTypes] = useState<StickerSetType[]>([]);
+
+  // Получаем set_id из URL
+  const initialSetId = searchParams.get('set_id');
 
   // Debounced search term для оптимизации поиска
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -331,8 +336,10 @@ export const GalleryPage: React.FC = () => {
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsDetailOpen(true);
+      // Добавляем set_id в URL
+      setSearchParams({ set_id: id.toString() }, { replace: false });
     }
-  }, [tg, stickerSets]);
+  }, [tg, stickerSets, setSearchParams]);
 
   const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
     setSelectedStickerSet(prev =>
@@ -350,7 +357,9 @@ export const GalleryPage: React.FC = () => {
     
     setIsDetailOpen(false);
     setSelectedStickerSet(null);
-  }, [tg]);
+    // Очищаем set_id из URL
+    setSearchParams({}, { replace: true });
+  }, [tg, setSearchParams]);
 
   const handleSearchChange = useCallback((newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
@@ -509,6 +518,20 @@ export const GalleryPage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, manualInitData]); // Убрали fetchStickerSets из зависимостей
+
+  // Открытие модалки при наличии set_id в URL
+  useEffect(() => {
+    const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
+    if (!initialSetId || isDetailOpen || isInitialLoading || stickerSets.length === 0) {
+      return;
+    }
+
+    const foundSet = stickerSets.find(s => s.id.toString() === initialSetId);
+    if (foundSet) {
+      setSelectedStickerSet(foundSet);
+      setIsDetailOpen(true);
+    }
+  }, [initialSetId, isDetailOpen, isLoading, stickerSets, error]);
 
   // Автоматическая синхронизация offline очереди лайков
   useEffect(() => {

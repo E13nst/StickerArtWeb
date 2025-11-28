@@ -40,6 +40,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const location = useLocation();
   const [internalTab, setInternalTab] = React.useState<number>(0);
   const [activeColor, setActiveColor] = React.useState<string>(() => getRandomAccentColor());
+  const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
@@ -77,6 +78,40 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   React.useEffect(() => {
     setActiveColor(getRandomAccentColor());
   }, [location.pathname]);
+
+  // Проверяем, открыто ли модальное окно
+  React.useEffect(() => {
+    const checkModalState = () => {
+      const hasModalOpen = document.body.classList.contains('modal-open') || 
+                          document.documentElement.classList.contains('modal-open');
+      setIsModalOpen(hasModalOpen);
+    };
+
+    // Проверяем сразу
+    checkModalState();
+
+    // Создаем MutationObserver для отслеживания изменений классов
+    const observer = new MutationObserver(checkModalState);
+    
+    // Наблюдаем за изменениями в body и html
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Скрываем навигацию, если модальное окно открыто
+  if (isModalOpen) {
+    return null;
+  }
 
   return (
     <Paper 
