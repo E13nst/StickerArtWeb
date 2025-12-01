@@ -214,6 +214,12 @@ export const GalleryPage: React.FC = () => {
     isLoadMore: boolean = false,
     filterCategories?: string[]
   ) => {
+    // ✅ Упрощено: базовая защита от повторных вызовов
+    if (isLoadMore && isLoadingMore) {
+      console.warn('⚠️ Загрузка уже выполняется, пропускаем');
+      return;
+    }
+    
     if (isLoadMore) {
       setIsLoadingMore(true);
     } else {
@@ -290,10 +296,11 @@ export const GalleryPage: React.FC = () => {
       }
       
       // Обновляем информацию о пагинации
+      // ✅ FIX: Используем nullish coalescing вместо || для правильной обработки 0
       setPagination(
-        response.number || page,
-        response.totalPages || 0,
-        response.totalElements || 0
+        response.number ?? page,
+        response.totalPages ?? 0,
+        response.totalElements ?? 0
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки стикеров';
@@ -319,10 +326,12 @@ export const GalleryPage: React.FC = () => {
   }, [initData, checkAuth, isInTelegramApp, isMockMode, setLoading, setError, setStickerSets, addStickerSets, setPagination, initializeLikes, selectedStickerSetTypes]); // Убрали debouncedSearchTerm из зависимостей
 
   // Загрузка следующей страницы с учетом фильтров
+  // ✅ Упрощено: простая и надежная проверка без лишних refs
   const loadMoreStickerSets = useCallback(() => {
-    if (currentPage < totalPages - 1 && !isLoadingMore) {
-      fetchStickerSets(currentPage + 1, true, selectedCategories);
+    if (currentPage >= totalPages - 1 || isLoadingMore) {
+      return;
     }
+    fetchStickerSets(currentPage + 1, true, selectedCategories);
   }, [currentPage, totalPages, isLoadingMore, selectedCategories, fetchStickerSets]);
 
   // Мемоизированные обработчики

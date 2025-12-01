@@ -267,7 +267,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       },
       {
         root: rootElement, // null для window, или container для внутреннего скролла
-        rootMargin: '100px',
+        rootMargin: '200px', // ✅ Оптимизировано: баланс между ранней загрузкой и отсутствием конфликтов
         threshold: 0.1
       }
     );
@@ -276,54 +276,6 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
 
     return () => {
       observer.disconnect();
-    };
-  }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll, scrollElement]);
-
-  // ✅ P2 OPTIMIZATION: Prefetching следующей страницы при приближении к концу
-  useEffect(() => {
-    if (!hasNextPage || isLoadingMore || !onLoadMore) {
-      return;
-    }
-
-    // Создаём sentinel для prefetch (раньше чем основной loader)
-    const prefetchSentinel = document.createElement('div');
-    prefetchSentinel.style.height = '1px';
-    prefetchSentinel.style.pointerEvents = 'none';
-    
-    const container = isPageScroll 
-      ? (scrollElement || document.documentElement)
-      : containerRef.current;
-    
-    if (!container) {
-      return;
-    }
-    
-    // Размещаем sentinel на 80% от конца списка
-    const galleryContainer = containerRef.current?.querySelector('.gallery-column-grid');
-    if (galleryContainer) {
-      galleryContainer.appendChild(prefetchSentinel);
-    }
-
-    const prefetchObserver = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting && hasNextPage && !isLoadingMore) {
-          console.log('🔮 Prefetching: загрузка следующей страницы заранее');
-          onLoadMore();
-        }
-      },
-      {
-        root: isPageScroll ? (scrollElement || null) : containerRef.current,
-        rootMargin: '400px', // Prefetch за 400px до конца
-        threshold: 0.1
-      }
-    );
-
-    prefetchObserver.observe(prefetchSentinel);
-
-    return () => {
-      prefetchObserver.disconnect();
-      prefetchSentinel.remove();
     };
   }, [hasNextPage, isLoadingMore, onLoadMore, isPageScroll, scrollElement]);
 
