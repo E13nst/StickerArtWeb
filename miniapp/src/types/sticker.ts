@@ -197,3 +197,26 @@ export interface CategoryResponse {
   displayOrder: number;
   isActive: boolean;
 }
+
+// Лидерборд пользователей
+export interface LeaderboardUser {
+  userId: number;
+  username: string | null;
+  firstName: string;
+  lastName: string;
+  totalCount: number;
+  publicCount: number;
+  privateCount: number;
+}
+
+export interface LeaderboardResponse {
+  content: LeaderboardUser[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
@@ -948,6 +948,42 @@ class ApiClient {
         }
       },
       { telegramId }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
+  }
+
+  // Получение лидерборда пользователей
+  // API endpoint: GET /api/users/leaderboard
+  async getUsersLeaderboard(page?: number, size?: number): Promise<LeaderboardResponse> {
+    return requestDeduplicator.fetch(
+      `/users/leaderboard`,
+      async () => {
+        try {
+          const params: Record<string, any> = {};
+          if (page !== undefined) params.page = page;
+          if (size !== undefined) params.size = size;
+          
+          const response = await this.client.get<LeaderboardResponse>('/users/leaderboard', {
+            params: Object.keys(params).length > 0 ? params : undefined
+          });
+          return response.data;
+        } catch (error: any) {
+          console.error('❌ Ошибка загрузки лидерборда:', error);
+          // Возвращаем пустой лидерборд при ошибке
+          return {
+            content: [],
+            page: page ?? 0,
+            size: size ?? 20,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true,
+            hasNext: false,
+            hasPrevious: false
+          };
+        }
+      },
+      { page, size }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
   }

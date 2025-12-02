@@ -8,10 +8,10 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { MetricCard } from '@/components/MetricCard';
-import { TopAuthors } from '@/components/TopAuthors';
+import { TopUsers } from '@/components/TopUsers';
 import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
-import { StickerSetResponse } from '@/types/sticker';
+import { StickerSetResponse, LeaderboardUser } from '@/types/sticker';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 
@@ -39,7 +39,7 @@ export const DashboardPage: React.FC = () => {
   const { userInfo, userStickerSets } = useProfileStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topStickerSets, setTopStickerSets] = useState<StickerSetResponse[]>([]);
-  const [topAuthors, setTopAuthors] = useState<Array<{ id: number; username?: string; firstName?: string; lastName?: string; avatarUrl?: string; stickerCount: number; packCount: number }>>([]);
+  const [topAuthors, setTopAuthors] = useState<LeaderboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -257,57 +257,15 @@ export const DashboardPage: React.FC = () => {
 
         setTopStickersByCategory(stickersByCategoryMap);
 
-        // Получаем топ-5 авторов по количеству стикеров
+        // Получаем топ-5 пользователей из лидерборда
         try {
-          const authorData = new Map<number, {
-            id: number;
-            username?: string;
-            firstName?: string;
-            lastName?: string;
-            avatarUrl?: string;
-            stickerCount: number;
-            packCount: number;
-          }>();
-
-          setsForStats.forEach(set => {
-            const userId = set.userId;
-            if (userId) {
-              const current = authorData.get(userId) || {
-                id: userId,
-                username: set.username,
-                firstName: set.firstName,
-                lastName: set.lastName,
-                avatarUrl: set.avatarUrl,
-                stickerCount: 0,
-                packCount: 0
-              };
-              
-              const stickerCount = set.telegramStickerSetInfo?.stickers?.length || 0;
-              
-              authorData.set(userId, {
-                ...current,
-                stickerCount: current.stickerCount + stickerCount,
-                packCount: current.packCount + 1
-              });
-            }
-          });
-
-          // Сортируем по количеству стикеров и берем топ-5
-          const topAuthorsList = Array.from(authorData.values())
-            .sort((a, b) => b.stickerCount - a.stickerCount)
-            .slice(0, 5);
-
-          console.log('📊 Топ авторов:', topAuthorsList);
+          const leaderboardResponse = await apiClient.getUsersLeaderboard(0, 5);
+          const topUsers = leaderboardResponse.content.slice(0, 5);
           
-          // Если авторов нет, добавляем заглушки
-          if (topAuthorsList.length === 0) {
-            console.warn('⚠️ Нет авторов, используем заглушку');
-            setTopAuthors([]);
-          } else {
-            setTopAuthors(topAuthorsList);
-          }
+          console.log('📊 Топ пользователей из лидерборда:', topUsers);
+          setTopAuthors(topUsers);
         } catch (e) {
-          console.warn('Не удалось загрузить топ авторов:', e);
+          console.warn('Не удалось загрузить лидерборд:', e);
           setTopAuthors([]);
         }
       } catch (error) {
@@ -339,7 +297,7 @@ export const DashboardPage: React.FC = () => {
       color: 'var(--tg-theme-text-color, #000000)',
       paddingBottom: 0
     }}>
-      <StixlyPageContainer sx={{ py: 3 }}>
+      <StixlyPageContainer sx={{ py: 3, pb: 8 }}>
         {isLoading ? (
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
@@ -593,14 +551,14 @@ export const DashboardPage: React.FC = () => {
               </Box>
             )}
 
-            {/* Топ-5 авторов */}
+            {/* Топ пользователей по добавленным стикерам */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid
                 item
                 xs={12}
               >
                 {topAuthors.length > 0 ? (
-                  <TopAuthors authors={topAuthors} />
+                  <TopUsers authors={topAuthors} />
                 ) : (
                   <Card
                     sx={{
@@ -621,7 +579,7 @@ export const DashboardPage: React.FC = () => {
                           mb: 1.5,
                         }}
                       >
-                        Топ-5 авторов
+                        Топ пользователей по добавленным стикерам
                       </Typography>
                       <Typography
                         variant="body2"
@@ -637,6 +595,9 @@ export const DashboardPage: React.FC = () => {
                 )}
               </Grid>
             </Grid>
+
+            {/* Дополнительный отступ внизу, чтобы лидерборд был виден над BottomNav */}
+            <Box sx={{ height: { xs: '140px', sm: '160px' }, flexShrink: 0 }} />
 
           </>
         ) : (
