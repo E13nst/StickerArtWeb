@@ -169,6 +169,7 @@ header.stixlytopheader > .stixly-top-header > * {
 
 /* Inner wrapper for CompactControlsBar - ограничивает ширину на широких экранах */
 .compact-controls-bar-inner {
+  position: relative;
   width: 100%;
   max-width: 600px; /* узкий лейаут для основного контента */
   margin: 0 auto;

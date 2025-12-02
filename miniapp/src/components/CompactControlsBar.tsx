@@ -86,13 +86,45 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   // Ref for filters button to exclude it from outside click handler
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Glass effect colors
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.28)' : 'rgba(88, 138, 255, 0.20)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.42)' : 'rgba(78, 132, 255, 0.20)';
-  const glassHover = isLight ? 'rgba(148, 198, 255, 0.38)' : 'rgba(98, 150, 255, 0.34)';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.52)' : 'rgba(118, 168, 255, 0.24)';
-  const bgColor = isLight ? 'rgba(248, 251, 255, 0.95)' : 'rgba(18, 22, 29, 0.95)';
+  // Glass effect colors - используем цвета из Telegram theme
+  const themeParams = tg?.themeParams;
+  
+  // Используем CSS переменные Telegram для лучшей совместимости с темой
+  const textColorResolved = isLight 
+    ? 'var(--tg-theme-text-color, #0D1B2A)'
+    : 'var(--tg-theme-button-text-color, #ffffff)';
+  
+  // Glass effect с учетом темы
+  const glassBase = isLight 
+    ? 'rgba(164, 206, 255, 0.28)' 
+    : 'rgba(88, 138, 255, 0.20)';
+  const glassSolid = isLight 
+    ? 'rgba(164, 206, 255, 0.42)' 
+    : 'rgba(78, 132, 255, 0.20)';
+  const glassHover = isLight 
+    ? 'rgba(148, 198, 255, 0.38)' 
+    : 'rgba(98, 150, 255, 0.34)';
+  const borderColor = isLight 
+    ? 'rgba(170, 210, 255, 0.52)' 
+    : 'rgba(118, 168, 255, 0.24)';
+  
+  // Background color с учетом темы Telegram
+  // Используем цвет из темы, но с прозрачностью для glass effect
+  // Если есть themeParams, используем их, иначе fallback на стандартные цвета
+  const bgColorBase = themeParams?.secondary_bg_color 
+    ? themeParams.secondary_bg_color 
+    : (isLight ? '#f8f9fa' : '#131415');
+  
+  // Конвертируем hex в rgba с прозрачностью для glass effect
+  const hexToRgb = (hex: string): string => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (result) {
+      return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
+    }
+    return isLight ? '248, 251, 255' : '18, 22, 29';
+  };
+  
+  const bgColor = `rgba(${hexToRgb(bgColorBase)}, 0.95)`;
 
   // Toggle search expansion
   const handleSearchToggle = useCallback(() => {
@@ -430,13 +462,11 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
             ref={filtersMenuRef}
             onClick={(e) => e.stopPropagation()}
             sx={{
-              position: isFixed ? 'fixed' : 'absolute',
-              top: isFixed 
-                ? 'calc(var(--stixly-header-height, 0px) + 3.5rem)' 
-                : '100%',
+              position: 'absolute',
+              top: '100%',
               left: '0.618rem',
               right: 'auto',
-              mt: isFixed ? 0 : '0.5rem',
+              mt: '0.5rem',
               zIndex: 1003,
               animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               maxWidth: '200px',
