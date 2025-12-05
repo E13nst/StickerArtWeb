@@ -150,30 +150,16 @@ export const useStickerRotation = ({
       // Пробуем загрузить если нет в кеше с указанным приоритетом
       // Для видимых карточек используется более высокий приоритет
       try {
-        await imageLoader.loadImage(fileId, url, loadPriority);
-        
-        // После загрузки через imageLoader, проверяем реальную готовность
+        // 🔥 ИСПРАВЛЕНИЕ: Для анимаций используем loadAnimation вместо loadImage + fetch
+        // Это предотвращает двойную загрузку и правильно использует кеш
         if (isAnimated) {
-          // Для анимаций проверяем наличие JSON
-          if (!animationCache.has(fileId)) {
-            // Пробуем загрузить анимацию
-            try {
-              const response = await fetch(url);
-              if (response.ok) {
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                  const data = await response.json();
-                  animationCache.set(fileId, data);
-                  return true;
-                }
-              }
-            } catch {
-              // Игнорируем ошибки
-            }
-          } else {
+          await imageLoader.loadAnimation(fileId, url, loadPriority);
+          // Проверяем наличие JSON в кеше после загрузки
+          if (animationCache.has(fileId)) {
             return true;
           }
         } else {
+          await imageLoader.loadImage(fileId, url, loadPriority);
           // Для обычных изображений проверяем реальную загрузку
           const cachedUrl = imageCache.get(fileId);
           if (cachedUrl) {
