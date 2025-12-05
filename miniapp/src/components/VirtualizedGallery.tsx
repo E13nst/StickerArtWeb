@@ -40,7 +40,7 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
   onPackClick,
   itemHeight = 200,
   containerHeight = 600,
-  overscan = 6,
+  overscan = 3, // 🔥 ОПТИМИЗАЦИЯ: Уменьшен с 6 до 3 для баланса между производительностью и видимостью элементов
   hasNextPage = false,
   isLoadingMore = false,
   onLoadMore,
@@ -91,18 +91,26 @@ export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
     return () => window.removeEventListener('resize', updateMetrics);
   }, [containerHeight, getContainerNode, scrollContainerRef]);
 
-  // Вычисляем видимые элементы
+  // 🔥 ОПТИМИЗИРОВАННЫЙ расчет видимых элементов
   const visibleRange = useMemo(() => {
-    const itemsPerRow = Math.floor(containerWidth / 140) || 3;
+    // Динамически вычисляем количество элементов в строке на основе ширины контейнера
+    // Для двухколоночной сетки обычно получается 2, но учитываем разные размеры экрана
+    const itemsPerRow = Math.floor(containerWidth / 140) || 2; // Минимум 2 колонки
     const rowHeight = itemHeight + 8; // высота + gap
     const totalRows = Math.ceil(packs.length / itemsPerRow);
     
-    const startRow = Math.floor(scrollTop / rowHeight);
+    // Вычисляем количество видимых строк (с учетом высоты контейнера)
+    const visibleRows = Math.ceil(measuredHeight / rowHeight);
+    
+    // Вычисляем видимые строки с учетом overscan
+    // Убеждаемся, что overscan применяется правильно для предзагрузки
+    const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - Math.max(1, Math.floor(overscan / 2)));
     const endRow = Math.min(
-      startRow + Math.ceil(measuredHeight / rowHeight) + overscan,
+      startRow + visibleRows + overscan * 2, // Увеличиваем overscan для лучшего покрытия
       totalRows
     );
     
+    // Вычисляем индексы элементов с учетом количества колонок
     const startIndex = Math.max(0, startRow * itemsPerRow);
     const endIndex = Math.min(endRow * itemsPerRow, packs.length);
     

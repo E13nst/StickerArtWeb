@@ -99,27 +99,115 @@ export async function getMediaStats(page: Page, includeEmptyIndices: boolean = f
  * Скролл галереи до конца
  */
 export async function scrollGalleryToBottom(page: Page): Promise<ScrollResult> {
-  return page.evaluate(() => {
+  // Сначала проверяем, какой режим скролла используется
+  const scrollMode = await page.evaluate(() => {
     const container = document.querySelector('[data-testid="gallery-container"]');
-    if (container) {
-      // Скроллим контейнер до конца
-      container.scrollTop = container.scrollHeight;
+    if (!container) return 'page';
+    
+    const containerStyle = window.getComputedStyle(container);
+    const hasScroll = containerStyle.overflowY === 'auto' || containerStyle.overflowY === 'scroll';
+    const isPageScroll = container.classList.contains('simpleGallery--pageScroll');
+    
+    return hasScroll && !isPageScroll ? 'inner' : 'page';
+  });
+  
+  if (scrollMode === 'inner') {
+    // Inner scroll режим - скроллим контейнер
+    return page.evaluate(() => {
+      const container = document.querySelector('[data-testid="gallery-container"]') as HTMLElement;
+      if (container && container.scrollHeight > container.clientHeight) {
+        container.scrollTop = container.scrollHeight;
+        return {
+          success: true,
+          scrollTop: container.scrollTop,
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight
+        };
+      }
+      return {
+        success: false,
+        fallback: true
+      };
+    });
+  } else {
+    // Page scroll режим - скроллим контейнер stixly-main-scroll из MainLayout
+    // Ждем, пока контент отрендерится
+    await page.waitForTimeout(1000);
+    
+    // Ищем контейнер stixly-main-scroll
+    const scrollContainer = page.locator('.stixly-main-scroll').first();
+    const containerExists = await scrollContainer.count() > 0;
+    
+    if (containerExists) {
+      // Скроллим контейнер stixly-main-scroll используя Playwright API
+      // Получаем информацию о контейнере
+      const containerInfo = await scrollContainer.evaluate((el) => {
+        return {
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight,
+          currentScroll: el.scrollTop
+        };
+      });
+      
+      // Вычисляем целевую позицию скролла
+      const targetScroll = Math.max(0, containerInfo.scrollHeight - containerInfo.clientHeight + 800);
+      
+      // Скроллим контейнер используя Playwright API
+      await scrollContainer.evaluate((el, target) => {
+        el.scrollTop = target;
+      }, targetScroll);
+      
+      // Ждем обновления скролла
+      await page.waitForTimeout(500);
+      
+      // Получаем финальную информацию
+      const finalInfo = await scrollContainer.evaluate((el) => {
+        return {
+          scrollTop: el.scrollTop,
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight
+        };
+      });
+      
       return {
         success: true,
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight
+        fallback: false,
+        scrollTop: finalInfo.scrollTop,
+        scrollHeight: finalInfo.scrollHeight,
+        clientHeight: finalInfo.clientHeight
       };
+    } else {
+      // Fallback: скроллим window, если контейнер не найден
+      const result = await page.evaluate(() => {
+        const scrollHeight = Math.max(
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight,
+          document.body.offsetHeight,
+          document.documentElement.offsetHeight
+        );
+        
+        const clientHeight = window.innerHeight;
+        const targetScroll = Math.max(0, scrollHeight - clientHeight + 800);
+        
+        window.scrollTo({ 
+          top: targetScroll, 
+          behavior: 'instant' 
+        });
+        
+        return {
+          success: true,
+          fallback: true,
+          scrollY: window.scrollY || document.documentElement.scrollTop,
+          scrollTop: window.scrollY || document.documentElement.scrollTop,
+          scrollHeight: scrollHeight,
+          clientHeight: clientHeight
+        };
+      });
+      
+      await page.waitForTimeout(500);
+      return result;
     }
-    // Fallback: скроллим window
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
-    return {
-      success: false,
-      fallback: true,
-      scrollY: window.scrollY,
-      scrollHeight: document.body.scrollHeight
-    };
-  });
+  }
 }
 
 /**

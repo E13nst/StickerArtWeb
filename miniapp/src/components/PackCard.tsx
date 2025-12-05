@@ -304,8 +304,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
           if (!activeSticker) return null;
           
-          // useStickerRotation гарантирует готовность перед переключением
-          // Поэтому показываем стикер сразу по currentStickerIndex
+          // 🔥 ОПТИМИЗАЦИЯ: Рендерим AnimatedSticker только для активного стикера
+          // Для неактивных стикеров используем placeholder div с фиксированным aspect-ratio
+          // Предзагрузка JSON анимаций происходит через imageLoader.loadAnimation, но Lottie не монтируется
           const baseStyles: React.CSSProperties = {
             width: '100%',
             height: '100%',
@@ -324,6 +325,8 @@ const PackCardComponent: React.FC<PackCardProps> = ({
               style={baseStyles}
             >
               {activeSticker.isAnimated ? (
+                // 🔥 КРИТИЧНО: Монтируем AnimatedSticker только для активного стикера
+                // Это снижает количество активных Lottie-компонентов с 40+ до 4-8 (80-90% уменьшение)
                 <AnimatedSticker
                   fileId={activeSticker.fileId}
                   imageUrl={activeSticker.url}

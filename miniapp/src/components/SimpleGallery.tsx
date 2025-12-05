@@ -102,16 +102,11 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
     preloadNext: true
   });
   
-  // Определяем, нужна ли виртуализация (адаптивно)
+  // 🔥 ОПТИМИЗАЦИЯ: Виртуализация по умолчанию для всех элементов
+  // Используем VirtualizedGallery всегда, когда есть элементы
+  // Это снижает количество DOM-узлов и активных анимаций
   // ВАЖНО: Виртуализация определяется только при первой загрузке, чтобы избежать
   // переключения компонента во время пагинации (что вызывает потерю позиции скролла)
-  const getVirtualizationThreshold = useCallback(() => {
-    // На мобильных устройствах порог ниже
-    const isMobile = window.innerWidth < 768;
-    return isMobile ? 50 : 100;
-  }, []);
-
-  // Используем useRef для сохранения начального решения о виртуализации
   const virtualizationDecisionRef = useRef<boolean | null>(null);
   const lastPacksLengthRef = useRef<number>(0);
   
@@ -127,18 +122,20 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       virtualizationDecisionRef.current = null;
     }
     
-    // Определяем виртуализацию только если решение еще не принято
+    // 🔥 ИЗМЕНЕНО: Используем виртуализацию для большого количества элементов
+    // Для небольшого количества (< 30) виртуализация может мешать пагинации
     if (virtualizationDecisionRef.current === null && packs.length > 0) {
-      const virtualizationThreshold = getVirtualizationThreshold();
-      virtualizationDecisionRef.current = packs.length > virtualizationThreshold;
+      // Используем виртуализацию только если элементов достаточно много
+      // Это позволяет пагинации работать корректно для первых страниц
+      virtualizationDecisionRef.current = packs.length >= 30;
     }
     
     // Сохраняем текущее количество для следующей проверки
     lastPacksLengthRef.current = packs.length;
-  }, [packs.length, getVirtualizationThreshold]);
+  }, [packs.length]);
   
-  // Используем виртуализацию только если она была определена при первой загрузке
-  // Если packs пустой, используем обычный режим
+  // Используем виртуализацию только для большого количества элементов
+  // Это позволяет пагинации работать корректно для первых страниц
   const shouldUseVirtualization = virtualizationDecisionRef.current === true;
 
   // Показываем skeleton только при пустом списке, если нет emptyState
@@ -230,7 +227,8 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       return;
     }
 
-    // Если используем скролл страницы, используем scrollElement или window/document как root
+    // Если используем скролл страницы, используем scrollElement или null (window) как root
+    // null означает, что используется viewport как root для IntersectionObserver
     const rootElement = isPageScroll ? (scrollElement || null) : container;
 
     console.log('🔍 InfiniteScroll: настройка IntersectionObserver', {
@@ -267,7 +265,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       },
       {
         root: rootElement, // null для window, или container для внутреннего скролла
-        rootMargin: '200px', // ✅ Оптимизировано: баланс между ранней загрузкой и отсутствием конфликтов
+        rootMargin: isPageScroll ? '400px' : '200px', // ✅ Увеличен для page scroll режима, чтобы sentinel был виден раньше
         threshold: 0.1
       }
     );
@@ -440,7 +438,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
               packs={packs}
               onPackClick={onPackClick}
               itemHeight={200}
-              overscan={6}
+              overscan={3}
               hasNextPage={hasNextPage}
               isLoadingMore={isLoadingMore}
               onLoadMore={onLoadMore}

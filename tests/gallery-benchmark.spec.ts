@@ -848,12 +848,24 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     const timeToFirstSticker = await collector.waitForStickers(1, 10000);
     console.log(`✅ Первый стикер с медиа загружен за ${formatTime(timeToFirstSticker)}`);
     
-    // Измеряем время до первых 6 стикеров С МЕДИА (первый экран)
+    // ════════════════════════════════════════════════════════════════════════
+    // СКРОЛЛ И СТРАНИЦА 2: Следующие 20 стикеров
+    // ════════════════════════════════════════════════════════════════════════
+    console.log('\n📄 СТРАНИЦА 2: Скролл и загрузка следующих 20 стикеров');
+    console.log('─'.repeat(80));
+    
+    // 🎯 Скроллим СРАЗУ после загрузки первого стикера (без ожидания полной загрузки первой страницы)
+    console.log('📜 Скроллинг вниз для загрузки второй страницы (сразу после первого стикера)...');
+    
+    const scrollResult = await scrollGalleryToBottom(page);
+    console.log(`  📊 Скролл выполнен:`, scrollResult);
+    
+    // Измеряем время до первых 6 стикеров С МЕДИА (первый экран) - параллельно с загрузкой второй страницы
     console.log('⏳ Ожидание первых 6 стикеров с медиа (80% готовности)...');
     const timeToFirst6 = await collector.waitForStickers(6, 15000);
     console.log(`✅ Первые 6 стикеров с медиа загружены за ${formatTime(timeToFirst6)}`);
     
-    // Измеряем время до всех 20 стикеров С МЕДИА первой страницы
+    // Измеряем время до всех 20 стикеров С МЕДИА первой страницы - параллельно с загрузкой второй страницы
     console.log('⏳ Ожидание всех 20 стикеров с медиа (80% готовности)...');
     const timeToAll20 = await collector.waitForStickers(20, 30000);
     console.log(`✅ Все 20 стикеров с медиа загружены за ${formatTime(timeToAll20)}`);
@@ -861,18 +873,6 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
     // Проверяем финальную статистику медиа после загрузки
     const page1MediaStats = await getMediaStats(page);
     logMediaStats(page1MediaStats, 'страницы 1');
-    
-    // ════════════════════════════════════════════════════════════════════════
-    // СКРОЛЛ И СТРАНИЦА 2: Следующие 20 стикеров
-    // ════════════════════════════════════════════════════════════════════════
-    console.log('\n📄 СТРАНИЦА 2: Скролл и загрузка следующих 20 стикеров');
-    console.log('─'.repeat(80));
-    
-    // 🎯 Скроллим СРАЗУ после загрузки 50% медиа первой страницы
-    console.log('📜 Скроллинг вниз для загрузки второй страницы...');
-    
-    const scrollResult = await scrollGalleryToBottom(page);
-    console.log(`  📊 Скролл выполнен:`, scrollResult);
     
     // Даем минимальное время для InfiniteScroll и API запроса
     console.log('⏳ Ожидание начала загрузки страницы 2...');
@@ -1148,9 +1148,13 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
       let hiddenCount = 0;
       let visibleButPaused = 0;
       
+      // Определяем scroll контейнер (может быть window или .stixly-main-scroll)
+      const scrollContainer = document.querySelector('.stixly-main-scroll') as HTMLElement;
+      const viewportHeight = scrollContainer ? scrollContainer.clientHeight : window.innerHeight;
+      const scrollTop = scrollContainer ? scrollContainer.scrollTop : (window.scrollY || document.documentElement.scrollTop);
+      
       lottieElements.forEach((element) => {
         const rect = element.getBoundingClientRect();
-        const isInViewport = rect.top < window.innerHeight + 300 && rect.bottom > -300;
         const container = element.closest('[data-lottie-container]');
         const containerStyle = container ? window.getComputedStyle(container) : null;
         const elementStyle = window.getComputedStyle(element);
@@ -1158,23 +1162,35 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
         // Проверяем, скрыт ли элемент
         const isHidden = (containerStyle && (
           containerStyle.display === 'none' || 
-          containerStyle.visibility === 'hidden'
+          containerStyle.visibility === 'hidden' ||
+          containerStyle.opacity === '0'
         )) || (
           elementStyle.display === 'none' || 
-          elementStyle.visibility === 'hidden'
+          elementStyle.visibility === 'hidden' ||
+          elementStyle.opacity === '0'
         );
         
         // Проверяем, на паузе ли анимация
         const isPaused = container?.getAttribute('data-lottie-paused') === 'true';
         
-        if (isHidden) {
+        // Проверяем видимость относительно scroll контейнера
+        // Элемент видим, если он находится в пределах viewport + небольшой отступ
+        const isInViewport = scrollContainer 
+          ? (rect.top >= scrollContainer.getBoundingClientRect().top - 300 && 
+             rect.bottom <= scrollContainer.getBoundingClientRect().bottom + 300)
+          : (rect.top < viewportHeight + 300 && rect.bottom > -300);
+        
+        // Проверяем, что элемент действительно рендерится (имеет размеры)
+        const hasSize = rect.width > 0 && rect.height > 0;
+        
+        if (isHidden || !hasSize) {
           hiddenCount++;
           pausedAnimations++;
         } else if (isPaused) {
           visibleButPaused++;
           pausedAnimations++;
         } else if (isInViewport) {
-          // Элемент видим и не на паузе - активен
+          // Элемент видим, не на паузе и имеет размеры - активен
           activeAnimations++;
         } else {
           // Элемент вне viewport - на паузе
@@ -1232,10 +1248,17 @@ test.describe('Gallery Benchmark: Загрузка 40 стикер-карточ�
       }
       if (animationStats.debug) {
         console.log(`\n  🔍 ОТЛАДКА:`);
-        console.log(`     - Контейнеров найдено:              ${animationStats.debug.containersFound}`);
-        console.log(`     - .pack-card-animated-sticker:      ${animationStats.debug.stickersFound}`);
-        console.log(`     - Canvas элементов:                 ${animationStats.debug.canvasesFound}`);
-        console.log(`     - SVG элементов:                    ${animationStats.debug.svgsFound}`);
+        console.log(`     - Контейнеров [data-lottie-container]: ${animationStats.debug.containersFound}`);
+        console.log(`     - .pack-card-animated-sticker:          ${animationStats.debug.stickersFound}`);
+        console.log(`     - Canvas элементов:                     ${animationStats.debug.canvasesFound}`);
+        console.log(`     - SVG элементов:                        ${animationStats.debug.svgsFound}`);
+        console.log(`     - Всего Lottie элементов:                ${animationStats.totalAnimations || 0}`);
+        if (animationStats.hiddenAnimations !== undefined) {
+          console.log(`     - Скрыто (display/visibility/opacity):  ${animationStats.hiddenAnimations}`);
+        }
+        if (animationStats.visibleButPausedAnimations !== undefined) {
+          console.log(`     - Видимо, но на паузе:                 ${animationStats.visibleButPausedAnimations}`);
+        }
       }
       
       const totalActive = animationStats.activeAnimations + animationStats.activeVideos;
