@@ -119,6 +119,7 @@ const OptimizedPackCardComponent: React.FC<OptimizedPackCardProps> = ({
   return (
     <div
       ref={ref}
+      data-testid="pack-card"
       className="optimized-pack-card"
       onClick={handleClick}
       style={{

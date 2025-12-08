@@ -126,6 +126,7 @@ export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
   return (
     <div
       ref={parentRef}
+      data-testid="gallery-container"
       style={{
         width: '100%',
         height: scrollElement ? 'auto' : '100vh',

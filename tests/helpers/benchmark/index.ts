@@ -8,6 +8,9 @@ export {
   waitForMediaLoad,
   getCacheStats,
   logMediaStats,
+  getVisibleRowIndices,
+  waitForRowMediaLoad,
+  scrollToNextRow,
   type MediaStats,
   type ScrollResult,
   type CacheStats

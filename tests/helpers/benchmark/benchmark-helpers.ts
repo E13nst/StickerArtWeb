@@ -329,3 +329,169 @@ function formatTime(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
+/**
+ * Получение индексов видимых рядов в DOM
+ */
+export async function getVisibleRowIndices(page: Page): Promise<number[]> {
+  return page.evaluate(() => {
+    const rows = document.querySelectorAll('[data-index]');
+    const indices: number[] = [];
+    
+    rows.forEach((row) => {
+      const indexAttr = row.getAttribute('data-index');
+      if (indexAttr !== null) {
+        const index = parseInt(indexAttr, 10);
+        if (!isNaN(index)) {
+          indices.push(index);
+        }
+      }
+    });
+    
+    return indices.sort((a, b) => a - b);
+  });
+}
+
+/**
+ * Ожидание загрузки медиа для конкретного ряда
+ */
+export async function waitForRowMediaLoad(
+  page: Page,
+  rowIndex: number,
+  timeout: number = 5000
+): Promise<boolean> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    const hasMedia = await page.evaluate((index: number) => {
+      // Находим ряд по data-index
+      const row = document.querySelector(`[data-index="${index}"]`);
+      if (!row) return false;
+      
+      // Находим все карточки в этом ряду
+      const cards = row.querySelectorAll('[data-testid="pack-card"]');
+      if (cards.length === 0) return false;
+      
+      // Проверяем медиа для каждой карточки
+      let cardsWithMedia = 0;
+      cards.forEach((card) => {
+        const img = card.querySelector('img.pack-card-image');
+        const video = card.querySelector('video.pack-card-video');
+        const animatedSticker = card.querySelector('.pack-card-animated-sticker');
+        const lottieCanvas = animatedSticker ? animatedSticker.querySelector('svg, canvas') : null;
+        
+        const hasImage = !!(img && img.getAttribute('src') && img.getAttribute('src') !== '');
+        const hasVideo = !!(video && video.getAttribute('src') && video.getAttribute('src') !== '');
+        const hasAnimationCanvas = !!lottieCanvas;
+        
+        if (hasImage || hasVideo || hasAnimationCanvas) {
+          cardsWithMedia++;
+        }
+      });
+      
+      // Считаем ряд загруженным если 80%+ карточек имеют медиа
+      const minCardsRequired = Math.ceil(cards.length * 0.8);
+      return cardsWithMedia >= minCardsRequired;
+    }, rowIndex);
+    
+    if (hasMedia) {
+      return true;
+    }
+    
+    await page.waitForTimeout(100); // Проверяем каждые 100ms
+  }
+  
+  return false;
+}
+
+/**
+ * Скролл к следующему ряду
+ */
+export async function scrollToNextRow(
+  page: Page,
+  currentRowIndex: number
+): Promise<number> {
+  // Определяем контейнер скролла
+  const scrollInfo = await page.evaluate(() => {
+    const container = document.querySelector('[data-testid="gallery-container"]');
+    if (!container) return null;
+    
+    const containerStyle = window.getComputedStyle(container);
+    const hasScroll = containerStyle.overflowY === 'auto' || containerStyle.overflowY === 'scroll';
+    const isPageScroll = container.classList.contains('simpleGallery--pageScroll');
+    
+    return {
+      mode: hasScroll && !isPageScroll ? 'inner' : 'page',
+      container: container as HTMLElement
+    };
+  });
+  
+  if (!scrollInfo) {
+    // Fallback на обычный скролл страницы
+    await page.evaluate(() => {
+      window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+    });
+    await page.waitForTimeout(300);
+    return currentRowIndex + 1;
+  }
+  
+  // Вычисляем высоту одного ряда и скроллим
+  const scrollResult = await page.evaluate(
+    ({ mode, currentIndex }: { mode: string; currentIndex: number }) => {
+      let scrollContainer: HTMLElement | null = null;
+      
+      if (mode === 'inner') {
+        scrollContainer = document.querySelector('[data-testid="gallery-container"]') as HTMLElement;
+      } else {
+        // Ищем stixly-main-scroll или используем window
+        scrollContainer = document.querySelector('.stixly-main-scroll') as HTMLElement;
+        if (!scrollContainer) {
+          // Используем window для скролла
+          const currentScroll = window.scrollY || document.documentElement.scrollTop;
+          const viewportHeight = window.innerHeight;
+          window.scrollTo({
+            top: currentScroll + viewportHeight * 0.8,
+            behavior: 'smooth'
+          });
+          return { success: true, newIndex: currentIndex + 1 };
+        }
+      }
+      
+      if (!scrollContainer) return { success: false, newIndex: currentIndex };
+      
+      // Находим текущие видимые ряды для вычисления высоты
+      const rows = Array.from(document.querySelectorAll('[data-index]'));
+      if (rows.length === 0) return { success: false, newIndex: currentIndex };
+      
+      // Вычисляем среднюю высоту ряда
+      let totalHeight = 0;
+      let rowCount = 0;
+      rows.forEach((row) => {
+        const rect = row.getBoundingClientRect();
+        if (rect.height > 0) {
+          totalHeight += rect.height;
+          rowCount++;
+        }
+      });
+      
+      const avgRowHeight = rowCount > 0 ? totalHeight / rowCount : 400; // Fallback: 400px
+      
+      // Скроллим на высоту одного ряда
+      const currentScroll = scrollContainer.scrollTop || window.scrollY || 0;
+      const targetScroll = currentScroll + avgRowHeight;
+      
+      scrollContainer.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+      });
+      
+      return { success: true, newIndex: currentIndex + 1, scrollTop: targetScroll };
+    },
+    { mode: scrollInfo.mode, currentIndex: currentRowIndex }
+  );
+  
+  // Ждем обновления виртуализации и появления нового ряда
+  await page.waitForTimeout(500);
+  
+  return scrollResult.newIndex;
+}
+
