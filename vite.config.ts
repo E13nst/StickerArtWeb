@@ -41,6 +41,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     
+    optimizeDeps: {
+      include: ['@tanstack/react-virtual', 'react-intersection-observer'],
+    },
+    
     // Public директория для статичных файлов (sw.js и др.)
     publicDir: path.resolve(__dirname, './miniapp/public'),
     
@@ -94,7 +98,6 @@ export default defineConfig(({ mode }) => {
       
       // ✅ DEEP OPTIMIZATION: CSS оптимизация
       cssCodeSplit: true, // Разделяем CSS по chunks (каждый chunk грузит свой CSS)
-      cssMinify: true, // Минификация CSS (по умолчанию esbuild)
     },
     
     // ✅ CSS оптимизация

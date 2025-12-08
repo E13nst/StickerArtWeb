@@ -343,11 +343,6 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
           e.currentTarget.style.transform = 'scale(1.1)';
           e.currentTarget.style.opacity = '0.8';
         }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(var(--tg-theme-secondary-bg-color-rgb, 128, 128, 128), 0.3)';
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.opacity = '0.5';
-        }}
       >
         <span style={{
           display: 'flex',
