@@ -19,7 +19,7 @@ import { StickerPackModal } from '../components/StickerPackModal';
 import { SearchBar } from '../components/SearchBar';
 
 // Новые компоненты галереи
-import { SimpleGallery } from '../components/SimpleGallery';
+import { OptimizedGallery } from '../components/OptimizedGallery';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 import { Category } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
@@ -636,17 +636,13 @@ export const GalleryPage: React.FC = () => {
           />
         ) : (
           <div className="fade-in">
-            <SimpleGallery
+            <OptimizedGallery
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
               hasNextPage={currentPage < totalPages - 1}
               isLoadingMore={isLoadingMore}
               onLoadMore={loadMoreStickerSets}
-              enablePreloading={true}
-              isRefreshing={isRefreshing}
-              scrollMode="page"
-              externalScrollElement={scrollElement}
-              needsControlsBarOffset={true}
+              scrollElement={scrollElement}
             />
           </div>
         )}

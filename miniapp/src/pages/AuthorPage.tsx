@@ -5,7 +5,7 @@ import StixlyTopHeader from '../components/StixlyTopHeader';
 import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
-import { SimpleGallery } from '../components/SimpleGallery';
+import { OptimizedGallery } from '../components/OptimizedGallery';
 import { StickerPackModal } from '../components/StickerPackModal';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 import { apiClient } from '../api/client';
@@ -607,16 +607,13 @@ export const AuthorPage: React.FC = () => {
           />
         ) : (
           <div className="fade-in" style={{ position: 'relative', zIndex: 1 }}>
-            <SimpleGallery
+            <OptimizedGallery
               packs={packs}
               onPackClick={handlePackClick}
               hasNextPage={hasNextPage}
               isLoadingMore={isLoadingMore}
               onLoadMore={hasNextPage ? handleLoadMore : undefined}
-              enablePreloading={true}
-              scrollMode="page"
-              externalScrollElement={scrollElement}
-              isRefreshing={isSetsLoading && stickerSets.length > 0}
+              scrollElement={scrollElement}
             />
           </div>
         )}

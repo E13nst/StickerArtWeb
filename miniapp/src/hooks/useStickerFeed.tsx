@@ -36,7 +36,7 @@ export interface StickerFeedConfig {
 }
 
 export interface StickerFeedControls {
-  // Элемент управления для передачи в SimpleGallery
+  // Элемент управления для отображения над галереей (поиск, фильтры)
   controlsElement: React.ReactNode;
   
   // Состояния

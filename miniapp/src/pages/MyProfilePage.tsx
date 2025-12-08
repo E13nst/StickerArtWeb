@@ -24,7 +24,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { StickerPackModal } from '@/components/StickerPackModal';
-import { SimpleGallery } from '@/components/SimpleGallery';
+import { OptimizedGallery } from '@/components/OptimizedGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
@@ -1205,9 +1205,108 @@ export const MyProfilePage: React.FC = () => {
                   error={stickerSetsError} 
                   onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)} 
                 />
+              ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
+                setsFilter === 'liked' ? (
+                  <EmptyState
+                    title="❤️ Понравившихся пока нет"
+                    message="Лайкните понравившиеся наборы в галерее, и они появятся здесь"
+                  />
+                ) : (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    py: 5,
+                    px: 2
+                  }}>
+                    <Typography variant="h6" sx={{ 
+                      fontWeight: 600, 
+                      color: 'var(--tg-theme-text-color)',
+                      mb: 1
+                    }}>
+                      📁 У вас пока нет стикерсетов
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      color: 'var(--tg-theme-hint-color)',
+                      mb: 3,
+                      textAlign: 'center'
+                    }}>
+                      {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '2.5rem', px: '0.618rem', width: '100%', maxWidth: '400px' }}>
+                      <Button 
+                        fullWidth 
+                        variant="contained" 
+                        onClick={() => {
+                          if (tg?.HapticFeedback) {
+                            tg.HapticFeedback.impactOccurred('light');
+                          }
+                          handleCreateSticker();
+                        }} 
+                        startIcon={<AddIcon />}
+                        sx={{ 
+                          height: '2.5rem', 
+                          px: '0.618rem', 
+                          borderRadius: '0.59rem', 
+                          color: isLightTheme ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)',
+                          fontSize: '0.875rem', 
+                          fontWeight: 600, 
+                          textTransform: 'none', 
+                          gap: '0.5rem', 
+                          backgroundColor: isLightTheme ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)',
+                          background: isLightTheme 
+                            ? 'rgba(164, 206, 255, 0.32)'
+                            : 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)',
+                          border: `1px solid ${isLightTheme ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)'}`,
+                          boxShadow: '0 6px 18px rgba(30, 72, 185, 0.14)', 
+                          backdropFilter: 'blur(18px) saturate(180%)', 
+                          WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+                          '& .MuiButton-startIcon': { 
+                            margin: 0, 
+                            '& svg': { 
+                              fontSize: '0.955rem', 
+                              color: 'inherit' 
+                            } 
+                          }, 
+                          '&:hover': { 
+                            background: isLightTheme
+                              ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
+                              : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
+                            backgroundColor: isLightTheme
+                              ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
+                              : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
+                            opacity: 1, 
+                            transform: 'scale(0.98)', 
+                            boxShadow: '0 10px 26px rgba(30, 72, 185, 0.18)'
+                          }, 
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Добавьте стикерпак
+                        <Chip 
+                          label="+10 ART" 
+                          size="small" 
+                          sx={{ 
+                            ml: 1, 
+                            height: 'auto', 
+                            fontSize: '0.75rem', 
+                            backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)',
+                            color: isLightTheme ? '#0D3B9D' : 'var(--tg-theme-button-text-color, #ffffff)',
+                            fontWeight: 600, 
+                            py: 0.25, 
+                            '& .MuiChip-label': { 
+                              color: 'inherit !important' 
+                            } 
+                          }} 
+                        />
+                      </Button>
+                    </Box>
+                  </Box>
+                )
               ) : (
                 <div className="fade-in">
-                  <SimpleGallery
+                  <OptimizedGallery
                     packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={
@@ -1217,117 +1316,12 @@ export const MyProfilePage: React.FC = () => {
                     }
                     isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isLoadingMorePublished}
                     onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
-                    enablePreloading={true}
-                    scrollMode="page"
-                    externalScrollElement={scrollElement}
-                    isRefreshing={isStickerSetsLoading && (setsFilter === 'liked' ? likedStickerSets.length > 0 : filteredStickerSets.length > 0)}
-                    emptyState={
-                      (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
-                        setsFilter === 'liked' ? (
-                          <EmptyState
-                            title="❤️ Понравившихся пока нет"
-                            message="Лайкните понравившиеся наборы в галерее, и они появятся здесь"
-                          />
-                        ) : (
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            py: 5,
-                            px: 2
-                          }}>
-                            <Typography variant="h6" sx={{ 
-                              fontWeight: 600, 
-                              color: 'var(--tg-theme-text-color)',
-                              mb: 1
-                            }}>
-                              📁 У вас пока нет стикерсетов
-                            </Typography>
-                            <Typography variant="body2" sx={{ 
-                              color: 'var(--tg-theme-hint-color)',
-                              mb: 3,
-                              textAlign: 'center'
-                            }}>
-                              {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '2.5rem', px: '0.618rem', width: '100%', maxWidth: '400px' }}>
-                              <Button 
-                                fullWidth 
-                                variant="contained" 
-                                onClick={() => {
-                                  if (tg?.HapticFeedback) {
-                                    tg.HapticFeedback.impactOccurred('light');
-                                  }
-                                  handleCreateSticker();
-                                }} 
-                                startIcon={<AddIcon />}
-                                sx={{ 
-                                  height: '2.5rem', 
-                                  px: '0.618rem', 
-                                  borderRadius: '0.59rem', 
-                                  color: isLightTheme ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)',
-                                  fontSize: '0.875rem', 
-                                  fontWeight: 600, 
-                                  textTransform: 'none', 
-                                  gap: '0.5rem', 
-                                  backgroundColor: isLightTheme ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)',
-                                  background: isLightTheme 
-                                    ? 'rgba(164, 206, 255, 0.32)'
-                                    : 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)',
-                                  border: `1px solid ${isLightTheme ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)'}`,
-                                  boxShadow: '0 6px 18px rgba(30, 72, 185, 0.14)', 
-                                  backdropFilter: 'blur(18px) saturate(180%)', 
-                                  WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                                  '& .MuiButton-startIcon': { 
-                                    margin: 0, 
-                                    '& svg': { 
-                                      fontSize: '0.955rem', 
-                                      color: 'inherit' 
-                                    } 
-                                  }, 
-                                  '&:hover': { 
-                                    background: isLightTheme
-                                      ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
-                                      : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
-                                    backgroundColor: isLightTheme
-                                      ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
-                                      : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
-                                    opacity: 1, 
-                                    transform: 'scale(0.98)', 
-                                    boxShadow: '0 10px 26px rgba(30, 72, 185, 0.18)'
-                                  }, 
-                                  transition: 'all 0.2s ease'
-                                }}
-                              >
-                                Добавьте стикерпак
-                                <Chip 
-                                  label="+10 ART" 
-                                  size="small" 
-                                  sx={{ 
-                                    ml: 1, 
-                                    height: 'auto', 
-                                    fontSize: '0.75rem', 
-                                    backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)',
-                                    color: isLightTheme ? '#0D3B9D' : 'var(--tg-theme-button-text-color, #ffffff)',
-                                    fontWeight: 600, 
-                                    py: 0.25, 
-                                    '& .MuiChip-label': { 
-                                      color: 'inherit !important' 
-                                    } 
-                                  }} 
-                                />
-                              </Button>
-                            </Box>
-                          </Box>
-                        )
-                      ) : undefined
-                    }
+                    scrollElement={scrollElement}
                   />
                 </div>
               )}
 
-              {/* Кнопка "Показать ещё" убрана, так как SimpleGallery использует infinite scroll */}
+              {/* Кнопка "Показать ещё" убрана, так как OptimizedGallery использует infinite scroll */}
               {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                   <Button

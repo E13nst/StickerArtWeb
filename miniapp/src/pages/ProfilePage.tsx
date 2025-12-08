@@ -23,7 +23,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { SimpleGallery } from '@/components/SimpleGallery';
+import { OptimizedGallery } from '@/components/OptimizedGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { useStickerFeed } from '@/hooks/useStickerFeed';
@@ -610,17 +610,13 @@ export const ProfilePage: React.FC = () => {
                 />
               ) : (
                 <div className="fade-in">
-                  <SimpleGallery
-                    controlsElement={stickerFeed.controlsElement}
+                  <OptimizedGallery
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={!stickerFeed.searchTerm && currentPage < totalPages - 1}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={loadMoreStickerSets}
-                    enablePreloading={true}
-                    scrollMode="page"
-                    externalScrollElement={scrollElement}
-                    isRefreshing={isRefreshing}
+                    scrollElement={scrollElement}
                   />
                 </div>
               )}
