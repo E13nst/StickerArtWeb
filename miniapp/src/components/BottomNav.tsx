@@ -9,6 +9,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
 
 const SOFT_ACCENT_COLORS = [
   'hsl(200 60% 70%)', // нежно-голубой
@@ -48,6 +49,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     if (location.pathname === '/gallery') return 1;
     if (location.pathname === '/nft-soon') return 2;
     if (location.pathname.startsWith('/profile')) return 3;
+    if (location.pathname === '/gallery2') return 4;
     return typeof activeTab === 'number' ? activeTab : internalTab;
   };
 
@@ -71,6 +73,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       case 3:
         // Навигация к моему профилю
         navigate('/profile');
+        break;
+      case 4:
+        navigate('/gallery2');
         break;
     }
   };
@@ -198,6 +203,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         />
         <BottomNavigationAction 
           icon={<AccountCircleIcon />} 
+          slotProps={{ touchRipple: { center: true } }}
+        />
+        <BottomNavigationAction 
+          icon={<ViewModuleIcon />} 
           slotProps={{ touchRipple: { center: true } }}
         />
       </BottomNavigation>

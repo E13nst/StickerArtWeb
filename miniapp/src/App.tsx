@@ -13,6 +13,7 @@ import { videoBlobCache, imageLoader, LoadPriority } from '@/utils/imageLoader';
 
 // Lazy load страниц для code splitting
 const GalleryPage = lazy(() => import('@/pages/GalleryPage').then(m => ({ default: m.GalleryPage })));
+const GalleryPage2 = lazy(() => import('@/pages/GalleryPage2').then(m => ({ default: m.GalleryPage2 })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const MyProfilePage = lazy(() => import('@/pages/MyProfilePage').then(m => ({ default: m.MyProfilePage })));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -103,6 +104,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Navigate to="/gallery" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/gallery2" element={<GalleryPage2 />} />
           <Route path="/profile" element={<MyProfilePage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />
           <Route path="/author/:id" element={<AuthorPage />} />
