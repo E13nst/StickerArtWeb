@@ -139,7 +139,7 @@ export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
             top: 'calc(100% + 0.25rem)',
             left: 0,
             right: 0,
-            zIndex: 1000,
+            zIndex: 'var(--z-dropdown, 300)',
             backgroundColor: bgColor,
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',

@@ -272,7 +272,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
         width: isFixed ? '100%' : 'auto',
         maxWidth: isFixed ? '600px' : 'none', // узкий лейаут для основного контента
         transform: isFixed ? 'translateX(-50%)' : 'none',
-        zIndex: isFixed ? 1001 : 1001, // Выше карточек (z-index: 10) и табов (z-index: 998)
+        // UI controls bar: above content/header, below modals
+        zIndex: 'var(--z-ui-controls, 200)',
         backgroundColor: 'transparent',
         padding: 0,
       }}
@@ -452,7 +453,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               left: 0,
               right: 0,
               bottom: 0,
-              zIndex: 1002,
+              zIndex: 'var(--z-overlay, 400)',
               backgroundColor: 'transparent',
               pointerEvents: 'auto',
             }}
@@ -467,7 +468,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               left: '0.618rem',
               right: 'auto',
               mt: '0.5rem',
-              zIndex: 1003,
+              zIndex: 'var(--z-dropdown, 300)',
               animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               maxWidth: '200px',
             }}

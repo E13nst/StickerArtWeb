@@ -28,7 +28,8 @@ header.stixlytopheader,
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
-  z-index: 999 !important; /* above content */
+  /* Header: below UI controls and all modals */
+  z-index: var(--z-header, 100) !important;
   
   /* extend into the iPhone notch area using Telegram safe area insets */
   /* Fallback to env() for old clients without Telegram safe area insets */

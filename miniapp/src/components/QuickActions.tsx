@@ -89,7 +89,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       style={{
         position: 'fixed',
         ...positionStyle,
-        zIndex: 1000,
+        zIndex: 'var(--z-ui-controls, 200)',
         display: 'flex',
         flexDirection: position.includes('bottom') ? 'column-reverse' : 'column',
         alignItems: position.includes('right') ? 'flex-end' : 'flex-start',

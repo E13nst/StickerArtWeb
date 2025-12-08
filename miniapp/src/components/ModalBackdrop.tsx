@@ -77,7 +77,8 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 1300, // Выше чем у обычных модальных окон
+        // Modal backdrop: must be above all UI controls, header and content
+        zIndex: 'var(--z-modal, 1000)',
         backgroundColor: getBackdropColor(),
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',

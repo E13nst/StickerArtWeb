@@ -315,7 +315,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
           position: 'fixed',
           left: 'calc(100vw * 0.012)',
           bottom: 'calc(100vw * 0.012)',
-          zIndex: 1001,
+          zIndex: 'var(--z-ui-controls, 200)',
           width: '28px',
           height: '28px',
           minWidth: '28px',
@@ -372,7 +372,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
               left: 0,
               right: 0,
               bottom: 0,
-              zIndex: 1001,
+              zIndex: 'var(--z-overlay, 400)',
               backgroundColor: 'rgba(0, 0, 0, 0.2)',
               backdropFilter: 'blur(2px)',
               WebkitBackdropFilter: 'blur(2px)',
@@ -388,7 +388,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
               bottom: 'calc(28px + 12px)', // высота кнопки + зазор
               borderRadius: 'calc(100vw * 0.04)',
               boxShadow: '0 4px 16px var(--tg-theme-shadow-color)',
-              zIndex: 1002, // выше кнопки и навигации
+              zIndex: 'var(--z-dropdown, 300)', // выше кнопки и навигации
               background: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 98%, transparent)',
               backdropFilter: 'blur(16px) saturate(180%)',
               WebkitBackdropFilter: 'blur(16px) saturate(180%)',

@@ -11,6 +11,8 @@ import {
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddIcon from '@mui/icons-material/Add';
+import { TonConnectButton } from '@tonconnect/ui-react';
+import { useTonAddress } from '@tonconnect/ui-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
@@ -41,6 +43,16 @@ export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { tg, user, initData, isInTelegramApp } = useTelegram();
   const scrollElement = useScrollElement();
+  
+  // TON Connect: получение адреса кошелька
+  const tonAddress = useTonAddress();
+  
+  // Логирование адреса кошелька в dev режиме
+  useEffect(() => {
+    if (import.meta.env.DEV && tonAddress) {
+      console.log('🔗 TON кошелёк подключен:', tonAddress);
+    }
+  }, [tonAddress]);
 
   const {
     isLoading,
@@ -1113,8 +1125,44 @@ export const MyProfilePage: React.FC = () => {
                 </Box>
               </Box>
               
-              {/* Кнопка поделиться профилем */}
-              {/* Кнопка "Поделиться профилем" удалена по требованиям дизайна */}
+              {/* TON Connect: подключение кошелька */}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1.5,
+                mt: 3,
+                pt: 2,
+                borderTop: '1px solid var(--tg-theme-border-color, #e0e0e0)'
+              }}>
+                <Typography 
+                  variant="body2"
+                  sx={{ 
+                    color: 'var(--tg-theme-hint-color)',
+                    mb: 0.5
+                  }}
+                >
+                  TON кошелёк
+                </Typography>
+                <TonConnectButton />
+                {tonAddress && (
+                  <Typography 
+                    variant="caption"
+                    sx={{ 
+                      color: 'var(--tg-theme-hint-color)',
+                      fontFamily: 'monospace',
+                      fontSize: '0.7rem',
+                      wordBreak: 'break-all',
+                      textAlign: 'center',
+                      maxWidth: '100%',
+                      px: 1
+                    }}
+                  >
+                    {tonAddress.slice(0, 6)}...{tonAddress.slice(-4)}
+                  </Typography>
+                )}
+                {/* TODO: Сохранение адреса кошелька в профиле пользователя и отправка на бэкенд */}
+              </Box>
             </CardContent>
           </Card>
         )}
@@ -1156,7 +1204,7 @@ export const MyProfilePage: React.FC = () => {
                 sx={{
                   position: 'sticky',
                   top: 0,
-                  zIndex: 998,
+                  zIndex: 'var(--z-header, 100)',
                   backgroundColor: 'var(--tg-theme-bg-color)',
                   backdropFilter: 'blur(10px)',
                   WebkitBackdropFilter: 'blur(10px)',

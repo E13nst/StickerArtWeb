@@ -1,5 +1,6 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import MainLayout from '@/layouts/MainLayout';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -18,6 +19,9 @@ const MyProfilePage = lazy(() => import('@/pages/MyProfilePage').then(m => ({ de
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const AuthorPage = lazy(() => import('@/pages/AuthorPage').then(m => ({ default: m.AuthorPage })));
 const NftSoonPage = lazy(() => import('@/pages/NftSoonPage').then(m => ({ default: m.NftSoonPage })));
+
+// TON Connect manifest URL (статический, так как MiniApp развёрнут на стабильном домене)
+const manifestUrl = 'https://sticker-art-e13nst.amvera.io/miniapp/tonconnect-manifest.json';
 
 const App: React.FC = () => {
   // ✅ FIX: Используем selector для предотвращения пересоздания функции
@@ -87,32 +91,34 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <Router basename="/miniapp">
-      <MainLayout>
-        <Suspense fallback={
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            minHeight: '60vh' 
-          }}>
-            <LoadingSpinner />
-          </div>
-        }>
-        <Routes>
-          <Route path="/" element={<Navigate to="/gallery" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/profile" element={<MyProfilePage />} />
-          <Route path="/profile/:userId" element={<ProfilePage />} />
-          <Route path="/author/:id" element={<AuthorPage />} />
-          <Route path="/nft-soon" element={<NftSoonPage />} />
-          {/* Fallback route */}
-          <Route path="*" element={<DashboardPage />} />
-        </Routes>
-        </Suspense>
-      </MainLayout>
-    </Router>
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
+      <Router basename="/miniapp">
+        <MainLayout>
+          <Suspense fallback={
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              minHeight: '60vh' 
+            }}>
+              <LoadingSpinner />
+            </div>
+          }>
+          <Routes>
+            <Route path="/" element={<Navigate to="/gallery" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
+            <Route path="/profile" element={<MyProfilePage />} />
+            <Route path="/profile/:userId" element={<ProfilePage />} />
+            <Route path="/author/:id" element={<AuthorPage />} />
+            <Route path="/nft-soon" element={<NftSoonPage />} />
+            {/* Fallback route */}
+            <Route path="*" element={<DashboardPage />} />
+          </Routes>
+          </Suspense>
+        </MainLayout>
+      </Router>
+    </TonConnectUIProvider>
   );
 };
 

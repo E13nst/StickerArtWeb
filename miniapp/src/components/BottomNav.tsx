@@ -123,7 +123,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         transform: 'translateX(-50%)',
         width: '100%',
         maxWidth: '600px', // узкий лейаут для основного контента
-        zIndex: 1000,
+        zIndex: 'var(--z-header, 100)',
         overflow: 'hidden', // Обрезаем анимацию, выходящую за края
         // Фоллбэк для старых браузеров
         backgroundColor: 'rgba(255, 255, 255, 0.1)',

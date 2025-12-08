@@ -252,7 +252,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
           borderTopLeftRadius: '24px',
           borderTopRightRadius: '24px',
           touchAction: 'pan-y',
-          zIndex: 1400,
+          zIndex: 'var(--z-modal, 1000)',
           animation: 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)',
           '@keyframes modalSlideUpFromBottom': {
             '0%': {

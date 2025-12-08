@@ -181,7 +181,7 @@ export const PullToRefreshIndicator: React.FC<PullToRefreshIndicatorProps> = ({
         borderBottom: '1px solid var(--tg-theme-border-color)',
         transform: `translateY(${state.pullDistance - 60}px)`,
         transition: state.isRefreshing ? 'transform 0.3s ease' : 'none',
-        zIndex: 1000
+        zIndex: 'var(--z-overlay, 400)'
       }}
     >
       <div

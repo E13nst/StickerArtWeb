@@ -963,7 +963,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       borderTopLeftRadius: isModal ? '24px' : 0,
       borderTopRightRadius: isModal ? '24px' : 0,
       touchAction: 'pan-y',
-      zIndex: isModal ? 1400 : 'auto', // Поверх ModalBackdrop (1300) и BottomNav (1000)
+      zIndex: isModal ? 'var(--z-modal, 1000)' : 'auto', // Modal content: same layer as modal backdrop
       animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
       '@keyframes modalSlideUpFromBottom': {
         '0%': {

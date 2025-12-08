@@ -124,7 +124,7 @@ export const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
           border: '1px solid var(--tg-theme-border-color)',
           borderRadius: '12px',
           boxShadow: '0 4px 12px var(--tg-theme-shadow-color)',
-          zIndex: 1000,
+          zIndex: 'var(--z-dropdown, 300)',
           marginTop: '4px'
         }}>
           {suggestions.map((suggestion, index) => (

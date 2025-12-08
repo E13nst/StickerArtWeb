@@ -34,7 +34,8 @@ export function verifyAndFixHeaderPositioning(): void {
       header.style.setProperty('top', '0', 'important');
       header.style.setProperty('left', '0', 'important');
       header.style.setProperty('right', '0', 'important');
-      header.style.setProperty('z-index', '999', 'important');
+      // Use CSS variable for z-index, fallback to 100 if not available
+      header.style.setProperty('z-index', 'var(--z-header, 100)', 'important');
       needsFix = true;
     }
     

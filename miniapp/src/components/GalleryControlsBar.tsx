@@ -153,7 +153,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
         maxWidth: '600px', // узкий лейаут для основного контента
         transform: isHidden ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
         transition: 'transform 0.3s ease-out',
-        zIndex: 998,
+        zIndex: 'var(--z-ui-controls, 200)',
         backgroundColor: bgColor,
         backdropFilter: 'blur(12px) saturate(150%)',
         WebkitBackdropFilter: 'blur(12px) saturate(150%)',

@@ -57,6 +57,17 @@
   --tg-theme-warning-color: #ff9800;
   --tg-theme-error-color: #f44336;
   --tg-theme-error-color-rgb: 244, 67, 54;
+
+  /* Z-index layering system for the MiniApp */
+  --z-base: 1;
+  --z-content: 10;
+  --z-header: 100;
+  --z-ui-controls: 200;   /* compact-controls-bar, floating buttons */
+  --z-dropdown: 300;      /* dropdown menus */
+  --z-overlay: 400;       /* overlay/backdrop elements */
+  --z-modal: 1000;        /* ALL modals (including TonConnect) */
+  --z-toast: 1100;        /* toasts/notifications */
+  --z-max: 9999;          /* reserved for critical edge cases only */
 }
 
 /* Harmonious proportional utilities (container-first, minimal code) */
@@ -255,7 +266,7 @@ body.modal-lock .bottom-nav-paper,
 html.modal-lock .bottom-nav-paper {
   opacity: 0.3;
   pointer-events: none;
-  z-index: 999 !important; /* Ниже модального окна (1400) */
+  z-index: var(--z-header, 100) !important;
 }
 
 /* Убираем стандартные стили для ссылок */
@@ -1398,4 +1409,13 @@ input.tg-search__input,
   padding-bottom: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
+}
+
+/* TonConnect modal: force it to the modal layer */
+/* TODO: After first run, open DevTools and check the exact class/ID of TonConnect modal root */
+/* Replace wildcard selectors below with 1-2 specific selectors to avoid side effects */
+[class*="tonconnect-modal"],
+[class*="ton-connect-modal"],
+div[id*="tonconnect"] {
+  z-index: var(--z-modal, 1000) !important;
 }

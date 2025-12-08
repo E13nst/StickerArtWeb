@@ -1,9 +1,12 @@
 /**
  * Безопасная настройка viewport для Telegram Mini App
- * Использует @twa-dev/sdk (текущий SDK в проекте)
+ * Поддерживает оба SDK:
+ * - @telegram-apps/sdk (официальный SDK)
+ * - @twa-dev/sdk (текущий SDK в проекте)
  * 
- * Примечание: Для использования официального SDK (@telegram-apps/sdk) 
- * необходимо установить зависимости: npm i @telegram-apps/sdk @telegram-apps/bridge
+ * Автоматически определяет доступный SDK и использует его.
+ * Для использования официального SDK необходимо установить зависимости:
+ * npm i @telegram-apps/sdk @telegram-apps/bridge
  */
 
 /**
@@ -14,6 +17,40 @@ export function isMobile(): boolean {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   );
+}
+
+/**
+ * Определяет, какой SDK доступен и возвращает его тип
+ * @returns 'official' | 'twa-dev' | null
+ */
+function detectSDK(): 'official' | 'twa-dev' | null {
+  try {
+    if (typeof window === "undefined" || !window.Telegram?.WebApp) {
+      return null;
+    }
+
+    const webApp = window.Telegram.WebApp;
+    
+    // Попытка определить официальный SDK по наличию специфичных методов/свойств
+    // Официальный SDK (@telegram-apps/sdk) может иметь методы с проверкой isAvailable()
+    // Проверяем наличие isAvailable() на методах как индикатор официального SDK
+    const hasIsAvailable = 
+      (typeof webApp.expand === "object" && typeof (webApp.expand as any).isAvailable === "function") ||
+      (typeof webApp.requestFullscreen === "object" && typeof (webApp.requestFullscreen as any).isAvailable === "function");
+    
+    if (hasIsAvailable) {
+      return 'official';
+    }
+    
+    // Если window.Telegram.WebApp доступен, но isAvailable() нет, 
+    // вероятно используется @twa-dev/sdk (текущий SDK в проекте)
+    // Оба SDK используют window.Telegram.WebApp, но @twa-dev/sdk не имеет isAvailable()
+    return 'twa-dev';
+  } catch (e) {
+    console.warn("[TMA Viewport] Ошибка при определении SDK:", e);
+    // В случае ошибки используем fallback на @twa-dev/sdk
+    return 'twa-dev';
+  }
 }
 
 /**
@@ -162,17 +199,90 @@ async function requestFullscreenSafe(webApp: any): Promise<boolean> {
 }
 
 /**
+ * Безопасно вызывает expand() с поддержкой обоих SDK
+ * @param webApp - Экземпляр Telegram WebApp
+ * @param sdkType - Тип SDK ('official' | 'twa-dev')
+ * @returns true если вызов был успешным, false в противном случае
+ */
+async function expandSafe(webApp: any, sdkType: 'official' | 'twa-dev' | null): Promise<boolean> {
+  try {
+    // Проверяем доступность метода expand()
+    if (typeof webApp.expand !== "function") {
+      console.warn("[TMA Viewport] expand() недоступен");
+      return false;
+    }
+
+    // Для официального SDK проверяем isAvailable() если доступно
+    if (sdkType === 'official') {
+      try {
+        // Официальный SDK может иметь метод isAvailable() на методах
+        if (typeof webApp.expand.isAvailable === "function") {
+          const isAvailable = webApp.expand.isAvailable();
+          if (!isAvailable) {
+            console.log("[TMA Viewport] expand() недоступен (isAvailable() вернул false)");
+            return false;
+          }
+        }
+      } catch (e) {
+        // isAvailable() может быть недоступен, продолжаем
+        if (import.meta.env.DEV) {
+          console.log("[TMA Viewport] isAvailable() проверка недоступна, продолжаем");
+        }
+      }
+    }
+
+    // Проверяем текущее состояние перед вызовом expand()
+    const wasExpanded = webApp.isExpanded === true;
+    
+    if (!wasExpanded) {
+      webApp.expand();
+      const sdkName = sdkType === 'official' ? '@telegram-apps/sdk' : '@twa-dev/sdk';
+      console.log(`[TMA Viewport] Mini App развернута в full size (${sdkName})`);
+      
+      // На мобильных устройствах делаем дополнительную попытку через небольшую задержку
+      // Это помогает, если первый вызов expand() не сработал из-за тайминга
+      if (isMobile()) {
+        setTimeout(() => {
+          if (webApp.isExpanded !== true) {
+            console.log("[TMA Viewport] Повторная попытка expand() на мобильном устройстве");
+            try {
+              webApp.expand();
+            } catch (e) {
+              console.warn("[TMA Viewport] Ошибка при повторной попытке expand():", e);
+            }
+          }
+        }, 300);
+      }
+      
+      return true;
+    } else {
+      console.log("[TMA Viewport] Mini App уже развернута, пропускаем expand()");
+      return true; // Уже развернуто, считаем успешным
+    }
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.warn("[TMA Viewport] Ошибка expand():", errorMessage);
+    return false;
+  }
+}
+
+/**
  * Безопасная настройка viewport для Telegram Mini App
  * 
  * Последовательность действий:
  * 1. Проверяет, что мы в Telegram Mini App
- * 2. Ждет полной инициализации Telegram WebApp
- * 3. Разворачивает Mini App в full size (expand) с проверкой состояния
- * 4. На мобильных устройствах после успешного expand() вызывает requestFullscreen()
- * 5. Подписывается на события fullscreen для отслеживания изменений
+ * 2. Определяет доступный SDK (официальный или @twa-dev/sdk)
+ * 3. Ждет полной инициализации Telegram WebApp
+ * 4. Разворачивает Mini App в full size (expand) с проверкой состояния и isAvailable()
+ * 5. На мобильных устройствах после успешного expand() вызывает requestFullscreen()
+ * 6. Подписывается на события fullscreen для отслеживания изменений
  * 
  * Важно: После expand() (fullsize) на мобильных устройствах вызывается requestFullscreen()
  * для перехода в полноэкранный режим, если метод доступен.
+ * 
+ * Поддерживает оба SDK:
+ * - @telegram-apps/sdk (официальный) - использует проверки isAvailable() где доступно
+ * - @twa-dev/sdk (текущий) - использует прямые вызовы методов
  */
 export async function setupTelegramViewportSafe(): Promise<void> {
   try {
@@ -183,7 +293,13 @@ export async function setupTelegramViewportSafe(): Promise<void> {
       return;
     }
 
-    // 2. Используем @twa-dev/sdk (текущий SDK в проекте)
+    // 2. Определяем доступный SDK
+    const sdkType = detectSDK();
+    if (import.meta.env.DEV) {
+      console.log(`[TMA Viewport] Определен SDK: ${sdkType || 'неизвестен'}`);
+    }
+
+    // 3. Используем window.Telegram.WebApp (работает для обоих SDK)
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
       const webApp = window.Telegram.WebApp;
 
@@ -191,54 +307,46 @@ export async function setupTelegramViewportSafe(): Promise<void> {
       // Это критично для мобильных устройств, где expand() может не сработать сразу
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // 3. Разворачиваем Mini App в full size только если она еще не развернута
-      let expandSuccessful = false;
-      if (typeof webApp.expand === "function") {
-        try {
-          // Проверяем текущее состояние перед вызовом expand()
-          const wasExpanded = webApp.isExpanded;
-          
-          if (!wasExpanded) {
-            webApp.expand();
-            console.log("[TMA Viewport] Mini App развернута в full size (@twa-dev/sdk)");
-            expandSuccessful = true;
-            
-            // На мобильных устройствах делаем дополнительную попытку через небольшую задержку
-            // Это помогает, если первый вызов expand() не сработал из-за тайминга
-            if (isMobile()) {
-              setTimeout(() => {
-                if (!webApp.isExpanded) {
-                  console.log("[TMA Viewport] Повторная попытка expand() на мобильном устройстве");
-                  webApp.expand();
-                }
-              }, 300);
-            }
-          } else {
-            console.log("[TMA Viewport] Mini App уже развернута, пропускаем expand()");
-            expandSuccessful = true; // Уже развернуто, считаем успешным
-          }
-        } catch (e) {
-          console.warn("[TMA Viewport] Ошибка expand (@twa-dev/sdk):", e);
-        }
-      }
+      // 4. Разворачиваем Mini App в full size с безопасными проверками
+      const expandSuccessful = await expandSafe(webApp, sdkType);
 
-      // 4. После успешного expand() на мобильных вызываем requestFullscreen()
+      // 5. После успешного expand() на мобильных вызываем requestFullscreen()
       if (expandSuccessful && isMobile()) {
         // Небольшая задержка для стабильности перед вызовом requestFullscreen()
         await new Promise(resolve => setTimeout(resolve, 100));
         
         try {
-          await requestFullscreenSafe(webApp);
+          // Для официального SDK проверяем isAvailable() если доступно
+          if (sdkType === 'official') {
+            try {
+              const requestFullscreenMethod = webApp.requestFullscreen || window.Telegram?.WebApp?.requestFullscreen;
+              if (requestFullscreenMethod && typeof requestFullscreenMethod.isAvailable === "function") {
+                const isAvailable = requestFullscreenMethod.isAvailable();
+                if (!isAvailable) {
+                  console.log("[TMA Viewport] requestFullscreen() недоступен (isAvailable() вернул false)");
+                } else {
+                  await requestFullscreenSafe(webApp);
+                }
+              } else {
+                await requestFullscreenSafe(webApp);
+              }
+            } catch (e) {
+              // isAvailable() может быть недоступен, используем стандартный подход
+              await requestFullscreenSafe(webApp);
+            }
+          } else {
+            await requestFullscreenSafe(webApp);
+          }
         } catch (e) {
           // Ошибка requestFullscreen не должна прерывать работу приложения
           console.warn("[TMA Viewport] Ошибка при вызове requestFullscreen() после expand():", e);
         }
       }
 
-      // 5. Применяем safe area insets после expand()/requestFullscreen()
+      // 6. Применяем safe area insets после expand()/requestFullscreen()
       applySafeAreaInsets(webApp);
 
-      // 6. Подписываемся на события fullscreen для отслеживания изменений
+      // 7. Подписываемся на события fullscreen для отслеживания изменений
       // Убрано: viewportChanged handler с expand() - expand() вызывается только при инициализации
       if (typeof webApp.onEvent === "function") {
         // Подписываемся на события fullscreen для отслеживания изменений
@@ -298,7 +406,7 @@ export async function setupTelegramViewportSafe(): Promise<void> {
         }
       }
 
-      // 7. Подписываемся на события safe area для отслеживания изменений
+      // 8. Подписываемся на события safe area для отслеживания изменений
       if (typeof webApp.onEvent === "function") {
         const safeAreaChangedEvents = ["safeAreaChanged", "safe_area_changed"];
         const contentSafeAreaChangedEvents = ["contentSafeAreaChanged", "content_safe_area_changed"];
