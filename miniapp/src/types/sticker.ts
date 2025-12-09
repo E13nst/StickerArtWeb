@@ -220,3 +220,29 @@ export interface LeaderboardResponse {
   hasNext: boolean;
   hasPrevious: boolean;
 }
+
+/**
+ * Операции редактирования структуры стикерсета.
+ * Используется только на фронтенде для локального состояния (Фаза 1).
+ * В будущем будет отправляться на backend для применения изменений через Telegram Bot API.
+ */
+export interface StickerSetEditOperations {
+  /**
+   * Новый порядок стикеров в наборе.
+   * Массив file_id в том порядке, в котором они должны быть.
+   * Если не указано — порядок не меняется.
+   */
+  reorder?: string[];
+
+  /**
+   * Обновление эмодзи для стикеров.
+   * Ключ — file_id стикера.
+   * Значение — новое эмодзи.
+   */
+  emojiUpdates?: Record<string, string>;
+
+  /**
+   * Список file_id стикеров для удаления из набора.
+   */
+  deleted?: string[];
+}

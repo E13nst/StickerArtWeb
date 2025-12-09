@@ -27,7 +27,8 @@ import type { SvgIconProps } from '@mui/material/SvgIcon';
 // Новые модули
 import { useStickerSetData } from '@/hooks/useStickerSetData';
 import { useStickerNavigation } from '@/hooks/useStickerNavigation';
-import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetActionsBar } from './StickerSetDetail/index';
+import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetActionsBar, StickerSetDetailEdit } from './StickerSetDetail/index';
+import { StickerSetEditOperations } from '@/types/sticker';
 
 
 type VisibilityState = 'public' | 'private';
@@ -291,6 +292,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [isCategoriesDialogOpen, setIsCategoriesDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [starsInfoAnchor, setStarsInfoAnchor] = useState<HTMLElement | null>(null);
+  
+  // Режим просмотра/редактирования (только для автора)
+  // mode может быть установлен в 'edit' только если isAuthor === true
+  const [mode, setMode] = useState<'view' | 'edit'>('view');
   
   // Отладочный лог для E2E тестов
   console.log('🔵 StickerSetDetail render:', {
@@ -564,6 +569,17 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     updateStickerSet(updated);
     onStickerSetUpdated?.(updated);
   }, [updateStickerSet, onStickerSetUpdated]);
+
+  // Обработчики для режима редактирования
+  const handleEditCancel = useCallback(() => {
+    setMode('view');
+  }, []);
+
+  const handleEditDone = useCallback((ops: StickerSetEditOperations) => {
+    // В Фазе 1: только логируем, не вызываем API
+    console.log('Изменения (не сохраняются):', ops);
+    setMode('view');
+  }, []);
 
   // Обработчик завершения действия из StickerSetActions
   const handleActionComplete = useCallback(async (action: string, updatedData?: StickerSetResponse) => {
@@ -933,6 +949,70 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     };
   }, [isModal, onBack]);
 
+  // Условный рендеринг: edit-режим или view-режим
+  if (mode === 'edit' && isAuthor) {
+    return (
+      <Box 
+        ref={modalContentRef}
+        data-modal-content
+        sx={{
+          position: isModal ? 'fixed' : 'relative',
+          top: isModal ? 'auto' : 'auto',
+          left: isModal ? 0 : 'auto',
+          right: isModal ? 0 : 'auto',
+          bottom: isModal ? 0 : 'auto',
+          width: '100%',
+          height: isModal ? 'auto' : '100vh',
+          maxHeight: isModal ? '100vh' : 'none',
+          minHeight: isModal ? 'auto' : 'none',
+          overflow: 'hidden',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          padding: '8px',
+          paddingTop: '5px',
+          backgroundColor: isModal ? 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.75)' : 'transparent',
+          backdropFilter: isModal ? 'blur(15px)' : 'none',
+          WebkitBackdropFilter: isModal ? 'blur(15px)' : 'none',
+          borderTopLeftRadius: isModal ? '24px' : 0,
+          borderTopRightRadius: isModal ? '24px' : 0,
+          touchAction: 'pan-y',
+          zIndex: isModal ? 'var(--z-modal, 1000)' : 'auto',
+          animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          '@keyframes modalSlideUpFromBottom': {
+            '0%': {
+              opacity: 0,
+              transform: 'translateY(100%)',
+            },
+            '100%': {
+              opacity: 1,
+              transform: 'translateY(0)',
+            },
+          },
+          '@keyframes modalContentSlideIn': {
+            '0%': {
+              opacity: 0,
+              transform: 'scale(0.95) translateY(20px)',
+            },
+            '100%': {
+              opacity: 1,
+              transform: 'scale(1) translateY(0)',
+            },
+          },
+        }}
+      >
+        <StickerSetDetailEdit
+          stickerSet={fullStickerSet ?? stickerSet}
+          onCancel={handleEditCancel}
+          onDone={handleEditDone}
+        />
+      </Box>
+    );
+  }
+
+  // View-режим (обычный режим просмотра)
   return (
     <Box 
       ref={modalContentRef}
@@ -1278,18 +1358,64 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 </Typography>
               )}
             </Box>
-            {canEditCategories && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  '@media (max-width: 400px)': {
-                    gap: '4px'
-                  }
-                }}
-              >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                flexShrink: 0,
+                '@media (max-width: 400px)': {
+                  gap: '4px'
+                }
+              }}
+            >
+              {/* Кнопка "Изменить" (только для автора, только в режиме view) */}
+              {isAuthor && mode === 'view' && (
+                <IconButton
+                  onClick={() => {
+                    if (isAuthor) {
+                      setMode('edit');
+                    }
+                  }}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    minWidth: 28,
+                    minHeight: 28,
+                    backgroundColor: 'transparent',
+                    color: 'var(--tg-theme-link-color)',
+                    padding: '4px',
+                    transition: 'all 150ms ease',
+                    flexShrink: 0,
+                    '&:hover': {
+                      backgroundColor: 'rgba(var(--tg-theme-link-color-rgb, 36, 129, 204), 0.1)',
+                      color: 'var(--tg-theme-link-color)'
+                    },
+                    '&:active': {
+                      backgroundColor: 'rgba(var(--tg-theme-link-color-rgb, 36, 129, 204), 0.15)'
+                    },
+                    '@media (max-width: 400px)': {
+                      width: 28,
+                      height: 28,
+                      '& svg': {
+                        fontSize: '16px'
+                      }
+                    },
+                    '@media (max-width: 350px)': {
+                      width: 24,
+                      height: 24,
+                      '& svg': {
+                        fontSize: '14px'
+                      }
+                    }
+                  }}
+                  title="Изменить стикерсет"
+                >
+                  <EditIcon sx={{ fontSize: '18px' }} />
+                </IconButton>
+              )}
+              {/* Кнопка редактирования категорий */}
+              {canEditCategories && (
                 <IconButton
                   onClick={handleOpenCategoriesDialog}
                   sx={{
@@ -1325,11 +1451,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                       }
                     }
                   }}
+                  title="Изменить категории"
                 >
                   <EditIcon sx={{ fontSize: '18px' }} />
                 </IconButton>
-              </Box>
-            )}
+              )}
+            </Box>
           </Box>
           {/* Минималистичная горизонтальная черта под категориями */}
           <Box
