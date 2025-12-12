@@ -16,7 +16,10 @@ fi
 echo "=== CREATING NGINX CACHE DIRECTORY ==="
 mkdir -p /data/cache/nginx/stickers
 chown -R nginx:nginx /data/cache
-chmod -R 755 /data/cache
+# ✅ ИСПРАВЛЕНО: даем права на запись для nginx (775 для директорий, 777 для кеша)
+chmod -R 775 /data/cache
+# ✅ ДОБАВЛЕНО: явно устанавливаем права на директорию кеша для записи
+chmod 777 /data/cache/nginx/stickers 2>/dev/null || true
 
 # Проверяем финальное состояние /data
 echo "=== FINAL /data STATE ==="
