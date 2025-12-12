@@ -22,6 +22,8 @@
     "test:prod": "playwright test --config=miniapp/playwright.config.prod.ts",
     "test:prod:headed": "playwright test --config=miniapp/playwright.config.prod.ts --headed",
     "test:prod:report": "playwright show-report playwright-report-prod",
+    "test:nginx-cache": "playwright test tests/nginx-cache.spec.ts --config=miniapp/playwright.config.prod.ts",
+    "test:nginx-cache:headed": "playwright test tests/nginx-cache.spec.ts --config=miniapp/playwright.config.prod.ts --headed",
     "start": "powershell -ExecutionPolicy Bypass -File scripts/simple-start.ps1",
     "stop": "powershell -ExecutionPolicy Bypass -File scripts/simple-stop.ps1",
     "restart": "powershell -ExecutionPolicy Bypass -File scripts/simple-restart.ps1",
