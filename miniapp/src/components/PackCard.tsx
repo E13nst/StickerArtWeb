@@ -335,61 +335,81 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                   hidePlaceholder={true}
                 />
               ) : activeSticker.isVideo ? (
-                <video
-                  ref={videoRef}
-                  src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
-                  className="pack-card-video"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  onError={(e) => {
-                    // ✅ FIX: Если blob URL недействителен, загружаем заново
-                    const video = e.currentTarget;
-                    const blobUrl = videoBlobCache.get(activeSticker.fileId);
-                    if (blobUrl && blobUrl.startsWith('blob:')) {
-                      // Blob URL недействителен - удаляем из кеша и загружаем заново
-                      console.warn(`[PackCard] Invalid blob URL for video ${activeSticker.fileId}, reloading...`);
-                      videoBlobCache.delete(activeSticker.fileId).catch(() => {});
-                      // Загружаем через imageLoader заново
-                      imageLoader.loadVideo(
-                        activeSticker.fileId,
-                        activeSticker.url,
-                        isInViewport ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT
-                      ).then(() => {
-                        // После загрузки обновляем src
-                        const newBlobUrl = videoBlobCache.get(activeSticker.fileId);
-                        if (newBlobUrl && video) {
-                          video.src = newBlobUrl;
-                        }
-                      }).catch(() => {
-                        // Если загрузка не удалась, используем оригинальный URL
-                        if (video) {
-                          video.src = activeSticker.url;
-                        }
-                      });
-                    } else {
-                      // Если это не blob URL или его нет, используем оригинальный URL
-                      video.src = activeSticker.url;
-                    }
-                  }}
+                <div
                   style={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
-                />
+                >
+                  <video
+                    ref={videoRef}
+                    src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                    className="pack-card-video"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={(e) => {
+                      // ✅ FIX: Если blob URL недействителен, загружаем заново
+                      const video = e.currentTarget;
+                      const blobUrl = videoBlobCache.get(activeSticker.fileId);
+                      if (blobUrl && blobUrl.startsWith('blob:')) {
+                        // Blob URL недействителен - удаляем из кеша и загружаем заново
+                        console.warn(`[PackCard] Invalid blob URL for video ${activeSticker.fileId}, reloading...`);
+                        videoBlobCache.delete(activeSticker.fileId).catch(() => {});
+                        // Загружаем через imageLoader заново
+                        imageLoader.loadVideo(
+                          activeSticker.fileId,
+                          activeSticker.url,
+                          isInViewport ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT
+                        ).then(() => {
+                          // После загрузки обновляем src
+                          const newBlobUrl = videoBlobCache.get(activeSticker.fileId);
+                          if (newBlobUrl && video) {
+                            video.src = newBlobUrl;
+                          }
+                        }).catch(() => {
+                          // Если загрузка не удалась, используем оригинальный URL
+                          if (video) {
+                            video.src = activeSticker.url;
+                          }
+                        });
+                      } else {
+                        // Если это не blob URL или его нет, используем оригинальный URL
+                        video.src = activeSticker.url;
+                      }
+                    }}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
               ) : (
-                <img
-                  src={imageCache.get(activeSticker.fileId) || activeSticker.url}
-                  alt={activeSticker.emoji}
-                  className="pack-card-image"
+                <div
                   style={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
-                />
+                >
+                  <img
+                    src={imageCache.get(activeSticker.fileId) || activeSticker.url}
+                    alt={activeSticker.emoji}
+                    className="pack-card-image"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
               )}
             </div>
           );

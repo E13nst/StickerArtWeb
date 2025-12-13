@@ -172,32 +172,52 @@ const OptimizedPackCardComponent: React.FC<OptimizedPackCardProps> = ({
                 priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
               />
             ) : activeSticker.isVideo ? (
-              <video
-                ref={videoRef}
-                src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
-                className="pack-card-video"
-                autoPlay={inView}
-                loop
-                muted
-                playsInline
+              <div
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-              />
+              >
+                <video
+                  ref={videoRef}
+                  src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                  className="pack-card-video"
+                  autoPlay={inView}
+                  loop
+                  muted
+                  playsInline
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
             ) : (
-              <img
-                src={imageCache.get(activeSticker.fileId) || activeSticker.url}
-                alt={activeSticker.emoji}
-                className="pack-card-image"
-                loading="lazy"
+              <div
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-              />
+              >
+                <img
+                  src={imageCache.get(activeSticker.fileId) || activeSticker.url}
+                  alt={activeSticker.emoji}
+                  className="pack-card-image"
+                  loading="lazy"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
             )}
           </>
         ) : null}
