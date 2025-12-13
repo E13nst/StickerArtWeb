@@ -2,6 +2,7 @@ import React, { useCallback, memo, useState, useEffect } from 'react';
 import { useNearVisible } from '../hooks/useNearVisible';
 import { useViewportVisibility } from '../hooks/useViewportVisibility';
 import { useStickerRotation } from '../hooks/useStickerRotation';
+import { useNonFlashingVideoSrc } from '../hooks/useNonFlashingVideoSrc';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { imageLoader, LoadPriority, videoBlobCache, imageCache } from '../utils/imageLoader';
@@ -38,6 +39,53 @@ interface PackCardProps {
   isHighPriority?: boolean; // ⚠️ DEPRECATED: Теперь приоритет определяется автоматически через viewport
   onClick?: (packId: string) => void;
 }
+
+// Компонент для видео стикера с использованием useNonFlashingVideoSrc
+const PackCardVideo: React.FC<{
+  fileId: string;
+  url: string;
+  videoRef: React.RefObject<HTMLVideoElement>;
+}> = ({ fileId, url, videoRef }) => {
+  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
+    fileId,
+    preferredSrc: videoBlobCache.get(fileId),
+    fallbackSrc: url,
+    waitForPreferredMs: 100
+  });
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative'
+      }}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        className="pack-card-video"
+        autoPlay
+        loop
+        muted
+        playsInline
+        onError={onError}
+        onLoadedData={onLoadedData}
+        style={{
+          maxWidth: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain',
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 120ms ease',
+          backgroundColor: 'transparent'
+        }}
+      />
+    </div>
+  );
+};
 
 const PackCardComponent: React.FC<PackCardProps> = ({ 
   pack, 
@@ -267,13 +315,12 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+        backgroundColor: 'var(--tg-theme-pack-card-bg, var(--tg-theme-secondary-bg-color))',
         border: '1px solid var(--tg-theme-border-color)',
         boxShadow: '0 3px 13px var(--tg-theme-shadow-color)', // 3 и 13 - числа Фибоначчи
         touchAction: 'manipulation',
-        transition: 'transform 0.233s ease, box-shadow 0.233s ease, opacity 0.3s ease, filter 0.3s ease', // 0.233 ≈ 1/φ
-        opacity: isDimmed ? 0.5 : 1,
-        filter: isDimmed ? 'grayscale(0.7)' : 'none'
+        transition: 'transform 0.233s ease, box-shadow 0.233s ease, opacity 0.3s ease', // 0.233 ≈ 1/φ
+        opacity: isDimmed ? 0.5 : 1
       }}
     >
       {/* Сменяющиеся превью стикеров - ОПТИМИЗИРОВАНО: рендерим только активный */}
@@ -283,6 +330,18 @@ const PackCardComponent: React.FC<PackCardProps> = ({
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {/* Overlay для dimming вместо filter */}
+        {isDimmed && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1
+            }}
+          />
+        )}
         {!isFirstStickerReady ? (
           // Skeleton loader пока первый стикер загружается
           <div
@@ -335,60 +394,11 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                   hidePlaceholder={true}
                 />
               ) : activeSticker.isVideo ? (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <video
-                    ref={videoRef}
-                    src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
-                    className="pack-card-video"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    onError={(e) => {
-                      // ✅ FIX: Если blob URL недействителен, загружаем заново
-                      const video = e.currentTarget;
-                      const blobUrl = videoBlobCache.get(activeSticker.fileId);
-                      if (blobUrl && blobUrl.startsWith('blob:')) {
-                        // Blob URL недействителен - удаляем из кеша и загружаем заново
-                        console.warn(`[PackCard] Invalid blob URL for video ${activeSticker.fileId}, reloading...`);
-                        videoBlobCache.delete(activeSticker.fileId).catch(() => {});
-                        // Загружаем через imageLoader заново
-                        imageLoader.loadVideo(
-                          activeSticker.fileId,
-                          activeSticker.url,
-                          isInViewport ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT
-                        ).then(() => {
-                          // После загрузки обновляем src
-                          const newBlobUrl = videoBlobCache.get(activeSticker.fileId);
-                          if (newBlobUrl && video) {
-                            video.src = newBlobUrl;
-                          }
-                        }).catch(() => {
-                          // Если загрузка не удалась, используем оригинальный URL
-                          if (video) {
-                            video.src = activeSticker.url;
-                          }
-                        });
-                      } else {
-                        // Если это не blob URL или его нет, используем оригинальный URL
-                        video.src = activeSticker.url;
-                      }
-                    }}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
-                  />
-                </div>
+                <PackCardVideo
+                  fileId={activeSticker.fileId}
+                  url={activeSticker.url}
+                  videoRef={videoRef}
+                />
               ) : (
                 <div
                   style={{

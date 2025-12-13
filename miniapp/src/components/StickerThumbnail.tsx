@@ -70,7 +70,7 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
           width: size,
           height: size,
           fontSize: '24px',
-          backgroundColor: 'rgba(0,0,0,0.1)',
+          backgroundColor: 'transparent',
           borderRadius: '8px',
           border: '1px solid rgba(255,255,255,0.2)'
         }}
@@ -94,7 +94,7 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
             alignItems: 'center', 
             justifyContent: 'center',
             fontSize: '24px',
-            backgroundColor: 'rgba(0,0,0,0.1)',
+            backgroundColor: 'transparent',
             borderRadius: '8px'
           }}
         >
@@ -112,7 +112,8 @@ export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
           objectFit: 'contain',
           borderRadius: '8px',
           opacity: loading ? 0 : 1,
-          transition: 'opacity 200ms ease'
+          transition: 'opacity 200ms ease',
+          backgroundColor: 'transparent'
         }}
         onLoad={handleLoad}
         onError={handleError}

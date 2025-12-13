@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { AnimatedSticker } from '../AnimatedSticker';
-import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache, imageLoader } from '@/utils/imageLoader';
-import { getStickerImageUrl } from '@/utils/stickerUtils';
+import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache } from '@/utils/imageLoader';
+import { getStickerImageUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
+import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 
 interface StickerPreviewProps {
   sticker: any;
@@ -17,6 +18,75 @@ interface StickerPreviewProps {
   touchHandled: React.MutableRefObject<boolean>;
   previewRef: React.RefObject<HTMLDivElement>;
 }
+
+// Компонент для видео стикера с использованием useNonFlashingVideoSrc
+const StickerPreviewVideo: React.FC<{
+  sticker: any;
+  width: string;
+  height: string;
+  className?: string;
+  onLoad?: () => void;
+}> = ({ sticker, width, height, className, onLoad }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Мемоизируем fallbackVideoUrl, чтобы не пересоздавать хук при каждом рендере
+  const fallbackVideoUrl = useMemo(
+    () => sticker.url || getStickerVideoUrl(sticker.file_id),
+    [sticker.url, sticker.file_id]
+  );
+  
+  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
+    fileId: sticker.file_id,
+    preferredSrc: videoBlobCache.get(sticker.file_id),
+    fallbackSrc: fallbackVideoUrl,
+    waitForPreferredMs: 100
+  });
+
+  const handleLoadedData = () => {
+    onLoadedData();
+    onLoad?.();
+  };
+
+  // Безопасный вызов play() только когда isReady стал true и src изменился
+  useEffect(() => {
+    if (!isReady) return;
+    const video = videoRef.current;
+    if (!video) return;
+    
+    // Пытаемся play() на случай, если autoplay не сработал (например, на iOS)
+    // Ошибки игнорируем без логирования - это нормально, если браузер блокирует autoplay
+    const playPromise = video.play?.();
+    if (playPromise && typeof (playPromise as any).catch === 'function') {
+      (playPromise as any).catch(() => {
+        // Намеренно игнорируем - не логируем в production, чтобы не засорять консоль
+      });
+    }
+  }, [isReady, src]);
+
+  return (
+    <video
+      ref={videoRef}
+      key={sticker.file_id}
+      src={src}
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="auto"
+      className={className}
+      style={{
+        width,
+        height,
+        objectFit: 'contain',
+        opacity: isReady ? 1 : 0,
+        transition: 'opacity 120ms ease',
+        backgroundColor: 'transparent'
+      }}
+      onLoadedData={handleLoadedData}
+      onError={onError}
+    />
+  );
+};
 
 const renderStickerMedia = (
   sticker: any,
@@ -97,59 +167,12 @@ const renderStickerMedia = (
 
   if (sticker.is_video || sticker.isVideo || cachedType === 'video') {
     return (
-      <video
-        key={sticker.file_id}
-        src={cachedUrl}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
+      <StickerPreviewVideo
+        sticker={sticker}
+        width={width}
+        height={height}
         className={className}
-        style={{
-          width,
-          height,
-          objectFit: 'contain'
-        }}
-        onLoadedData={onLoad}
-        onError={(e) => {
-          const video = e.currentTarget;
-          const blobUrl = cachedUrl;
-          
-          if (blobUrl && blobUrl.startsWith('blob:')) {
-            videoBlobCache.delete(sticker.file_id).catch(() => {});
-            imageLoader.loadVideo(
-              sticker.file_id,
-              getStickerImageUrl(sticker.file_id),
-              LoadPriority.TIER_1_VIEWPORT
-            ).then(() => {
-              const newBlobUrl = videoBlobCache.get(sticker.file_id);
-              if (newBlobUrl && video) {
-                video.src = newBlobUrl;
-              }
-            }).catch(() => {
-              if (video) {
-                video.src = getStickerImageUrl(sticker.file_id);
-              }
-            });
-          } else {
-            if (video) {
-              video.src = getStickerImageUrl(sticker.file_id);
-            }
-          }
-          
-          if (!sticker.file_id) {
-            console.warn(`[StickerPreview] Video failed to load and no file_id available`);
-          }
-          
-          onLoad?.();
-        }}
-        onCanPlay={() => {
-          const video = document.querySelector(`video[src="${cachedUrl}"]`) as HTMLVideoElement;
-          if (video && video.paused) {
-            video.play().catch((err) => console.warn('Video autoplay failed:', err));
-          }
-        }}
+        onLoad={onLoad}
       />
     );
   }

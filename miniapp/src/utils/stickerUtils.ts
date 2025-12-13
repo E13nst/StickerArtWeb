@@ -107,6 +107,19 @@ export function getStickerThumbnailUrl(fileId: string, size: number = 128): stri
 }
 
 /**
+ * Получить URL видео стикера по file_id
+ * @param fileId - Telegram file_id стикера
+ * @returns URL для загрузки видео стикера (WebM)
+ */
+export function getStickerVideoUrl(fileId: string): string {
+  if (!fileId) {
+    return '';
+  }
+  // Используем тот же endpoint, что и для изображений, но явно указываем, что это видео
+  return buildStickerUrl(fileId, { file: true });
+}
+
+/**
  * Получить случайные стикеры из набора
  * @param stickers - Массив стикеров
  * @param count - Количество стикеров для выбора
