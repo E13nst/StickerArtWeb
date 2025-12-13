@@ -221,11 +221,8 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
         filter: placement === 'bottom-center'
           ? `drop-shadow(0 4px 12px rgba(9, 14, 26, 0.55)) drop-shadow(0 18px 36px rgba(9, 14, 26, 0.62)) ${isAnimating ? 'brightness(1.18)' : 'brightness(1)'}`
           : isAnimating ? 'brightness(1.15)' : 'brightness(1)',
-        boxShadow: placement === 'bottom-center'
-          ? 'none'
-          : '0 8px 20px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.18)',
+        boxShadow: 'none',
         background: 'transparent',
-        borderRadius: '50%',
         overflow: 'visible'
       }}
       title={isLiked ? `${likesCount} лайков (нажмите чтобы убрать)` : `${likesCount} лайков (нажмите чтобы лайкнуть)`}

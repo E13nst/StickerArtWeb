@@ -919,6 +919,7 @@ svg,
     --tg-theme-border-color: #2a3441;
     --tg-theme-shadow-color: rgba(0, 0, 0, 0.3);
     --tg-theme-overlay-color: rgba(0, 0, 0, 0.8);
+    --tg-theme-pack-card-bg: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 75%, transparent);
     --tg-theme-success-color: #4caf50;
     --tg-theme-warning-color: #ff9800;
     --tg-theme-error-color: #f44336;
@@ -939,6 +940,7 @@ svg,
   --tg-theme-border-color: #2a3441;
   --tg-theme-shadow-color: rgba(0, 0, 0, 0.3);
   --tg-theme-overlay-color: rgba(0, 0, 0, 0.8);
+  --tg-theme-pack-card-bg: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 75%, transparent);
 }
 
 
@@ -956,6 +958,7 @@ svg,
   --tg-theme-border-color: #e0e0e0;
   --tg-theme-shadow-color: rgba(0, 0, 0, 0.1);
   --tg-theme-overlay-color: rgba(0, 0, 0, 0.7);
+  --tg-theme-pack-card-bg: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 75%, transparent);
 }
 
 /* Стили для иконки поиска - адаптивные под тему */
