@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, UserWallet } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
@@ -1125,6 +1125,63 @@ class ApiClient {
       const errorMessage = error?.response?.data?.message || 
                           error?.message || 
                           'Не удалось загрузить стикерпак. Проверьте ссылку и попробуйте снова.';
+      throw new Error(errorMessage);
+    }
+  }
+
+  // ============ МЕТОДЫ ДЛЯ РАБОТЫ С КОШЕЛЬКАМИ ============
+
+  // Привязка TON-кошелька к текущему пользователю
+  // API endpoint: POST /api/wallets/link
+  // Все старые активные кошельки автоматически деактивируются
+  async linkWallet(walletAddress: string, walletType?: string | null): Promise<UserWallet> {
+    try {
+      const response = await this.client.post<UserWallet>('/wallets/link', {
+        walletAddress,
+        walletType: walletType ?? null
+      });
+      console.log('✅ Кошелёк привязан:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка привязки кошелька:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось привязать кошелёк. Проверьте адрес и попробуйте снова.';
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Получение активного TON-кошелька текущего пользователя
+  // API endpoint: GET /api/wallets/my
+  // Возвращает UserWallet или null, если кошелёк не привязан
+  async getMyWallet(): Promise<UserWallet | null> {
+    try {
+      const response = await this.client.get<UserWallet | null>('/wallets/my');
+      return response.data;
+    } catch (error: any) {
+      // 404 или пустой ответ означает, что кошелёк не привязан
+      if (error?.response?.status === 404) {
+        return null;
+      }
+      console.error('❌ Ошибка получения кошелька:', error);
+      throw error;
+    }
+  }
+
+  // Отключение (деактивация) текущего активного кошелька
+  // API endpoint: POST /api/wallets/unlink
+  // Для MVP можно обойтись без этого метода, полагаясь на автоматическую деактивацию при привязке нового
+  async unlinkWallet(): Promise<void> {
+    try {
+      await this.client.post('/wallets/unlink');
+      console.log('✅ Кошелёк отключен');
+    } catch (error: any) {
+      console.error('❌ Ошибка отключения кошелька:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось отключить кошелёк. Попробуйте снова.';
       throw new Error(errorMessage);
     }
   }

@@ -11,9 +11,10 @@ import {
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddIcon from '@mui/icons-material/Add';
-import { TonConnectButton } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonAddress } from '@tonconnect/ui-react';
 import { useTelegram } from '@/hooks/useTelegram';
+import { useWallet } from '@/hooks/useWallet';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
@@ -46,13 +47,38 @@ export const MyProfilePage: React.FC = () => {
   
   // TON Connect: получение адреса кошелька
   const tonAddress = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
+  
+  // Управление кошельком через хук
+  const { wallet, loading: walletLoading, error: walletError, linkWallet, unlinkWallet } = useWallet();
+  
+  // Автоматическая привязка кошелька при изменении tonAddress
+  useEffect(() => {
+    // Привязываем кошелек только если:
+    // 1. tonAddress существует
+    // 2. Кошелек еще не привязан (wallet === null) ИЛИ адрес отличается от привязанного
+    // 3. Не идет процесс загрузки
+    if (tonAddress && !walletLoading) {
+      const shouldLink = !wallet || wallet.walletAddress !== tonAddress;
+      
+      if (shouldLink) {
+        console.log('🔗 Автоматическая привязка кошелька:', tonAddress);
+        linkWallet(tonAddress).catch((err) => {
+          console.error('❌ Ошибка автоматической привязки кошелька:', err);
+        });
+      }
+    }
+  }, [tonAddress, wallet, walletLoading, linkWallet]);
   
   // Логирование адреса кошелька в dev режиме
   useEffect(() => {
     if (import.meta.env.DEV && tonAddress) {
       console.log('🔗 TON кошелёк подключен:', tonAddress);
     }
-  }, [tonAddress]);
+    if (import.meta.env.DEV && wallet) {
+      console.log('💼 Кошелёк из бэкенда:', wallet);
+    }
+  }, [tonAddress, wallet]);
 
   const {
     isLoading,
@@ -1144,24 +1170,120 @@ export const MyProfilePage: React.FC = () => {
                 >
                   TON кошелёк
                 </Typography>
-                <TonConnectButton />
-                {tonAddress && (
+                
+                {/* Кнопка подключения/изменения кошелька */}
+                {wallet ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      // При клике открываем TON Connect для подключения нового кошелька
+                      // Старый автоматически деактивируется при привязке нового
+                      if (tg?.HapticFeedback) {
+                        tg.HapticFeedback.impactOccurred('light');
+                      }
+                      // Программно открываем модальное окно TON Connect
+                      tonConnectUI.openModal();
+                    }}
+                    sx={{
+                      textTransform: 'none',
+                      borderRadius: '0.5rem',
+                      borderColor: 'var(--tg-theme-button-color)',
+                      color: 'var(--tg-theme-button-color)',
+                      '&:hover': {
+                        borderColor: 'var(--tg-theme-button-color)',
+                        backgroundColor: 'var(--tg-theme-secondary-bg-color)'
+                      }
+                    }}
+                  >
+                    Изменить кошелёк
+                  </Button>
+                ) : (
+                  <TonConnectButton />
+                )}
+                
+                {/* Отображение адреса кошелька */}
+                {wallet?.walletAddress && (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 1,
+                    width: '100%'
+                  }}>
+                    <Typography 
+                      variant="caption"
+                      sx={{ 
+                        color: 'var(--tg-theme-hint-color)',
+                        fontFamily: 'monospace',
+                        fontSize: '0.7rem',
+                        wordBreak: 'break-all',
+                        textAlign: 'center',
+                        maxWidth: '100%',
+                        px: 1
+                      }}
+                    >
+                      {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
+                    </Typography>
+                    
+                    {/* Кнопка отключения кошелька */}
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={async () => {
+                        if (tg?.HapticFeedback) {
+                          tg.HapticFeedback.impactOccurred('light');
+                        }
+                        try {
+                          await unlinkWallet();
+                        } catch (err) {
+                          console.error('Ошибка отключения кошелька:', err);
+                        }
+                      }}
+                      disabled={walletLoading}
+                      sx={{
+                        textTransform: 'none',
+                        color: 'var(--tg-theme-destructive-text-color, #ff4444)',
+                        fontSize: '0.75rem',
+                        minWidth: 'auto',
+                        '&:hover': {
+                          backgroundColor: 'var(--tg-theme-secondary-bg-color)'
+                        }
+                      }}
+                    >
+                      {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
+                    </Button>
+                  </Box>
+                )}
+                
+                {/* Состояние загрузки */}
+                {walletLoading && !wallet && (
                   <Typography 
                     variant="caption"
                     sx={{ 
                       color: 'var(--tg-theme-hint-color)',
-                      fontFamily: 'monospace',
-                      fontSize: '0.7rem',
-                      wordBreak: 'break-all',
-                      textAlign: 'center',
-                      maxWidth: '100%',
-                      px: 1
+                      fontSize: '0.7rem'
                     }}
                   >
-                    {tonAddress.slice(0, 6)}...{tonAddress.slice(-4)}
+                    Загрузка...
                   </Typography>
                 )}
-                {/* TODO: Сохранение адреса кошелька в профиле пользователя и отправка на бэкенд */}
+                
+                {/* Отображение ошибок */}
+                {walletError && (
+                  <Alert 
+                    severity="error" 
+                    sx={{ 
+                      mt: 1,
+                      fontSize: '0.75rem',
+                      py: 0.5,
+                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                      color: 'var(--tg-theme-text-color)'
+                    }}
+                  >
+                    {walletError}
+                  </Alert>
+                )}
               </Box>
             </CardContent>
           </Card>

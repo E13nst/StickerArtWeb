@@ -1,3 +1,12 @@
+// Типы для кошельков
+export interface UserWallet {
+  id: number;
+  walletAddress: string;
+  walletType: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 // Типы для стикеров и стикерсетов
 export interface Sticker {
   file_id: string;
