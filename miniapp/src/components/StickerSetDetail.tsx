@@ -29,6 +29,7 @@ import { useStickerSetData } from '@/hooks/useStickerSetData';
 import { useStickerNavigation } from '@/hooks/useStickerNavigation';
 import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetActionsBar, StickerSetDetailEdit } from './StickerSetDetail/index';
 import { StickerSetEditOperations } from '@/types/sticker';
+import { DonateModal } from './DonateModal';
 
 
 type VisibilityState = 'public' | 'private';
@@ -292,6 +293,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const [isCategoriesDialogOpen, setIsCategoriesDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [starsInfoAnchor, setStarsInfoAnchor] = useState<HTMLElement | null>(null);
+  const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
   
   // Режим просмотра/редактирования (только для автора)
   // mode может быть установлен в 'edit' только если isAuthor === true
@@ -1484,6 +1486,39 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             </Alert>
           )}
 
+          {/* Кнопка доната */}
+          {effectiveStickerSet.availableActions?.includes('DONATE') && (
+            <Box
+              sx={{
+                mt: 2,
+                mx: '8px',
+                display: 'flex',
+                justifyContent: 'center'
+              }}
+            >
+              <Button
+                variant="contained"
+                onClick={() => setIsDonateModalOpen(true)}
+                sx={{
+                  borderRadius: '12px',
+                  px: 3,
+                  py: 1.5,
+                  backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                  color: '#FFD700',
+                  border: '1px solid rgba(255, 215, 0, 0.4)',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+                    borderColor: 'rgba(255, 215, 0, 0.6)'
+                  }
+                }}
+              >
+                Поддержать автора
+              </Button>
+            </Box>
+          )}
+
           {/* Кнопки действий внизу модального окна */}
           {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
             <Box
@@ -1523,6 +1558,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         onBlock={handleBlockStickerSet}
         fullStickerSet={fullStickerSet}
         stickerSet={stickerSet}
+      />
+
+      <DonateModal
+        open={isDonateModalOpen}
+        onClose={() => setIsDonateModalOpen(false)}
+        stickerSetId={effectiveStickerSet?.id || stickerSet.id}
+        authorName={authorUsername || undefined}
       />
     </Box>
   );

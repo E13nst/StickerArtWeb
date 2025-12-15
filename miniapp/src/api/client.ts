@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, UserWallet } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
@@ -1182,6 +1182,46 @@ class ApiClient {
                           error?.response?.data?.message || 
                           error?.message || 
                           'Не удалось отключить кошелёк. Попробуйте снова.';
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Подготовка доната автору стикерсета
+  // API endpoint: POST /api/transactions/prepare
+  async prepareDonation(stickerSetId: number, amountNano: number): Promise<DonationPrepareResponse> {
+    try {
+      const response = await this.client.post<DonationPrepareResponse>(
+        '/transactions/prepare',
+        { stickerSetId, amountNano }
+      );
+      console.log('✅ Донат подготовлен:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка подготовки доната:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось подготовить донат. Попробуйте позже.';
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Подтверждение транзакции доната
+  // API endpoint: POST /api/transactions/confirm
+  async confirmDonation(intentId: number, txHash: string, fromWallet: string): Promise<DonationConfirmResponse> {
+    try {
+      const response = await this.client.post<DonationConfirmResponse>(
+        '/transactions/confirm',
+        { intentId, txHash, fromWallet }
+      );
+      console.log('✅ Донат подтверждён:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка подтверждения доната:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось подтвердить донат. Попробуйте позже.';
       throw new Error(errorMessage);
     }
   }

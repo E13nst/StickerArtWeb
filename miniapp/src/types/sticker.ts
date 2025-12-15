@@ -255,3 +255,38 @@ export interface StickerSetEditOperations {
    */
   deleted?: string[];
 }
+
+/**
+ * Запрос на подготовку доната автору стикерсета.
+ */
+export interface DonationPrepareRequest {
+  stickerSetId: number;
+  amountNano: number;
+}
+
+/**
+ * Ответ с данными транзакции для доната.
+ */
+export interface DonationPrepareResponse {
+  intentId: number;
+  toWalletAddress: string;
+  amountNano: number;
+  authorName?: string;
+}
+
+/**
+ * Запрос на подтверждение транзакции доната.
+ */
+export interface DonationConfirmRequest {
+  intentId: number;
+  txHash: string;
+  fromWallet: string;
+}
+
+/**
+ * Ответ на подтверждение транзакции доната.
+ */
+export interface DonationConfirmResponse {
+  success: boolean;
+  message?: string;
+}
