@@ -10,9 +10,12 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  IconButton
+  IconButton,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import { apiClient } from '@/api/client';
 import { DonationPrepareResponse } from '@/types/sticker';
@@ -32,12 +35,18 @@ const MAX_AMOUNT_NANO = 1_000_000_000_000n; // 1000 TON
 // Preset суммы в TON
 const PRESET_AMOUNTS = [1, 5, 10];
 
+// Акцентный цвет для донатов (золотой)
+const DONATE_ACCENT_COLOR = '#FFD700';
+const DONATE_ACCENT_COLOR_DARK = '#FFC107';
+
 export const DonateModal: React.FC<DonateModalProps> = ({
   open,
   onClose,
   stickerSetId,
   authorName
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tonConnectUI] = useTonConnectUI();
   const tonAddress = useTonAddress();
   const [amount, setAmount] = useState<string>('');
@@ -48,16 +57,29 @@ export const DonateModal: React.FC<DonateModalProps> = ({
   const [prepareData, setPrepareData] = useState<DonationPrepareResponse | null>(null);
 
   // Обработка закрытия модального окна
-  const handleClose = useCallback(() => {
-    if (!isLoading) {
-      setAmount('');
-      setSelectedPreset(null);
-      setError(null);
-      setSuccess(false);
-      setPrepareData(null);
-      onClose();
+  const handleClose = useCallback((event?: {}, reason?: string) => {
+    // Предотвращаем закрытие при клике на backdrop или Escape во время загрузки
+    if (isLoading) {
+      return;
     }
-  }, [isLoading, onClose]);
+    
+    // Разрешаем закрытие только через кнопку закрытия или после успешного доната
+    // backdropClick и escapeKeyDown блокируем, если не success
+    if (reason === 'backdropClick' && !success) {
+      return;
+    }
+    
+    if (reason === 'escapeKeyDown' && !success) {
+      return;
+    }
+    
+    setAmount('');
+    setSelectedPreset(null);
+    setError(null);
+    setSuccess(false);
+    setPrepareData(null);
+    onClose();
+  }, [isLoading, onClose, success]);
 
   // Обработка выбора preset суммы
   const handlePresetClick = useCallback((presetAmount: number) => {
@@ -191,71 +213,274 @@ export const DonateModal: React.FC<DonateModalProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      disableEscapeKeyDown={isLoading || !success}
+      sx={{
+        '& .MuiBackdrop-root': {
+          backgroundColor: 'var(--tg-theme-overlay-color, rgba(0, 0, 0, 0.7))',
+          backdropFilter: 'blur(4px)',
+        }
+      }}
       PaperProps={{
+        onClick: (e) => {
+          e.stopPropagation();
+        },
+        onMouseDown: (e) => {
+          e.stopPropagation();
+        },
         sx: {
-          borderRadius: '16px',
-          backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 1)',
-          color: 'var(--tg-theme-text-color, #000000)'
+          borderRadius: 'var(--tg-radius-l, 16px)',
+          backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
+          color: 'var(--tg-theme-text-color, #000000)',
+          boxShadow: '0 8px 32px var(--tg-theme-shadow-color, rgba(0, 0, 0, 0.2))',
+          margin: isMobile ? '16px' : '24px',
+          maxHeight: isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 48px)',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'fadeIn 0.3s ease-out',
+          '@keyframes fadeIn': {
+            from: {
+              opacity: 0,
+              transform: 'scale(0.95) translateY(-10px)'
+            },
+            to: {
+              opacity: 1,
+              transform: 'scale(1) translateY(0)'
+            }
+          }
         }
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        pb: 1
-      }}>
-        <Typography variant="h6" component="span">
+      <DialogTitle 
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          px: isMobile ? 2 : 3,
+          pt: isMobile ? 2 : 3,
+          pb: 2,
+          borderBottom: '1px solid var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+        }}
+      >
+        <Typography 
+          variant="h6" 
+          component="span"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          sx={{
+            fontWeight: 600,
+            fontSize: isMobile ? '18px' : '20px',
+            color: 'var(--tg-theme-text-color, #000000)',
+            lineHeight: 1.2
+          }}
+        >
           Поддержать автора
         </Typography>
         <IconButton
-          onClick={handleClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            handleClose(e, 'buttonClick');
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           disabled={isLoading}
           size="small"
-          sx={{ color: 'var(--tg-theme-text-color, #000000)' }}
+          sx={{ 
+            color: 'var(--tg-theme-hint-color, #999999)',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              color: 'var(--tg-theme-text-color, #000000)',
+              backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)'
+            }
+          }}
         >
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent 
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        sx={{
+          px: isMobile ? 2 : 3,
+          pt: 3,
+          pb: 2,
+          flex: 1,
+          overflowY: 'auto'
+        }}
+      >
         {success ? (
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2, color: 'success.main' }}>
+          <Box 
+            sx={{ 
+              textAlign: 'center', 
+              py: isMobile ? 4 : 5,
+              px: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Box
+              sx={{
+                animation: 'scaleIn 0.4s ease-out',
+                '@keyframes scaleIn': {
+                  from: {
+                    opacity: 0,
+                    transform: 'scale(0.5)'
+                  },
+                  to: {
+                    opacity: 1,
+                    transform: 'scale(1)'
+                  }
+                }
+              }}
+            >
+              <CheckCircleIcon 
+                sx={{ 
+                  fontSize: 64, 
+                  color: DONATE_ACCENT_COLOR,
+                  filter: 'drop-shadow(0 2px 8px rgba(255, 215, 0, 0.3))'
+                }} 
+              />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 1, 
+                color: DONATE_ACCENT_COLOR,
+                fontWeight: 600,
+                fontSize: isMobile ? '20px' : '24px'
+              }}
+            >
               Спасибо за поддержку автора ❤️
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'var(--tg-theme-hint-color, #999999)',
+                fontSize: isMobile ? '14px' : '16px',
+                maxWidth: '300px'
+              }}
+            >
               Ваш донат успешно отправлен!
             </Typography>
           </Box>
         ) : (
           <>
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  mb: 3,
+                  borderRadius: 'var(--tg-radius-m, 12px)',
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                  border: '1px solid rgba(244, 67, 54, 0.2)',
+                  color: 'var(--tg-theme-text-color, #000000)',
+                  '& .MuiAlert-icon': {
+                    color: '#f44336'
+                  }
+                }} 
+                onClose={(e) => {
+                  e?.stopPropagation();
+                  setError(null);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 {error}
               </Alert>
             )}
 
-            <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-              Выберите сумму доната для {displayAuthorName}
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                mb: 3, 
+                color: 'var(--tg-theme-hint-color, #999999)',
+                fontSize: isMobile ? '14px' : '15px',
+                lineHeight: 1.5,
+                textAlign: 'center'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              Выберите сумму доната для <strong style={{ color: 'var(--tg-theme-text-color, #000000)' }}>{displayAuthorName}</strong>
             </Typography>
 
             {/* Preset кнопки */}
-            <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-              {PRESET_AMOUNTS.map((preset) => (
-                <Button
-                  key={preset}
-                  variant={selectedPreset === preset ? 'contained' : 'outlined'}
-                  onClick={() => handlePresetClick(preset)}
-                  disabled={isLoading}
-                  sx={{
-                    minWidth: '80px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  {preset} TON
-                </Button>
-              ))}
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                gap: 1.5, 
+                mb: 3, 
+                flexWrap: 'wrap',
+                justifyContent: 'center'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {PRESET_AMOUNTS.map((preset) => {
+                const isSelected = selectedPreset === preset;
+                return (
+                  <Button
+                    key={preset}
+                    variant={isSelected ? 'contained' : 'outlined'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handlePresetClick(preset);
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    disabled={isLoading}
+                    sx={{
+                      flex: isMobile ? '1 1 calc(33.333% - 8px)' : '0 1 auto',
+                      minWidth: isMobile ? '80px' : '100px',
+                      minHeight: '44px',
+                      borderRadius: 'var(--tg-radius-m, 12px)',
+                      fontWeight: 600,
+                      fontSize: isMobile ? '14px' : '15px',
+                      textTransform: 'none',
+                      transition: 'all 0.2s ease',
+                      ...(isSelected ? {
+                        backgroundColor: DONATE_ACCENT_COLOR,
+                        color: '#000000',
+                        border: `2px solid ${DONATE_ACCENT_COLOR}`,
+                        boxShadow: `0 2px 8px rgba(255, 215, 0, 0.3)`,
+                        '&:hover': {
+                          backgroundColor: DONATE_ACCENT_COLOR_DARK,
+                          borderColor: DONATE_ACCENT_COLOR_DARK,
+                          transform: 'translateY(-1px)',
+                          boxShadow: `0 4px 12px rgba(255, 215, 0, 0.4)`
+                        }
+                      } : {
+                        backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+                        color: 'var(--tg-theme-text-color, #000000)',
+                        border: `2px solid var(--tg-theme-border-color, #e0e0e0)`,
+                        '&:hover': {
+                          backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+                          borderColor: DONATE_ACCENT_COLOR,
+                          transform: 'translateY(-1px)',
+                          boxShadow: `0 2px 8px rgba(255, 215, 0, 0.2)`
+                        }
+                      }),
+                      '&:active': {
+                        transform: 'translateY(0) scale(0.98)'
+                      }
+                    }}
+                  >
+                    {preset} TON
+                  </Button>
+                );
+              })}
             </Box>
 
             {/* Поле ввода суммы */}
@@ -267,39 +492,213 @@ export const DonateModal: React.FC<DonateModalProps> = ({
               onChange={handleAmountChange}
               disabled={isLoading}
               placeholder="0.0"
-              InputProps={{
-                endAdornment: <Typography variant="body2" sx={{ color: 'text.secondary' }}>TON</Typography>
+              onClick={(e) => {
+                e.stopPropagation();
               }}
-              sx={{ mb: 2 }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+              onFocus={(e) => {
+                e.stopPropagation();
+              }}
+              inputProps={{
+                onClick: (e: React.MouseEvent<HTMLInputElement>) => {
+                  e.stopPropagation();
+                },
+                onMouseDown: (e: React.MouseEvent<HTMLInputElement>) => {
+                  e.stopPropagation();
+                },
+                onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+                  e.stopPropagation();
+                },
+                style: {
+                  fontSize: isMobile ? '16px' : '18px',
+                  fontWeight: 500
+                }
+              }}
+              InputProps={{
+                onClick: (e) => {
+                  e.stopPropagation();
+                },
+                onMouseDown: (e) => {
+                  e.stopPropagation();
+                },
+                endAdornment: (
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: 'var(--tg-theme-hint-color, #999999)',
+                      fontWeight: 500,
+                      fontSize: isMobile ? '14px' : '15px',
+                      mr: 1
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    TON
+                  </Typography>
+                )
+              }}
+              sx={{ 
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 'var(--tg-radius-m, 12px)',
+                  backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+                  border: '2px solid var(--tg-theme-border-color, #e0e0e0)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: DONATE_ACCENT_COLOR,
+                  },
+                  '&.Mui-focused': {
+                    borderColor: DONATE_ACCENT_COLOR,
+                    boxShadow: `0 0 0 3px rgba(255, 215, 0, 0.1)`
+                  },
+                  '& fieldset': {
+                    border: 'none'
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'var(--tg-theme-hint-color, #999999)',
+                  '&.Mui-focused': {
+                    color: DONATE_ACCENT_COLOR
+                  }
+                },
+                '& .MuiInputBase-input': {
+                  color: 'var(--tg-theme-text-color, #000000)',
+                  '&::placeholder': {
+                    color: 'var(--tg-theme-hint-color, #999999)',
+                    opacity: 0.6
+                  }
+                }
+              }}
             />
 
             {amount && !error && validateAmount(amount).valid && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 2 }}>
-                Будет отправлено: {amount} TON
-              </Typography>
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  borderRadius: 'var(--tg-radius-m, 12px)',
+                  backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  border: '1px solid rgba(255, 215, 0, 0.2)',
+                  textAlign: 'center'
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: 'var(--tg-theme-hint-color, #999999)',
+                    fontSize: '13px',
+                    mb: 0.5
+                  }}
+                >
+                  Будет отправлено
+                </Typography>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: DONATE_ACCENT_COLOR,
+                    fontWeight: 700,
+                    fontSize: isMobile ? '20px' : '24px',
+                    lineHeight: 1.2
+                  }}
+                >
+                  {amount} TON
+                </Typography>
+              </Box>
             )}
           </>
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions 
+        sx={{ 
+          px: isMobile ? 2 : 3, 
+          pt: 2,
+          pb: isMobile ? 2 : 3,
+          gap: 1.5,
+          borderTop: '1px solid var(--tg-theme-border-color, rgba(0, 0, 0, 0.12))'
+        }} 
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {success ? (
           <Button
-            onClick={handleClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handleClose(e, 'buttonClick');
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
             variant="contained"
             fullWidth
-            sx={{ borderRadius: '8px' }}
+            sx={{ 
+              borderRadius: 'var(--tg-radius-m, 12px)',
+              minHeight: '48px',
+              backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
+              color: 'var(--tg-theme-button-text-color, #ffffff)',
+              fontWeight: 600,
+              fontSize: isMobile ? '15px' : '16px',
+              textTransform: 'none',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
+                opacity: 0.9,
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+              },
+              '&:active': {
+                transform: 'translateY(0) scale(0.98)'
+              }
+            }}
           >
             Закрыть
           </Button>
         ) : (
           <Button
-            onClick={handlePrepareDonation}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handlePrepareDonation();
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
             disabled={!canSend}
             variant="contained"
             fullWidth
-            sx={{ borderRadius: '8px' }}
-            startIcon={isLoading ? <CircularProgress size={20} /> : null}
+            sx={{ 
+              borderRadius: 'var(--tg-radius-m, 12px)',
+              minHeight: '48px',
+              backgroundColor: canSend ? DONATE_ACCENT_COLOR : 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
+              color: canSend ? '#000000' : 'var(--tg-theme-hint-color, #999999)',
+              fontWeight: 600,
+              fontSize: isMobile ? '15px' : '16px',
+              textTransform: 'none',
+              border: canSend ? `2px solid ${DONATE_ACCENT_COLOR}` : '2px solid var(--tg-theme-border-color, #e0e0e0)',
+              boxShadow: canSend ? `0 2px 8px rgba(255, 215, 0, 0.3)` : 'none',
+              transition: 'all 0.2s ease',
+              '&:hover:not(:disabled)': {
+                backgroundColor: DONATE_ACCENT_COLOR_DARK,
+                borderColor: DONATE_ACCENT_COLOR_DARK,
+                transform: 'translateY(-1px)',
+                boxShadow: `0 4px 12px rgba(255, 215, 0, 0.4)`
+              },
+              '&:active:not(:disabled)': {
+                transform: 'translateY(0) scale(0.98)'
+              },
+              '&:disabled': {
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }
+            }}
+            startIcon={isLoading ? <CircularProgress size={20} color="inherit" sx={{ color: '#000000' }} /> : null}
           >
             {isLoading ? 'Отправка...' : `Отправить ${displayAuthorName}`}
           </Button>
