@@ -31,7 +31,7 @@ import { OptimizedGallery } from '@/components/OptimizedGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { isUserPremium } from '@/utils/userUtils';
+import { getUserFirstName, isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { CompactControlsBar } from '@/components/CompactControlsBar';
@@ -1080,14 +1080,14 @@ export const MyProfilePage: React.FC = () => {
             pt: 0,
             pb: 2
           }}>
-            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
+            <CardContent sx={{ pt: 8, color: 'var(--tg-theme-text-color, #000000)' }}>
               {/* Никнейм - отдельно, в одну строчку */}
               <Box sx={{ 
                 textAlign: 'center',
                 mb: 2,
-                mt: 1,
+                mt: 2,
                 position: 'relative',
-                zIndex: 11 // Выше аватарки (FloatingAvatar имеет zIndex: 10)
+                zIndex: 30 // Выше аватарки (FloatingAvatar имеет zIndex: 10, но в header zIndex: 20)
               }}>
                 <Typography 
                   variant="h5" 
@@ -1099,10 +1099,10 @@ export const MyProfilePage: React.FC = () => {
                     textOverflow: 'ellipsis',
                     px: 2,
                     position: 'relative',
-                    zIndex: 11
+                    zIndex: 30
                   }}
                 >
-                  {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
+                  {userInfo ? getUserFirstName(userInfo) : '—'}
                 </Typography>
               </Box>
               
