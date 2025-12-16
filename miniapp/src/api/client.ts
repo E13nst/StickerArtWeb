@@ -1171,11 +1171,13 @@ class ApiClient {
 
   // Отключение (деактивация) текущего активного кошелька
   // API endpoint: POST /api/wallets/unlink
-  // Для MVP можно обойтись без этого метода, полагаясь на автоматическую деактивацию при привязке нового
-  async unlinkWallet(): Promise<void> {
+  // Не принимает параметры, работает в контексте авторизованного пользователя
+  // Возвращает {"success": true}
+  async unlinkWallet(): Promise<{ success: boolean }> {
     try {
-      await this.client.post('/wallets/unlink');
-      console.log('✅ Кошелёк отключен');
+      const response = await this.client.post<{ success: boolean }>('/wallets/unlink');
+      console.log('✅ Кошелёк успешно отключен:', response.data);
+      return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка отключения кошелька:', error);
       const errorMessage = error?.response?.data?.error || 
