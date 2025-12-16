@@ -152,12 +152,23 @@ export const DonateModal: React.FC<DonateModalProps> = ({
         return;
       }
 
+      // Валидация наличия legs в ответе
+      if (!prepareResponse.legs || prepareResponse.legs.length === 0) {
+        setError('Не удалось получить данные для транзакции');
+        setIsLoading(false);
+        return;
+      }
+
+      // Получаем первый leg (основная транзакция)
+      const leg = prepareResponse.legs[0];
+
       // Формируем транзакцию для TON Connect
       const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
         messages: [
           {
-            address: prepareResponse.toWalletAddress,
-            amount: prepareResponse.amountNano.toString()
+            address: leg.toWalletAddress,
+            amount: leg.amountNano.toString()
           }
         ]
       };
