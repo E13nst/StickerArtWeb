@@ -14,6 +14,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
+import { imageLoader, getCachedStickerUrl, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
+import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { StickerPackModal } from './StickerPackModal';
 
@@ -37,6 +39,39 @@ const normalizeStickerSetName = (raw: string): string => {
     .replace(/^https?:\/\/t\.me\//i, '')
     .replace(/^@/, '')
     .trim();
+};
+
+// Компонент для видео стикера с использованием useNonFlashingVideoSrc
+const PreviewStickerVideo: React.FC<{
+  fileId: string;
+  thumbFileId: string;
+  fallbackUrl: string;
+}> = ({ fileId, thumbFileId, fallbackUrl }) => {
+  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
+    fileId: thumbFileId,
+    preferredSrc: videoBlobCache.get(thumbFileId),
+    fallbackSrc: fallbackUrl,
+    waitForPreferredMs: 100
+  });
+
+  return (
+    <video
+      src={src}
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        objectFit: 'contain',
+        opacity: isReady ? 1 : 0,
+        transition: 'opacity 120ms ease'
+      }}
+      autoPlay
+      loop
+      muted
+      playsInline
+      onError={onError}
+      onLoadedData={onLoadedData}
+    />
+  );
 };
 
 const extractErrorMessages = (error: any, defaultMessage: string): string[] => {
@@ -339,6 +374,32 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     }
   }, [open]);
 
+  // Предзагрузка всех preview стикеров через imageLoader
+  useEffect(() => {
+    if (!previewStickers.length || !open) return;
+    
+    previewStickers.forEach((sticker) => {
+      const thumbFileId = (sticker as any)?.thumb?.file_id || sticker.file_id;
+      const thumbUrl = getStickerThumbnailUrl(thumbFileId, 128);
+      const priority = LoadPriority.TIER_3_ADDITIONAL;
+      
+      if (sticker.is_video) {
+        imageLoader.loadVideo(thumbFileId, thumbUrl, priority).catch(() => {
+          // Игнорируем ошибки загрузки
+        });
+      } else {
+        imageLoader.loadImage(thumbFileId, thumbUrl, priority).catch(() => {
+          // Игнорируем ошибки загрузки
+        });
+        if (sticker.is_animated) {
+          imageLoader.loadAnimation(thumbFileId, thumbUrl, LoadPriority.TIER_4_BACKGROUND).catch(() => {
+            // Игнорируем ошибки загрузки
+          });
+        }
+      }
+    });
+  }, [previewStickers, open]);
+
   const handleCategoryToggle = (key: string) => {
     setSelectedCategories((prev) => {
       if (prev.includes(key)) {
@@ -580,17 +641,14 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                 }}
               >
                 {sticker.is_video ? (
-                  <video
-                    src={thumbUrl || getStickerImageUrl(sticker.file_id)}
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
+                  <PreviewStickerVideo
+                    fileId={sticker.file_id}
+                    thumbFileId={thumbFileId}
+                    fallbackUrl={thumbUrl}
                   />
                 ) : (
                   <img
-                    src={thumbUrl || getStickerImageUrl(sticker.file_id)}
+                    src={getCachedStickerUrl(thumbFileId) || thumbUrl}
                     alt={sticker.emoji || `Sticker ${index + 1}`}
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
