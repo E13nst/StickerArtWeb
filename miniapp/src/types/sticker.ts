@@ -265,13 +265,26 @@ export interface DonationPrepareRequest {
 }
 
 /**
+ * Элемент транзакции (leg) из ответа API.
+ */
+export interface TransactionLeg {
+  id: number;
+  legType: string;
+  toEntityId: number;
+  toWalletAddress: string;
+  amountNano: number;
+}
+
+/**
  * Ответ с данными транзакции для доната.
  */
 export interface DonationPrepareResponse {
   intentId: number;
-  toWalletAddress: string;
+  intentType: string;
+  status: string;
   amountNano: number;
-  authorName?: string;
+  currency: string;
+  legs: TransactionLeg[];
 }
 
 /**
