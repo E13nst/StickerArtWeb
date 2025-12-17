@@ -17,6 +17,7 @@ import { SortButton } from '../components/SortButton';
 import { getAvatarUrl } from '../utils/avatarUtils';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
+import { getUserFullName } from '../utils/userUtils';
 
 type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
@@ -351,14 +352,10 @@ export const AuthorPage: React.FC = () => {
     if (!profile) {
       return null;
     }
-    const username = profile.user?.username?.trim();
-    if (username) {
-      return `@${username}`;
-    }
-    const first = profile.user?.firstName?.trim();
-    const last = profile.user?.lastName?.trim();
-    const combined = [first, last].filter(Boolean).join(' ');
-    return combined || null;
+    // Используем полное имя вместо username
+    const userInfo = mapProfileToUserInfo(profile);
+    const fullName = getUserFullName(userInfo);
+    return fullName || null;
   }, [profile]);
 
   const displayedStickerSets = useMemo(() => {
@@ -474,7 +471,7 @@ export const AuthorPage: React.FC = () => {
                   bottom: 0,
                   left: '50%',
                   transform: 'translate(-50%, 50%)',
-                  zIndex: 20,
+                  zIndex: 10, // Третий слой - аватар на фоне
                   width: '100%',
                   maxWidth: '600px', // Ограничиваем ширину аватарки до 600px
                   display: 'flex',
@@ -517,8 +514,8 @@ export const AuthorPage: React.FC = () => {
               pb: 2
             }}
           >
-            <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
-              <Box sx={{ textAlign: 'center', mb: '0.618rem' }}>
+            <CardContent sx={{ pt: 8, color: 'var(--tg-theme-text-color, #000000)' }}>
+              <Box sx={{ textAlign: 'center', mb: '0.618rem', position: 'relative', zIndex: 30, mt: 2 }}>
                 {displayName && (
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     {displayName}

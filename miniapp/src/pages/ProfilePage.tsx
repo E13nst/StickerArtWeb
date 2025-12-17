@@ -11,7 +11,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore, UserInfo } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
-import { getUserUsername, isUserPremium } from '@/utils/userUtils';
+import { getUserFirstName, getUserFullName, isUserPremium } from '@/utils/userUtils';
 import { StickerSetResponse } from '@/types/sticker';
 
 // Компоненты
@@ -484,7 +484,7 @@ export const ProfilePage: React.FC = () => {
                 bottom: 0,
                 left: '50%',
                 transform: 'translate(-50%, 50%)',
-                zIndex: 20
+                zIndex: 10 // Третий слой - аватар на фоне
               }}>
                 <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
               </Box>
@@ -508,7 +508,16 @@ export const ProfilePage: React.FC = () => {
               pt: 0,
               pb: 2
             }}>
-              <CardContent sx={{ pt: 6, color: 'var(--tg-theme-text-color, #000000)' }}>
+              <CardContent sx={{ pt: 8, color: 'var(--tg-theme-text-color, #000000)' }}>
+                {/* Имя пользователя */}
+                <Box sx={{ textAlign: 'center', mb: '0.618rem', position: 'relative', zIndex: 30, mt: 2 }}>
+                  {userInfo && (
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {getUserFullName(userInfo)}
+                    </Typography>
+                  )}
+                </Box>
+
                 {/* Статистика */}
                 <Box sx={{ 
                   display: 'flex', 
@@ -601,8 +610,8 @@ export const ProfilePage: React.FC = () => {
                   message={
                     stickerFeed.searchTerm 
                       ? 'По вашему запросу ничего не найдено' 
-                      : userInfo && getUserUsername(userInfo)
-                        ? `У @${getUserUsername(userInfo)} пока нет созданных стикерсетов`
+                      : userInfo && getUserFirstName(userInfo)
+                        ? `У ${getUserFirstName(userInfo)} пока нет созданных стикерсетов`
                         : 'У этого пользователя пока нет стикерсетов'
                   }
                   actionLabel="Создать стикер"

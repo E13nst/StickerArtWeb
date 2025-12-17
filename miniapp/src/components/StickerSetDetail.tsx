@@ -842,6 +842,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const handleOutsidePreviewClick = useCallback((event: React.MouseEvent) => {
     if (!isModal) return;
     
+    // Останавливаем всплытие события, чтобы оно не доходило до ModalBackdrop
+    event.stopPropagation();
+    
     const target = event.target as HTMLElement;
     
     // Не закрываем, если Popover открыт - проверяем классы MUI Popover
@@ -1118,6 +1121,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             variant="body2"
             component={Link}
             to={`/author/${stickerSet.authorId}`}
+            onClick={(e) => e.stopPropagation()}
             sx={{
               textAlign: 'center',
               textDecoration: 'none',
