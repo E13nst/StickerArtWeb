@@ -52,13 +52,17 @@ export const MyProfilePage: React.FC = () => {
   // Управление кошельком через хук
   const { wallet, loading: walletLoading, error: walletError, linkWallet, unlinkWallet } = useWallet(tonAddress);
   
+  // Флаг для предотвращения автоматической привязки после ручного отключения
+  const [wasManuallyUnlinked, setWasManuallyUnlinked] = useState(false);
+  
   // Автоматическая привязка кошелька при изменении tonAddress
   useEffect(() => {
     // Привязываем кошелек только если:
     // 1. tonAddress существует
     // 2. Кошелек еще не привязан (wallet === null) ИЛИ адрес отличается от привязанного
     // 3. Не идет процесс загрузки
-    if (tonAddress && !walletLoading) {
+    // 4. Кошелек не был явно отключен пользователем
+    if (tonAddress && !walletLoading && !wasManuallyUnlinked) {
       const shouldLink = !wallet || wallet.walletAddress !== tonAddress;
       
       if (shouldLink) {
@@ -68,7 +72,12 @@ export const MyProfilePage: React.FC = () => {
         });
       }
     }
-  }, [tonAddress, wallet, walletLoading, linkWallet]);
+    
+    // Сбрасываем флаг, если кошелек был успешно привязан
+    if (wallet && wasManuallyUnlinked) {
+      setWasManuallyUnlinked(false);
+    }
+  }, [tonAddress, wallet, walletLoading, linkWallet, wasManuallyUnlinked]);
   
   // Логирование адреса кошелька в dev режиме
   useEffect(() => {
@@ -1235,9 +1244,11 @@ export const MyProfilePage: React.FC = () => {
                           tg.HapticFeedback.impactOccurred('light');
                         }
                         try {
+                          setWasManuallyUnlinked(true); // Устанавливаем флаг перед отключением
                           await unlinkWallet();
                         } catch (err) {
                           console.error('Ошибка отключения кошелька:', err);
+                          setWasManuallyUnlinked(false); // Сбрасываем флаг при ошибке
                         }
                       }}
                       disabled={walletLoading}
