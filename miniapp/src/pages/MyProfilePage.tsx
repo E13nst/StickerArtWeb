@@ -45,47 +45,49 @@ export const MyProfilePage: React.FC = () => {
   const { tg, user, initData, isInTelegramApp } = useTelegram();
   const scrollElement = useScrollElement();
   
-  // TON Connect: получение адреса кошелька
+  // TON Connect: получение адреса кошелька (используется только для получения адреса при подключении)
   const tonAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   
-  // Управление кошельком через хук
-  const { wallet, loading: walletLoading, error: walletError, linkWallet, unlinkWallet } = useWallet(tonAddress);
+  // Управление кошельком через хук (backend - единственный источник истины)
+  const { wallet, loading: walletLoading, error: walletError, linkWallet, unlinkWallet } = useWallet();
   
-  // Флаг для предотвращения автоматической привязки после ручного отключения
-  const [wasManuallyUnlinked, setWasManuallyUnlinked] = useState(false);
-  
-  // Автоматическая привязка кошелька при изменении tonAddress
+  // Обработка успешного подключения через TON Connect
+  // Привязка происходит только при явном действии пользователя (клик на TonConnectButton)
   useEffect(() => {
-    // Привязываем кошелек только если:
-    // 1. tonAddress существует
-    // 2. Кошелек еще не привязан (wallet === null) ИЛИ адрес отличается от привязанного
-    // 3. Не идет процесс загрузки
-    // 4. Кошелек не был явно отключен пользователем
-    if (tonAddress && !walletLoading && !wasManuallyUnlinked) {
+    // Привязываем кошелёк только если:
+    // 1. tonAddress появился (пользователь подключил кошелёк через TON Connect)
+    // 2. Кошелёк ещё не привязан на бэкенде (wallet === null) ИЛИ адрес отличается
+    // 3. Не идёт процесс загрузки
+    if (tonAddress && !walletLoading) {
       const shouldLink = !wallet || wallet.walletAddress !== tonAddress;
       
       if (shouldLink) {
-        console.log('🔗 Автоматическая привязка кошелька:', tonAddress);
+        console.debug('[MyProfilePage] Автоматическая привязка кошелька после подключения через TON Connect', {
+          tonAddress: tonAddress.slice(0, 6) + '...' + tonAddress.slice(-4),
+          currentWallet: wallet?.walletAddress?.slice(0, 6) + '...' + wallet?.walletAddress?.slice(-4)
+        });
         linkWallet(tonAddress).catch((err) => {
-          console.error('❌ Ошибка автоматической привязки кошелька:', err);
+          console.error('[MyProfilePage] Ошибка автоматической привязки кошелька', err);
         });
       }
     }
-    
-    // Сбрасываем флаг, если кошелек был успешно привязан
-    if (wallet && wasManuallyUnlinked) {
-      setWasManuallyUnlinked(false);
-    }
-  }, [tonAddress, wallet, walletLoading, linkWallet, wasManuallyUnlinked]);
+  }, [tonAddress, wallet, walletLoading, linkWallet]);
   
-  // Логирование адреса кошелька в dev режиме
+  // Логирование состояния кошелька в dev режиме
   useEffect(() => {
-    if (import.meta.env.DEV && tonAddress) {
-      console.log('🔗 TON кошелёк подключен:', tonAddress);
-    }
-    if (import.meta.env.DEV && wallet) {
-      console.log('💼 Кошелёк из бэкенда:', wallet);
+    if (import.meta.env.DEV) {
+      if (tonAddress) {
+        console.debug('[MyProfilePage] TON Connect: кошелёк подключен', {
+          address: tonAddress.slice(0, 6) + '...' + tonAddress.slice(-4)
+        });
+      }
+      if (wallet) {
+        console.debug('[MyProfilePage] Backend: кошелёк привязан', {
+          address: wallet.walletAddress?.slice(0, 6) + '...' + wallet.walletAddress?.slice(-4),
+          type: wallet.walletType
+        });
+      }
     }
   }, [tonAddress, wallet]);
 
@@ -1240,15 +1242,15 @@ export const MyProfilePage: React.FC = () => {
                       variant="text"
                       size="small"
                       onClick={async () => {
+                        console.debug('[MyProfilePage] Нажата кнопка "Отвязать кошелёк"');
                         if (tg?.HapticFeedback) {
                           tg.HapticFeedback.impactOccurred('light');
                         }
                         try {
-                          setWasManuallyUnlinked(true); // Устанавливаем флаг перед отключением
-                          await unlinkWallet();
+                          await unlinkWallet(tonConnectUI);
+                          console.debug('[MyProfilePage] Кошелёк успешно отвязан');
                         } catch (err) {
-                          console.error('Ошибка отключения кошелька:', err);
-                          setWasManuallyUnlinked(false); // Сбрасываем флаг при ошибке
+                          console.error('[MyProfilePage] Ошибка отключения кошелька', err);
                         }
                       }}
                       disabled={walletLoading}
