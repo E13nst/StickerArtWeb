@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
@@ -984,6 +984,44 @@ class ApiClient {
         }
       },
       { page, size }, // Параметры для ключа кэша
+      { skipCache: false } // Кэшируем на 5 минут
+    );
+  }
+
+  // Получение лидерборда авторов
+  // API endpoint: GET /api/authors/leaderboard?visibility=PUBLIC
+  async getAuthorsLeaderboard(page?: number, size?: number): Promise<AuthorsLeaderboardResponse> {
+    return requestDeduplicator.fetch(
+      `/authors/leaderboard`,
+      async () => {
+        try {
+          const params: Record<string, any> = {
+            visibility: 'PUBLIC'
+          };
+          if (page !== undefined) params.page = page;
+          if (size !== undefined) params.size = size;
+          
+          const response = await this.client.get<AuthorsLeaderboardResponse>('/authors/leaderboard', {
+            params
+          });
+          return response.data;
+        } catch (error: any) {
+          console.error('❌ Ошибка загрузки лидерборда авторов:', error);
+          // Возвращаем пустой лидерборд при ошибке
+          return {
+            content: [],
+            page: page ?? 0,
+            size: size ?? 20,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true,
+            hasNext: false,
+            hasPrevious: false
+          };
+        }
+      },
+      { page, size, visibility: 'PUBLIC' }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
   }

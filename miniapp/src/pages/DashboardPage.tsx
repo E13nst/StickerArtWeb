@@ -9,9 +9,10 @@ import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { MetricCard } from '@/components/MetricCard';
 import { TopUsers } from '@/components/TopUsers';
+import { TopAuthors } from '@/components/TopAuthors';
 import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
-import { StickerSetResponse, LeaderboardUser } from '@/types/sticker';
+import { StickerSetResponse, LeaderboardUser, LeaderboardAuthor } from '@/types/sticker';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 
@@ -40,6 +41,7 @@ export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topStickerSets, setTopStickerSets] = useState<StickerSetResponse[]>([]);
   const [topAuthors, setTopAuthors] = useState<LeaderboardUser[]>([]);
+  const [topAuthorsList, setTopAuthorsList] = useState<LeaderboardAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -267,6 +269,18 @@ export const DashboardPage: React.FC = () => {
         } catch (e) {
           console.warn('Не удалось загрузить лидерборд:', e);
           setTopAuthors([]);
+        }
+
+        // Получаем топ-5 авторов из лидерборда
+        try {
+          const authorsLeaderboardResponse = await apiClient.getAuthorsLeaderboard(0, 5);
+          const topAuthorsData = authorsLeaderboardResponse.content.slice(0, 5);
+          
+          console.log('📊 Топ авторов из лидерборда:', topAuthorsData);
+          setTopAuthorsList(topAuthorsData);
+        } catch (e) {
+          console.warn('Не удалось загрузить лидерборд авторов:', e);
+          setTopAuthorsList([]);
         }
       } catch (error) {
         console.error('Ошибка загрузки статистики:', error);
@@ -580,6 +594,51 @@ export const DashboardPage: React.FC = () => {
                         }}
                       >
                         Топ пользователей по добавленным стикерам
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--tg-theme-hint-color)',
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        Загрузка...
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                )}
+              </Grid>
+            </Grid>
+
+            {/* Топ авторов стикерсетов */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid
+                item
+                xs={12}
+              >
+                {topAuthorsList.length > 0 ? (
+                  <TopAuthors authors={topAuthorsList} />
+                ) : (
+                  <Card
+                    sx={{
+                      borderRadius: 3,
+                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                      border: '1px solid var(--tg-theme-border-color)',
+                      boxShadow: 'none',
+                      height: '100%',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--tg-theme-hint-color)',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          mb: 1.5,
+                        }}
+                      >
+                        Топ авторов стикерсетов
                       </Typography>
                       <Typography
                         variant="body2"
