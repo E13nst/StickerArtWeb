@@ -50,7 +50,7 @@ export const MyProfilePage: React.FC = () => {
   const [tonConnectUI] = useTonConnectUI();
   
   // Управление кошельком через хук
-  const { wallet, loading: walletLoading, error: walletError, linkWallet, unlinkWallet } = useWallet();
+  const { wallet, loading: walletLoading, error: walletError, linkWallet, unlinkWallet } = useWallet(tonAddress);
   
   // Автоматическая привязка кошелька при изменении tonAddress
   useEffect(() => {

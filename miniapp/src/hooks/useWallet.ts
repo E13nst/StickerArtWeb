@@ -6,8 +6,10 @@ import { UserWallet } from '@/types/sticker';
  * Хук для управления TON-кошельком пользователя
  * Предоставляет централизованное управление состоянием кошелька,
  * синхронизацию с бэкендом и методы для привязки/отключения
+ * 
+ * @param tonAddress - Текущий адрес кошелька из TON Connect (для синхронизации состояния)
  */
-export const useWallet = () => {
+export const useWallet = (tonAddress?: string | null) => {
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,12 +17,40 @@ export const useWallet = () => {
   /**
    * Обновление состояния кошелька через GET /api/wallets/my
    * Синхронизирует состояние фронта с бэкендом
+   * Автоматически отвязывает кошелек на бэкенде, если он отвязан в TON Connect
    */
   const refreshWallet = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
+      // Если кошелек отвязан в TON Connect, проверяем и синхронизируем состояние на бэкенде
+      if (tonAddress === null || tonAddress === undefined) {
+        try {
+          const walletData = await apiClient.getMyWallet();
+          // Если кошелек есть на бэкенде, но отвязан в TON Connect - синхронизируем
+          if (walletData) {
+            console.log('🔄 Кошелек отвязан в TON Connect, синхронизируем с бэкендом...');
+            await apiClient.unlinkWallet();
+            setWallet(null);
+            console.log('✅ Кошелек отвязан на бэкенде');
+            return;
+          }
+        } catch (err: any) {
+          // Если кошелька нет на бэкенде (404) - это нормальная ситуация
+          if (err?.response?.status === 404) {
+            setWallet(null);
+            return;
+          }
+          // Другие ошибки пробрасываем дальше для обработки
+          throw err;
+        }
+        // Если дошли сюда - кошелька нет, устанавливаем null
+        setWallet(null);
+        return;
+      }
+
+      // Если tonAddress есть - загружаем данные как обычно
       const walletData = await apiClient.getMyWallet();
       setWallet(walletData);
       console.log('✅ Состояние кошелька обновлено:', walletData);
@@ -32,7 +62,7 @@ export const useWallet = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tonAddress]);
 
   /**
    * Привязка TON-кошелька к текущему пользователю
