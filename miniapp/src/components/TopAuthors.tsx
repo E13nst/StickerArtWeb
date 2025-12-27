@@ -1,37 +1,36 @@
-import React from 'react';
-import { Card, CardContent, Typography, Box, Chip, Avatar } from '@mui/material';
+import React, { useState } from 'react';
+import { Card, CardContent, Typography, Box, Chip, Avatar, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { LeaderboardAuthor } from '@/types/sticker';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
-
-interface TopAuthor {
-  id: number;
-  username?: string;
-  firstName?: string;
-  lastName?: string;
-  avatarUrl?: string;
-  stickerCount: number;
-  packCount: number;
-}
+import { AuthorsLeaderboardModal } from './AuthorsLeaderboardModal';
 
 interface TopAuthorsProps {
-  authors: TopAuthor[];
+  authors: LeaderboardAuthor[];
 }
 
 interface AuthorItemProps {
-  author: TopAuthor;
+  author: LeaderboardAuthor;
   index: number;
 }
 
 const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
-  const { avatarBlobUrl } = useUserAvatar(author.id);
+  const navigate = useNavigate();
+  const { avatarBlobUrl } = useUserAvatar(author.authorId);
   const firstName = author.firstName || '';
   const lastName = author.lastName || '';
-  const displayName = firstName || author.username || `Пользователь #${author.id}`;
+  const displayName = firstName || author.username || `Автор #${author.authorId}`;
   const initials = getInitials(firstName, lastName || undefined);
-  const avatarBgColor = getAvatarColor(firstName || author.username || 'User');
+  const avatarBgColor = getAvatarColor(firstName || author.username || 'Author');
+
+  const handleClick = () => {
+    navigate(`/author/${author.authorId}`);
+  };
 
   return (
     <Box
+      onClick={handleClick}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -40,13 +39,19 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
         borderRadius: 2,
         backgroundColor: index === 0 ? 'var(--tg-theme-button-color)' : 'transparent',
         px: 1,
-        transition: 'background-color 0.2s ease'
+        transition: 'background-color 0.2s ease',
+        cursor: 'pointer',
+        '&:hover': {
+          backgroundColor: index === 0 
+            ? 'var(--tg-theme-button-color)' 
+            : 'var(--tg-theme-secondary-bg-color)',
+        }
       }}
     >
       {/* Аватар */}
       <Box sx={{ position: 'relative' }}>
         <Avatar
-          src={avatarBlobUrl || author.avatarUrl || undefined}
+          src={avatarBlobUrl || undefined}
           sx={{
             width: 40,
             height: 40,
@@ -99,9 +104,9 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
         </Typography>
       </Box>
 
-      {/* Количество стикеров */}
+      {/* Количество публичных стикерсетов */}
       <Chip
-        label={author.stickerCount}
+        label={author.publicCount}
         size="small"
         sx={{
           height: '24px',
@@ -121,36 +126,77 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
 };
 
 export const TopAuthors: React.FC<TopAuthorsProps> = ({ authors }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
   return (
-    <Card
-      sx={{
-        borderRadius: 3,
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: 'none',
-        height: '100%'
-      }}
-    >
-      <CardContent sx={{ p: 2 }}>
-        <Typography
-          variant="body2"
-          sx={{
-            color: 'var(--tg-theme-hint-color)',
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            mb: 1.5
-          }}
-        >
-          Топ-5 авторов
-        </Typography>
-        
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {authors.map((author, index) => (
-            <AuthorItem key={author.id} author={author} index={index} />
-          ))}
-        </Box>
-      </CardContent>
-    </Card>
+    <>
+      <Card
+        sx={{
+          borderRadius: 3,
+          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+          border: '1px solid var(--tg-theme-border-color)',
+          boxShadow: 'none',
+          height: '100%'
+        }}
+      >
+        <CardContent sx={{ p: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'var(--tg-theme-hint-color)',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              mb: 1.5
+            }}
+          >
+            Топ авторов стикерсетов
+          </Typography>
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {authors.map((author, index) => (
+              <AuthorItem key={author.authorId} author={author} index={index} />
+            ))}
+          </Box>
+          
+          {/* Ссылка "Полный список" */}
+          <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
+            <Button
+              onClick={handleOpenModal}
+              variant="text"
+              sx={{
+                textTransform: 'none',
+                textDecoration: 'underline',
+                textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45))',
+                fontSize: '0.82rem',
+                fontWeight: 300,
+                color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7))',
+                px: 0,
+                py: 0.5,
+                minWidth: 'auto',
+                '&:hover': {
+                  backgroundColor: 'transparent',
+                  textDecoration: 'underline',
+                  textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6))',
+                  color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85))',
+                },
+              }}
+            >
+              Полный список
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <AuthorsLeaderboardModal open={isModalOpen} onClose={handleCloseModal} />
+    </>
   );
 };
 

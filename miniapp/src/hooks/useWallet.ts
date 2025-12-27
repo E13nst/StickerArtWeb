@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/api/client';
 import { UserWallet } from '@/types/sticker';
+import type { TonConnectUI } from '@tonconnect/ui-react';
 
 /**
  * Хук для управления TON-кошельком пользователя
  * Предоставляет централизованное управление состоянием кошелька,
  * синхронизацию с бэкендом и методы для привязки/отключения
+ * 
+ * Backend является единственным источником истины о состоянии привязки кошелька.
+ * TON Connect используется только как transport layer для получения адреса при подключении.
  */
 export const useWallet = () => {
   const [wallet, setWallet] = useState<UserWallet | null>(null);
@@ -14,23 +18,35 @@ export const useWallet = () => {
 
   /**
    * Обновление состояния кошелька через GET /api/wallets/my
-   * Синхронизирует состояние фронта с бэкендом
+   * Запрашивает состояние кошелька с бэкенда (единственный источник истины)
    */
   const refreshWallet = useCallback(async () => {
+    console.debug('[useWallet] refreshWallet: начало обновления состояния кошелька');
     setLoading(true);
     setError(null);
 
     try {
       const walletData = await apiClient.getMyWallet();
+      console.debug('[useWallet] refreshWallet: получены данные с бэкенда', { 
+        hasWallet: !!walletData,
+        walletAddress: walletData?.walletAddress 
+      });
       setWallet(walletData);
-      console.log('✅ Состояние кошелька обновлено:', walletData);
     } catch (err: any) {
+      // Если кошелька нет на бэкенде (404) - это нормальная ситуация
+      if (err?.response?.status === 404) {
+        console.debug('[useWallet] refreshWallet: кошелёк не привязан (404)');
+        setWallet(null);
+        return;
+      }
+      // Другие ошибки обрабатываем
       const errorMessage = err?.message || 'Не удалось загрузить информацию о кошельке';
-      console.error('❌ Ошибка обновления кошелька:', err);
+      console.error('[useWallet] refreshWallet: ошибка обновления кошелька', err);
       setError(errorMessage);
       // Не сбрасываем wallet при ошибке, чтобы сохранить предыдущее состояние
     } finally {
       setLoading(false);
+      console.debug('[useWallet] refreshWallet: завершено');
     }
   }, []);
 
@@ -40,6 +56,11 @@ export const useWallet = () => {
    * После успешной привязки автоматически обновляет состояние
    */
   const linkWallet = useCallback(async (tonAddress: string, walletType?: string | null) => {
+    console.debug('[useWallet] linkWallet: начало привязки', { 
+      tonAddress: tonAddress?.slice(0, 6) + '...' + tonAddress?.slice(-4),
+      walletType 
+    });
+    
     // Валидация адреса кошелька
     if (!tonAddress || tonAddress.length !== 48) {
       const validationError = 'Адрес кошелька должен быть 48 символов';
@@ -59,8 +80,11 @@ export const useWallet = () => {
 
     try {
       const walletData = await apiClient.linkWallet(tonAddress, walletType);
+      console.debug('[useWallet] linkWallet: кошелёк успешно привязан на бэкенде', {
+        walletAddress: walletData.walletAddress?.slice(0, 6) + '...' + walletData.walletAddress?.slice(-4),
+        walletType: walletData.walletType
+      });
       setWallet(walletData);
-      console.log('✅ Кошелёк успешно привязан:', walletData);
       
       // Автоматически обновляем состояние для синхронизации
       await refreshWallet();
@@ -68,20 +92,29 @@ export const useWallet = () => {
       return walletData;
     } catch (err: any) {
       const errorMessage = err?.message || 'Не удалось привязать кошелёк';
-      console.error('❌ Ошибка привязки кошелька:', err);
+      console.error('[useWallet] linkWallet: ошибка привязки кошелька', err);
       setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
+      console.debug('[useWallet] linkWallet: завершено');
     }
   }, [refreshWallet]);
 
   /**
    * Отключение (деактивация) текущего активного кошелька
-   * POST /api/wallets/unlink
-   * После успешного отключения автоматически обновляет состояние
+   * 1. Вызывает tonConnectUI.disconnect() для разрыва сессии TON Connect
+   * 2. Вызывает POST /api/wallets/unlink для удаления привязки на бэкенде
+   * 3. Обновляет локальное состояние
+   * 
+   * @param tonConnectUI - Экземпляр TonConnectUI для вызова disconnect()
    */
-  const unlinkWallet = useCallback(async () => {
+  const unlinkWallet = useCallback(async (tonConnectUI: TonConnectUI) => {
+    console.debug('[useWallet] unlinkWallet: начало отвязки кошелька', {
+      hasWallet: !!wallet,
+      walletAddress: wallet?.walletAddress?.slice(0, 6) + '...' + wallet?.walletAddress?.slice(-4)
+    });
+    
     if (!wallet) {
       const noWalletError = 'Кошелёк не привязан';
       setError(noWalletError);
@@ -92,19 +125,31 @@ export const useWallet = () => {
     setError(null);
 
     try {
+      // Шаг 1: Разрываем сессию TON Connect
+      console.debug('[useWallet] unlinkWallet: вызов tonConnectUI.disconnect()');
+      await tonConnectUI.disconnect();
+      console.debug('[useWallet] unlinkWallet: tonConnectUI.disconnect() выполнен успешно');
+      
+      // Шаг 2: Удаляем привязку на бэкенде
+      console.debug('[useWallet] unlinkWallet: вызов apiClient.unlinkWallet()');
       await apiClient.unlinkWallet();
+      console.debug('[useWallet] unlinkWallet: apiClient.unlinkWallet() выполнен успешно');
+      
+      // Шаг 3: Обновляем локальное состояние
       setWallet(null);
-      console.log('✅ Кошелёк успешно отключен');
+      console.debug('[useWallet] unlinkWallet: локальное состояние обновлено (wallet = null)');
       
       // Автоматически обновляем состояние для синхронизации
       await refreshWallet();
+      console.debug('[useWallet] unlinkWallet: отвязка кошелька завершена успешно');
     } catch (err: any) {
       const errorMessage = err?.message || 'Не удалось отключить кошелёк';
-      console.error('❌ Ошибка отключения кошелька:', err);
+      console.error('[useWallet] unlinkWallet: ошибка отключения кошелька', err);
       setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
+      console.debug('[useWallet] unlinkWallet: завершено');
     }
   }, [wallet, refreshWallet]);
 

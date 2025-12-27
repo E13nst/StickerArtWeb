@@ -230,6 +230,29 @@ export interface LeaderboardResponse {
   hasPrevious: boolean;
 }
 
+// Лидерборд авторов
+export interface LeaderboardAuthor {
+  authorId: number;
+  username: string | null;
+  firstName: string;
+  lastName: string;
+  totalCount: number;
+  publicCount: number;
+  privateCount: number;
+}
+
+export interface AuthorsLeaderboardResponse {
+  content: LeaderboardAuthor[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 /**
  * Операции редактирования структуры стикерсета.
  * Используется только на фронтенде для локального состояния (Фаза 1).
