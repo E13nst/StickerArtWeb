@@ -1,0 +1,337 @@
+/* MyProfilePage Styles */
+
+@import './common.css';
+
+/* ============================================
+   Стили профильного header
+   ============================================ */
+
+/* Использует .profile-header-content-with-padding из common.css */
+/* .my-profile-header-content - использует классы из common.css */
+
+/* Использует .profile-header-content-with-padding из common.css */
+/* .my-profile-header-error - использует классы из common.css */
+
+/* Использует .profile-header-content из common.css */
+/* .my-profile-header-avatar-container - использует классы из common.css */
+
+.my-profile-avatar-wrapper {
+  /* Использует .profile-header-avatar-wrapper из common.css, но с z-index: 20 */
+  z-index: 20;
+}
+
+/* ============================================
+   Стили карточки профиля
+   ============================================ */
+
+/* Использует .page-container-no-margin-top из common.css */
+/* .my-profile-card-container - использует классы из common.css */
+
+/* Использует .error-box из common.css */
+/* .my-profile-error-box - использует классы из common.css */
+
+/* Использует .card-base и .card-base-no-padding-top из common.css */
+/* .my-profile-card - использует классы из common.css */
+
+/* Использует .card-content-with-avatar из common.css */
+/* .my-profile-card-content - использует классы из common.css */
+
+/* Никнейм */
+.my-profile-username-container {
+  text-align: center;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  position: relative;
+  z-index: 11; /* Выше аватарки */
+}
+
+.my-profile-username {
+  color: var(--tg-theme-button-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  position: relative;
+  z-index: 11;
+}
+
+/* Статистика */
+/* Использует .flex-row-space-around, .stat-box, .stat-value, .stat-label из common.css */
+.my-profile-stat-value.art {
+  filter: brightness(1.1) saturate(1.2);
+}
+
+/* TON кошелек */
+/* Использует .flex-column-center из common.css */
+.my-profile-wallet-container {
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tg-theme-border-color, #e0e0e0);
+}
+
+.my-profile-wallet-label {
+  color: var(--tg-theme-hint-color);
+  margin-bottom: 0.25rem;
+}
+
+/* Использует .button-rounded-sm из common.css */
+.my-profile-wallet-button {
+  text-transform: none;
+  border-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-color);
+}
+
+.my-profile-wallet-button:hover {
+  border-color: var(--tg-theme-button-color);
+  background-color: var(--tg-theme-secondary-bg-color);
+}
+
+/* Использует .flex-column-center из common.css */
+.my-profile-wallet-address-container {
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.my-profile-wallet-address {
+  color: var(--tg-theme-hint-color);
+  font-family: monospace;
+  font-size: 0.7rem;
+  word-break: break-all;
+  text-align: center;
+  max-width: 100%;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.my-profile-wallet-unlink-button {
+  text-transform: none;
+  color: var(--tg-theme-destructive-text-color, #ff4444);
+  font-size: 0.75rem;
+  min-width: auto;
+}
+
+.my-profile-wallet-unlink-button:hover {
+  background-color: var(--tg-theme-secondary-bg-color);
+}
+
+.my-profile-wallet-loading {
+  color: var(--tg-theme-hint-color);
+  font-size: 0.7rem;
+}
+
+.my-profile-wallet-error {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+}
+
+/* ============================================
+   Стили алертов
+   ============================================ */
+
+/* Использует .error-alert-inline из common.css */
+
+/* ============================================
+   Стили вкладок
+   ============================================ */
+
+.my-profile-tabs-container {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header, 100);
+  background-color: var(--tg-theme-bg-color);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-top: 0;
+  padding-top: 0;
+  margin-bottom: 0;
+}
+
+/* ============================================
+   Стили пустого состояния
+   ============================================ */
+
+/* Использует .flex-column-center и .py-3, .px-1 из common.css */
+.my-profile-empty-state-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.my-profile-empty-state-title {
+  font-weight: 600;
+  color: var(--tg-theme-text-color);
+  margin-bottom: 0.5rem;
+}
+
+.my-profile-empty-state-message {
+  color: var(--tg-theme-hint-color);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.my-profile-empty-state-button-container {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding-left: 0.618rem;
+  padding-right: 0.618rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Кнопка добавления стикерпака */
+/* Использует .button-base и .button-rounded-md из common.css */
+.my-profile-add-button {
+  height: 2.5rem;
+  padding-left: 0.618rem;
+  padding-right: 0.618rem;
+  font-size: 0.875rem;
+  text-transform: none;
+  gap: 0.5rem;
+  box-shadow: 0 6px 18px rgba(30, 72, 185, 0.14);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+
+.my-profile-add-button .MuiButton-startIcon {
+  margin: 0;
+}
+
+.my-profile-add-button .MuiButton-startIcon svg {
+  font-size: 0.955rem;
+  color: inherit;
+}
+
+.my-profile-add-button:hover {
+  opacity: 1;
+  transform: scale(0.98);
+  box-shadow: 0 10px 26px rgba(30, 72, 185, 0.18);
+}
+
+/* Светлая тема */
+.my-profile-add-button.light-theme {
+  color: #0D1B2A;
+  background-color: rgba(164, 206, 255, 0.48);
+  background: rgba(164, 206, 255, 0.32);
+  border: 1px solid rgba(170, 210, 255, 0.58);
+}
+
+.my-profile-add-button.light-theme:hover {
+  background: color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent);
+  background-color: color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent);
+}
+
+/* Темная тема */
+.my-profile-add-button.dark-theme {
+  color: var(--tg-theme-button-text-color, #ffffff);
+  background-color: rgba(78, 132, 255, 0.24);
+  background: color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent);
+  border: 1px solid rgba(118, 168, 255, 0.28);
+}
+
+.my-profile-add-button.dark-theme:hover {
+  background: color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent);
+  background-color: color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent);
+}
+
+/* Chip внутри кнопки */
+.my-profile-add-button-chip {
+  margin-left: 0.5rem;
+  height: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.my-profile-add-button-chip .MuiChip-label {
+  color: inherit !important;
+}
+
+.my-profile-add-button-chip.light-theme {
+  background-color: rgba(186, 218, 255, 0.32);
+  color: #0D3B9D;
+}
+
+.my-profile-add-button-chip.dark-theme {
+  background-color: rgba(135, 182, 255, 0.24);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+/* ============================================
+   Стили карточки баланса ART
+   ============================================ */
+
+/* Использует .card-base из common.css */
+.my-profile-balance-card {
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px var(--tg-theme-shadow-color);
+}
+
+.my-profile-balance-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+
+.my-profile-balance-title {
+  font-weight: bold;
+}
+
+.my-profile-balance-subtitle {
+  color: var(--tg-theme-hint-color);
+}
+
+.my-profile-balance-value-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.my-profile-balance-chip {
+  font-size: 1.5rem;
+  font-weight: bold;
+  height: 56px;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+}
+
+.my-profile-balance-description {
+  color: var(--tg-theme-hint-color);
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* ============================================
+   Стили достижений
+   ============================================ */
+
+/* Использует .achievements-* классы из common.css */
+
+/* ============================================
+   Кнопка "Показать ещё"
+   ============================================ */
+
+.my-profile-load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* ============================================
+   Утилиты
+   ============================================ */
+
+/* Использует .page-container-no-padding-top из common.css */
+

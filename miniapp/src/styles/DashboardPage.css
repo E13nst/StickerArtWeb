@@ -1,0 +1,382 @@
+/* DashboardPage Styles */
+
+@import './common.css';
+
+/* ============================================
+   Базовые стили страницы
+   ============================================ */
+
+/* Использует .page-container-full-height из common.css */
+
+/* Использует .page-container-padding-y из common.css */
+/* .dashboard-container - использует классы из common.css */
+
+/* ============================================
+   Стили категорий
+   ============================================ */
+
+.dashboard-category-section {
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Использует .flex-center из common.css */
+.dashboard-category-button-container {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 600px) {
+  .dashboard-category-button-container {
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-category-button-container {
+    margin-bottom: 2rem;
+  }
+}
+
+/* Использует .button-base и .button-rounded из common.css */
+.dashboard-category-button {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: var(--tg-theme-button-color, #2563eb);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  position: relative;
+  z-index: 10;
+}
+
+.dashboard-category-button:hover {
+  background: var(--tg-theme-button-color, #2563eb);
+  filter: brightness(1.08);
+}
+
+/* ============================================
+   Стили пирамиды стикерсетов
+   ============================================ */
+
+.dashboard-pyramid-container {
+  position: relative;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-container {
+    margin-top: 1.5rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-pyramid-container {
+    margin-top: 2rem;
+  }
+}
+
+.dashboard-pyramid-trophy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40vw;
+  opacity: 0.23;
+  pointer-events: none;
+  z-index: 0;
+  transform: translateY(-6%);
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-trophy {
+    font-size: 30vw;
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-pyramid-trophy {
+    font-size: 18vw;
+  }
+}
+
+.dashboard-pyramid-content {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+  height: clamp(240px, 72vw, 320px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1.125rem;
+  z-index: 1;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-content {
+    max-width: 540px;
+    height: clamp(280px, 52vw, 360px);
+    padding-bottom: 1.5rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-pyramid-content {
+    max-width: 680px;
+  }
+}
+
+.dashboard-pyramid-pack-left {
+  position: absolute;
+  bottom: 12%;
+  left: 18%;
+  transform: translateX(-50%);
+  width: clamp(138px, 38vw, 200px);
+  filter: drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32));
+  z-index: 1;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-pack-left {
+    left: 20%;
+    width: clamp(160px, 30vw, 240px);
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-pyramid-pack-left {
+    bottom: 10%;
+    left: 26%;
+  }
+}
+
+.dashboard-pyramid-pack-left .pack-card {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1.618;
+  transform: scale(0.94);
+  transform-origin: center bottom;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-pack-left .pack-card {
+    transform: scale(0.98);
+  }
+}
+
+.dashboard-pyramid-pack-center {
+  position: absolute;
+  bottom: -6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(170px, 48vw, 220px);
+  z-index: 2;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-pack-center {
+    bottom: -8%;
+    width: clamp(195px, 32vw, 260px);
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-pyramid-pack-center {
+    bottom: -10%;
+  }
+}
+
+.dashboard-pyramid-pack-center .pack-card {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1.618;
+  box-shadow: 0 28px 52px rgba(8, 14, 30, 0.38);
+}
+
+.dashboard-pyramid-pack-right {
+  position: absolute;
+  bottom: 12%;
+  right: 18%;
+  transform: translateX(50%);
+  width: clamp(138px, 38vw, 200px);
+  filter: drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32));
+  z-index: 1;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-pack-right {
+    right: 20%;
+    width: clamp(160px, 30vw, 240px);
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-pyramid-pack-right {
+    bottom: 10%;
+    right: 26%;
+  }
+}
+
+.dashboard-pyramid-pack-right .pack-card {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1.618;
+  transform: scale(0.94);
+  transform-origin: center bottom;
+}
+
+@media (min-width: 600px) {
+  .dashboard-pyramid-pack-right .pack-card {
+    transform: scale(0.98);
+  }
+}
+
+/* Использует .flex-center из common.css */
+.dashboard-view-all-button-container {
+  width: 100%;
+  margin-top: 0.875rem;
+}
+
+@media (min-width: 600px) {
+  .dashboard-view-all-button-container {
+    margin-top: 1rem;
+  }
+}
+
+.dashboard-view-all-button {
+  text-transform: none;
+  text-decoration: underline;
+  text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
+  font-size: 0.82rem;
+  font-weight: 300;
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7));
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  min-width: auto;
+}
+
+.dashboard-view-all-button:hover {
+  background-color: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6));
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85));
+}
+
+/* ============================================
+   Стили быстрых действий
+   ============================================ */
+
+.dashboard-quick-actions-container {
+  position: relative;
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  overflow: visible;
+}
+
+.dashboard-quick-actions-background {
+  position: absolute;
+  inset: -60px -200px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.65;
+  filter: blur(50px);
+  background: radial-gradient(circle at 20% 40%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 56%),
+              radial-gradient(circle at 60% 20%, rgba(236,72,153,0.24) 0%, rgba(16,18,26,0) 62%),
+              radial-gradient(circle at 80% 60%, rgba(16,185,129,0.28) 0%, rgba(16,18,26,0) 58%);
+}
+
+.dashboard-quick-actions-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .dashboard-quick-actions-content {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+.dashboard-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Использует .button-base и .button-rounded-lg из common.css */
+.dashboard-quick-action-button {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(18, 22, 32, 0.82);
+  color: #f1f5ff;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  box-shadow: none;
+  background-blend-mode: normal;
+}
+
+/* ============================================
+   Стили карточек
+   ============================================ */
+
+/* Использует .card-base из common.css */
+.dashboard-top-users-card {
+  height: 100%;
+}
+
+.dashboard-top-users-card-content {
+  padding: 1rem;
+}
+
+.dashboard-top-users-title {
+  color: var(--tg-theme-hint-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-top-users-text {
+  color: var(--tg-theme-hint-color);
+  font-size: 0.75rem;
+}
+
+/* ============================================
+   Стили ошибок
+   ============================================ */
+
+/* Использует .error-text-container и .error-text из common.css */
+
+/* ============================================
+   Стили Grid
+   ============================================ */
+
+.dashboard-top-users-grid {
+  margin-bottom: 1.5rem;
+}
+
