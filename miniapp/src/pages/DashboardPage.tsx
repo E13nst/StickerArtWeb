@@ -14,6 +14,13 @@ import { StickerPackModal } from '@/components/StickerPackModal';
 import { StickerSetResponse, LeaderboardUser } from '@/types/sticker';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import '@/styles/common.css';
+import '@/styles/DashboardPage.css';
+
+// Утилита для объединения классов
+const cn = (...classes: (string | boolean | undefined | null)[]): string => {
+  return classes.filter(Boolean).join(' ');
+};
 
 interface DashboardStats {
   totalStickerPacks: number; // Всего стикерпаков в базе
@@ -291,179 +298,54 @@ export const DashboardPage: React.FC = () => {
   }, [activeCategoryKey, topStickersByCategory]);
 
   return (
-    <Box sx={{ 
-      minHeight: '100%', 
-      backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-      color: 'var(--tg-theme-text-color, #000000)',
-      paddingBottom: 0
-    }}>
-      <StixlyPageContainer sx={{ py: 3, pb: 8 }}>
+    <Box className="page-container-full-height">
+      <StixlyPageContainer className="page-container-padding-y dashboard-container">
         {isLoading ? (
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            <Box sx={{ mt: 1, mb: 2 }}>
-              <Box
-                sx={{
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  mb: 1,
-                }}
-              >
+            <Box className="dashboard-category-section">
+              <Box className="flex-center dashboard-category-button-container">
                 <Button
                   onClick={toggleCategory}
                   variant="contained"
                   disableElevation
-                  sx={{
-                    borderRadius: '999px',
-                    px: 3,
-                    py: 1,
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                    background: 'var(--tg-theme-button-color, #2563eb)',
-                    color: 'var(--tg-theme-button-text-color, #ffffff)',
-                    '&:hover': {
-                      background: 'var(--tg-theme-button-color, #2563eb)',
-                      filter: 'brightness(1.08)',
-                    },
-                  }}
+                  className="button-base button-rounded dashboard-category-button"
                 >
                   {activeCategoryKey === 'official' ? 'Официальные' : 'Пользовательские'}
                 </Button>
               </Box>
 
               {topStickerSets.length > 0 && (
-                  <Box sx={{ position: 'relative', width: '100%' }}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: { xs: '40vw', sm: '30vw', md: '18vw' },
-                        opacity: 0.23,
-                        pointerEvents: 'none',
-                        zIndex: 0,
-                        transform: 'translateY(-6%)',
-                      }}
-                      aria-hidden
-                    >
+                  <Box className="dashboard-pyramid-container">
+                    <Box className="dashboard-pyramid-trophy" aria-hidden>
                       🏆
                     </Box>
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        width: '100%',
-                        maxWidth: { xs: '380px', sm: '540px', md: '680px' },
-                        mx: 'auto',
-                        height: { xs: 'clamp(240px, 72vw, 320px)', sm: 'clamp(280px, 52vw, 360px)' },
-                        display: 'flex',
-                        alignItems: 'flex-end',
-                        justifyContent: 'center',
-                        pb: { xs: 2.25, sm: 3 },
-                        zIndex: 1,
-                      }}
-                    >
+                    <Box className="dashboard-pyramid-content">
                       {row2Packs[0] && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            bottom: { xs: '12%', sm: '12%', md: '10%' },
-                            left: { xs: '18%', sm: '20%', md: '26%' },
-                            transform: 'translateX(-50%)',
-                            width: { xs: 'clamp(138px, 38vw, 200px)', sm: 'clamp(160px, 30vw, 240px)' },
-                            filter: 'drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32))',
-                            zIndex: 1,
-                            '& .pack-card': {
-                              width: '100% !important',
-                              height: 'auto !important',
-                              aspectRatio: '1 / 1.618',
-                              transform: { xs: 'scale(0.94)', sm: 'scale(0.98)' },
-                              transformOrigin: 'center bottom',
-                            },
-                          }}
-                        >
+                        <Box className="dashboard-pyramid-pack-left">
                           <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
                         </Box>
                       )}
 
                       {row1Pack && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            bottom: { xs: '-6%', sm: '-8%', md: '-10%' },
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: { xs: 'clamp(170px, 48vw, 220px)', sm: 'clamp(195px, 32vw, 260px)' },
-                            zIndex: 2,
-                            '& .pack-card': {
-                              width: '100% !important',
-                              height: 'auto !important',
-                              aspectRatio: '1 / 1.618',
-                              boxShadow: '0 28px 52px rgba(8, 14, 30, 0.38)',
-                            },
-                          }}
-                        >
+                        <Box className="dashboard-pyramid-pack-center">
                           <PackCard pack={row1Pack} onClick={handlePackClick} />
                         </Box>
                       )}
 
                       {row2Packs[1] && (
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            bottom: { xs: '13%', sm: '12%', md: '10%' },
-                            right: { xs: '14%', sm: '18%', md: '24%' },
-                            transform: 'translateX(50%)',
-                            width: { xs: 'clamp(138px, 38vw, 200px)', sm: 'clamp(160px, 30vw, 240px)' },
-                            filter: 'drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32))',
-                            zIndex: 1,
-                            '& .pack-card': {
-                              width: '100% !important',
-                              height: 'auto !important',
-                              aspectRatio: '1 / 1.618',
-                              transform: { xs: 'scale(0.94)', sm: 'scale(0.98)' },
-                              transformOrigin: 'center bottom',
-                            },
-                          }}
-                        >
+                        <Box className="dashboard-pyramid-pack-right">
                           <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
                         </Box>
                       )}
                     </Box>
                     {hasAdditionalTopPacks && (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          width: '100%',
-                          mt: { xs: 1.75, sm: 2 },
-                        }}
-                      >
+                      <Box className="flex-center dashboard-view-all-button-container">
                         <Button
                           onClick={handleViewFullTop}
                           variant="text"
-                          sx={{
-                            textTransform: 'none',
-                            textDecoration: 'underline',
-                            textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45))',
-                            fontSize: '0.82rem',
-                            fontWeight: 300,
-                            color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7))',
-                            px: 0,
-                            py: 0.5,
-                            minWidth: 'auto',
-                            '&:hover': {
-                              backgroundColor: 'transparent',
-                              textDecoration: 'underline',
-                              textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6))',
-                              color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85))',
-                            },
-                          }}
+                          className="dashboard-view-all-button"
                         >
                           все стикеры
                         </Button>
@@ -474,74 +356,16 @@ export const DashboardPage: React.FC = () => {
             </Box>
 
             {quickActions.length > 0 && (
-              <Box
-                sx={{
-                  position: 'relative',
-                  mt: 0.75,
-                  mb: 3,
-                  px: 1,
-                  overflow: 'visible',
-                }}
-              >
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: '-60px -200px',
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                    opacity: 0.65,
-                    filter: 'blur(50px)',
-                    background:
-                      'radial-gradient(circle at 20% 40%, rgba(79,70,229,0.28) 0%, rgba(16,18,26,0) 56%),\
-                       radial-gradient(circle at 60% 20%, rgba(236,72,153,0.24) 0%, rgba(16,18,26,0) 62%),\
-                       radial-gradient(circle at 80% 60%, rgba(16,185,129,0.28) 0%, rgba(16,18,26,0) 58%)',
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: 'relative',
-                    zIndex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    width: '100%',
-                    px: { xs: 0.5, md: 1 },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: { xs: 'repeat(3, minmax(0, 1fr))' },
-                      gap: '12px',
-                      width: '100%',
-                      maxWidth: '360px',
-                    }}
-                  >
+              <Box className="dashboard-quick-actions-container">
+                <Box className="dashboard-quick-actions-background" />
+                <Box className="dashboard-quick-actions-content">
+                  <Box className="dashboard-quick-actions-grid">
                     {quickActions.map((action) => (
                       <button
                         key={action.label}
                         type="button"
                         disabled
-                        style={{
-                          width: '100%',
-                          padding: '10px 14px',
-                          borderRadius: '12px',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          background: 'rgba(18, 22, 32, 0.82)',
-                          color: '#f1f5ff',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          cursor: 'default',
-                          outline: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.4rem',
-                          boxShadow: 'none',
-                          backgroundBlendMode: 'normal',
-                        }}
+                        className="button-base button-rounded-lg dashboard-quick-action-button"
                       >
                         {action.label}
                       </button>
@@ -552,7 +376,7 @@ export const DashboardPage: React.FC = () => {
             )}
 
             {/* Топ пользователей по добавленным стикерам */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid container spacing={2} className="dashboard-top-users-grid">
               <Grid
                 item
                 xs={12}
@@ -560,33 +384,17 @@ export const DashboardPage: React.FC = () => {
                 {topAuthors.length > 0 ? (
                   <TopUsers authors={topAuthors} />
                 ) : (
-                  <Card
-                    sx={{
-                      borderRadius: 3,
-                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                      border: '1px solid var(--tg-theme-border-color)',
-                      boxShadow: 'none',
-                      height: '100%',
-                    }}
-                  >
-                    <CardContent sx={{ p: 2 }}>
+                  <Card className={cn('card-base', 'dashboard-top-users-card')}>
+                    <CardContent className="dashboard-top-users-card-content">
                       <Typography
                         variant="body2"
-                        sx={{
-                          color: 'var(--tg-theme-hint-color)',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                          mb: 1.5,
-                        }}
+                        className="dashboard-top-users-title"
                       >
                         Топ пользователей по добавленным стикерам
                       </Typography>
                       <Typography
                         variant="body2"
-                        sx={{
-                          color: 'var(--tg-theme-hint-color)',
-                          fontSize: '0.75rem',
-                        }}
+                        className="dashboard-top-users-text"
                       >
                         Загрузка...
                       </Typography>
@@ -596,13 +404,10 @@ export const DashboardPage: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Дополнительный отступ внизу, чтобы лидерборд был виден над BottomNav */}
-            <Box sx={{ height: { xs: '140px', sm: '160px' }, flexShrink: 0 }} />
-
           </>
         ) : (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Box className={cn('flex-center', 'error-text-container')}>
+            <Typography variant="body1" className="error-text">
               Не удалось загрузить статистику
             </Typography>
           </Box>

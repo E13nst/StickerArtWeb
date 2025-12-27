@@ -31,7 +31,7 @@ import { OptimizedGallery } from '@/components/OptimizedGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { getUserFirstName, isUserPremium } from '@/utils/userUtils';
+import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { CompactControlsBar } from '@/components/CompactControlsBar';
@@ -39,6 +39,13 @@ import { StickerSetsTabs } from '@/components/StickerSetsTabs';
 import { Category } from '@/components/CategoryFilter';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import '@/styles/common.css';
+import '@/styles/MyProfilePage.css';
+
+// Утилита для объединения классов
+const cn = (...classes: (string | boolean | undefined | null)[]): string => {
+  return classes.filter(Boolean).join(' ');
+};
 
 export const MyProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -938,18 +945,9 @@ export const MyProfilePage: React.FC = () => {
   // Основные ошибки (показываем только в Telegram приложении)
   if (error && isInTelegramApp) {
     return (
-      <Box sx={{ 
-        minHeight: '100vh', 
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        color: 'var(--tg-theme-text-color)'
-      }}>
-        <StixlyPageContainer sx={{ py: 2 }}>
-          <Alert severity="error" sx={{ 
-            mb: 2,
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            color: 'var(--tg-theme-text-color)',
-            border: '1px solid var(--tg-theme-border-color)'
-          }}>
+      <Box className="error-page-container">
+        <StixlyPageContainer className="error-container">
+          <Alert severity="error" className="error-alert">
             {error}
           </Alert>
           <EmptyState
@@ -987,15 +985,7 @@ export const MyProfilePage: React.FC = () => {
 
 
   return (
-    <Box sx={{ 
-      width: '100%',
-      minHeight: '100vh', 
-      backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-      color: 'var(--tg-theme-text-color, #000000)',
-      paddingBottom: isInTelegramApp ? 0 : 8,
-      overflowX: 'hidden',
-      overflowY: 'visible'
-    }}>
+    <Box className={cn('page-container', isInTelegramApp && 'telegram-app')}>
       {/* Профильный header */}
       <StixlyTopHeader
         profileMode={{
@@ -1007,45 +997,16 @@ export const MyProfilePage: React.FC = () => {
           content: isUserLoading ? (
             <LoadingSpinner message="Загрузка профиля..." />
           ) : userError ? (
-            <Box sx={{ 
-              width: '100%', 
-              height: '100%',
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 3,
-              textAlign: 'center'
-            }}>
+            <Box className="profile-header-content-with-padding">
               <ErrorDisplay 
                 error={userError} 
                 onRetry={() => loadMyProfile(true)}
               />
             </Box>
           ) : userInfo ? (
-            <Box sx={{ 
-              width: '100%', 
-              height: '100%',
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              position: 'relative',
-              paddingBottom: '80px', // Отступ для аватарки, чтобы она не выходила за верхний край
-              overflow: 'visible'
-            }}>
+            <Box className="profile-header-content">
               {/* Аватар с overlap - наполовину на header */}
-              <Box sx={{ 
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translate(-50%, 50%)',
-                zIndex: 20,
-                width: '100%',
-                maxWidth: '600px', // Ограничиваем ширину аватарки до 600px
-                display: 'flex',
-                justifyContent: 'center'
-              }}>
+              <Box className={cn('profile-header-avatar-wrapper', 'my-profile-avatar-wrapper')}>
                 <FloatingAvatar userInfo={userInfoWithAvatar || userInfo} size="large" overlap={0} />
               </Box>
             </Box>
@@ -1054,16 +1015,10 @@ export const MyProfilePage: React.FC = () => {
       />
 
       {/* Карточка с достижениями под аватаром */}
-      <StixlyPageContainer sx={{ mt: 0 }}>
+      <StixlyPageContainer className="page-container-no-margin-top">
         {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
         {!isUserLoading && userError && !userInfo && (
-          <Box sx={{ 
-            mt: 4, 
-            p: 3, 
-            textAlign: 'center',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
-            borderRadius: 3
-          }}>
+          <Box className="error-box">
             <ErrorDisplay 
               error={userError} 
               onRetry={() => loadMyProfile(true)}
@@ -1072,79 +1027,48 @@ export const MyProfilePage: React.FC = () => {
         )}
         
         {userInfo && (
-          <Card sx={{ 
-            borderRadius: 3,
-            backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
-            border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
-            boxShadow: 'none',
-            pt: 0,
-            pb: 2
-          }}>
-            <CardContent sx={{ pt: 8, color: 'var(--tg-theme-text-color, #000000)' }}>
+          <Card className={cn('card-base', 'card-base-no-padding-top')}>
+            <CardContent className="card-content-with-avatar">
               {/* Никнейм - отдельно, в одну строчку */}
-              <Box sx={{ 
-                textAlign: 'center',
-                mb: 2,
-                mt: 2,
-                position: 'relative',
-                zIndex: 30 // Выше аватарки (FloatingAvatar имеет zIndex: 10, но в header zIndex: 20)
-              }}>
+              <Box className="my-profile-username-container">
                 <Typography 
                   variant="h5" 
                   fontWeight="bold"
-                  sx={{ 
-                    color: 'var(--tg-theme-button-color)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    px: 2,
-                    position: 'relative',
-                    zIndex: 30
-                  }}
+                  className="my-profile-username"
                 >
-                  {userInfo ? getUserFirstName(userInfo) : '—'}
+                  {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
                 </Typography>
               </Box>
               
               {/* Статистика - на второй строчке */}
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-around', 
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
-              }}>
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+              <Box className="flex-row-space-around">
+                <Box className="stat-box">
                   <Typography 
                     variant="h5" 
                     fontWeight="bold"
-                    sx={{ color: 'var(--tg-theme-button-color)' }}
+                    className="stat-value"
                   >
                     {userStickerSets.length}
                   </Typography>
                   <Typography 
                     variant="body2"
-                    sx={{ color: 'var(--tg-theme-hint-color)' }}
+                    className="stat-label"
                   >
                     Наборов
                   </Typography>
                 </Box>
                 
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                <Box className="stat-box">
                   <Typography 
                     variant="h5" 
                     fontWeight="bold"
-                    sx={{ 
-                      color: 'var(--tg-theme-button-color)',
-                      // Золотой оттенок для ART в светлой теме
-                      filter: 'brightness(1.1) saturate(1.2)'
-                    }}
+                    className={cn('stat-value', 'art')}
                   >
                     {userInfo.artBalance || 0}
                   </Typography>
                   <Typography 
                     variant="body2"
-                    sx={{ color: 'var(--tg-theme-hint-color)' }}
+                    className="stat-label"
                   >
                     ART
                   </Typography>
@@ -1152,21 +1076,10 @@ export const MyProfilePage: React.FC = () => {
               </Box>
               
               {/* TON Connect: подключение кошелька */}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1.5,
-                mt: 3,
-                pt: 2,
-                borderTop: '1px solid var(--tg-theme-border-color, #e0e0e0)'
-              }}>
+              <Box className="flex-column-center my-profile-wallet-container">
                 <Typography 
                   variant="body2"
-                  sx={{ 
-                    color: 'var(--tg-theme-hint-color)',
-                    mb: 0.5
-                  }}
+                  className="my-profile-wallet-label"
                 >
                   TON кошелёк
                 </Typography>
@@ -1185,16 +1098,7 @@ export const MyProfilePage: React.FC = () => {
                       // Программно открываем модальное окно TON Connect
                       tonConnectUI.openModal();
                     }}
-                    sx={{
-                      textTransform: 'none',
-                      borderRadius: '0.5rem',
-                      borderColor: 'var(--tg-theme-button-color)',
-                      color: 'var(--tg-theme-button-color)',
-                      '&:hover': {
-                        borderColor: 'var(--tg-theme-button-color)',
-                        backgroundColor: 'var(--tg-theme-secondary-bg-color)'
-                      }
-                    }}
+                    className="button-rounded-sm my-profile-wallet-button"
                   >
                     Изменить кошелёк
                   </Button>
@@ -1204,24 +1108,10 @@ export const MyProfilePage: React.FC = () => {
                 
                 {/* Отображение адреса кошелька */}
                 {wallet?.walletAddress && (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 1,
-                    width: '100%'
-                  }}>
+                  <Box className="flex-column-center my-profile-wallet-address-container">
                     <Typography 
                       variant="caption"
-                      sx={{ 
-                        color: 'var(--tg-theme-hint-color)',
-                        fontFamily: 'monospace',
-                        fontSize: '0.7rem',
-                        wordBreak: 'break-all',
-                        textAlign: 'center',
-                        maxWidth: '100%',
-                        px: 1
-                      }}
+                      className="my-profile-wallet-address"
                     >
                       {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
                     </Typography>
@@ -1241,15 +1131,7 @@ export const MyProfilePage: React.FC = () => {
                         }
                       }}
                       disabled={walletLoading}
-                      sx={{
-                        textTransform: 'none',
-                        color: 'var(--tg-theme-destructive-text-color, #ff4444)',
-                        fontSize: '0.75rem',
-                        minWidth: 'auto',
-                        '&:hover': {
-                          backgroundColor: 'var(--tg-theme-secondary-bg-color)'
-                        }
-                      }}
+                      className="my-profile-wallet-unlink-button"
                     >
                       {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
                     </Button>
@@ -1260,10 +1142,7 @@ export const MyProfilePage: React.FC = () => {
                 {walletLoading && !wallet && (
                   <Typography 
                     variant="caption"
-                    sx={{ 
-                      color: 'var(--tg-theme-hint-color)',
-                      fontSize: '0.7rem'
-                    }}
+                    className="my-profile-wallet-loading"
                   >
                     Загрузка...
                   </Typography>
@@ -1273,13 +1152,7 @@ export const MyProfilePage: React.FC = () => {
                 {walletError && (
                   <Alert 
                     severity="error" 
-                    sx={{ 
-                      mt: 1,
-                      fontSize: '0.75rem',
-                      py: 0.5,
-                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                      color: 'var(--tg-theme-text-color)'
-                    }}
+                    className="my-profile-wallet-error"
                   >
                     {walletError}
                   </Alert>
@@ -1293,13 +1166,7 @@ export const MyProfilePage: React.FC = () => {
         {userError && isInTelegramApp && (
           <Alert 
             severity="error" 
-            sx={{ 
-              mt: 2,
-              mb: 2,
-              backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
-              color: 'var(--tg-theme-text-color, #000000)',
-              border: '1px solid var(--tg-theme-border-color, #e0e0e0)'
-            }}
+            className="error-alert-inline"
           >
             {userError}
           </Alert>
@@ -1316,24 +1183,14 @@ export const MyProfilePage: React.FC = () => {
       </StixlyPageContainer>
 
       {/* Прокручиваемый контент */}
-      <StixlyPageContainer sx={{ pt: 0 }}>
+      <StixlyPageContainer className="page-container-no-padding-top">
         <>
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Табы для переключения между Загруженные и Понравившиеся */}
               <Box 
                 ref={tabsContainerRef}
-                sx={{
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 'var(--z-header, 100)',
-                  backgroundColor: 'var(--tg-theme-bg-color)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  mt: 0,
-                  pt: 0,
-                  mb: 0
-                }}
+                className="my-profile-tabs-container"
               >
                 <StickerSetsTabs
                   activeTab={setsFilterTab}
@@ -1382,29 +1239,14 @@ export const MyProfilePage: React.FC = () => {
                     message="Лайкните понравившиеся наборы в галерее, и они появятся здесь"
                   />
                 ) : (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    py: 5,
-                    px: 2
-                  }}>
-                    <Typography variant="h6" sx={{ 
-                      fontWeight: 600, 
-                      color: 'var(--tg-theme-text-color)',
-                      mb: 1
-                    }}>
+                  <Box className="flex-column-center py-3 px-1 my-profile-empty-state-container">
+                    <Typography variant="h6" className="my-profile-empty-state-title">
                       📁 У вас пока нет стикерсетов
                     </Typography>
-                    <Typography variant="body2" sx={{ 
-                      color: 'var(--tg-theme-hint-color)',
-                      mb: 3,
-                      textAlign: 'center'
-                    }}>
+                    <Typography variant="body2" className="my-profile-empty-state-message">
                       {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '2.5rem', px: '0.618rem', width: '100%', maxWidth: '400px' }}>
+                    <Box className="my-profile-empty-state-button-container">
                       <Button 
                         fullWidth 
                         variant="contained" 
@@ -1415,60 +1257,13 @@ export const MyProfilePage: React.FC = () => {
                           handleCreateSticker();
                         }} 
                         startIcon={<AddIcon />}
-                        sx={{ 
-                          height: '2.5rem', 
-                          px: '0.618rem', 
-                          borderRadius: '0.59rem', 
-                          color: isLightTheme ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)',
-                          fontSize: '0.875rem', 
-                          fontWeight: 600, 
-                          textTransform: 'none', 
-                          gap: '0.5rem', 
-                          backgroundColor: isLightTheme ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)',
-                          background: isLightTheme 
-                            ? 'rgba(164, 206, 255, 0.32)'
-                            : 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)',
-                          border: `1px solid ${isLightTheme ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)'}`,
-                          boxShadow: '0 6px 18px rgba(30, 72, 185, 0.14)', 
-                          backdropFilter: 'blur(18px) saturate(180%)', 
-                          WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-                          '& .MuiButton-startIcon': { 
-                            margin: 0, 
-                            '& svg': { 
-                              fontSize: '0.955rem', 
-                              color: 'inherit' 
-                            } 
-                          }, 
-                          '&:hover': { 
-                            background: isLightTheme
-                              ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
-                              : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
-                            backgroundColor: isLightTheme
-                              ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
-                              : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',
-                            opacity: 1, 
-                            transform: 'scale(0.98)', 
-                            boxShadow: '0 10px 26px rgba(30, 72, 185, 0.18)'
-                          }, 
-                          transition: 'all 0.2s ease'
-                        }}
+                        className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
                       >
                         Добавьте стикерпак
                         <Chip 
                           label="+10 ART" 
                           size="small" 
-                          sx={{ 
-                            ml: 1, 
-                            height: 'auto', 
-                            fontSize: '0.75rem', 
-                            backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)',
-                            color: isLightTheme ? '#0D3B9D' : 'var(--tg-theme-button-text-color, #ffffff)',
-                            fontWeight: 600, 
-                            py: 0.25, 
-                            '& .MuiChip-label': { 
-                              color: 'inherit !important' 
-                            } 
-                          }} 
+                          className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}
                         />
                       </Button>
                     </Box>
@@ -1493,7 +1288,7 @@ export const MyProfilePage: React.FC = () => {
 
               {/* Кнопка "Показать ещё" убрана, так как OptimizedGallery использует infinite scroll */}
               {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Box className="my-profile-load-more-container">
                   <Button
                     variant="outlined"
                     onClick={() => currentUserId && loadUserStickerSets(currentUserId, undefined, currentPage + 1, true)}
@@ -1506,46 +1301,28 @@ export const MyProfilePage: React.FC = () => {
 
             <TabPanel value={activeProfileTab} index={1}>
               {/* Баланс ART */}
-              <Card sx={{ 
-                mb: 2, 
-                borderRadius: 3,
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                border: '1px solid var(--tg-theme-border-color)',
-                boxShadow: '0 2px 8px var(--tg-theme-shadow-color)'
-              }}>
+              <Card className="card-base my-profile-balance-card">
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box className="my-profile-balance-header">
                     <AccountBalanceWalletIcon sx={{ fontSize: 40, color: 'var(--tg-theme-button-color)' }} />
                     <Box>
-                      <Typography variant="h6" fontWeight="bold">
+                      <Typography variant="h6" fontWeight="bold" className="my-profile-balance-title">
                         Баланс ART
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+                      <Typography variant="body2" className="my-profile-balance-subtitle">
                         Ваши стикер-токены
                       </Typography>
                     </Box>
                   </Box>
                   
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 3 }}>
+                  <Box className="my-profile-balance-value-container">
                     <Chip 
                       label={`${userInfo?.artBalance || 0} ART`}
-                      sx={{ 
-                        fontSize: '1.5rem', 
-                        fontWeight: 'bold',
-                        height: 56,
-                        px: 3,
-                        backgroundColor: 'var(--tg-theme-button-color)',
-                        color: 'var(--tg-theme-button-text-color)'
-                      }}
+                      className="my-profile-balance-chip"
                     />
                   </Box>
 
-                  <Typography variant="body2" sx={{ 
-                    color: 'var(--tg-theme-hint-color)', 
-                    textAlign: 'center', 
-                    mt: 2 
-                  }}>
+                  <Typography variant="body2" className="my-profile-balance-description">
                     Создавайте стикеры и зарабатывайте ART токены!
                   </Typography>
                 </CardContent>
@@ -1560,32 +1337,24 @@ export const MyProfilePage: React.FC = () => {
 
             <TabPanel value={activeProfileTab} index={2}>
               {/* Достижения профиля */}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 2,
-                alignItems: 'center',
-                justifyContent: 'center',
-                py: 5,
-                minHeight: '220px'
-              }}>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+              <Box className="achievements-container">
+                <Typography variant="h6" className="achievements-title">
                   Достижения
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                <Box className="achievements-list">
+                  <Box className="achievement-badge">
                     Сеты: {userStickerSets.length}
                   </Box>
-                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                  <Box className="achievement-badge">
                     Стикеры: {userStickerSets.reduce((s, set) => s + (set.stickerCount || 0), 0)}
                   </Box>
-                  <Box sx={{ px: 1.5, py: 0.75, borderRadius: 2, background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}>
+                  <Box className="achievement-badge">
                     ART: {userInfo?.artBalance || 0}
                   </Box>
                 </Box>
 
-                <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', textAlign: 'center' }}>
+                <Typography variant="body2" className="achievements-description">
                   Скоро появятся уровни, streak и редкие ачивки.
                 </Typography>
               </Box>

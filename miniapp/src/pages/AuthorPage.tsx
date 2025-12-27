@@ -18,6 +18,13 @@ import { getAvatarUrl } from '../utils/avatarUtils';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { getUserFullName } from '../utils/userUtils';
+import '../styles/common.css';
+import '../styles/AuthorPage.css';
+
+// Утилита для объединения классов
+const cn = (...classes: (string | boolean | undefined | null)[]): string => {
+  return classes.filter(Boolean).join(' ');
+};
 
 type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
@@ -435,49 +442,15 @@ export const AuthorPage: React.FC = () => {
   const packCount = totalElements || stickerSets.length;
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        minHeight: '100vh',
-        backgroundColor: 'var(--tg-theme-bg-color)',
-        color: 'var(--tg-theme-text-color)',
-        paddingBottom: isInTelegramApp ? 0 : 8,
-        overflowX: 'hidden',
-        overflowY: 'visible'
-      }}
-    >
+    <Box className={cn('page-container', isInTelegramApp && 'telegram-app')}>
       <StixlyTopHeader
         profileMode={{
           enabled: true,
           backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           pattern: 'dots',
           content: avatarUserInfo ? (
-            <Box
-              sx={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                position: 'relative',
-                paddingBottom: '80px', // Отступ для аватарки, чтобы она не выходила за верхний край
-                overflow: 'visible'
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: '50%',
-                  transform: 'translate(-50%, 50%)',
-                  zIndex: 10, // Третий слой - аватар на фоне
-                  width: '100%',
-                  maxWidth: '600px', // Ограничиваем ширину аватарки до 600px
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}
-              >
+            <Box className="profile-header-content">
+              <Box className="profile-header-avatar-wrapper">
                 <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
               </Box>
             </Box>
@@ -485,18 +458,9 @@ export const AuthorPage: React.FC = () => {
         }}
       />
 
-      <StixlyPageContainer sx={{ mt: 0 }}>
+      <StixlyPageContainer className="page-container-no-margin-top">
         {profileError && (
-          <Alert
-            severity="error"
-            sx={{
-              mt: 2,
-              mb: 2,
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              color: 'var(--tg-theme-text-color)',
-              border: '1px solid var(--tg-theme-border-color)'
-            }}
-          >
+          <Alert severity="error" className="error-alert-inline">
             {profileError}
           </Alert>
         )}
@@ -504,43 +468,22 @@ export const AuthorPage: React.FC = () => {
         {(isProfileLoading || (isSetsLoading && stickerSets.length === 0)) ? (
           <LoadingSpinner message="Загрузка..." />
         ) : profile ? (
-          <Card
-            sx={{
-              borderRadius: 3,
-              backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)',
-              border: '1px solid var(--tg-theme-border-color, #e0e0e0)',
-              boxShadow: 'none',
-              pt: 0,
-              pb: 2
-            }}
-          >
-            <CardContent sx={{ pt: 8, color: 'var(--tg-theme-text-color, #000000)' }}>
-              <Box sx={{ textAlign: 'center', mb: '0.618rem', position: 'relative', zIndex: 30, mt: 2 }}>
+          <Card className={cn('card-base', 'card-base-no-padding-top')}>
+            <CardContent className="card-content-with-avatar">
+              <Box className={cn('text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
                 {displayName && (
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" className="typography-bold">
                     {displayName}
                   </Typography>
                 )}
               </Box>
 
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 2
-                }}
-              >
-                <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
-                  <Typography
-                    variant="h5"
-                    fontWeight="bold"
-                    sx={{ color: 'var(--tg-theme-button-color)' }}
-                  >
+              <Box className="flex-row-space-around">
+                <Box className="stat-box">
+                  <Typography variant="h5" fontWeight="bold" className="stat-value">
                     {packCount}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+                  <Typography variant="body2" className="stat-label">
                     Наборов
                   </Typography>
                 </Box>
@@ -552,32 +495,14 @@ export const AuthorPage: React.FC = () => {
 
       <StixlyPageContainer>
         {setsError && !isSetsLoading && !isLoadingMore && (
-          <Alert
-            severity="error"
-            sx={{
-              mt: 2,
-              mb: 2,
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              color: 'var(--tg-theme-text-color)',
-              border: '1px солид var(--tg-theme-border-color)'
-            }}
-          >
+          <Alert severity="error" className="error-alert-inline">
             {setsError}
           </Alert>
         )}
 
         {/* SearchBar и SortButton всегда видны */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.618rem', 
-          width: '100%', 
-          mt: '0.75rem', 
-          mb: '0.618rem',
-          position: 'relative',
-          zIndex: 10
-        }}>
-          <Box sx={{ flex: 1 }}>
+        <Box className="flex-row author-search-container">
+          <Box style={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}

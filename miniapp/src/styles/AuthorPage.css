@@ -1,0 +1,18 @@
+/* AuthorPage Styles */
+
+@import './common.css';
+
+/* ============================================
+   Стили поиска и сортировки
+   ============================================ */
+
+/* Использует .flex-row из common.css */
+.author-search-container {
+  gap: 0.618rem;
+  width: 100%;
+  margin-top: 0.75rem;
+  margin-bottom: 0.618rem;
+  position: relative;
+  z-index: 10;
+}
+
