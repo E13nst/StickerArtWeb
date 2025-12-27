@@ -65,6 +65,10 @@ fi
 
 echo "=== STARTING NGINX ==="
 
+# Выводим используемые переменные окружения для отладки
+echo "Using BACKEND_URL: ${BACKEND_URL}"
+echo "Using STICKER_PROCESSOR_ORIGIN: ${STICKER_PROCESSOR_ORIGIN}"
+
 # Подставляем переменные окружения в nginx конфиг
 envsubst '$BACKEND_URL $STICKER_PROCESSOR_ORIGIN' < /etc/nginx/conf.d/app.conf.tpl > /etc/nginx/conf.d/default.conf
 

@@ -26,10 +26,11 @@
 
 ### 3. Переменные окружения
 
-Добавить в Amvera Console → Settings → Environment Variables:
+Добавить в Amvera Console → Settings → Environment Variables (опционально, есть значения по умолчанию):
 
 ```bash
 BACKEND_URL=https://stickerartgallery-e13nst.amvera.io
+STICKER_PROCESSOR_ORIGIN=https://sticker-processor-e13nst.amvera.io
 ```
 
 ### 4. Webhook

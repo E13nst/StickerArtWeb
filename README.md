@@ -34,6 +34,9 @@ npm run build
 | Переменная | Описание | Пример |
 |------------|----------|--------|
 | `BACKEND_URL` | URL бэкенд API | `https://stickerartgallery-e13nst.amvera.io` |
+| `STICKER_PROCESSOR_ORIGIN` | URL для sticker processor | `https://sticker-processor-e13nst.amvera.io` |
+
+**Примечание:** Обе переменные имеют значения по умолчанию в `docker-entrypoint.sh` и `Dockerfile`.
 
 ### Процесс деплоя:
 
