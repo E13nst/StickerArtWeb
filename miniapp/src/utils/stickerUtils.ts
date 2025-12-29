@@ -188,24 +188,18 @@ export function getRandomStickersFromSet<T>(
  * formatStickerTitle("Pepe the Frog") // "Pepe the Frog"
  */
 export function formatStickerTitle(title: string | null | undefined): string {
-  // [FORMAT] Временное логирование для диагностики
-  console.log('[FORMAT] formatStickerTitle called with:', { title, type: typeof title });
-  
   if (!title) {
-    console.log('[FORMAT] formatStickerTitle: empty title, returning empty string');
     return '';
   }
 
   const trimmed = title.trim();
   if (!trimmed) {
-    console.log('[FORMAT] formatStickerTitle: trimmed empty, returning empty string');
     return '';
   }
 
   const atIndex = trimmed.indexOf('@');
   if (atIndex === -1) {
     // Нет символа @, возвращаем как есть
-    console.log('[FORMAT] formatStickerTitle: no @ found, returning:', trimmed);
     return trimmed;
   }
 
@@ -266,13 +260,11 @@ export function formatStickerTitle(title: string | null | undefined): string {
   // Если есть обычный текст (до или после упоминаний), возвращаем его
   const result = textParts.filter(part => part.length > 0).join(' ').trim();
   if (result) {
-    console.log('[FORMAT] formatStickerTitle: returning text parts:', result);
     return result;
   }
 
   // Если был только текст до упоминаний, но он был пустым, или только упоминания
   // Возвращаем первое упоминание без @
-  console.log('[FORMAT] formatStickerTitle: returning first mention:', firstMention);
   return firstMention;
 }
 

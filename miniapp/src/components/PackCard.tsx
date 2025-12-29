@@ -1,4 +1,4 @@
-import React, { useCallback, memo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, memo, useState, useEffect, useRef, useMemo } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
@@ -29,9 +29,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   pack, 
   onClick
 }) => {
-  // [FORMAT] Временное логирование для диагностики - начало компонента
-  console.log('[FORMAT] PackCardComponent RENDER START:', { packId: pack.id, title: pack.title });
-  
   // Используем react-intersection-observer для ленивой загрузки
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -47,6 +44,16 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 
   const isDimmed = pack.isBlocked || pack.isDeleted;
   const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
+  
+  // Форматируем заголовок один раз при изменении pack.title
+  const formattedTitle = useMemo(() => {
+    try {
+      return formatStickerTitle(pack.title);
+    } catch (error) {
+      console.error('[FORMAT] Error formatting title:', error);
+      return pack.title || '';
+    }
+  }, [pack.title]);
 
   // Ленивая загрузка первого стикера только когда карточка видна
   useEffect(() => {
@@ -245,17 +252,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           whiteSpace: 'nowrap'
         }}
       >
-        {(() => {
-          // [FORMAT] Временное логирование для диагностики
-          const formattedTitle = formatStickerTitle(pack.title);
-          console.log('[FORMAT] PackCard rendering:', {
-            packId: pack.id,
-            originalTitle: pack.title,
-            formattedTitle,
-            areEqual: pack.title === formattedTitle
-          });
-          return formattedTitle;
-        })()}
+        {formattedTitle}
       </div>
 
       {/* Лайк */}

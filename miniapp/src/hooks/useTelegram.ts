@@ -495,27 +495,35 @@ export const useTelegram = () => {
           }
           
           // Обновляем цвета header и bottom bar при изменении темы
-          // Проверяем версию перед вызовом методов
-          const version = telegram.version || '6.0';
-          const supportsColorMethods = isVersionSupported(version, '7.0');
+          // Проверяем версию перед вызовом методов (только >= 7.0)
+          const currentVersion = telegram.version || '6.0';
+          const supportsColorMethods = isVersionSupported(currentVersion, '7.0');
           
+          // Вызываем методы только если версия поддерживает
           if (supportsColorMethods) {
-            if (telegram.setHeaderColor) {
+            if (typeof telegram.setHeaderColor === 'function') {
               try {
                 telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
               } catch (e) {
                 // Игнорируем ошибки если метод не поддерживается
+                if (import.meta.env.DEV) {
+                  console.warn('⚠️ setHeaderColor в applyTheme вызвал ошибку:', e);
+                }
               }
             }
             
-            if (telegram.setBackgroundColor) {
+            if (typeof telegram.setBackgroundColor === 'function') {
               try {
-                telegram.setBackgroundColor(telegram.themeParams.bg_color || '#ffffff');
+                telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
               } catch (e) {
                 // Игнорируем ошибки если метод не поддерживается
+                if (import.meta.env.DEV) {
+                  console.warn('⚠️ setBackgroundColor в applyTheme вызвал ошибку:', e);
+                }
               }
             }
           }
+          // Если версия < 7.0, просто не вызываем методы - это нормально
           
           if (import.meta.env.DEV) {
             console.log('🎨 Тема применена:', telegram.colorScheme);
@@ -739,16 +747,26 @@ export const useTelegram = () => {
   // Функция для обновления цвета header с проверкой версии и debounce
   const lastColorRef = useRef<string>('');
   const updateHeaderColorTimeoutRef = useRef<number | null>(null);
+  const versionCheckedRef = useRef<boolean>(false);
+  const supportsHeaderColorRef = useRef<boolean>(false);
   
   const updateHeaderColor = (color: string) => {
     // Проверяем версию перед вызовом метода
     if (!tg) return;
     
-    const version = tg.version || '6.0';
-    const supportsColorMethods = isVersionSupported(version, '7.0');
+    // Кешируем результат проверки версии, чтобы не проверять каждый раз
+    if (!versionCheckedRef.current) {
+      const version = tg.version || '6.0';
+      supportsHeaderColorRef.current = isVersionSupported(version, '7.0');
+      versionCheckedRef.current = true;
+      
+      if (!supportsHeaderColorRef.current && import.meta.env.DEV) {
+        console.log(`ℹ️ updateHeaderColor пропущен - требуется версия >= 7.0, текущая: ${version}`);
+      }
+    }
     
-    if (!supportsColorMethods) {
-      // Версия не поддерживает setHeaderColor, игнорируем
+    // Версия не поддерживает setHeaderColor, игнорируем без вывода ошибок
+    if (!supportsHeaderColorRef.current) {
       return;
     }
     
@@ -766,17 +784,20 @@ export const useTelegram = () => {
     updateHeaderColorTimeoutRef.current = window.setTimeout(() => {
       if (tg && typeof tg.setHeaderColor === 'function') {
         try {
-          tg.setHeaderColor(color);
+          // Используем 'bg_color' как ключ, а не hex цвет
+          // setHeaderColor принимает ключ цвета ('bg_color', 'secondary_bg_color'), а не hex
+          tg.setHeaderColor('bg_color');
           lastColorRef.current = color;
         } catch (e) {
           // Игнорируем ошибки если метод не поддерживается
+          // Не логируем в production, чтобы не засорять консоль
           if (import.meta.env.DEV) {
-            console.warn('Ошибка при установке цвета header:', e);
+            console.warn('⚠️ Ошибка при установке цвета header:', e);
           }
         }
       }
       updateHeaderColorTimeoutRef.current = null;
-    }, 100); // 100ms debounce
+    }, 150); // 150ms debounce для уменьшения частоты вызовов
   };
 
   return {
