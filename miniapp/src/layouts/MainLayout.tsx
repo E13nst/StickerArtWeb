@@ -23,21 +23,11 @@ export default function MainLayout({ children }: Props) {
   const isHeaderVisible = !isProfilePage && !isAuthorPage;
   
   // Используем хук для определения цвета header
+  // onColorChange уже вызывает updateHeaderColor, поэтому не нужно дублировать в useEffect
   const headerColor = useHeaderColor({
     currentSlideBg,
-    onColorChange: (color) => {
-      if (updateHeaderColor) {
-        updateHeaderColor(color);
-      }
-    }
+    onColorChange: updateHeaderColor || undefined
   });
-
-  // Обновляем цвет header при изменении
-  useEffect(() => {
-    if (updateHeaderColor && headerColor) {
-      updateHeaderColor(headerColor);
-    }
-  }, [headerColor, updateHeaderColor]);
 
   // Сброс scroll позиции при навигации между страницами с header
   useEffect(() => {

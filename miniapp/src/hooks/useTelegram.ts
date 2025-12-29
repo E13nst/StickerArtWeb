@@ -185,6 +185,24 @@ const isIosTelegram = (telegram: TelegramWebApp | null): boolean => {
   return false;
 };
 
+// Глобальный флаг для предотвращения множественной инициализации
+let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
+
+// Проверка версии Telegram Web App для поддержки методов
+const isVersionSupported = (version: string, minVersion: string): boolean => {
+  const versionParts = version.split('.').map(Number);
+  const minParts = minVersion.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(versionParts.length, minParts.length); i++) {
+    const v = versionParts[i] || 0;
+    const m = minParts[i] || 0;
+    if (v > m) return true;
+    if (v < m) return false;
+  }
+  return true;
+};
+
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
@@ -196,10 +214,39 @@ export const useTelegram = () => {
   // Слушатель изменений системной темы
   const systemThemeListenerRef = useRef<((e: MediaQueryListEvent) => void) | null>(null);
   
+  // Храним ссылки на telegram и viewportChangedHandler для cleanup
+  const telegramRef = useRef<TelegramWebApp | null>(null);
+  const viewportChangedHandlerRef = useRef<(() => void) | null>(null);
+  
   // isReady = isBaseReady && isViewportReady
   const isReady = isBaseReady && isViewportReady;
 
   useEffect(() => {
+    // Предотвращаем множественную инициализацию
+    if (isInitialized) {
+      return;
+    }
+    
+    // Если инициализация уже идет, ждем её завершения
+    if (initializationPromise) {
+      initializationPromise.then(() => {
+        // После завершения инициализации обновляем состояние из глобального объекта
+        if (window.Telegram?.WebApp) {
+          const telegram = WebApp as unknown as TelegramWebApp;
+          telegramRef.current = telegram;
+          setTg(telegram);
+          setUser(telegram.initDataUnsafe?.user || null);
+          setInitData(telegram.initData || '');
+          setIsBaseReady(true);
+          setIsViewportReady(true);
+        }
+      });
+      return;
+    }
+    
+    // Начинаем инициализацию
+    isInitialized = true;
+    initializationPromise = (async () => {
     const isDev = import.meta.env.DEV;
     const hasTelegramWebApp = Boolean(window.Telegram?.WebApp);
     const hasInitData = Boolean(window.Telegram?.WebApp?.initData);
@@ -226,6 +273,9 @@ export const useTelegram = () => {
     }
     
     if (telegram) {
+      // Сохраняем ссылку для cleanup
+      telegramRef.current = telegram;
+      
       setTg(telegram);
       setUser(telegram.initDataUnsafe?.user || null);
       setInitData(telegram.initData || '');
@@ -242,12 +292,14 @@ export const useTelegram = () => {
       // Для не-iOS платформ или не в реальном Telegram App сразу считаем viewport готовым
       if (!isIos || !isRealTelegramApp) {
         setIsViewportReady(true);
-        console.log('✅ Viewport готов (не iOS или не в реальном Telegram App)', {
-          isIos,
-          isRealTelegramApp,
-          isMockMode,
-          platform: telegram.platform
-        });
+        if (import.meta.env.DEV) {
+          console.log('✅ Viewport готов (не iOS или не в реальном Telegram App)', {
+            isIos,
+            isRealTelegramApp,
+            isMockMode,
+            platform: telegram.platform
+          });
+        }
       } else {
         // Для iOS в реальном Telegram App подписываемся на viewportChanged
         let viewportHandled = false;
@@ -255,21 +307,30 @@ export const useTelegram = () => {
           if (!viewportHandled) {
             viewportHandled = true;
             setIsViewportReady(true);
-            console.log('✅ Viewport готов (первый viewportChanged получен)');
+            if (import.meta.env.DEV) {
+              console.log('✅ Viewport готов (первый viewportChanged получен)');
+            }
           }
           // Убрано expand() - он вызывается только при инициализации в setupTelegramViewportSafe()
         };
         
+        // Сохраняем ссылку для cleanup
+        viewportChangedHandlerRef.current = viewportChangedHandler;
+        
         if (typeof telegram.onEvent === 'function') {
           telegram.onEvent('viewportChanged', viewportChangedHandler);
-          console.log('⏳ Ожидаем viewportChanged для iOS...');
+          if (import.meta.env.DEV) {
+            console.log('⏳ Ожидаем viewportChanged для iOS...');
+          }
           
           // Fallback: если viewportChanged не пришел за 2 секунды, считаем готовым
           const fallbackTimeout = setTimeout(() => {
             if (!viewportHandled) {
               viewportHandled = true;
               setIsViewportReady(true);
-              console.log('⏰ Viewport готов (fallback timeout, viewportChanged не получен)');
+              if (import.meta.env.DEV) {
+                console.log('⏰ Viewport готов (fallback timeout, viewportChanged не получен)');
+              }
             }
           }, 2000);
           
@@ -304,27 +365,73 @@ export const useTelegram = () => {
       });
       
       // Отключаем вертикальные свайпы, которые сворачивают Mini App (Bot API 7.7+)
-      // Это глобально отключает сворачивание приложения свайпом вниз
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.disableVerticalSwipes) {
-        window.Telegram.WebApp.disableVerticalSwipes();
-        console.log('✅ Вертикальные свайпы отключены - Mini App не будет сворачиваться');
-      } else if (typeof (telegram as any).disableVerticalSwipes === 'function') {
-        (telegram as any).disableVerticalSwipes();
-        console.log('✅ Вертикальные свайпы отключены (через telegram объект)');
-      } else {
-        console.log('⚠️ disableVerticalSwipes() не доступен в текущей версии Telegram WebApp');
+      // Проверяем версию: disableVerticalSwipes доступен с версии 7.7+
+      const version = telegram.version || '6.0';
+      const supportsDisableSwipes = isVersionSupported(version, '7.7');
+      
+      // Вызываем disableVerticalSwipes только если версия поддерживает (>= 7.7)
+      if (supportsDisableSwipes) {
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp?.disableVerticalSwipes) {
+          try {
+            window.Telegram.WebApp.disableVerticalSwipes();
+            if (import.meta.env.DEV) {
+              console.log('✅ Вертикальные свайпы отключены - Mini App не будет сворачиваться');
+            }
+          } catch (e) {
+            // Игнорируем ошибки если метод не поддерживается
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ disableVerticalSwipes вызвал ошибку:', e);
+            }
+          }
+        } else if (typeof (telegram as any).disableVerticalSwipes === 'function') {
+          try {
+            (telegram as any).disableVerticalSwipes();
+            if (import.meta.env.DEV) {
+              console.log('✅ Вертикальные свайпы отключены (через telegram объект)');
+            }
+          } catch (e) {
+            // Игнорируем ошибки если метод не поддерживается
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ disableVerticalSwipes вызвал ошибку:', e);
+            }
+          }
+        }
+      } else if (import.meta.env.DEV) {
+        console.log(`ℹ️ disableVerticalSwipes пропущен - требуется версия >= 7.7, текущая: ${version}`);
       }
       
       // Убрано: expand() из scroll-логики и viewportChanged handlers
       // expand() вызывается только один раз при инициализации в setupTelegramViewportSafe()
       
       // Устанавливаем цвета header и bottom bar в соответствии с темой
-      if (telegram.setHeaderColor) {
-        telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
-      }
+      // Проверяем версию: setHeaderColor и setBackgroundColor доступны с версии 7.0+
+      const supportsColorMethods = isVersionSupported(version, '7.0');
       
-      if (telegram.setBackgroundColor) {
-        telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+      // Вызываем методы цвета только если версия поддерживает (>= 7.0)
+      if (supportsColorMethods) {
+        if (typeof telegram.setHeaderColor === 'function') {
+          try {
+            telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+          } catch (e) {
+            // Игнорируем ошибки если метод не поддерживается
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ setHeaderColor вызвал ошибку:', e);
+            }
+          }
+        }
+        
+        if (typeof telegram.setBackgroundColor === 'function') {
+          try {
+            telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+          } catch (e) {
+            // Игнорируем ошибки если метод не поддерживается
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ setBackgroundColor вызвал ошибку:', e);
+            }
+          }
+        }
+      } else if (import.meta.env.DEV) {
+        console.log(`ℹ️ Методы цвета пропущены - требуется версия >= 7.0, текущая: ${version}`);
       }
       
       // Функция для конвертации hex в RGB (используется в applyTheme и при загрузке сохраненной темы)
@@ -388,15 +495,31 @@ export const useTelegram = () => {
           }
           
           // Обновляем цвета header и bottom bar при изменении темы
-          if (telegram.setHeaderColor) {
-            telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+          // Проверяем версию перед вызовом методов
+          const version = telegram.version || '6.0';
+          const supportsColorMethods = isVersionSupported(version, '7.0');
+          
+          if (supportsColorMethods) {
+            if (telegram.setHeaderColor) {
+              try {
+                telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+              } catch (e) {
+                // Игнорируем ошибки если метод не поддерживается
+              }
+            }
+            
+            if (telegram.setBackgroundColor) {
+              try {
+                telegram.setBackgroundColor(telegram.themeParams.bg_color || '#ffffff');
+              } catch (e) {
+                // Игнорируем ошибки если метод не поддерживается
+              }
+            }
           }
           
-          if (telegram.setBackgroundColor) {
-            telegram.setBackgroundColor(telegram.themeParams.bg_color || '#ffffff');
+          if (import.meta.env.DEV) {
+            console.log('🎨 Тема применена:', telegram.colorScheme);
           }
-          
-          console.log('🎨 Тема применена:', telegram.colorScheme);
         }
       };
       
@@ -477,7 +600,9 @@ export const useTelegram = () => {
       // Подписываемся на изменения темы
       if (typeof telegram.onEvent === 'function') {
         telegram.onEvent('themeChanged', () => {
-          console.log('🎨 Тема изменилась на:', telegram.colorScheme);
+          if (import.meta.env.DEV) {
+            console.log('🎨 Тема изменилась на:', telegram.colorScheme);
+          }
           applyTheme();
         });
       }
@@ -487,34 +612,42 @@ export const useTelegram = () => {
       systemThemeListenerRef.current = (e: MediaQueryListEvent) => {
         if (!localStorage.getItem('stixly_tg_theme')) {
           // Применяем системную тему только если пользователь не выбрал принудительную
-          console.log('🎨 Системная тема изменилась на:', e.matches ? 'dark' : 'light');
+          if (import.meta.env.DEV) {
+            console.log('🎨 Системная тема изменилась на:', e.matches ? 'dark' : 'light');
+          }
           applyTheme();
         }
       };
       
       mediaQuery.addEventListener('change', systemThemeListenerRef.current);
       
-      console.log('🔍 Telegram Web App данные:');
-      console.log('Mode:', isMockMode ? 'MOCK' : 'PRODUCTION');
-      console.log('tg.initData:', telegram.initData ? `present (${telegram.initData.length} chars)` : 'null');
-      console.log('tg.initDataUnsafe:', telegram.initDataUnsafe);
-      console.log('user:', telegram.initDataUnsafe?.user);
-      console.log('platform:', telegram.platform);
-      console.log('version:', telegram.version);
-      
-      // Детальная отладка initData
-      if (telegram.initData) {
-        console.log('🔍 Детальный разбор initData:');
-        const params = new URLSearchParams(telegram.initData);
-        for (const [key, value] of params.entries()) {
-          console.log(`  ${key}:`, value);
+      // Логируем только в dev режиме
+      if (import.meta.env.DEV) {
+        console.log('🔍 Telegram Web App данные:');
+        console.log('Mode:', isMockMode ? 'MOCK' : 'PRODUCTION');
+        console.log('tg.initData:', telegram.initData ? `present (${telegram.initData.length} chars)` : 'null');
+        console.log('tg.initDataUnsafe:', telegram.initDataUnsafe);
+        console.log('user:', telegram.initDataUnsafe?.user);
+        console.log('platform:', telegram.platform);
+        console.log('version:', telegram.version);
+        
+        // Детальная отладка initData
+        if (telegram.initData) {
+          console.log('🔍 Детальный разбор initData:');
+          const params = new URLSearchParams(telegram.initData);
+          for (const [key, value] of params.entries()) {
+            console.log(`  ${key}:`, value);
+          }
         }
       }
     } else {
-      console.warn('⚠️ Telegram Web App не доступен');
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ Telegram Web App не доступен');
+      }
       setIsBaseReady(true);
       setIsViewportReady(true);
     }
+    })(); // Закрываем async функцию инициализации
     
     // Cleanup функция
     return () => {
@@ -524,13 +657,21 @@ export const useTelegram = () => {
       }
       
       // Отписываемся от viewportChanged
-      if (viewportChangedHandler && telegram && typeof telegram.offEvent === 'function') {
-        telegram.offEvent('viewportChanged', viewportChangedHandler);
+      const handler = viewportChangedHandlerRef.current;
+      const telegram = telegramRef.current;
+      if (handler && telegram && typeof telegram.offEvent === 'function') {
+        telegram.offEvent('viewportChanged', handler);
       }
       
       // Очищаем fallback timeout
-      if (viewportChangedHandler && (viewportChangedHandler as any).__fallbackTimeout) {
-        clearTimeout((viewportChangedHandler as any).__fallbackTimeout);
+      if (handler && (handler as any).__fallbackTimeout) {
+        clearTimeout((handler as any).__fallbackTimeout);
+      }
+      
+      // Очищаем debounce timeout для updateHeaderColor
+      if (updateHeaderColorTimeoutRef.current !== null) {
+        clearTimeout(updateHeaderColorTimeoutRef.current);
+        updateHeaderColorTimeoutRef.current = null;
       }
     };
   }, []);
@@ -595,13 +736,47 @@ export const useTelegram = () => {
 
   const isInTelegramApp = Boolean(tg && initData && initData.trim() !== '');
 
-  // Функция для обновления цвета header
+  // Функция для обновления цвета header с проверкой версии и debounce
+  const lastColorRef = useRef<string>('');
+  const updateHeaderColorTimeoutRef = useRef<number | null>(null);
+  
   const updateHeaderColor = (color: string) => {
-    if (tg && typeof tg.setHeaderColor === 'function') {
-      // Преобразуем hex цвет в формат для Telegram
-      // Telegram принимает либо 'bg_color' либо hex цвет
-      tg.setHeaderColor(color);
+    // Проверяем версию перед вызовом метода
+    if (!tg) return;
+    
+    const version = tg.version || '6.0';
+    const supportsColorMethods = isVersionSupported(version, '7.0');
+    
+    if (!supportsColorMethods) {
+      // Версия не поддерживает setHeaderColor, игнорируем
+      return;
     }
+    
+    // Предотвращаем множественные вызовы с одинаковым цветом
+    if (lastColorRef.current === color) {
+      return;
+    }
+    
+    // Debounce: отменяем предыдущий вызов если он еще не выполнен
+    if (updateHeaderColorTimeoutRef.current !== null) {
+      clearTimeout(updateHeaderColorTimeoutRef.current);
+    }
+    
+    // Задержка для группировки множественных вызовов
+    updateHeaderColorTimeoutRef.current = window.setTimeout(() => {
+      if (tg && typeof tg.setHeaderColor === 'function') {
+        try {
+          tg.setHeaderColor(color);
+          lastColorRef.current = color;
+        } catch (e) {
+          // Игнорируем ошибки если метод не поддерживается
+          if (import.meta.env.DEV) {
+            console.warn('Ошибка при установке цвета header:', e);
+          }
+        }
+      }
+      updateHeaderColorTimeoutRef.current = null;
+    }, 100); // 100ms debounce
   };
 
   return {

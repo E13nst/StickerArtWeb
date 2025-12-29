@@ -29,6 +29,9 @@ const PackCardComponent: React.FC<PackCardProps> = ({
   pack, 
   onClick
 }) => {
+  // [FORMAT] Временное логирование для диагностики - начало компонента
+  console.log('[FORMAT] PackCardComponent RENDER START:', { packId: pack.id, title: pack.title });
+  
   // Используем react-intersection-observer для ленивой загрузки
   const { ref, inView } = useInView({
     threshold: 0.1,
