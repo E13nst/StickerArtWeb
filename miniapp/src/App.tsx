@@ -113,7 +113,6 @@ const App: React.FC = () => {
             <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/author/:id" element={<AuthorPage />} />
             <Route path="/nft-soon" element={<NftSoonPage />} />
-            <Route path="/generate-sticker" element={<StickerGeneratePage />} />
             {/* Fallback route */}
             <Route path="*" element={<DashboardPage />} />
           </Routes>
