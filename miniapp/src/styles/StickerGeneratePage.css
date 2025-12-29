@@ -1,0 +1,147 @@
+/* StickerGeneratePage Styles */
+
+@import './common.css';
+
+/* ============================================
+   Базовые стили страницы
+   ============================================ */
+
+.sticker-generate-page {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: calc(100vh * 0.04) calc(100vw * 0.04);
+  padding-top: clamp(96px, 14vh, 168px);
+  padding-bottom: calc(100vh * 0.08);
+  background: var(--tg-theme-bg-color);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sticker-generate-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg, color-mix(in srgb, rgb(255, 107, 53) 20%, transparent) 0 1px, transparent 1px),
+                  linear-gradient(0deg, color-mix(in srgb, rgb(255, 87, 34) 15%, transparent) 0 1px, transparent 1px);
+  background-size: clamp(40px, 12vw, 96px) clamp(40px, 12vw, 96px);
+  background-position: center;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sticker-generate-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, color-mix(in srgb, var(--tg-theme-bg-color) 86%, var(--tg-theme-secondary-bg-color) 14%) 0%, color-mix(in srgb, var(--tg-theme-bg-color) 78%, var(--tg-theme-secondary-bg-color) 22%) 22%, transparent 64%),
+              radial-gradient(circle at 50% 55%, transparent 48%, color-mix(in srgb, var(--tg-theme-bg-color) 70%, var(--tg-theme-secondary-bg-color) 30%) 74%, color-mix(in srgb, var(--tg-theme-bg-color) 88%, var(--tg-theme-secondary-bg-color) 12%) 100%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   Стили карточки
+   ============================================ */
+
+.sticker-generate-card {
+  position: relative;
+  z-index: 1;
+  padding: calc(100vh * 0.04) calc(100vw * 0.04);
+  border-radius: calc(100vw * 0.04);
+  text-align: center;
+  background-color: color-mix(in srgb, rgba(255, 107, 53, 0.12) 45%, rgba(255, 87, 34, 0.08));
+  border: 1px solid color-mix(in srgb, rgba(255, 107, 53, 0.25) 60%, transparent);
+  box-shadow: 0 18px 44px rgba(255, 107, 53, 0.12);
+  backdrop-filter: blur(12px) saturate(65%);
+  -webkit-backdrop-filter: blur(12px) saturate(65%);
+  overflow: hidden;
+  max-width: 600px;
+  width: 100%;
+}
+
+/* ============================================
+   Стили иконки
+   ============================================ */
+
+.sticker-generate-icon-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: calc(100vh * 0.02);
+}
+
+.sticker-generate-icon {
+  font-size: clamp(64px, 15vw, 120px) !important;
+  color: #ff6b35;
+  filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.4));
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* ============================================
+   Стили заголовка
+   ============================================ */
+
+.sticker-generate-title {
+  font-weight: 700;
+  font-size: clamp(24px, 6vw, 36px);
+  color: var(--tg-theme-text-color);
+  letter-spacing: 0.4px;
+  margin-bottom: calc(100vh * 0.01);
+}
+
+/* ============================================
+   Стили поля ввода
+   ============================================ */
+
+.sticker-generate-input {
+  width: 100%;
+}
+
+/* ============================================
+   Стили кнопки
+   ============================================ */
+
+.sticker-generate-button {
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3) !important;
+}
+
+.sticker-generate-button:hover {
+  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.sticker-generate-button:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   Адаптивность
+   ============================================ */
+
+@media (max-width: 600px) {
+  .sticker-generate-card {
+    padding: calc(100vh * 0.03) calc(100vw * 0.05);
+  }
+  
+  .sticker-generate-title {
+    font-size: clamp(20px, 5vw, 28px);
+  }
+}
+
