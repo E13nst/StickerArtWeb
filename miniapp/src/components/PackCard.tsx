@@ -290,3 +290,4 @@ export const PackCard = memo(PackCardComponent, (prev, next) => {
   return prev.pack.id === next.pack.id && 
          prev.onClick === next.onClick;
 });
+
