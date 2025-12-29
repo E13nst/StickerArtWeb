@@ -1,6 +1,6 @@
 // Service Worker для кеширования стикеров (с таймаутами и retry)
-const CACHE_NAME = 'stixly-stickers-v2';
-const STICKER_CACHE_NAME = 'stixly-stickers-media-v2';
+const CACHE_NAME = 'stixly-stickers-v3';
+const STICKER_CACHE_NAME = 'stixly-stickers-media-v3';
 
 // Таймауты для разных типов ресурсов
 const TIMEOUTS = {
