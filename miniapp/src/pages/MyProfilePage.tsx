@@ -7,7 +7,9 @@ import {
   Typography,
   Card,
   CardContent,
-  Chip
+  Chip,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddIcon from '@mui/icons-material/Add';
@@ -144,6 +146,7 @@ export const MyProfilePage: React.FC = () => {
     setSelectedStickerSet(updated);
   }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [walletMenuAnchor, setWalletMenuAnchor] = useState<null | HTMLElement>(null);
   // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
   // Используем индекс таба: 0 = 'published', 1 = 'liked'
   const [setsFilterTab, setSetsFilterTab] = useState<number>(0);
@@ -1088,67 +1091,61 @@ export const MyProfilePage: React.FC = () => {
               
               {/* TON Connect: подключение кошелька */}
               <Box className="flex-column-center my-profile-wallet-container">
-                <Typography 
-                  variant="body2"
-                  className="my-profile-wallet-label"
-                >
-                  TON кошелёк
-                </Typography>
-                
-                {/* Кнопка подключения/изменения кошелька */}
-                {wallet ? (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => {
-                      // При клике открываем TON Connect для подключения нового кошелька
-                      // Старый автоматически деактивируется при привязке нового
-                      if (tg?.HapticFeedback) {
-                        tg.HapticFeedback.impactOccurred('light');
-                      }
-                      // Программно открываем модальное окно TON Connect
-                      tonConnectUI.openModal();
-                    }}
-                    className="button-rounded-sm my-profile-wallet-button"
-                  >
-                    Изменить кошелёк
-                  </Button>
-                ) : (
+                {/* Кнопка подключения кошелька (если не подключен) */}
+                {!wallet ? (
                   <TonConnectButton />
-                )}
-                
-                {/* Отображение адреса кошелька */}
-                {wallet?.walletAddress && (
-                  <Box className="flex-column-center my-profile-wallet-address-container">
-                    <Typography 
-                      variant="caption"
-                      className="my-profile-wallet-address"
-                    >
-                      {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
-                    </Typography>
-                    
-                    {/* Кнопка отключения кошелька */}
+                ) : (
+                  <>
+                    {/* Кнопка с адресом кошелька */}
                     <Button
-                      variant="text"
+                      variant="outlined"
                       size="small"
-                      onClick={async () => {
-                        console.debug('[MyProfilePage] Нажата кнопка "Отвязать кошелёк"');
+                      onClick={(event) => {
                         if (tg?.HapticFeedback) {
                           tg.HapticFeedback.impactOccurred('light');
                         }
-                        try {
-                          await unlinkWallet(tonConnectUI);
-                          console.debug('[MyProfilePage] Кошелёк успешно отвязан');
-                        } catch (err) {
-                          console.error('[MyProfilePage] Ошибка отключения кошелька', err);
-                        }
+                        setWalletMenuAnchor(event.currentTarget);
                       }}
+                      className="button-rounded-sm my-profile-wallet-button"
                       disabled={walletLoading}
-                      className="my-profile-wallet-unlink-button"
                     >
-                      {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
+                      {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
                     </Button>
-                  </Box>
+                    
+                    {/* Выпадающее меню */}
+                    <Menu
+                      anchorEl={walletMenuAnchor}
+                      open={Boolean(walletMenuAnchor)}
+                      onClose={() => setWalletMenuAnchor(null)}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'center',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'center',
+                      }}
+                    >
+                      <MenuItem
+                        onClick={async () => {
+                          setWalletMenuAnchor(null);
+                          console.debug('[MyProfilePage] Нажата опция "Отключить кошелёк"');
+                          if (tg?.HapticFeedback) {
+                            tg.HapticFeedback.impactOccurred('light');
+                          }
+                          try {
+                            await unlinkWallet(tonConnectUI);
+                            console.debug('[MyProfilePage] Кошелёк успешно отвязан');
+                          } catch (err) {
+                            console.error('[MyProfilePage] Ошибка отключения кошелька', err);
+                          }
+                        }}
+                        disabled={walletLoading}
+                      >
+                        {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
+                      </MenuItem>
+                    </Menu>
+                  </>
                 )}
                 
                 {/* Состояние загрузки */}

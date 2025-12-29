@@ -71,48 +71,18 @@
   border-top: 1px solid var(--tg-theme-border-color, #e0e0e0);
 }
 
-.my-profile-wallet-label {
-  color: var(--tg-theme-hint-color);
-  margin-bottom: 0.25rem;
-}
-
 /* Использует .button-rounded-sm из common.css */
 .my-profile-wallet-button {
   text-transform: none;
   border-color: var(--tg-theme-button-color);
   color: var(--tg-theme-button-color);
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.875rem;
 }
 
 .my-profile-wallet-button:hover {
   border-color: var(--tg-theme-button-color);
-  background-color: var(--tg-theme-secondary-bg-color);
-}
-
-/* Использует .flex-column-center из common.css */
-.my-profile-wallet-address-container {
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.my-profile-wallet-address {
-  color: var(--tg-theme-hint-color);
-  font-family: monospace;
-  font-size: 0.7rem;
-  word-break: break-all;
-  text-align: center;
-  max-width: 100%;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
-
-.my-profile-wallet-unlink-button {
-  text-transform: none;
-  color: var(--tg-theme-destructive-text-color, #ff4444);
-  font-size: 0.75rem;
-  min-width: auto;
-}
-
-.my-profile-wallet-unlink-button:hover {
   background-color: var(--tg-theme-secondary-bg-color);
 }
 
