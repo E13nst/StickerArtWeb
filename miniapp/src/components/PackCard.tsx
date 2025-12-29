@@ -242,7 +242,17 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           whiteSpace: 'nowrap'
         }}
       >
-        {formatStickerTitle(pack.title)}
+        {(() => {
+          // [FORMAT] Временное логирование для диагностики
+          const formattedTitle = formatStickerTitle(pack.title);
+          console.log('[FORMAT] PackCard rendering:', {
+            packId: pack.id,
+            originalTitle: pack.title,
+            formattedTitle,
+            areEqual: pack.title === formattedTitle
+          });
+          return formattedTitle;
+        })()}
       </div>
 
       {/* Лайк */}
