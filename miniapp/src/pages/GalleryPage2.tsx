@@ -296,7 +296,8 @@ export const GalleryPage2: React.FC = () => {
       };
       fetchStickerSets(0, false, selectedCategories);
     }
-  }, [isReady, manualInitData, fetchStickerSets, selectedCategories, sortByLikes, selectedStickerSetTypes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady]); // Используем только isReady, остальные значения читаем через refs/state внутри эффекта
 
   // Загрузка категорий
   useEffect(() => {

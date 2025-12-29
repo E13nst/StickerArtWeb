@@ -186,19 +186,15 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       >
         <BottomNavigationAction 
           icon={<HomeIcon />} 
-          slotProps={{ touchRipple: { center: true } }}
         />
         <BottomNavigationAction 
           icon={<CollectionsIcon />} 
-          slotProps={{ touchRipple: { center: true } }}
         />
         <BottomNavigationAction 
           icon={<ShoppingCartIcon />} 
-          slotProps={{ touchRipple: { center: true } }}
         />
         <BottomNavigationAction 
           icon={<AccountCircleIcon />} 
-          slotProps={{ touchRipple: { center: true } }}
         />
       </BottomNavigation>
     </Paper>
