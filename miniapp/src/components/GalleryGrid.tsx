@@ -126,14 +126,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({ packs, onPackClick }) 
         <div ref={leftColumnRef} className="gallery-column-float-1" style={{ ...columnStyle, transform: `translateY(${getScrollBoost('left')}px)`, transition: 'transform 0.3s ease-out' }}>
           {leftColumnPacks.map((pack, i) => (
             <div key={pack.id} style={{ width: '100%' }}>
-              <PackCard pack={pack} isFirstRow={i < 1} isHighPriority={i < 3} onClick={onPackClick} />
+              <PackCard pack={pack} onClick={onPackClick} />
             </div>
           ))}
         </div>
         <div ref={rightColumnRef} className="gallery-column-float-2" style={{ ...columnStyle, transform: `translateY(${getScrollBoost('right')}px)`, transition: 'transform 0.3s ease-out' }}>
           {rightColumnPacks.map((pack, i) => (
             <div key={pack.id} style={{ width: '100%' }}>
-              <PackCard pack={pack} isFirstRow={i < 1} isHighPriority={i < 3} onClick={onPackClick} />
+              <PackCard pack={pack} onClick={onPackClick} />
             </div>
           ))}
         </div>

@@ -672,8 +672,6 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
                 
                 <PackCard
                   pack={pack}
-                  isFirstRow={index < 2}
-                  isHighPriority={index < 6}
                   onClick={handlePackClick}
                 />
               </div>
@@ -824,8 +822,6 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
                 
                 <PackCard
                   pack={pack}
-                  isFirstRow={index < 2}
-                  isHighPriority={index < 6}
                   onClick={handlePackClick}
                 />
               </div>

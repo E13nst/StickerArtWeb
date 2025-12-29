@@ -96,7 +96,6 @@ export const AnimatedPackCard: React.FC<AnimatedPackCardProps> = ({
         >
           <PackCard
             pack={pack}
-            isHighPriority={isHighPriority}
             onClick={onClick}
           />
         </div>

@@ -1,12 +1,9 @@
-import React, { useCallback, memo, useState, useEffect } from 'react';
-import { useNearVisible } from '../hooks/useNearVisible';
-import { useViewportVisibility } from '../hooks/useViewportVisibility';
-import { useStickerRotation } from '../hooks/useStickerRotation';
-import { useNonFlashingVideoSrc } from '../hooks/useNonFlashingVideoSrc';
+import React, { useCallback, memo, useState, useEffect, useRef } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
-import { imageLoader, LoadPriority, videoBlobCache, imageCache } from '../utils/imageLoader';
-import { useProfileStore } from '../store/useProfileStore';
+import { imageCache, videoBlobCache, imageLoader, LoadPriority } from '../utils/imageLoader';
+import { formatStickerTitle } from '../utils/stickerUtils';
 
 interface Pack {
   id: string;
@@ -18,332 +15,138 @@ interface Pack {
     isVideo: boolean;
     emoji: string;
   }>;
-  // Информация о типах файлов в сете для отладки (видна только админу)
-  stickerTypes?: {
-    hasWebp: boolean;
-    hasWebm: boolean;
-    hasTgs: boolean;
-  };
-  // Количество стикеров в паке (видно только админу)
-  stickerCount?: number;
-  // Публичность стикерсета
   isPublic?: boolean;
-  // Флаги блокировки и удаления
   isBlocked?: boolean;
   isDeleted?: boolean;
 }
 
 interface PackCardProps {
   pack: Pack;
-  isFirstRow?: boolean;
-  isHighPriority?: boolean; // ⚠️ DEPRECATED: Теперь приоритет определяется автоматически через viewport
   onClick?: (packId: string) => void;
 }
 
-// Компонент для видео стикера с использованием useNonFlashingVideoSrc
-const PackCardVideo: React.FC<{
-  fileId: string;
-  url: string;
-  videoRef: React.RefObject<HTMLVideoElement>;
-}> = ({ fileId, url, videoRef }) => {
-  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
-    fileId,
-    preferredSrc: videoBlobCache.get(fileId),
-    fallbackSrc: url,
-    waitForPreferredMs: 100
-  });
-
-  return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative'
-      }}
-    >
-      <video
-        ref={videoRef}
-        src={src}
-        className="pack-card-video"
-        autoPlay
-        loop
-        muted
-        playsInline
-        onError={onError}
-        onLoadedData={onLoadedData}
-        style={{
-          maxWidth: '100%',
-          maxHeight: '100%',
-          objectFit: 'contain',
-          opacity: isReady ? 1 : 0,
-          transition: 'opacity 120ms ease',
-          backgroundColor: 'transparent'
-        }}
-      />
-    </div>
-  );
-};
-
 const PackCardComponent: React.FC<PackCardProps> = ({ 
   pack, 
-  isFirstRow = false,
-  isHighPriority = false, // Оставлено для обратной совместимости, но не используется
   onClick
 }) => {
-  const { ref, isNear } = useNearVisible({ rootMargin: '800px' });
-  
-  // 🔥 НОВОЕ: Динамическое определение видимости в viewport
-  const { isInViewport, isNearViewport } = useViewportVisibility(ref, {
-    rootMargin: '800px',
-    threshold: 0.1
+  // Используем react-intersection-observer для ленивой загрузки
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: '200px', // Начинаем загрузку за 200px до появления
+    triggerOnce: false, // Позволяет паузить видео при выходе из viewport
   });
-  
-  const [isHovered, setIsHovered] = useState(false);
+
   const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  
-  // Получаем роль пользователя для отладочной информации
-  const userInfo = useProfileStore(state => state.userInfo);
-  const normalizedRole = (userInfo?.role ?? '').toUpperCase();
-  const isAdmin = normalizedRole.includes('ADMIN');
+  const [currentStickerIndex, setCurrentStickerIndex] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stickerShownAtRef = useRef<number>(Date.now());
 
-  // Проверяем статус блокировки и удаления
-  const isBlocked = pack.isBlocked ?? false;
-  const isDeleted = pack.isDeleted ?? false;
-  const isDimmed = isBlocked || isDeleted;
+  const isDimmed = pack.isBlocked || pack.isDeleted;
+  const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
 
-  // 🔥 УНИФИЦИРОВАННАЯ предзагрузка первого стикера через единую систему
-  // ✅ FIX: Загружаем ОДИН РАЗ при монтировании, не перезагружаем при изменении видимости
+  // Ленивая загрузка первого стикера только когда карточка видна
   useEffect(() => {
-    if (pack.previewStickers.length > 0) {
-      const firstSticker = pack.previewStickers[0];
-      
-      // 🔥 ИСПРАВЛЕНО: Начальный приоритет зависит от начального положения
-      // Но НЕ перезагружаем при изменении видимости (это делает updatePriority)
-      let priority: LoadPriority;
-      if (isInViewport) {
-        priority = LoadPriority.TIER_1_VIEWPORT;
-      } else if (isNearViewport) {
-        priority = LoadPriority.TIER_2_NEAR_VIEWPORT;
-      } else if (isNear) {
-        priority = LoadPriority.TIER_3_ADDITIONAL;
-      } else {
-        priority = LoadPriority.TIER_4_BACKGROUND;
+    if (!inView || !activeSticker || isFirstStickerReady) return;
+
+    const priority = inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
+    
+    const loadPromise = activeSticker.isVideo
+      ? imageLoader.loadVideo(activeSticker.fileId, activeSticker.url, priority)
+      : activeSticker.isAnimated
+        ? imageLoader.loadAnimation(activeSticker.fileId, activeSticker.url, priority)
+        : imageLoader.loadImage(activeSticker.fileId, activeSticker.url, priority);
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), 5000);
+    });
+
+    Promise.race([loadPromise, timeoutPromise])
+      .then(() => setIsFirstStickerReady(true))
+      .catch(() => setIsFirstStickerReady(true)); // Показываем даже при ошибке
+  }, [inView, activeSticker, isFirstStickerReady]);
+
+  // Упрощенная ротация стикеров только для видимых карточек
+  useEffect(() => {
+    if (!inView || pack.previewStickers.length <= 1) {
+      if (rotationTimerRef.current) {
+        clearInterval(rotationTimerRef.current);
+        rotationTimerRef.current = null;
       }
+      return;
+    }
 
-      // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Единая точка входа для всех типов ресурсов
-      const loadPromise = firstSticker.isVideo
-        ? imageLoader.loadVideo(firstSticker.fileId, firstSticker.url, priority)
-        : firstSticker.isAnimated
-          ? imageLoader.loadAnimation(firstSticker.fileId, firstSticker.url, priority)
-          : imageLoader.loadImage(firstSticker.fileId, firstSticker.url, priority);
-
-      // 🔥 ФИКС: Добавляем timeout для промисов загрузки (10 секунд)
-      // Если промис зависает - показываем контент все равно
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 10000); // 🔥 УВЕЛИЧЕНО: с 3s до 10s
-      });
-
-      Promise.race([loadPromise, timeoutPromise])
-        .then(() => {
-          if ((import.meta as any).env?.DEV) {
-            const type = firstSticker.isVideo ? 'video' : firstSticker.isAnimated ? 'animated' : 'static';
-            console.log(`✅ First ${type} sticker ready for pack ${pack.id} (priority: ${priority}, visible: ${isNear})`);
-          }
-          setIsFirstStickerReady(true);
-        })
-        .catch((error) => {
-          if ((import.meta as any).env?.DEV) {
-            console.warn(`⚠️ Failed to load first sticker for pack ${pack.id} (timeout or error):`, error.message);
-          }
-          setIsFirstStickerReady(true); // 🔥 КРИТИЧНО: Показываем контент даже при timeout/ошибке
+    // Проверяем, прошло ли минимальное время показа (2 секунды)
+    const checkAndRotate = () => {
+      const timeShown = Date.now() - stickerShownAtRef.current;
+      if (timeShown >= 2000) {
+        setCurrentStickerIndex(prev => {
+          const nextIndex = (prev + 1) % pack.previewStickers.length;
+          stickerShownAtRef.current = Date.now();
+          return nextIndex;
         });
-    }
-    // ✅ FIX: Убраны isInViewport, isNearViewport, isNear из зависимостей!
-    // Теперь загружаем ОДИН РАЗ, приоритет обновляется через updatePriority ниже
-  }, [pack.id, pack.previewStickers]);
-
-  // 🔥 НОВОЕ: Обновление приоритета при изменении видимости
-  useEffect(() => {
-    if (pack.previewStickers.length === 0) return;
-    
-    const firstSticker = pack.previewStickers[0];
-    
-    // Определяем новый приоритет на основе видимости
-    let newPriority: LoadPriority;
-    if (isInViewport) {
-      newPriority = LoadPriority.TIER_1_VIEWPORT;
-    } else if (isNearViewport) {
-      newPriority = LoadPriority.TIER_2_NEAR_VIEWPORT;
-    } else if (isNear) {
-      newPriority = LoadPriority.TIER_3_ADDITIONAL;
-    } else {
-      newPriority = LoadPriority.TIER_4_BACKGROUND;
-    }
-    
-    // Обновляем приоритет загрузки
-    imageLoader.updatePriority(firstSticker.fileId, newPriority);
-  }, [pack.previewStickers, isInViewport, isNearViewport, isNear, pack.id]);
-
-  // 🔥 УНИФИЦИРОВАННАЯ предзагрузка остальных стикеров для плавной ротации
-  // ✅ FIX: Загружаем ОДИН РАЗ при монтировании, не перезагружаем при изменении видимости
-  useEffect(() => {
-    // Загружаем только если есть стикеры для ротации
-    if (pack.previewStickers.length <= 1) {
-      return; // Нет дополнительных стикеров для ротации
-    }
-
-    // ✅ FIX: Загружаем независимо от видимости, но с правильным начальным приоритетом
-    // Приоритет будет обновляться через updatePriority при изменении видимости
-    // Для видимых карточек загружаем 2-й и 3-й стикеры с высоким приоритетом
-    // Это критично для плавной ротации
-    for (let i = 1; i < Math.min(pack.previewStickers.length, 3); i++) {
-      const sticker = pack.previewStickers[i];
-
-      // 🔥 ИСПРАВЛЕНО: Начальный приоритет для ротирующихся стикеров
-      const priority = isInViewport
-        ? LoadPriority.TIER_2_NEAR_VIEWPORT  // Видимая карточка - высокий приоритет для ротации
-        : LoadPriority.TIER_3_ADDITIONAL;     // Невидимая - средний приоритет
-
-      // 🔥 УНИФИЦИРОВАНО: Единая точка входа через imageLoader
-      const loadPromise = sticker.isVideo
-        ? imageLoader.loadVideo(sticker.fileId, sticker.url, priority)
-        : sticker.isAnimated
-          ? imageLoader.loadAnimation(sticker.fileId, sticker.url, priority)
-          : imageLoader.loadImage(sticker.fileId, sticker.url, priority);
-
-      loadPromise
-        .then(() => {
-          // Для анимаций подгружаем JSON после изображения
-          if (sticker.isAnimated && !sticker.isVideo) {
-            imageLoader.loadAnimation(sticker.fileId, sticker.url, LoadPriority.TIER_4_BACKGROUND)
-              .catch(() => {
-                // Игнорируем ошибки - изображение уже есть
-              });
-          }
-        })
-        .catch(() => {
-          // Игнорируем ошибки, но не блокируем ротацию
-        });
-    }
-    // ✅ FIX: Убран isNear и isInViewport из зависимостей!
-    // Теперь загружаем ОДИН РАЗ при монтировании
-  }, [pack.id, pack.previewStickers]);
-
-  // 🔥 ПАУЗА ВИДЕО ВНЕ VIEWPORT: Останавливаем рендеринг видео для экономии ресурсов
-  useEffect(() => {
-    if (!videoRef.current) return;
-
-    const video = videoRef.current;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!video) return;
-        
-        // Не возобновляем если модальное окно открыто
-        if (document.body.classList.contains('modal-open')) {
-          video.pause();
-          return;
-        }
-        
-        if (!entry.isIntersecting) {
-          // Паузим видео вне viewport
-          video.pause();
-        } else {
-          // Возобновляем воспроизведение в viewport
-          video.play().catch((err) => {
-            console.warn('Video play failed:', err);
-          });
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '100px' // Останавливаем за 100px до выхода из viewport
       }
-    );
+    };
 
-    observer.observe(video);
+    rotationTimerRef.current = setInterval(checkAndRotate, 500); // Проверяем каждые 500ms
 
     return () => {
-      observer.disconnect();
+      if (rotationTimerRef.current) {
+        clearInterval(rotationTimerRef.current);
+      }
     };
-  }, [pack.id]); // Зависимость от pack.id для пересоздания при смене карточки
+  }, [inView, pack.previewStickers.length]);
 
-  // Используем хук для управления ротацией стикеров
-  // 🔥 НОВАЯ ЛОГИКА: Приоритет для следующего стикера в ротации
-  const rotationLoadPriority = isInViewport
-    ? LoadPriority.TIER_2_NEAR_VIEWPORT  // Видимая карточка - высокий приоритет
-    : (isNearViewport 
-        ? LoadPriority.TIER_3_ADDITIONAL  // Близко к viewport - средний
-        : LoadPriority.TIER_4_BACKGROUND); // Далеко - низкий
+  // Обновляем время показа при изменении индекса
+  useEffect(() => {
+    stickerShownAtRef.current = Date.now();
+  }, [currentStickerIndex]);
 
-  const { currentIndex: currentStickerIndex } = useStickerRotation({
-    stickersCount: pack.previewStickers.length,
-    autoRotateInterval: 2333,
-    hoverRotateInterval: 618,
-    isHovered,
-    isVisible: isNear,
-    stickerSources: pack.previewStickers.map(s => ({ fileId: s.fileId, url: s.url, isAnimated: s.isAnimated, isVideo: s.isVideo })),
-    minDisplayDuration: 2000,
-    loadPriority: rotationLoadPriority
-  });
+  // Пауза видео при выходе из viewport
+  useEffect(() => {
+    if (!videoRef.current || !activeSticker?.isVideo) return;
 
-  // useStickerRotation гарантирует готовность стикера перед переключением индекса
-  // Поэтому мы можем напрямую использовать currentStickerIndex без дополнительных проверок
-
-  // Мемоизированный обработчик клика
-  const handleClick = useCallback(() => {
-    if (onClick) {
-      onClick(pack.id);
+    if (inView) {
+      videoRef.current.play().catch(() => {});
+    } else {
+      videoRef.current.pause();
     }
+  }, [inView, activeSticker?.isVideo]);
+
+  const handleClick = useCallback(() => {
+    onClick?.(pack.id);
   }, [onClick, pack.id]);
 
   return (
     <div
-      ref={ref as React.RefObject<HTMLDivElement>}
-      className="pack-card"
+      ref={ref}
       data-testid="pack-card"
+      className="pack-card"
       onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
         width: '100%',
-        aspectRatio: '1 / 1.618', // Золотое сечение (φ = 1.618)
-        borderRadius: '13px', // Число Фибоначчи
+        aspectRatio: '1 / 1.618',
+        borderRadius: '12px',
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
-        backgroundColor: 'var(--tg-theme-pack-card-bg, var(--tg-theme-secondary-bg-color))',
+        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
         border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: '0 3px 13px var(--tg-theme-shadow-color)', // 3 и 13 - числа Фибоначчи
+        boxShadow: '0 2px 8px var(--tg-theme-shadow-color)',
         touchAction: 'manipulation',
-        transition: 'transform 0.233s ease, box-shadow 0.233s ease, opacity 0.3s ease', // 0.233 ≈ 1/φ
-        opacity: isDimmed ? 0.5 : 1
+        opacity: isDimmed ? 0.5 : 1,
+        filter: isDimmed ? 'grayscale(0.7)' : 'none',
+        willChange: inView ? 'transform' : 'auto',
       }}
     >
-      {/* Сменяющиеся превью стикеров - ОПТИМИЗИРОВАНО: рендерим только активный */}
+      {/* Контент стикера */}
       <div style={{ 
         width: '100%', 
         height: '100%', 
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Overlay для dimming вместо filter */}
-        {isDimmed && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              pointerEvents: 'none',
-              background: 'rgba(0, 0, 0, 0.5)',
-              zIndex: 1
-            }}
-          />
-        )}
         {!isFirstStickerReady ? (
-          // Skeleton loader пока первый стикер загружается
           <div
             style={{
               width: '100%',
@@ -354,90 +157,84 @@ const PackCardComponent: React.FC<PackCardProps> = ({
               fontSize: '48px',
               color: 'var(--tg-theme-hint-color)',
               backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              animation: 'pulse 1.5s ease-in-out infinite'
             }}
           >
-            {pack.previewStickers[0]?.emoji || '🎨'}
+            {activeSticker?.emoji || '🎨'}
           </div>
-        ) : (() => {
-          const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
-          if (!activeSticker) return null;
-          
-          // 🔥 ОПТИМИЗАЦИЯ: Рендерим AnimatedSticker только для активного стикера
-          // Для неактивных стикеров используем placeholder div с фиксированным aspect-ratio
-          // Предзагрузка JSON анимаций происходит через imageLoader.loadAnimation, но Lottie не монтируется
-          const baseStyles: React.CSSProperties = {
-            width: '100%',
-            height: '100%',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            opacity: 1,
-            willChange: 'opacity',
-            transition: 'opacity 0.2s ease-in-out'
-          };
-
-          return (
-            <div
-              key={`${pack.id}-${activeSticker.fileId}-${currentStickerIndex}`}
-              data-testid="sticker-preview"
-              style={baseStyles}
-            >
-              {activeSticker.isAnimated ? (
-                // 🔥 КРИТИЧНО: Монтируем AnimatedSticker только для активного стикера
-                // Это снижает количество активных Lottie-компонентов с 40+ до 4-8 (80-90% уменьшение)
-                <AnimatedSticker
-                  fileId={activeSticker.fileId}
-                  imageUrl={activeSticker.url}
-                  emoji={activeSticker.emoji}
-                  className="pack-card-animated-sticker"
-                  hidePlaceholder={true}
-                />
-              ) : activeSticker.isVideo ? (
-                <PackCardVideo
-                  fileId={activeSticker.fileId}
-                  url={activeSticker.url}
-                  videoRef={videoRef}
-                />
-              ) : (
-                <div
+        ) : activeSticker ? (
+          <>
+            {activeSticker.isAnimated ? (
+              <AnimatedSticker
+                fileId={activeSticker.fileId}
+                imageUrl={activeSticker.url}
+                emoji={activeSticker.emoji}
+                className="pack-card-animated-sticker"
+                hidePlaceholder={true}
+                priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
+              />
+            ) : activeSticker.isVideo ? (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                  className="pack-card-video"
+                  autoPlay={inView}
+                  loop
+                  muted
+                  playsInline
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
                   }}
-                >
-                  <img
-                    src={imageCache.get(activeSticker.fileId) || activeSticker.url}
-                    alt={activeSticker.emoji}
-                    className="pack-card-image"
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src={imageCache.get(activeSticker.fileId) || activeSticker.url}
+                  alt={activeSticker.emoji}
+                  className="pack-card-image"
+                  loading="lazy"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+            )}
+          </>
+        ) : null}
       </div>
-      
-      {/* Заголовок пака */}
+
+      {/* Заголовок */}
       <div
-        data-testid="pack-title"
         style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          background: `linear-gradient(transparent, var(--tg-theme-overlay-color))`,
+          background: 'linear-gradient(transparent, var(--tg-theme-overlay-color))',
           color: 'white',
-          padding: '13px 8px 8px', // 13 - число Фибоначчи
-          fontSize: '13px', // Число Фибоначчи
+          padding: '12px 8px 8px',
+          fontSize: '13px',
           fontWeight: '500',
           textAlign: 'center',
           overflow: 'hidden',
@@ -445,17 +242,17 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           whiteSpace: 'nowrap'
         }}
       >
-        {pack.title}
+        {formatStickerTitle(pack.title)}
       </div>
 
-      {/* Интерактивный лайк в правом верхнем углу */}
+      {/* Лайк */}
       <InteractiveLikeCount
         packId={pack.id}
         size="medium"
         placement="top-right"
       />
 
-      {/* Бейдж статуса блокировки/удаления - показывается всегда если стикерсет заблокирован/удален */}
+      {/* Бейдж статуса */}
       {isDimmed && (
         <div
           style={{
@@ -468,187 +265,18 @@ const PackCardComponent: React.FC<PackCardProps> = ({
             borderRadius: '4px',
             fontSize: '11px',
             fontWeight: 600,
-            lineHeight: 1,
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            pointerEvents: 'none',
             zIndex: 10
           }}
         >
-          {isDeleted ? '❌ Удален' : '🚫 Заблокирован'}
-        </div>
-      )}
-
-      {/* Badge с типами стикеров и количеством - только для админа */}
-      {isAdmin && (pack.stickerTypes || pack.stickerCount || pack.isPublic !== undefined) && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '8px',
-            left: '8px',
-            display: 'flex',
-            flexDirection: 'row',
-            gap: '4px',
-            pointerEvents: 'none',
-            flexWrap: 'wrap'
-          }}
-        >
-          {/* Количество стикеров */}
-          {pack.stickerCount !== undefined && (
-            <div
-              style={{
-                backgroundColor: 'rgba(33, 150, 243, 0.6)',
-                color: 'white',
-                padding: '3px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: '600',
-                lineHeight: 1,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}
-            >
-              <span style={{ fontSize: '8px' }}>📊</span>
-              {pack.stickerCount}
-            </div>
-          )}
-          
-          {/* Типы файлов */}
-          {pack.stickerTypes?.hasTgs && (
-            <div
-              style={{
-                backgroundColor: 'rgba(156, 39, 176, 0.6)',
-                color: 'white',
-                padding: '3px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: '600',
-                lineHeight: 1,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
-              }}
-            >
-              TGS
-            </div>
-          )}
-          {pack.stickerTypes?.hasWebm && (
-            <div
-              style={{
-                backgroundColor: 'rgba(244, 67, 54, 0.6)',
-                color: 'white',
-                padding: '3px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: '600',
-                lineHeight: 1,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
-              }}
-            >
-              WEBM
-            </div>
-          )}
-          {pack.stickerTypes?.hasWebp && (
-            <div
-              style={{
-                backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                color: 'white',
-                padding: '3px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: '600',
-                lineHeight: 1,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)'
-              }}
-            >
-              WEBP
-            </div>
-          )}
-          
-          {/* Бейдж состояния isPublic с иконкой глаза */}
-          {pack.isPublic !== undefined && (
-            <div
-              style={{
-                backgroundColor: pack.isPublic ? 'rgba(76, 175, 80, 0.6)' : 'rgba(158, 158, 158, 0.6)',
-                color: 'white',
-                padding: '3px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: '600',
-                lineHeight: 1,
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}
-            >
-              <svg 
-                width="10" 
-                height="10" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-                style={{ flexShrink: 0 }}
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </div>
-          )}
+          {pack.isDeleted ? '❌ Удален' : '🚫 Заблокирован'}
         </div>
       )}
     </div>
   );
 };
 
-// Кастомная функция сравнения для оптимизации memo
-const arePropsEqual = (prevProps: PackCardProps, nextProps: PackCardProps): boolean => {
-  // Быстрая проверка по id (самое важное)
-  if (prevProps.pack.id !== nextProps.pack.id) {
-    return false;
-  }
-  
-  // Проверка флагов
-  if (prevProps.isFirstRow !== nextProps.isFirstRow) {
-    return false;
-  }
-  // isHighPriority больше не используется - приоритет определяется динамически
-  
-  // Проверка onClick (обычно стабильная функция)
-  if (prevProps.onClick !== nextProps.onClick) {
-    return false;
-  }
-  
-  // Проверка title (может измениться при обновлении)
-  if (prevProps.pack.title !== nextProps.pack.title) {
-    return false;
-  }
-  
-  // Проверка количества previewStickers (массив может измениться)
-  if (prevProps.pack.previewStickers.length !== nextProps.pack.previewStickers.length) {
-    return false;
-  }
-  
-  // Глубокая проверка только первого стикера (самый важный для отображения)
-  const prevFirst = prevProps.pack.previewStickers[0];
-  const nextFirst = nextProps.pack.previewStickers[0];
-  if (prevFirst?.fileId !== nextFirst?.fileId) {
-    return false;
-  }
-  
-  // Если всё совпало — не ре-рендерим
-  return true;
-};
-
-export const PackCard = memo(PackCardComponent, arePropsEqual);
+export const PackCard = memo(PackCardComponent, (prev, next) => {
+  return prev.pack.id === next.pack.id && 
+         prev.pack.title === next.pack.title &&
+         prev.onClick === next.onClick;
+});

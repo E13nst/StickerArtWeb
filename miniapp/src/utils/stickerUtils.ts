@@ -173,3 +173,98 @@ export function getRandomStickersFromSet<T>(
   return shuffledStickers.slice(0, count);
 }
 
+/**
+ * Форматирует название стикера для отображения, обрабатывая упоминания (@)
+ * @param title - Название стикера
+ * @returns Отформатированное название
+ * 
+ * @example
+ * formatStickerTitle("Pepe the Frog @flowwercat") // "Pepe the Frog"
+ * formatStickerTitle("@iTONSPACE @TON_AppBot") // "iTONSPACE"
+ * formatStickerTitle("@HappySeals") // "HappySeals"
+ * formatStickerTitle("@mention text") // "text"
+ * formatStickerTitle("@mention1 @mention2 text") // "text"
+ * formatStickerTitle("text1 @mention1 text2 @mention2") // "text1 text2"
+ * formatStickerTitle("Pepe the Frog") // "Pepe the Frog"
+ */
+export function formatStickerTitle(title: string | null | undefined): string {
+  if (!title) {
+    return '';
+  }
+
+  const trimmed = title.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex === -1) {
+    // Нет символа @, возвращаем как есть
+    return trimmed;
+  }
+
+  // Обрабатываем всю строку: собираем весь обычный текст, пропуская упоминания
+  const textParts: string[] = [];
+  let firstMention = '';
+  let currentIndex = 0;
+  let textStart = 0;
+  let hasTextBeforeMentions = false;
+
+  while (currentIndex < trimmed.length) {
+    if (trimmed[currentIndex] === '@') {
+      // Нашли упоминание
+      // Сохраняем текст до упоминания, если он есть
+      if (textStart < currentIndex) {
+        const textPart = trimmed.substring(textStart, currentIndex).trim();
+        if (textPart) {
+          textParts.push(textPart);
+          hasTextBeforeMentions = true;
+        }
+      }
+
+      // Извлекаем упоминание (до пробела или конца строки)
+      const mentionStart = currentIndex + 1; // Пропускаем @
+      let mentionEnd = mentionStart;
+      
+      while (mentionEnd < trimmed.length && trimmed[mentionEnd] !== ' ') {
+        mentionEnd++;
+      }
+      
+      // Сохраняем первое упоминание без @ (если еще не сохранили)
+      if (!firstMention && !hasTextBeforeMentions) {
+        firstMention = trimmed.substring(mentionStart, mentionEnd);
+      }
+      
+      // Пропускаем упоминание
+      currentIndex = mentionEnd;
+      
+      // Пропускаем пробелы после упоминания
+      while (currentIndex < trimmed.length && trimmed[currentIndex] === ' ') {
+        currentIndex++;
+      }
+      
+      textStart = currentIndex;
+    } else {
+      currentIndex++;
+    }
+  }
+
+  // Добавляем оставшийся текст после последнего упоминания
+  if (textStart < trimmed.length) {
+    const textPart = trimmed.substring(textStart).trim();
+    if (textPart) {
+      textParts.push(textPart);
+    }
+  }
+
+  // Если есть обычный текст (до или после упоминаний), возвращаем его
+  const result = textParts.filter(part => part.length > 0).join(' ').trim();
+  if (result) {
+    return result;
+  }
+
+  // Если был только текст до упоминаний, но он был пустым, или только упоминания
+  // Возвращаем первое упоминание без @
+  return firstMention;
+}
+

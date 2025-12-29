@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { OptimizedPackCard } from './OptimizedPackCard';
+import { PackCard } from './PackCard';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface Pack {
@@ -172,7 +172,7 @@ export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
                 }}
               >
                 {row.map((pack) => (
-                  <OptimizedPackCard
+                  <PackCard
                     key={pack.id}
                     pack={pack}
                     onClick={handlePackClick}
