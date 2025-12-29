@@ -56,8 +56,9 @@ export default defineConfig(({ mode }) => {
       minify: 'esbuild', // Используем esbuild (по умолчанию в Vite)
       cssMinify: true,
       // Настройки esbuild для удаления console.log и debugger
+      // ВРЕМЕННО отключено для диагностики форматирования
       esbuild: {
-        drop: ['console', 'debugger'], // Удаляем console.* и debugger в production
+        // drop: ['console', 'debugger'], // Временно отключено для отладки
       },
       rollupOptions: {
         output: {

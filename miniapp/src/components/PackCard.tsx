@@ -286,7 +286,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 };
 
 export const PackCard = memo(PackCardComponent, (prev, next) => {
+  // Не сравниваем title, так как форматирование применяется при каждом рендере
   return prev.pack.id === next.pack.id && 
-         prev.pack.title === next.pack.title &&
          prev.onClick === next.onClick;
 });
