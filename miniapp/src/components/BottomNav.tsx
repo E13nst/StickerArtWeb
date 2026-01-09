@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CollectionsIcon from '@mui/icons-material/Collections';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const SOFT_ACCENT_COLORS = [
@@ -46,7 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const getCurrentTab = () => {
     if (location.pathname === '/' || location.pathname === '/dashboard') return 0;
     if (location.pathname === '/gallery') return 1;
-    if (location.pathname === '/nft-soon') return 2;
+    if (location.pathname === '/generate') return 2;
     if (location.pathname.startsWith('/profile')) return 3;
     return typeof activeTab === 'number' ? activeTab : internalTab;
   };
@@ -66,7 +66,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         navigate('/gallery');
         break;
       case 2:
-        navigate('/nft-soon');
+        navigate('/generate');
         break;
       case 3:
         // Навигация к моему профилю
@@ -191,7 +191,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           icon={<CollectionsIcon />} 
         />
         <BottomNavigationAction 
-          icon={<ShoppingCartIcon />} 
+          icon={<AutoAwesomeIcon />} 
         />
         <BottomNavigationAction 
           icon={<AccountCircleIcon />} 
