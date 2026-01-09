@@ -1,4 +1,5 @@
 # Multi-stage build для React приложения с Nginx
+# FORCE REBUILD: 2026-01-09T13:30:00Z - cache invalidation
 
 # Stage 1: Build React приложения
 FROM node:18-alpine AS builder
@@ -29,10 +30,10 @@ RUN echo "=== BUILD INFO ===" && \
 # Debug: Показываем что в директории до сборки
 RUN echo "=== FILES BEFORE BUILD ===" && \
     ls -la miniapp/src/pages/ && \
-    echo "=== GalleryPage.tsx FIRST 80 LINES ===" && \
-    head -80 miniapp/src/pages/GalleryPage.tsx && \
-    echo "=== SEARCHING FOR storedInitData ===" && \
-    grep -n "storedInitData" miniapp/src/pages/GalleryPage.tsx || echo "NOT FOUND"
+    echo "=== CHECKING FOR GeneratePage.tsx ===" && \
+    (test -f miniapp/src/pages/GeneratePage.tsx && echo "✅ GeneratePage.tsx EXISTS" || echo "❌ GeneratePage.tsx MISSING") && \
+    echo "=== BottomNav.tsx NAVIGATION ACTIONS ===" && \
+    grep -n "BottomNavigationAction" miniapp/src/components/BottomNav.tsx | head -10
 
 # Собираем приложение
 # 1. Очищаем предыдущие сборки (если есть)
