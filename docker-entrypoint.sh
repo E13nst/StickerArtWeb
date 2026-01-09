@@ -15,11 +15,18 @@ fi
 # Создаем директорию для Nginx кэша с правильными правами
 echo "=== CREATING NGINX CACHE DIRECTORY ==="
 mkdir -p /data/cache/nginx/stickers
-chown -R nginx:nginx /data/cache
-# ✅ ИСПРАВЛЕНО: даем права на запись для nginx (775 для директорий, 777 для кеша)
-chmod -R 775 /data/cache
-# ✅ ДОБАВЛЕНО: явно устанавливаем права на директорию кеша для записи
-chmod 777 /data/cache/nginx/stickers 2>/dev/null || true
+
+# ✅ ОПТИМИЗАЦИЯ: меняем права только для директорий, не для всех файлов
+# При большом кэше (до 5GB) рекурсивный chown/chmod занимал минуты
+CACHE_OWNER=$(stat -c '%U' /data/cache/nginx/stickers 2>/dev/null || echo "unknown")
+if [ "$CACHE_OWNER" != "nginx" ]; then
+    echo "Setting ownership for cache directories..."
+    chown nginx:nginx /data/cache /data/cache/nginx /data/cache/nginx/stickers 2>/dev/null || true
+    chmod 775 /data/cache /data/cache/nginx 2>/dev/null || true
+    chmod 777 /data/cache/nginx/stickers 2>/dev/null || true
+else
+    echo "Cache directory permissions already correct, skipping..."
+fi
 
 # Проверяем финальное состояние /data
 echo "=== FINAL /data STATE ==="
