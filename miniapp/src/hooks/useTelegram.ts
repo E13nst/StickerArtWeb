@@ -188,6 +188,9 @@ const isIosTelegram = (telegram: TelegramWebApp | null): boolean => {
 // Глобальный флаг для предотвращения множественной инициализации
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+// Глобально инициализированный telegram объект (для синхронизации между компонентами)
+let globalTelegram: TelegramWebApp | null = null;
+let globalIsMockMode = false;
 
 // Проверка версии Telegram Web App для поддержки методов
 const isVersionSupported = (version: string, minVersion: string): boolean => {
@@ -222,8 +225,15 @@ export const useTelegram = () => {
   const isReady = isBaseReady && isViewportReady;
 
   useEffect(() => {
-    // Предотвращаем множественную инициализацию
-    if (isInitialized) {
+    // Если инициализация уже завершена, синхронизируем состояние с глобальным объектом
+    if (isInitialized && !initializationPromise && globalTelegram) {
+      telegramRef.current = globalTelegram;
+      setTg(globalTelegram);
+      setUser(globalTelegram.initDataUnsafe?.user || null);
+      setInitData(globalTelegram.initData || '');
+      setIsMockMode(globalIsMockMode);
+      setIsBaseReady(true);
+      setIsViewportReady(true);
       return;
     }
     
@@ -231,12 +241,12 @@ export const useTelegram = () => {
     if (initializationPromise) {
       initializationPromise.then(() => {
         // После завершения инициализации обновляем состояние из глобального объекта
-        if (window.Telegram?.WebApp) {
-          const telegram = WebApp as unknown as TelegramWebApp;
-          telegramRef.current = telegram;
-          setTg(telegram);
-          setUser(telegram.initDataUnsafe?.user || null);
-          setInitData(telegram.initData || '');
+        if (globalTelegram) {
+          telegramRef.current = globalTelegram;
+          setTg(globalTelegram);
+          setUser(globalTelegram.initDataUnsafe?.user || null);
+          setInitData(globalTelegram.initData || '');
+          setIsMockMode(globalIsMockMode);
           setIsBaseReady(true);
           setIsViewportReady(true);
         }
@@ -261,18 +271,24 @@ export const useTelegram = () => {
     if (isDev && (!hasTelegramWebApp || !hasInitData)) {
       console.log('🔧 DEV MODE: Используется mock Telegram окружение');
       telegram = createMockTelegramEnv(realInitDataForTesting);
+      globalIsMockMode = true;
       setIsMockMode(true);
     } else if (hasTelegramWebApp) {
       // Используем @twa-dev/SDK (production или real Telegram)
       telegram = WebApp as unknown as TelegramWebApp;
+      globalIsMockMode = false;
     } else {
       // В production без Telegram WebApp - используем mock
       console.log('🔧 PRODUCTION MODE: Telegram WebApp недоступен, используем mock');
       telegram = createMockTelegramEnv(realInitDataForTesting);
+      globalIsMockMode = true;
       setIsMockMode(true);
     }
     
     if (telegram) {
+      // Сохраняем в глобальную переменную для синхронизации между компонентами
+      globalTelegram = telegram;
+      
       // Сохраняем ссылку для cleanup
       telegramRef.current = telegram;
       

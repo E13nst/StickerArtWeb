@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setupAuth } from './helpers';
 
 test.describe('Sticker Gallery', () => {
   test.beforeEach(async ({ page }) => {
@@ -25,6 +26,9 @@ test.describe('Sticker Gallery', () => {
     page.on('console', msg => {
       console.log(`🖥️  CONSOLE: ${msg.text()}`);
     });
+    
+    // Настраиваем авторизацию ПЕРЕД переходом на страницу
+    await setupAuth(page);
     
     // Переходим на главную страницу
     await page.goto('/miniapp/');
