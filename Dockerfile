@@ -46,6 +46,9 @@ RUN echo "=== STARTING BUILD ===" && \
     npx vite build && \
     echo "Vite build completed" && \
     mkdir -p dist && \
+    echo "Build ID: $(date -u +'%Y-%m-%dT%H:%M:%SZ') | CACHEBUST=${CACHEBUST} | node=$(node --version) | npm=$(npm --version)" > dist/build.txt && \
+    mkdir -p dist/miniapp && \
+    echo "Build ID: $(date -u +'%Y-%m-%dT%H:%M:%SZ') | CACHEBUST=${CACHEBUST} | node=$(node --version) | npm=$(npm --version)" > dist/miniapp/build.txt && \
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=/miniapp/"><title>Redirecting...</title></head><body><p>Redirecting to <a href="/miniapp/">Sticker Gallery</a>...</p></body></html>' > dist/index.html && \
     echo "Redirect index.html created"
 
