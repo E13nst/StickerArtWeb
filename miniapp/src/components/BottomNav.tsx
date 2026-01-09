@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CollectionsIcon from '@mui/icons-material/Collections';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
@@ -46,8 +47,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const getCurrentTab = () => {
     if (location.pathname === '/' || location.pathname === '/dashboard') return 0;
     if (location.pathname === '/gallery') return 1;
-    if (location.pathname === '/generate') return 2;
-    if (location.pathname.startsWith('/profile')) return 3;
+    if (location.pathname === '/nft-soon') return 2;
+    if (location.pathname === '/generate') return 3;
+    if (location.pathname.startsWith('/profile')) return 4;
     return typeof activeTab === 'number' ? activeTab : internalTab;
   };
 
@@ -66,9 +68,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         navigate('/gallery');
         break;
       case 2:
-        navigate('/generate');
+        navigate('/nft-soon');
         break;
       case 3:
+        navigate('/generate');
+        break;
+      case 4:
         // Навигация к моему профилю
         navigate('/profile');
         break;
@@ -189,6 +194,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         />
         <BottomNavigationAction 
           icon={<CollectionsIcon />} 
+        />
+        <BottomNavigationAction 
+          icon={<ShoppingCartIcon />} 
         />
         <BottomNavigationAction 
           icon={<AutoAwesomeIcon />} 
