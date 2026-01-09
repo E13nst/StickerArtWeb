@@ -1,4 +1,4 @@
-/* GeneratePage Styles */
+/* GeneratePage Styles - Modernized UI */
 
 @import './common.css';
 
@@ -14,121 +14,188 @@
   align-items: center;
   justify-content: flex-start;
   padding: calc(100vh * 0.04) calc(100vw * 0.04);
-  padding-top: clamp(96px, 14vh, 168px);
-  padding-bottom: calc(100vh * 0.08);
+  padding-top: clamp(80px, 12vh, 140px);
+  padding-bottom: calc(100vh * 0.12 + 80px);
   background: var(--tg-theme-bg-color);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
 }
 
+/* Современный градиентный фон */
 .generate-page::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image: linear-gradient(90deg, color-mix(in srgb, rgb(255, 107, 53) 20%, transparent) 0 1px, transparent 1px),
-                  linear-gradient(0deg, color-mix(in srgb, rgb(255, 87, 34) 15%, transparent) 0 1px, transparent 1px);
-  background-size: clamp(40px, 12vw, 96px) clamp(40px, 12vw, 96px);
-  background-position: center;
-  opacity: 0.15;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.generate-page::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, color-mix(in srgb, var(--tg-theme-bg-color) 86%, var(--tg-theme-secondary-bg-color) 14%) 0%, color-mix(in srgb, var(--tg-theme-bg-color) 78%, var(--tg-theme-secondary-bg-color) 22%) 22%, transparent 64%),
-              radial-gradient(circle at 50% 55%, transparent 48%, color-mix(in srgb, var(--tg-theme-bg-color) 70%, var(--tg-theme-secondary-bg-color) 30%) 74%, color-mix(in srgb, var(--tg-theme-bg-color) 88%, var(--tg-theme-secondary-bg-color) 12%) 100%);
-  opacity: 0.5;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background: 
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, #ff6b35 15%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--tg-theme-button-color) 10%, transparent) 0%, transparent 40%);
   pointer-events: none;
   z-index: 0;
 }
 
 /* ============================================
-   Стили карточки
+   Баланс ART (современный Pill-дизайн)
+   ============================================ */
+
+.generate-balance-badge {
+  position: absolute;
+  top: 20px;
+  right: 16px;
+  z-index: 10;
+  padding: 6px 14px;
+  background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 100px;
+  border: 1px solid color-mix(in srgb, var(--tg-theme-border-color) 20%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.generate-balance-badge:active {
+  transform: scale(0.96);
+  background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 95%, transparent);
+}
+
+.generate-balance-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tg-theme-text-color);
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+
+.generate-balance-text::before {
+  content: "💎 ";
+  font-size: 14px;
+}
+
+/* ============================================
+   Стили карточки (Modern Glassmorphism)
    ============================================ */
 
 .generate-card {
   position: relative;
   z-index: 1;
-  padding: calc(100vh * 0.04) calc(100vw * 0.04);
-  border-radius: calc(100vw * 0.04);
+  padding: 32px 24px;
+  border-radius: 28px;
   text-align: center;
-  background-color: color-mix(in srgb, rgba(255, 107, 53, 0.12) 45%, rgba(255, 87, 34, 0.08));
-  border: 1px solid color-mix(in srgb, rgba(255, 107, 53, 0.25) 60%, transparent);
-  box-shadow: 0 18px 44px rgba(255, 107, 53, 0.12);
-  backdrop-filter: blur(12px) saturate(65%);
-  -webkit-backdrop-filter: blur(12px) saturate(65%);
-  overflow: hidden;
-  max-width: 600px;
+  background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 40%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  max-width: 440px;
   width: 100%;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ============================================
-   Стили иконки
-   ============================================ */
-
-.generate-icon-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: calc(100vh * 0.02);
+.tg-dark-theme .generate-card {
+  background: rgba(25, 25, 30, 0.65);
+  border-color: rgba(255, 255, 255, 0.03);
 }
 
 .generate-icon {
-  font-size: clamp(64px, 15vw, 120px) !important;
+  font-size: 80px !important;
   color: #ff6b35;
-  filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.4));
-  animation: iconPulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 20px rgba(255, 107, 53, 0.3));
+  margin-bottom: 16px;
+  animation: iconFloat 4s ease-in-out infinite;
 }
 
-@keyframes iconPulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.9;
-  }
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(5deg); }
 }
-
-/* ============================================
-   Стили заголовка
-   ============================================ */
 
 .generate-title {
+  font-weight: 800;
+  font-size: 28px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--tg-theme-text-color) 0%, color-mix(in srgb, var(--tg-theme-text-color) 60%, transparent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.generate-cost-text {
+  font-size: 14px;
+  color: var(--tg-theme-hint-color);
+  margin-bottom: 24px;
+  opacity: 0.8;
+}
+
+.generate-cost-value {
   font-weight: 700;
-  font-size: clamp(24px, 6vw, 36px);
-  color: var(--tg-theme-text-color);
-  letter-spacing: 0.4px;
-  margin-bottom: calc(100vh * 0.01);
+  color: #ff6b35;
 }
 
 /* ============================================
-   Стили поля ввода
+   Контейнер формы и инпуты
    ============================================ */
 
-.generate-input {
+.generate-form-container {
+  margin-top: 12px;
+  text-align: left;
+}
+
+/* Счетчик символов внутри поля (абсолютное позиционирование) */
+.generate-char-counter-inline {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color);
+  opacity: 0.4;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+/* ============================================
+   Состояния (Loading, Success, Error)
+   ============================================ */
+
+.generate-status-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+}
+
+.generate-status-text {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 20px;
+}
+
+.generate-result-image-wrapper {
+  width: 220px;
+  height: 220px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  margin: 0 auto 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.generate-result-image {
   width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-/* ============================================
-   Стили кнопки
-   ============================================ */
-
-.generate-button {
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3) !important;
-}
-
-.generate-button:hover {
-  box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4) !important;
-  transform: translateY(-1px);
-}
-
-.generate-button:active {
-  transform: translateY(0);
+.generate-success-text {
+  font-size: 20px;
+  font-weight: 700;
 }
 
 /* ============================================
@@ -137,11 +204,11 @@
 
 @media (max-width: 600px) {
   .generate-card {
-    padding: calc(100vh * 0.03) calc(100vw * 0.05);
+    padding: 28px 20px;
+    border-radius: 24px;
   }
   
   .generate-title {
-    font-size: clamp(20px, 5vw, 28px);
+    font-size: 24px;
   }
 }
-

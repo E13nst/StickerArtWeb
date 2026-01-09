@@ -5,6 +5,47 @@ import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 
+// ============ ТИПЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
+
+export interface ArtTariffDebit {
+  code: string;
+  amount: number;
+  description?: string;
+}
+
+export interface ArtTariffsResponse {
+  debits: ArtTariffDebit[];
+  credits?: ArtTariffDebit[];
+}
+
+export interface GenerateRequest {
+  prompt: string;
+  saveToStickerSet?: boolean;
+}
+
+export interface GenerateResponse {
+  taskId: string;
+}
+
+export type GenerationStatus = 
+  | 'PENDING' 
+  | 'GENERATING' 
+  | 'REMOVING_BACKGROUND' 
+  | 'COMPLETED' 
+  | 'FAILED' 
+  | 'TIMEOUT';
+
+export interface GenerationStatusResponse {
+  taskId: string;
+  status: GenerationStatus;
+  imageUrl?: string;
+  errorMessage?: string;
+  telegramSticker?: {
+    fileId?: string;
+    stickerSetName?: string;
+  };
+}
+
 interface TelegramApiUser {
   id: number;
   username?: string;
@@ -1263,6 +1304,75 @@ class ApiClient {
                           error?.message || 
                           'Не удалось подтвердить донат. Попробуйте позже.';
       throw new Error(errorMessage);
+    }
+  }
+
+  // ============ МЕТОДЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
+
+  // Получение тарифов ART
+  // API endpoint: GET /api/art-tariffs
+  async getArtTariffs(): Promise<ArtTariffsResponse> {
+    return requestDeduplicator.fetch(
+      '/art-tariffs',
+      async () => {
+        try {
+          const response = await this.client.get<ArtTariffsResponse>('/art-tariffs');
+          return response.data;
+        } catch (error: any) {
+          console.warn('⚠️ Не удалось загрузить тарифы ART:', error);
+          // Fallback тарифы
+          return {
+            debits: [
+              { code: 'GENERATE_STICKER', amount: 10, description: 'Генерация стикера' }
+            ]
+          };
+        }
+      },
+      {},
+      { skipCache: false }
+    );
+  }
+
+  // Запуск генерации стикера
+  // API endpoint: POST /api/generation/generate
+  async generateSticker(request: GenerateRequest): Promise<GenerateResponse> {
+    try {
+      const response = await this.client.post<GenerateResponse>('/generation/generate', request);
+      console.log('✅ Генерация запущена:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка запуска генерации:', error);
+      
+      // Обработка специфических ошибок
+      const status = error?.response?.status;
+      
+      if (status === 402) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+      if (status === 400) {
+        throw new Error('INVALID_PROMPT');
+      }
+      if (status === 401) {
+        throw new Error('UNAUTHORIZED');
+      }
+      
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось запустить генерацию. Попробуйте позже.';
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Получение статуса генерации
+  // API endpoint: GET /api/generation/status/{taskId}
+  async getGenerationStatus(taskId: string): Promise<GenerationStatusResponse> {
+    try {
+      const response = await this.client.get<GenerationStatusResponse>(`/generation/status/${taskId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка получения статуса генерации:', error);
+      throw error;
     }
   }
 }
