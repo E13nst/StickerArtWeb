@@ -71,11 +71,6 @@
   letter-spacing: -0.2px;
 }
 
-.generate-balance-text::before {
-  content: "💎 ";
-  font-size: 14px;
-}
-
 /* ============================================
    Стили карточки (Modern Glassmorphism)
    ============================================ */

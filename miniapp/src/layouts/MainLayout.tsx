@@ -16,7 +16,7 @@ export default function MainLayout({ children }: Props) {
   const isProfilePage = location.pathname.startsWith('/profile');
   const isAuthorPage = location.pathname.startsWith('/author');
   const isDashboardPage = location.pathname === '/' || location.pathname.startsWith('/dashboard');
-  const isNftSoonPage = location.pathname.startsWith('/nft-soon');
+  const isSwipePage = location.pathname.startsWith('/nft-soon');
   const { updateHeaderColor, isReady } = useTelegram();
   const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
   const mainScrollRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,7 @@ export default function MainLayout({ children }: Props) {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        overflow: isNftSoonPage ? 'hidden' : 'visible',
+        overflow: isSwipePage ? 'hidden' : 'visible',
         // Гарантируем, что header не обрезается этим контейнером
         overflowX: 'hidden',
         overflowY: 'visible'
@@ -77,10 +77,10 @@ export default function MainLayout({ children }: Props) {
           className="stixly-main-scroll"
           style={{
             flex: '1 1 auto',
-            height: isNftSoonPage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
-            overflowY: isNftSoonPage ? 'hidden' : 'auto',
+            height: isSwipePage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
+            overflowY: isSwipePage ? 'hidden' : 'auto',
             overflowX: 'hidden',
-            paddingBottom: isNftSoonPage
+            paddingBottom: isSwipePage
               ? 0
               : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
             WebkitOverflowScrolling: 'touch',

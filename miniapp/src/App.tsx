@@ -18,7 +18,7 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ defaul
 const MyProfilePage = lazy(() => import('@/pages/MyProfilePage').then(m => ({ default: m.MyProfilePage })));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const AuthorPage = lazy(() => import('@/pages/AuthorPage').then(m => ({ default: m.AuthorPage })));
-const NftSoonPage = lazy(() => import('@/pages/NftSoonPage').then(m => ({ default: m.NftSoonPage })));
+const SwipePage = lazy(() => import('@/pages/SwipePage').then(m => ({ default: m.SwipePage })));
 const GeneratePage = lazy(() => import('@/pages/GeneratePage').then(m => ({ default: m.GeneratePage })));
 
 // TON Connect manifest URL (статический, так как MiniApp развёрнут на стабильном домене)
@@ -112,7 +112,7 @@ const App: React.FC = () => {
             <Route path="/profile" element={<MyProfilePage />} />
             <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/author/:id" element={<AuthorPage />} />
-            <Route path="/nft-soon" element={<NftSoonPage />} />
+            <Route path="/nft-soon" element={<SwipePage />} />
             <Route path="/generate" element={<GeneratePage />} />
             {/* Fallback route */}
             <Route path="*" element={<DashboardPage />} />
