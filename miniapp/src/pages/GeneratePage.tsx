@@ -47,8 +47,9 @@ export const GeneratePage: React.FC = () => {
   const [isLoadingTariffs, setIsLoadingTariffs] = useState(true);
   
   // Баланс пользователя
-  const currentUser = useProfileStore((state) => state.currentUser);
-  const artBalance = currentUser?.artBalance ?? null;
+  const userInfo = useProfileStore((state) => state.userInfo);
+  const setUserInfo = useProfileStore((state) => state.setUserInfo);
+  const [artBalance, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
   
   // Polling ref
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,6 +69,41 @@ export const GeneratePage: React.FC = () => {
     };
     
     loadTariffs();
+  }, []);
+
+  // Актуальный баланс ART (источник истины: /api/profiles/me как на MyProfilePage)
+  useEffect(() => {
+    let isCancelled = false;
+
+    const refreshBalance = async () => {
+      try {
+        const me = await apiClient.getMyProfile();
+        if (isCancelled) return;
+        setArtBalance(typeof me.artBalance === 'number' ? me.artBalance : null);
+        // Поддерживаем стор в актуальном виде, чтобы другие страницы тоже могли переиспользовать баланс
+        setUserInfo(userInfo ? { ...userInfo, artBalance: me.artBalance } : me);
+      } catch (error) {
+        // Не шумим UI ошибкой: бейдж просто останется со старым значением / '—'
+        console.warn('Не удалось обновить баланс ART:', error);
+      }
+    };
+
+    // Первый запрос сразу
+    refreshBalance();
+
+    // Обновляем баланс при возврате на вкладку/страницу
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshBalance();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      isCancelled = true;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Разрешаем скролл для этой страницы
@@ -434,7 +470,7 @@ export const GeneratePage: React.FC = () => {
       {/* Баланс ART в правом верхнем углу */}
       <Box className="generate-balance-badge">
         <Typography className="generate-balance-text">
-          {artBalance !== null ? `${artBalance} ART` : '— ART'}
+          {artBalance !== null ? `🎨 ${artBalance} ART` : '🎨 — ART'}
         </Typography>
       </Box>
 
