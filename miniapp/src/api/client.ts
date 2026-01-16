@@ -18,9 +18,22 @@ export interface ArtTariffsResponse {
   credits?: ArtTariffDebit[];
 }
 
+export interface StylePreset {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  promptSuffix: string;
+  isGlobal: boolean;
+  isEnabled: boolean;
+  sortOrder: number;
+}
+
 export interface GenerateRequest {
   prompt: string;
-  saveToStickerSet?: boolean;
+  stylePresetId?: number | null;
+  seed?: number | null;
+  removeBackground?: boolean;
 }
 
 export interface GenerateResponse {
@@ -28,6 +41,7 @@ export interface GenerateResponse {
 }
 
 export type GenerationStatus = 
+  | 'PROCESSING_PROMPT'
   | 'PENDING' 
   | 'GENERATING' 
   | 'REMOVING_BACKGROUND' 
@@ -39,11 +53,21 @@ export interface GenerationStatusResponse {
   taskId: string;
   status: GenerationStatus;
   imageUrl?: string;
+  imageId?: string;
+  imageFormat?: string;
+  originalImageUrl?: string;
+  metadata?: string;
   errorMessage?: string;
   telegramSticker?: {
     fileId?: string;
     stickerSetName?: string;
   };
+}
+
+export interface SaveImageRequest {
+  imageUuid: string;
+  stickerSetName?: string | null;
+  emoji?: string;
 }
 
 interface TelegramApiUser {
@@ -1373,6 +1397,55 @@ class ApiClient {
     } catch (error: any) {
       console.error('❌ Ошибка получения статуса генерации:', error);
       throw error;
+    }
+  }
+
+  // Получение списка доступных пресетов стилей
+  // API endpoint: GET /api/generation/style-presets
+  async getStylePresets(): Promise<StylePreset[]> {
+    try {
+      const response = await this.client.get<StylePreset[]>('/generation/style-presets');
+      // Сортируем по sortOrder и фильтруем только активные
+      const activePresets = response.data
+        .filter(preset => preset.isEnabled)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      return activePresets;
+    } catch (error: any) {
+      console.error('❌ Ошибка получения пресетов стилей:', error);
+      throw error;
+    }
+  }
+
+  // Сохранение сгенерированного изображения в стикерсет
+  // API endpoint: POST /api/stickersets/save-image
+  async saveImageToStickerSet(request: SaveImageRequest): Promise<void> {
+    try {
+      await this.client.post('/stickersets/save-image', request);
+      console.log('✅ Изображение сохранено в стикерсет');
+    } catch (error: any) {
+      console.error('❌ Ошибка сохранения изображения в стикерсет:', error);
+      
+      // Обработка специфических ошибок
+      const status = error?.response?.status;
+      
+      if (status === 400) {
+        const errorMessage = error?.response?.data?.error || 
+                           error?.response?.data?.message || 
+                           'Ошибка при сохранении стикера';
+        throw new Error(errorMessage);
+      }
+      if (status === 404) {
+        throw new Error('Изображение не найдено');
+      }
+      if (status === 401) {
+        throw new Error('Требуется авторизация');
+      }
+      
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Не удалось сохранить стикер. Попробуйте позже.';
+      throw new Error(errorMessage);
     }
   }
 }

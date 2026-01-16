@@ -6,8 +6,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import '../styles/common.css';
 import '../styles/GeneratePage.css';
-import { apiClient, GenerationStatus } from '@/api/client';
+import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
+import { StylePresetDropdown } from '@/components/StylePresetDropdown';
 
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 
@@ -17,9 +18,10 @@ interface StatusMessage {
 }
 
 const STATUS_MESSAGES: Record<GenerationStatus, string> = {
+  PROCESSING_PROMPT: '🤖 Улучшаем промпт...',
   PENDING: 'Ожидание...',
-  GENERATING: 'Генерация изображения...',
-  REMOVING_BACKGROUND: 'Удаление фона...',
+  GENERATING: '🎨 Генерируем изображение...',
+  REMOVING_BACKGROUND: '✂️ Удаляем фон...',
   COMPLETED: 'Готово!',
   FAILED: 'Ошибка генерации',
   TIMEOUT: 'Превышено время ожидания'
@@ -32,14 +34,19 @@ const MIN_PROMPT_LENGTH = 1;
 export const GeneratePage: React.FC = () => {
   // Состояние формы
   const [prompt, setPrompt] = useState('');
-  const [saveToStickerSet, setSaveToStickerSet] = useState(false);
+  const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
+  const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
+  const [removeBackground, setRemoveBackground] = useState<boolean>(true);
   
   // Состояние генерации
   const [pageState, setPageState] = useState<PageState>('idle');
   const [currentStatus, setCurrentStatus] = useState<GenerationStatus | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
+  const [imageId, setImageId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Тарифы
@@ -69,6 +76,21 @@ export const GeneratePage: React.FC = () => {
     };
     
     loadTariffs();
+  }, []);
+
+  // Загрузка пресетов стилей при монтировании
+  useEffect(() => {
+    const loadPresets = async () => {
+      try {
+        const presets = await apiClient.getStylePresets();
+        setStylePresets(presets);
+      } catch (error) {
+        console.error('Ошибка загрузки пресетов стилей:', error);
+        // Тихий fallback - форма будет работать без пресетов
+      }
+    };
+    
+    loadPresets();
   }, []);
 
   // Актуальный баланс ART (источник истины: /api/profiles/me как на MyProfilePage)
@@ -148,6 +170,7 @@ export const GeneratePage: React.FC = () => {
             pollingIntervalRef.current = null;
           }
           setResultImageUrl(statusData.imageUrl || null);
+          setImageId(statusData.imageId || null);
           setStickerSaved(!!statusData.telegramSticker?.fileId);
           setPageState('success');
         } else if (statusData.status === 'FAILED' || statusData.status === 'TIMEOUT') {
@@ -183,15 +206,18 @@ export const GeneratePage: React.FC = () => {
     }
 
     setPageState('generating');
-    setCurrentStatus('PENDING');
+    setCurrentStatus('PROCESSING_PROMPT');
     setErrorMessage(null);
     setResultImageUrl(null);
+    setImageId(null);
     setStickerSaved(false);
+    setSaveError(null);
 
     try {
       const response = await apiClient.generateSticker({
         prompt: prompt.trim(),
-        saveToStickerSet
+        stylePresetId: selectedStylePresetId,
+        removeBackground: removeBackground
       });
       
       setTaskId(response.taskId);
@@ -225,7 +251,10 @@ export const GeneratePage: React.FC = () => {
     setCurrentStatus(null);
     setTaskId(null);
     setResultImageUrl(null);
+    setImageId(null);
     setStickerSaved(false);
+    setIsSaving(false);
+    setSaveError(null);
     setErrorMessage(null);
     // Не очищаем prompt чтобы пользователь мог повторить с тем же текстом
   };
@@ -234,7 +263,40 @@ export const GeneratePage: React.FC = () => {
   const handleGenerateAnother = () => {
     handleReset();
     setPrompt('');
-    setSaveToStickerSet(false);
+    setSelectedStylePresetId(null);
+    setRemoveBackground(true);
+  };
+
+  // Сохранение стикера в стикерсет
+  const handleSaveToStickerSet = async () => {
+    if (!imageId || isSaving) return;
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await apiClient.saveImageToStickerSet({
+        imageUuid: imageId,
+        stickerSetName: null,
+        emoji: '🎨'
+      });
+      
+      setStickerSaved(true);
+    } catch (error: any) {
+      let message = 'Не удалось сохранить стикер';
+      
+      if (error.message?.includes('полон') || error.message?.includes('120')) {
+        message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
+      } else if (error.message?.includes('не найдено') || error.message?.includes('404')) {
+        message = 'Изображение не найдено';
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      setSaveError(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Валидация формы
@@ -281,10 +343,52 @@ export const GeneratePage: React.FC = () => {
         </Typography>
       </Box>
       
-      {stickerSaved && (
+      {stickerSaved ? (
         <Typography className="generate-sticker-saved">
-          ✨ Стикер сохранен в ваш стикерсет
+          ✅ Сохранено в стикерсет
         </Typography>
+      ) : saveError ? (
+        <Typography
+          sx={{
+            color: 'var(--tg-theme-error-color, #f44336)',
+            fontSize: '14px',
+            textAlign: 'center',
+            mt: 1,
+            mb: 1,
+          }}
+        >
+          {saveError}
+        </Typography>
+      ) : null}
+
+      {imageId && !stickerSaved && (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleSaveToStickerSet}
+          disabled={isSaving}
+          className="generate-button"
+          sx={{
+            mt: 2,
+            py: 1.5,
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: 600,
+            textTransform: 'none',
+            backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+            color: '#ffffff',
+            '&:hover': {
+              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+              opacity: 0.9,
+            },
+            '&:disabled': {
+              backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
+              color: 'var(--tg-theme-hint-color)',
+            },
+          }}
+        >
+          {isSaving ? 'Сохранение...' : '💾 Сохранить в стикерсет'}
+        </Button>
       )}
       
       <Button
@@ -294,7 +398,7 @@ export const GeneratePage: React.FC = () => {
         startIcon={<RefreshIcon />}
         className="generate-button generate-button-success"
         sx={{
-          mt: 3,
+          mt: 2,
           py: 1.5,
           borderRadius: '12px',
           fontSize: '16px',
@@ -426,6 +530,60 @@ export const GeneratePage: React.FC = () => {
             {prompt.length}/{MAX_PROMPT_LENGTH}
           </Typography>
         </Box>
+
+        {/* Выбор пресета стиля */}
+        {stylePresets.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <StylePresetDropdown
+              presets={stylePresets}
+              selectedPresetId={selectedStylePresetId}
+              onPresetChange={setSelectedStylePresetId}
+              disabled={pageState === 'generating'}
+            />
+          </Box>
+        )}
+
+        {/* Подсказка об энхансерах */}
+        <Box sx={{ mt: 1, mb: 1 }}>
+          <Typography
+            sx={{
+              fontSize: '13px',
+              color: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.6))',
+              fontStyle: 'italic',
+              textAlign: 'center',
+            }}
+          >
+            💡 Ваш промпт будет автоматически улучшен с помощью AI
+          </Typography>
+        </Box>
+
+        {/* Чекбокс удаления фона */}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={removeBackground}
+              onChange={(e) => setRemoveBackground(e.target.checked)}
+              disabled={pageState === 'generating'}
+              sx={{
+                color: 'var(--tg-theme-button-color, #3390ec)',
+                '&.Mui-checked': {
+                  color: 'var(--tg-theme-button-color, #3390ec)',
+                },
+              }}
+            />
+          }
+          label={
+            <Typography
+              sx={{
+                fontSize: '14px',
+                color: 'var(--tg-theme-text-color)',
+              }}
+            >
+              Удалить фон
+            </Typography>
+          }
+          sx={{ mt: 1, mb: 1 }}
+        />
 
         <Button
           fullWidth
