@@ -17,7 +17,7 @@ RUN npm ci --no-audit
 
 # Копируем исходники
 COPY miniapp ./miniapp
-COPY index.html vite.config.ts tsconfig.json tsconfig.node.json ./
+COPY vite.config.ts tsconfig.json tsconfig.node.json ./
 
 # Выводим информацию о сборке для отладки
 RUN echo "=== BUILD INFO ===" && \
