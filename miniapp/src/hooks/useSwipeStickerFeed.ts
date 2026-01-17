@@ -19,6 +19,9 @@ interface UseSwipeStickerFeedResult {
   totalViewed: number;
 }
 
+// Кеш для полных данных стикерсетов
+const fullDataCache = new Map<number, StickerSetResponse>();
+
 /**
  * Отдельный фид для свайп-страницы.
  * Важно: НЕ трогает логику галереи и не переиспользует `useStickerFeed`.
@@ -38,6 +41,44 @@ export const useSwipeStickerFeed = (options: UseSwipeStickerFeedOptions = {}): U
   const hasMorePagesRef = useRef(true);
   const isFetchingRef = useRef(false);
   const viewedIdsRef = useRef<Set<number>>(new Set());
+  const loadingFullDataRef = useRef<Set<number>>(new Set());
+
+  // Функция для загрузки полной информации о стикерсете
+  const loadFullStickerSetData = useCallback(async (id: number) => {
+    // Проверяем кеш
+    if (fullDataCache.has(id)) {
+      const cached = fullDataCache.get(id);
+      if (cached) {
+        setStickerSets((prev) =>
+          prev.map((set) => (set.id === id ? cached : set))
+        );
+        return;
+      }
+    }
+
+    // Проверяем, не загружается ли уже
+    if (loadingFullDataRef.current.has(id)) {
+      return;
+    }
+
+    loadingFullDataRef.current.add(id);
+
+    try {
+      const fullData = await apiClient.getStickerSet(id);
+      
+      // Сохраняем в кеш
+      fullDataCache.set(id, fullData);
+      
+      // Обновляем в состоянии
+      setStickerSets((prev) =>
+        prev.map((set) => (set.id === id ? fullData : set))
+      );
+    } catch (err) {
+      console.warn(`Не удалось загрузить полную информацию о стикерсете ${id}:`, err);
+    } finally {
+      loadingFullDataRef.current.delete(id);
+    }
+  }, []);
 
   const fetchNextPage = useCallback(async () => {
     if (isFetchingRef.current || !hasMorePagesRef.current) return;
@@ -66,6 +107,12 @@ export const useSwipeStickerFeed = (options: UseSwipeStickerFeedOptions = {}): U
 
       setStickerSets((prev) => [...prev, ...filteredSets]);
 
+      // Загружаем полную информацию для первых карточек (preload)
+      const setsToPreload = filteredSets.slice(0, 3);
+      setsToPreload.forEach((set) => {
+        loadFullStickerSetData(set.id);
+      });
+
       currentPageRef.current = pageToLoad + 1;
       hasMorePagesRef.current = !response.last;
     } catch (e) {
@@ -74,7 +121,7 @@ export const useSwipeStickerFeed = (options: UseSwipeStickerFeedOptions = {}): U
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [isLiked, pageSize]);
+  }, [isLiked, pageSize, loadFullStickerSetData]);
 
   const next = useCallback(() => {
     const current = stickerSets[currentIndex];
@@ -86,11 +133,25 @@ export const useSwipeStickerFeed = (options: UseSwipeStickerFeedOptions = {}): U
     setCurrentIndex(nextIndex);
     setTotalViewed((v) => v + 1);
 
+    // Загружаем полную информацию для следующих карточек
+    const nextCard = stickerSets[nextIndex];
+    if (nextCard && !fullDataCache.has(nextCard.id)) {
+      loadFullStickerSetData(nextCard.id);
+    }
+
+    // Предзагрузка для карточек, которые скоро будут показаны
+    for (let i = 1; i <= 2; i++) {
+      const futureCard = stickerSets[nextIndex + i];
+      if (futureCard && !fullDataCache.has(futureCard.id)) {
+        loadFullStickerSetData(futureCard.id);
+      }
+    }
+
     const remaining = stickerSets.length - nextIndex;
     if (remaining <= preloadThreshold && hasMorePagesRef.current && !isFetchingRef.current) {
       fetchNextPage();
     }
-  }, [currentIndex, stickerSets, preloadThreshold, fetchNextPage]);
+  }, [currentIndex, stickerSets, preloadThreshold, fetchNextPage, loadFullStickerSetData]);
 
   const reset = useCallback(() => {
     setStickerSets([]);
@@ -103,6 +164,7 @@ export const useSwipeStickerFeed = (options: UseSwipeStickerFeedOptions = {}): U
     hasMorePagesRef.current = true;
     isFetchingRef.current = false;
     viewedIdsRef.current.clear();
+    loadingFullDataRef.current.clear();
 
     // Перезагрузка
     fetchNextPage();
@@ -114,6 +176,14 @@ export const useSwipeStickerFeed = (options: UseSwipeStickerFeedOptions = {}): U
       fetchNextPage();
     }
   }, [stickerSets.length, isLoading, error, fetchNextPage]);
+
+  // Загружаем полную информацию для текущей карточки
+  useEffect(() => {
+    const currentCard = stickerSets[currentIndex];
+    if (currentCard && !fullDataCache.has(currentCard.id)) {
+      loadFullStickerSetData(currentCard.id);
+    }
+  }, [currentIndex, stickerSets, loadFullStickerSetData]);
 
   const hasMore = currentIndex < stickerSets.length || hasMorePagesRef.current;
 

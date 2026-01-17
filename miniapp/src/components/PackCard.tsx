@@ -4,6 +4,7 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { imageCache, videoBlobCache, imageLoader, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
+import { useLikesStore } from '../store/useLikesStore';
 
 interface Pack {
   id: string;
@@ -54,6 +55,12 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       return pack.title || '';
     }
   }, [pack.title]);
+
+  // Получаем счетчик лайков
+  const likesCount = useLikesStore((state) => {
+    const likeState = state.likes[pack.id] || { packId: pack.id, isLiked: false, likesCount: 0 };
+    return likeState.likesCount;
+  });
 
   // Ленивая загрузка первого стикера только когда карточка видна
   useEffect(() => {
@@ -135,38 +142,40 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       onClick={handleClick}
       style={{
         width: '100%',
-        aspectRatio: '1 / 1.618',
-        borderRadius: '12px',
+        aspectRatio: '177 / 213', // Соотношение из Figma
+        borderRadius: '16px',
         overflow: 'hidden',
         cursor: 'pointer',
         position: 'relative',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: '0 2px 8px var(--tg-theme-shadow-color)',
+        backgroundColor: 'rgba(238, 68, 159, 0.2)', // Розовый фон с прозрачностью 20%
+        border: 'none',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
         touchAction: 'manipulation',
         opacity: isDimmed ? 0.5 : 1,
         filter: isDimmed ? 'grayscale(0.7)' : 'none',
         willChange: inView ? 'transform' : 'auto',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      {/* Контент стикера */}
-      <div style={{ 
-        width: '100%', 
-        height: '100%', 
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      {/* Заголовок сверху (из Figma) */}
+      <div className="pack-card__header">
+        <h3 className="pack-card__title">{formattedTitle}</h3>
+      </div>
+
+      {/* Превью стикера (161x161px из Figma) */}
+      <div className="pack-card__preview">
         {!isFirstStickerReady ? (
           <div
             style={{
-              width: '100%',
-              height: '100%',
+              width: '161px',
+              height: '161px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '48px',
               color: 'var(--tg-theme-hint-color)',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+              backgroundColor: 'transparent',
             }}
           >
             {activeSticker?.emoji || '🎨'}
@@ -178,89 +187,46 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 fileId={activeSticker.fileId}
                 imageUrl={activeSticker.url}
                 emoji={activeSticker.emoji}
-                className="pack-card-animated-sticker"
+                className="pack-card__preview-animated"
                 hidePlaceholder={true}
                 priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
               />
             ) : activeSticker.isVideo ? (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
-                  className="pack-card-video"
-                  autoPlay={inView}
-                  loop
-                  muted
-                  playsInline
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain'
-                  }}
-                />
-              </div>
+              <video
+                ref={videoRef}
+                src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                className="pack-card__preview-video"
+                autoPlay={inView}
+                loop
+                muted
+                playsInline
+              />
             ) : (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <img
-                  src={imageCache.get(activeSticker.fileId) || activeSticker.url}
-                  alt={activeSticker.emoji}
-                  className="pack-card-image"
-                  loading="lazy"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain'
-                  }}
-                />
-              </div>
+              <img
+                src={imageCache.get(activeSticker.fileId) || activeSticker.url}
+                alt={activeSticker.emoji}
+                className="pack-card__preview-image"
+                loading="lazy"
+              />
             )}
           </>
         ) : null}
       </div>
 
-      {/* Заголовок */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'linear-gradient(transparent, var(--tg-theme-overlay-color))',
-          color: 'white',
-          padding: '12px 8px 8px',
-          fontSize: '13px',
-          fontWeight: '500',
-          textAlign: 'center',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        {formattedTitle}
+      {/* Счетчик лайков (из Figma - Group 11, Frame 71) */}
+      <div className="pack-card__like-count">
+        <span className="pack-card__like-count-text">{likesCount}</span>
       </div>
-
-      {/* Лайк */}
-      <InteractiveLikeCount
-        packId={pack.id}
-        size="medium"
-        placement="top-right"
-      />
+      
+      {/* Иконка лайка для интерактивности (прозрачная, но кликабельна) */}
+      <div style={{ position: 'absolute', bottom: 0, right: 0, width: '42px', height: '42px', zIndex: 4, opacity: 0.01 }}>
+        <InteractiveLikeCount
+          packId={pack.id}
+          size="small"
+          placement="top-right"
+          showCount={false}
+        />
+      </div>
 
       {/* Бейдж статуса */}
       {isDimmed && (

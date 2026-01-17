@@ -7,13 +7,13 @@ import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { apiClient } from '@/api/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { MetricCard } from '@/components/MetricCard';
+import { StatisticsCard } from '@/components/StatisticsCard';
+import { StickersCarousel } from '@/components/StickersCarousel';
+import { DailyActivity } from '@/components/DailyActivity';
 import { TopUsers } from '@/components/TopUsers';
 import { TopAuthors } from '@/components/TopAuthors';
-import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { StickerSetResponse, LeaderboardUser, LeaderboardAuthor } from '@/types/sticker';
-import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import '@/styles/common.css';
 import '@/styles/DashboardPage.css';
@@ -32,11 +32,6 @@ interface DashboardStats {
   artEarnedTrend: string;
 }
 
-type CategoryFilterOption = {
-  id: string;
-  label: string;
-  title?: string;
-};
 
 export const DashboardPage: React.FC = () => {
   const MAX_TOP_STICKERS = 10;
@@ -44,40 +39,19 @@ export const DashboardPage: React.FC = () => {
   const { isInTelegramApp, user } = useTelegram();
   const { totalElements, stickerSets } = useStickerStore();
   const { likes } = useLikesStore();
-  const { userInfo, userStickerSets } = useProfileStore();
+  const { userInfo } = useProfileStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [topStickerSets, setTopStickerSets] = useState<StickerSetResponse[]>([]);
+  const [officialStickerSets, setOfficialStickerSets] = useState<StickerSetResponse[]>([]);
+  const [userStickerSets, setUserStickerSets] = useState<StickerSetResponse[]>([]);
   const [topAuthors, setTopAuthors] = useState<LeaderboardUser[]>([]);
   const [topAuthorsList, setTopAuthorsList] = useState<LeaderboardAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const categoryFilterOptions = useMemo<CategoryFilterOption[]>(() => [
-    { id: 'official', label: 'Официальные', title: 'Официальные наборы' },
-    { id: 'user', label: 'Пользовательские', title: 'Пользовательские наборы' }
-  ], []);
-  const [activeCategoryKey, setActiveCategoryKey] = useState<string>('official');
-  const [topStickersByCategory, setTopStickersByCategory] = useState<Record<string, StickerSetResponse[]>>({
-    official: [],
-    user: [],
-    all: []
-  });
-  const pyramidPacks = useMemo(() => adaptStickerSetsToGalleryPacks(topStickerSets), [topStickerSets]);
-  const row1Pack = pyramidPacks[0];
-  const row2Packs = pyramidPacks.slice(1, 3);
-  const scrollPacks = pyramidPacks.slice(3, MAX_TOP_STICKERS);
-  const hasAdditionalTopPacks = scrollPacks.length > 0;
-
-  const toggleCategory = useCallback(() => {
-    setActiveCategoryKey((prev) => (prev === 'official' ? 'user' : 'official'));
-  }, []);
-
-  const handleViewFullTop = useCallback(() => {
-    navigate('/gallery?sort=likes');
-  }, [navigate]);
 
   const handlePackClick = (packId: string) => {
-    const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
+    const allSets = [...officialStickerSets, ...userStickerSets];
+    const stickerSet = allSets.find(s => s.id.toString() === packId);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsModalOpen(true);
@@ -87,24 +61,14 @@ export const DashboardPage: React.FC = () => {
   const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
     setSelectedStickerSet(updated);
 
-    setTopStickerSets((prev) =>
+    setOfficialStickerSets((prev) =>
       prev.map((set) => (set.id === updated.id ? { ...set, ...updated } : set))
     );
 
-    setTopStickersByCategory((prev) => {
-      const next: typeof prev = {};
-      Object.entries(prev).forEach(([key, list]) => {
-        next[key] = list.map((set) => (set.id === updated.id ? { ...set, ...updated } : set));
-      });
-      return next;
-    });
+    setUserStickerSets((prev) =>
+      prev.map((set) => (set.id === updated.id ? { ...set, ...updated } : set))
+    );
   }, []);
-
-  const quickActions = [
-    { label: 'AI-Tools' },
-    { label: 'Earn ART' },
-    { label: 'NFT 2.0' },
-  ];
 
   const isOfficialStickerSet = useCallback((stickerSet: StickerSetResponse): boolean => {
     const rawFlag = (stickerSet as any)?.isOfficial ?? (stickerSet as any)?.official ?? (stickerSet as any)?.officialStatus;
@@ -254,17 +218,9 @@ export const DashboardPage: React.FC = () => {
 
         console.log('📊 Отсортировано стикерсетов для топа:', sortedSets.length);
 
-        // Используем загруженные данные напрямую (они уже отсортированы по лайкам)
-        const officialTopSets = officialStickerSets.slice(0, MAX_TOP_STICKERS);
-        const userTopSets = userStickerSets.slice(0, MAX_TOP_STICKERS);
-
-        const stickersByCategoryMap: Record<string, StickerSetResponse[]> = {
-          all: sortedSets,
-          official: officialTopSets,
-          user: userTopSets
-        };
-
-        setTopStickersByCategory(stickersByCategoryMap);
+        // Сохраняем официальные и пользовательские стикерсеты отдельно
+        setOfficialStickerSets(officialStickerSets.slice(0, 3));
+        setUserStickerSets(userStickerSets.slice(0, 3));
 
         // Получаем топ-5 пользователей из лидерборда
         try {
@@ -300,17 +256,6 @@ export const DashboardPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalElements, userInfo]);
 
-  useEffect(() => {
-    if (!categoryFilterOptions.some((option) => option.id === activeCategoryKey)) {
-      setActiveCategoryKey(categoryFilterOptions[0]?.id ?? 'official');
-    }
-  }, [activeCategoryKey, categoryFilterOptions]);
-
-  useEffect(() => {
-    const nextTopStickers = topStickersByCategory[activeCategoryKey] ?? topStickersByCategory.all ?? [];
-    setTopStickerSets(nextTopStickers);
-  }, [activeCategoryKey, topStickersByCategory]);
-
   return (
     <Box className="page-container-full-height">
       <StixlyPageContainer className="page-container-padding-y dashboard-container">
@@ -318,150 +263,122 @@ export const DashboardPage: React.FC = () => {
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            <Box className="dashboard-category-section">
-              <Box className="flex-center dashboard-category-button-container">
-                <Button
-                  onClick={toggleCategory}
-                  variant="contained"
-                  disableElevation
-                  className="button-base button-rounded dashboard-category-button"
-                >
-                  {activeCategoryKey === 'official' ? 'Официальные' : 'Пользовательские'}
-                </Button>
-              </Box>
+            {/* Блок статистики */}
+            <StatisticsCard
+              likes={{
+                value: stats.totalLikes,
+                trend: stats.likesTodayTrend
+              }}
+              creations={{
+                value: stats.totalStickerPacks,
+                trend: stats.stickerPacksTrend
+              }}
+              artpoints={{
+                value: stats.artEarnedTotal,
+                trend: stats.artEarnedTrend
+              }}
+            />
 
-              {topStickerSets.length > 0 && (
-                  <Box className="dashboard-pyramid-container">
-                    <Box className="dashboard-pyramid-trophy" aria-hidden>
-                      🏆
-                    </Box>
-                    <Box className="dashboard-pyramid-content">
-                      {row2Packs[0] && (
-                        <Box className="dashboard-pyramid-pack-left">
-                          <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
-                        </Box>
-                      )}
-
-                      {row1Pack && (
-                        <Box className="dashboard-pyramid-pack-center">
-                          <PackCard pack={row1Pack} onClick={handlePackClick} />
-                        </Box>
-                      )}
-
-                      {row2Packs[1] && (
-                        <Box className="dashboard-pyramid-pack-right">
-                          <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
-                        </Box>
-                      )}
-                    </Box>
-                    {hasAdditionalTopPacks && (
-                      <Box className="flex-center dashboard-view-all-button-container">
-                        <Button
-                          onClick={handleViewFullTop}
-                          variant="text"
-                          className="dashboard-view-all-button"
-                        >
-                          все стикеры
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
+            {/* Два блока стикерсетов рядом */}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: '16px',
+                marginBottom: '24px',
+                justifyContent: 'center',
+                flexWrap: 'wrap'
+              }}
+            >
+              {officialStickerSets.length > 0 && (
+                <StickersCarousel
+                  title="Top official Stickers"
+                  stickerSets={officialStickerSets}
+                  onPackClick={handlePackClick}
+                  variant="official"
+                />
+              )}
+              
+              {userStickerSets.length > 0 && (
+                <StickersCarousel
+                  title="Top custom Stickers"
+                  stickerSets={userStickerSets}
+                  onPackClick={handlePackClick}
+                  variant="custom"
+                />
               )}
             </Box>
 
-            {quickActions.length > 0 && (
-              <Box className="dashboard-quick-actions-container">
-                <Box className="dashboard-quick-actions-background" />
-                <Box className="dashboard-quick-actions-content">
-                  <Box className="dashboard-quick-actions-grid">
-                    {quickActions.map((action) => (
-                      <button
-                        key={action.label}
-                        type="button"
-                        disabled
-                        className="button-base button-rounded-lg dashboard-quick-action-button"
-                      >
-                        {action.label}
-                      </button>
-                    ))}
-                  </Box>
-                </Box>
-              </Box>
-            )}
+            {/* Daily Activity - должен быть ПЕРЕД Top Users по дизайну Figma */}
+            <DailyActivity
+              onCheckAll={() => {
+                // TODO: Реализовать при добавлении API
+                console.log('Check all activity clicked');
+              }}
+            />
 
-            {/* Топ пользователей по добавленным стикерам */}
-            <Grid container spacing={2} className="dashboard-top-users-grid">
-              <Grid
-                item
-                xs={12}
-              >
-                {topAuthors.length > 0 ? (
-                  <TopUsers authors={topAuthors} />
-                ) : (
-                  <Card className={cn('card-base', 'dashboard-top-users-card')}>
-                    <CardContent className="dashboard-top-users-card-content">
-                      <Typography
-                        variant="body2"
-                        className="dashboard-top-users-title"
-                      >
-                        Топ пользователей по добавленным стикерам
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="dashboard-top-users-text"
-                      >
-                        Загрузка...
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                )}
-              </Grid>
-            </Grid>
+            {/* Топ пользователей */}
+            <Box sx={{ marginBottom: '24px' }}>
+              {topAuthors.length > 0 ? (
+                <TopUsers authors={topAuthors.slice(0, 3)} />
+              ) : (
+                <Card className={cn('card-base', 'dashboard-top-users-card')}>
+                  <CardContent className="dashboard-top-users-card-content">
+                    <Typography
+                      variant="body2"
+                      className="dashboard-top-users-title"
+                    >
+                      Top users
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="dashboard-top-users-text"
+                    >
+                      Загрузка...
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
 
-            {/* Топ авторов стикерсетов */}
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid
-                item
-                xs={12}
-              >
-                {topAuthorsList.length > 0 ? (
-                  <TopAuthors authors={topAuthorsList} />
-                ) : (
-                  <Card
-                    sx={{
-                      borderRadius: 3,
-                      backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                      border: '1px solid var(--tg-theme-border-color)',
-                      boxShadow: 'none',
-                      height: '100%',
-                    }}
-                  >
-                    <CardContent sx={{ p: 2 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'var(--tg-theme-hint-color)',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                          mb: 1.5,
-                        }}
-                      >
-                        Топ авторов стикерсетов
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'var(--tg-theme-hint-color)',
-                          fontSize: '0.75rem',
-                        }}
-                      >
-                        Загрузка...
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                )}
-              </Grid>
-            </Grid>
+            {/* Топ авторов */}
+            <Box sx={{ marginBottom: '24px' }}>
+              {topAuthorsList.length > 0 ? (
+                <TopAuthors authors={topAuthorsList.slice(0, 3)} />
+              ) : (
+                <Card
+                  sx={{
+                    borderRadius: 3,
+                    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                    border: '1px solid var(--tg-theme-border-color)',
+                    boxShadow: 'none',
+                    height: '100%',
+                  }}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'var(--tg-theme-hint-color)',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        mb: 1.5,
+                      }}
+                    >
+                      Top Authors
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'var(--tg-theme-hint-color)',
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      Загрузка...
+                    </Typography>
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
 
             {/* Дополнительный отступ внизу, чтобы лидерборд был виден над BottomNav */}
             <Box sx={{ height: { xs: '140px', sm: '160px' }, flexShrink: 0 }} />

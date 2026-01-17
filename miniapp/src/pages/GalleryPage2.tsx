@@ -19,11 +19,15 @@ import { CompactControlsBar } from '../components/CompactControlsBar';
 import { StickerSetType } from '../components/StickerSetTypeFilter';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
+import { useGalleryContext } from '../contexts/GalleryContext';
+import { GallerySearchBar } from '../components/GallerySearchBar';
+import '../styles/GalleryPage.css';
 
-export const GalleryPage2: React.FC = () => {
+const GalleryPage2Content: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
   const scrollElement = useScrollElement();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { searchTerm, setSearchTerm: setContextSearchTerm, handleSearch: contextHandleSearch, showFilters, setShowFilters } = useGalleryContext();
   
   const {
     isLoading,
@@ -42,7 +46,6 @@ export const GalleryPage2: React.FC = () => {
   const initializeLikes = useLikesStore(state => state.initializeLikes);
   const { userInfo, setUserInfo } = useProfileStore();
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [manualInitData, setManualInitData] = useState('');
@@ -209,13 +212,13 @@ export const GalleryPage2: React.FC = () => {
   }, [tg, setSearchParams]);
 
   const handleSearch = useCallback((searchTerm: string) => {
-    setSearchTerm(searchTerm);
+    contextHandleSearch(searchTerm);
     lastFiltersRef.current = {
       ...lastFiltersRef.current,
       searchTerm: searchTerm
     };
     fetchStickerSets(0, false, selectedCategories);
-  }, [fetchStickerSets, selectedCategories]);
+  }, [contextHandleSearch, fetchStickerSets, selectedCategories]);
 
   const handleCategoryToggle = useCallback((categoryId: string) => {
     setSelectedCategories(prev => {
@@ -343,11 +346,11 @@ export const GalleryPage2: React.FC = () => {
   const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
 
   return (
-    <>
-      {!isInitialLoading && (
+    <div className="gallery-page">
+      {!isInitialLoading && showFilters && (
         <CompactControlsBar
           searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearchChange={setContextSearchTerm}
           onSearch={handleSearch}
           searchDisabled={false}
           categories={categories}
@@ -364,11 +367,18 @@ export const GalleryPage2: React.FC = () => {
           selectedDate={selectedDate}
           onDateChange={handleDateChange}
           onApplyFilters={handleApplyFilters}
+          onAddClick={() => {}}
           variant="fixed"
         />
       )}
 
-      <StixlyPageContainer>
+      <div className="gallery-page__content">
+        {!isInitialLoading && (
+          <div className="gallery-page__search-filter-sticky">
+            <GallerySearchBar />
+          </div>
+        )}
+
         {isInitialLoading ? (
           <LoadingSpinner message="Загрузка стикеров..." />
         ) : error ? (
@@ -394,9 +404,12 @@ export const GalleryPage2: React.FC = () => {
               onLoadMore={loadMoreStickerSets}
               scrollElement={scrollElement}
             />
+            {currentPage < totalPages - 1 && (
+              <div className="gallery-page__see-more">See more</div>
+            )}
           </div>
         )}
-      </StixlyPageContainer>
+      </div>
 
       <StickerPackModal 
         open={isDetailOpen} 
@@ -406,7 +419,10 @@ export const GalleryPage2: React.FC = () => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);
         }}
       />
-    </>
+    </div>
   );
 };
 
+export const GalleryPage2: React.FC = () => {
+  return <GalleryPage2Content />;
+};

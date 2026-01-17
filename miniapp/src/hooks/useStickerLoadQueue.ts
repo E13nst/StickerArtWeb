@@ -9,6 +9,7 @@ interface UseStickerLoadQueueOptions {
   initialLoad?: number;      // По умолчанию 5
   loadOnScroll?: number;     // По умолчанию 2
   enabled?: boolean;         // По умолчанию true
+  basePriority?: LoadPriority; // Базовый приоритет для карточки (по умолчанию TIER_2_NEAR_VIEWPORT)
 }
 
 interface UseStickerLoadQueueReturn {
@@ -30,7 +31,8 @@ export const useStickerLoadQueue = ({
   packId,
   initialLoad = 5,
   loadOnScroll = 2,
-  enabled = true
+  enabled = true,
+  basePriority = LoadPriority.TIER_2_NEAR_VIEWPORT
 }: UseStickerLoadQueueOptions): UseStickerLoadQueueReturn => {
   const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set());
   const queueRef = useRef<number[]>([]); // Очередь индексов для загрузки
@@ -64,6 +66,8 @@ export const useStickerLoadQueue = ({
    * Загружает стикер в очередь
    */
   const loadSticker = useCallback(async (index: number): Promise<void> => {
+    // Не загружаем, если карточка неактивна
+    if (!enabled) return;
     if (index < 0 || index >= stickers.length) return;
     if (loadedIndices.has(index) || loadingRef.current.has(index)) return;
 
@@ -77,10 +81,11 @@ export const useStickerLoadQueue = ({
       const isAnimated = sticker.is_animated || false;
       const isVideo = sticker.is_video || false;
 
-      // Определяем приоритет: первый стикер - максимальный, остальные - средний
+      // Определяем приоритет: первый стикер использует базовый приоритет карточки,
+      // остальные - на один уровень ниже, но не ниже TIER_3_ADDITIONAL
       const priority = index === 0 
-        ? LoadPriority.TIER_1_VIEWPORT 
-        : LoadPriority.TIER_2_NEAR_VIEWPORT;
+        ? basePriority 
+        : Math.max(basePriority - 1, LoadPriority.TIER_3_ADDITIONAL);
 
       // Загружаем через imageLoader с правильным типом ресурса
       if (isVideo) {
@@ -98,11 +103,11 @@ export const useStickerLoadQueue = ({
     } finally {
       loadingRef.current.delete(index);
     }
-  }, [stickers, packId, loadedIndices]);
+  }, [stickers, packId, loadedIndices, basePriority, enabled]);
 
   /**
    * Инициализация: загружает первые initialLoad стикеров
-   * Сбрасывается при смене packId
+   * Сбрасывается при смене packId или когда карточка становится неактивной
    */
   useEffect(() => {
     // Если packId изменился, сбрасываем состояние
@@ -112,6 +117,12 @@ export const useStickerLoadQueue = ({
       queueRef.current = [];
       loadingRef.current.clear();
       packIdRef.current = packId;
+    }
+
+    // Если карточка стала неактивной, сбрасываем флаг инициализации
+    // чтобы при активации загрузка началась заново
+    if (!enabled && hasInitializedRef.current) {
+      hasInitializedRef.current = false;
     }
 
     if (!enabled || !stickers.length || hasInitializedRef.current) return;

@@ -7,25 +7,13 @@ import {
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CollectionsIcon from '@mui/icons-material/Collections';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { useTelegram } from '@/hooks/useTelegram';
 
-const SOFT_ACCENT_COLORS = [
-  'hsl(200 60% 70%)', // нежно-голубой
-  'hsl(160 55% 68%)', // мятный
-  'hsl(280 45% 72%)', // лавандовый
-  'hsl(30 60% 72%)',  // персиковый
-  'hsl(340 50% 72%)', // нежно-розовый
-  'hsl(90 45% 65%)',  // пастельно-зелёный
-  'hsl(220 40% 68%)', // серо-голубой
-  'hsl(10 55% 70%)',  // дымчато-коралловый
-];
-
-const getRandomAccentColor = () => {
-  const index = Math.floor(Math.random() * SOFT_ACCENT_COLORS.length);
-  return SOFT_ACCENT_COLORS[index];
-};
+// Цвет активной вкладки согласно дизайну Figma
+const ACTIVE_COLOR = '#ee449f'; // Розовый для Swipe
 
 interface BottomNavProps {
   activeTab?: number;
@@ -39,9 +27,89 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { tg } = useTelegram();
   const [internalTab, setInternalTab] = React.useState<number>(0);
-  const [activeColor, setActiveColor] = React.useState<string>(() => getRandomAccentColor());
   const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
+  const [inactiveColor, setInactiveColor] = React.useState<string>('#ffffff');
+  const [backgroundColor, setBackgroundColor] = React.useState<string>('rgba(255, 255, 255, 0.2)');
+  
+  // Функция для определения цвета неактивных элементов
+  const updateInactiveColor = React.useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const root = document.documentElement;
+      const computedStyle = getComputedStyle(root);
+      const textColor = computedStyle.getPropertyValue('--tg-theme-text-color').trim();
+      if (textColor) {
+        setInactiveColor(textColor);
+        return;
+      }
+      
+      // Fallback на основе colorScheme
+      const isLight = tg?.colorScheme === 'light' || 
+                     root.classList.contains('tg-light-theme') ||
+                     (!root.classList.contains('tg-dark-theme') && 
+                      window.matchMedia('(prefers-color-scheme: light)').matches);
+      setInactiveColor(isLight ? '#000000' : '#ffffff');
+    }
+  }, [tg?.colorScheme]);
+  
+  // Функция для определения цвета фона
+  const updateBackgroundColor = React.useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const root = document.documentElement;
+      const bgColor = getComputedStyle(root).getPropertyValue('--tg-theme-bg-color').trim();
+      if (bgColor) {
+        // Для светлой темы используем темный фон с прозрачностью, для темной - светлый
+        const isLight = bgColor.toLowerCase() === '#ffffff' || 
+                       bgColor.toLowerCase() === 'rgb(255, 255, 255)' ||
+                       tg?.colorScheme === 'light' ||
+                       root.classList.contains('tg-light-theme');
+        setBackgroundColor(isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)');
+        return;
+      }
+    }
+    setBackgroundColor('rgba(255, 255, 255, 0.2)');
+  }, [tg?.colorScheme]);
+  
+  // Обновляем цвета при монтировании и изменении темы
+  React.useEffect(() => {
+    updateInactiveColor();
+    updateBackgroundColor();
+    
+    // Слушаем изменения темы
+    const observer = new MutationObserver(() => {
+      updateInactiveColor();
+      updateBackgroundColor();
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    });
+    
+    // Слушаем изменения системной темы
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+    const handleThemeChange = () => {
+      updateInactiveColor();
+      updateBackgroundColor();
+    };
+    mediaQuery.addEventListener('change', handleThemeChange);
+    
+    // Слушаем события изменения темы Telegram
+    tg?.onEvent?.('themeChanged', () => {
+      updateInactiveColor();
+      updateBackgroundColor();
+    });
+    
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener('change', handleThemeChange);
+      tg?.offEvent?.('themeChanged', () => {
+        updateInactiveColor();
+        updateBackgroundColor();
+      });
+    };
+  }, [updateInactiveColor, updateBackgroundColor, tg]);
 
   // Определяем активную вкладку по маршруту
   const getCurrentTab = () => {
@@ -80,9 +148,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     }
   };
 
-  React.useEffect(() => {
-    setActiveColor(getRandomAccentColor());
-  }, [location.pathname]);
 
   // Проверяем, открыто ли модальное окно
   React.useEffect(() => {
@@ -118,91 +183,95 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     return null;
   }
 
+  const currentTab = getCurrentTab();
+
   return (
     <Paper 
       className="bottom-nav-paper"
       sx={{ 
         position: 'fixed', 
-        bottom: 'calc(100vh * 0.024)', // ~2.4% отступ снизу (гармоничное значение)
+        bottom: 'calc(100vh * 0.024)', // ~2.4% отступ снизу
         left: '50%',
         transform: 'translateX(-50%)',
         width: '100%',
-        maxWidth: '600px', // узкий лейаут для основного контента
+        maxWidth: '600px',
         zIndex: 'var(--z-header, 100)',
-        overflow: 'hidden', // Обрезаем анимацию, выходящую за края
-        // Фоллбэк для старых браузеров
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        // Современный способ: более прозрачный фон
-        background: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 70%, transparent)',
+        overflow: 'hidden',
+        // Фон адаптируется под тему
+        backgroundColor: backgroundColor,
         border: 'none',
-        borderRadius: 'calc(100vw * 0.05)', // ~5% закругление углов (как у Telegram)
+        borderRadius: '16px', // Согласно дизайну Figma
         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        // Добавляем внутренний отступ для контента
-        padding: 'calc(100vh * 0.006) 0', // ~0.6% вертикальный padding (уменьшено)
+        padding: '0',
       }}
       elevation={0}
     >
       <BottomNavigation
-        value={getCurrentTab()}
+        value={currentTab}
         onChange={handleNavigation}
+        showLabels
         sx={{
-          height: 'calc(100vh * 0.062)', // 6.2% от высоты viewport (гармоничное значение)
-          minHeight: '52px',
-          maxHeight: '64px',
-          backgroundColor: 'transparent !important', // Принудительно прозрачный
-          background: 'none !important', // Убираем любой background
+          height: '50px', // Согласно дизайну Figma
+          backgroundColor: 'transparent !important',
           boxShadow: 'none',
-          overflow: 'hidden', // Обрезаем анимацию кнопок
           '& .MuiBottomNavigationAction-root': {
-            borderRadius: 'calc(100vw * 0.03)', // Закругление для анимации
-            overflow: 'hidden', // Обрезаем ripple эффект
-            color: 'var(--tg-theme-hint-color)',
             minWidth: 'auto',
-            padding: 'calc(100vh * 0.004) clamp(12px, 4vw, 20px)', // адаптивный горизонтальный отступ
-            backgroundColor: 'transparent !important',
+            padding: '4px 8px',
+            color: `${inactiveColor} !important`,
             flex: '1 1 0',
             '&.Mui-selected': {
-              color: activeColor,
-              backgroundColor: 'transparent !important',
+              color: ACTIVE_COLOR,
               '& .MuiSvgIcon-root': {
-                color: activeColor,
-                filter: `drop-shadow(0 0 8px ${activeColor})`,
+                color: `${ACTIVE_COLOR} !important`,
               },
-            },
-            '&:hover': {
-              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              '& .MuiBottomNavigationAction-label': {
+                color: `${ACTIVE_COLOR} !important`,
+                fontSize: '8px',
+                fontFamily: 'Manrope, sans-serif',
+                fontWeight: 400,
+                marginTop: '2px',
+              },
             },
             '& .MuiSvgIcon-root': {
-              fontSize: 'clamp(22px, 5vw, 28px)',
+              fontSize: '24px',
+              color: `${inactiveColor} !important`,
+              transition: 'color 0.3s ease',
             },
-            '@media (min-width: 768px)': {
-              padding: 'calc(100vh * 0.003) clamp(14px, 3vw, 18px)',
+          '& .MuiBottomNavigationAction-label': {
+            fontSize: '8px',
+            fontFamily: 'Manrope, sans-serif',
+            fontWeight: 400,
+            color: `${inactiveColor} !important`,
+            marginTop: '2px',
+            transition: 'color 0.3s ease',
+            '&.Mui-selected': {
+              color: `${ACTIVE_COLOR} !important`,
             },
-            '@media (min-width: 1200px)': {
-              padding: 'calc(100vh * 0.0025) 16px',
-              '& .MuiSvgIcon-root': {
-                fontSize: 'clamp(20px, 2vw, 26px)',
-              },
-            },
+          },
           },
         }}
       >
         <BottomNavigationAction 
-          icon={<HomeIcon />} 
+          icon={<HomeIcon />}
+          label="Home"
         />
         <BottomNavigationAction 
-          icon={<CollectionsIcon />} 
+          icon={<CollectionsIcon />}
+          label="Gallery"
         />
         <BottomNavigationAction 
-          icon={<ShoppingCartIcon />} 
+          icon={<FavoriteIcon />}
+          label="Swipe"
         />
         <BottomNavigationAction 
-          icon={<AutoAwesomeIcon />} 
+          icon={<AutoAwesomeIcon />}
+          label="Generation"
         />
         <BottomNavigationAction 
-          icon={<AccountCircleIcon />} 
+          icon={<AccountCircleIcon />}
+          label="Account"
         />
       </BottomNavigation>
     </Paper>

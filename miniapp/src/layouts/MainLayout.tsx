@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { BottomNav } from '@/components/BottomNav';
@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHeaderColor } from '@/hooks/useHeaderColor';
 import { ScrollProvider } from '@/contexts/ScrollContext';
+import { GalleryProvider } from '@/contexts/GalleryContext';
 
 interface Props {
   children: React.ReactNode;
@@ -17,10 +18,12 @@ export default function MainLayout({ children }: Props) {
   const isAuthorPage = location.pathname.startsWith('/author');
   const isDashboardPage = location.pathname === '/' || location.pathname.startsWith('/dashboard');
   const isSwipePage = location.pathname.startsWith('/nft-soon');
+  const isGalleryPage = location.pathname.startsWith('/gallery');
   const { updateHeaderColor, isReady } = useTelegram();
   const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const isHeaderVisible = !isProfilePage && !isAuthorPage;
+  
   
   // Используем хук для определения цвета header
   // onColorChange уже вызывает updateHeaderColor, поэтому не нужно дублировать в useEffect
@@ -52,45 +55,47 @@ export default function MainLayout({ children }: Props) {
   }
 
   return (
-    <div
-      className="stixly-main-layout"
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: isSwipePage ? 'hidden' : 'visible',
-        // Гарантируем, что header не обрезается этим контейнером
-        overflowX: 'hidden',
-        overflowY: 'visible'
-      }}
-    >
-      {isHeaderVisible && (
-        <StixlyTopHeader
-          onSlideChange={setCurrentSlideBg}
-          fixedSlideId={isDashboardPage ? 2 : undefined}
-        />
-      )}
-      <ScrollProvider scrollElement={mainScrollRef.current}>
-        <div
-          ref={mainScrollRef}
-          className="stixly-main-scroll"
-          style={{
-            flex: '1 1 auto',
-            height: isSwipePage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
-            overflowY: isSwipePage ? 'hidden' : 'auto',
-            overflowX: 'hidden',
-            paddingBottom: isSwipePage
-              ? 0
-              : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          {children}
-        </div>
-      </ScrollProvider>
-      <BottomNav />
-    </div>
+    <GalleryProvider>
+      <div
+        className="stixly-main-layout"
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: isSwipePage ? 'hidden' : 'visible',
+          // Гарантируем, что header не обрезается этим контейнером
+          overflowX: 'hidden',
+          overflowY: 'visible'
+        }}
+      >
+        {isHeaderVisible && (
+          <StixlyTopHeader
+            onSlideChange={setCurrentSlideBg}
+            fixedSlideId={isDashboardPage ? 2 : undefined}
+          />
+        )}
+        <ScrollProvider scrollElement={mainScrollRef.current}>
+          <div
+            ref={mainScrollRef}
+            className="stixly-main-scroll"
+            style={{
+              flex: '1 1 auto',
+              height: isSwipePage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
+              overflowY: isSwipePage ? 'hidden' : 'auto',
+              overflowX: 'hidden',
+              paddingBottom: isSwipePage
+                ? 0
+                : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {children}
+          </div>
+        </ScrollProvider>
+        <BottomNav />
+      </div>
+    </GalleryProvider>
   );
 }
 

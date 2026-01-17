@@ -44,16 +44,6 @@ export const SwipePage: React.FC = () => {
     next();
   }, [currentCard, toggleLike, next]);
 
-  const handleSkipButton = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred?.('light');
-    handleSwipeDown();
-  }, [tg, handleSwipeDown]);
-
-  const handleLikeButton = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred?.('medium');
-    handleSwipeUp();
-  }, [tg, handleSwipeUp]);
-
   if (isLoading && stickerSets.length === 0) {
     return (
       <div className="discover-page">
@@ -97,6 +87,10 @@ export const SwipePage: React.FC = () => {
 
   return (
     <div className="discover-page">
+      {/* Фоновые градиенты Rectangle 7 и Rectangle 8 из Figma */}
+      <div className="discover-page__gradient discover-page__gradient--dislike"></div>
+      <div className="discover-page__gradient discover-page__gradient--like"></div>
+
       {stickerSets.length > 0 && (
         <div className="discover-page__counter">
           <span className="discover-page__counter-text">Просмотрено: {totalViewed}</span>
@@ -110,7 +104,9 @@ export const SwipePage: React.FC = () => {
               const isTop = index === 0;
               const zIndex = visibleCards.length - index;
               const scale = 1 - index * 0.05;
-              const translateY = index * 10;
+              // Сдвигаем карточки вверх для создания иллюзии бесконечной очереди
+              // Первая карточка на месте, вторая и третья сдвинуты вверх
+              const translateY = index === 0 ? 0 : index === 1 ? -15 : -25;
 
               return (
                 <div
@@ -133,29 +129,11 @@ export const SwipePage: React.FC = () => {
                     onSwipeLeft={isTop ? handleSwipeDown : () => {}}
                     onSwipeRight={isTop ? handleSwipeUp : () => {}}
                     isTopCard={isTop}
-                    priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT}
+                    priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
                   />
                 </div>
               );
             })}
-          </div>
-
-          <div className="discover-page__actions">
-            <button
-              className="discover-page__action-button discover-page__action-button--like"
-              onClick={handleLikeButton}
-              aria-label="Лайк"
-            >
-              <span className="discover-page__action-icon">❤️</span>
-            </button>
-
-            <button
-              className="discover-page__action-button discover-page__action-button--skip"
-              onClick={handleSkipButton}
-              aria-label="Пропустить"
-            >
-              <span className="discover-page__action-icon">💩</span>
-            </button>
           </div>
         </div>
       )}

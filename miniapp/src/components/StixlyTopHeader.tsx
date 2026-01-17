@@ -22,6 +22,7 @@ export interface StixlyTopHeaderProps {
   profileMode?: ProfileModeConfig | { enabled: false };
   onSlideChange?: (slideBg: string) => void;
   fixedSlideId?: number;
+  bottomContent?: React.ReactNode; // Дополнительный контент внизу header (например, панель поиска)
 }
 
 type Slide = {
@@ -126,7 +127,8 @@ const pickFirstNumber = (values: unknown[], visited: WeakSet<object> = new WeakS
 export default function StixlyTopHeader({
   profileMode,
   onSlideChange,
-  fixedSlideId
+  fixedSlideId,
+  bottomContent
 }: StixlyTopHeaderProps = {}) {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
@@ -408,7 +410,7 @@ export default function StixlyTopHeader({
         height: "calc((var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) * 0.146))", // 14.6% от высоты viewport (с поддержкой официальных переменных)
         maxHeight: "140px",
         zIndex: 1,
-        overflow: "hidden",
+        overflow: bottomContent ? "visible" : "hidden",
         borderBottomLeftRadius: "calc(100vw * 0.038)", // ~3.8% от ширины viewport
         borderBottomRightRadius: "calc(100vw * 0.038)",
         pointerEvents: "auto", // разрешаем взаимодействия для кнопки
@@ -435,6 +437,9 @@ export default function StixlyTopHeader({
             className="stixly-top-header__content"
             style={{
               position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
               inset: 0,
               display: "flex",
               alignItems: "center",
@@ -584,6 +589,11 @@ export default function StixlyTopHeader({
           </motion.div>
         </AnimatePresence>
       </div>
+      {bottomContent && (
+        <div className="stixly-top-header__bottom-content" style={{ zIndex: 10 }}>
+          {bottomContent}
+        </div>
+      )}
     </div>
   );
 
@@ -679,6 +689,11 @@ export default function StixlyTopHeader({
   return (
     <header id="stixlytopheader" className="stixly-top-header">
       <div className="stixly-top-header-inner">
+        {/* iOS time panel area - занимает всю верхнюю область включая safe area */}
+        <div 
+          data-cursor-element-id="cursor-el-1"
+          className="stixly-ios-time-panel-area"
+        />
         {headerContent}
       </div>
     </header>

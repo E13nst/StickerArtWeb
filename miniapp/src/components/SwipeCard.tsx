@@ -1,11 +1,13 @@
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { useTelegram } from '@/hooks/useTelegram';
+import { useGlassEffect } from '@/hooks/useGlassEffect';
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerSetResponse } from '@/types/sticker';
 import { LoadPriority } from '@/utils/imageLoader';
 import { getStickerImageUrl } from '@/utils/stickerUtils';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
+import { StickerThumbnail } from './StickerThumbnail';
 
 interface SwipeCardProps {
   stickerSet: StickerSetResponse;
@@ -31,6 +33,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   priority = LoadPriority.TIER_2_NEAR_VIEWPORT
 }) => {
   const { tg } = useTelegram();
+  const glassEffect = useGlassEffect();
   const cardRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -43,12 +46,15 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   }, [stickerSet]);
 
   // Инициализация очереди загрузки
+  // Для передней карточки используем максимальный приоритет, для остальных - переданный
+  const cardPriority = isTopCard ? LoadPriority.TIER_1_VIEWPORT : priority;
   const { isLoaded, triggerLoad, clearQueue } = useStickerLoadQueue({
     stickers,
     packId: stickerSet.id.toString(),
     initialLoad: 5,
     loadOnScroll: 2,
-    enabled: isTopCard
+    enabled: isTopCard,
+    basePriority: cardPriority
   });
 
   // Motion values для отслеживания вертикального положения
@@ -242,7 +248,34 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
 
   // Формируем категории
   const categories = stickerSet.categories?.slice(0, 3) || [];
-  const likesCount = stickerSet.likesCount || 0;
+  const thumbnailsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Обработчик клика по мини-превью для переключения стикера
+  const handleThumbnailClick = useCallback((index: number) => {
+    if (isTopCard && isLoaded(index)) {
+      setActiveStickerIndex(index);
+      triggerLoad();
+      if (tg?.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+      }
+    }
+  }, [isTopCard, isLoaded, triggerLoad, tg]);
+
+  // Прокрутка к активному мини-превью
+  useEffect(() => {
+    if (thumbnailsScrollRef.current && isTopCard) {
+      const activeThumbnail = thumbnailsScrollRef.current.querySelector(
+        `[data-thumbnail-index="${activeStickerIndex}"]`
+      );
+      if (activeThumbnail) {
+        activeThumbnail.scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest'
+        });
+      }
+    }
+  }, [activeStickerIndex, isTopCard]);
 
   // Сбрасываем индекс при смене карточки
   useEffect(() => {
@@ -276,12 +309,31 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         touchAction: 'none',
         userSelect: 'none',
         cursor: isTopCard ? 'grab' : 'default',
+        background: glassEffect.glassBase,
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        border: `1px solid ${glassEffect.borderColor}`,
         ...style,
       }}
       animate={!isDragging ? { x: 0, y: 0, rotate: 0 } : {}}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="swipe-card"
     >
+      {/* Заголовок и подзаголовок (вверху карточки) */}
+      <div className="swipe-card__header">
+        <h2 className="swipe-card__title">{stickerSet.title}</h2>
+        {(() => {
+          // Определяем имя автора: username или firstName + lastName
+          const authorName = stickerSet.username 
+            ? `@${stickerSet.username}`
+            : [stickerSet.firstName, stickerSet.lastName].filter(Boolean).join(' ').trim();
+          
+          return authorName ? (
+            <p className="swipe-card__name">{authorName}</p>
+          ) : null;
+        })()}
+      </div>
+
       {/* Контейнер превью стикера с зонами тапа */}
       <div 
         ref={previewRef}
@@ -328,28 +380,45 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         />
       </div>
 
-      {/* Информация о стикерсете */}
-      <div className="swipe-card__info">
-        <h2 className="swipe-card__title">{stickerSet.title}</h2>
-        <p className="swipe-card__name">@{stickerSet.name}</p>
-
-        {/* Категории */}
-        {categories.length > 0 && (
-          <div className="swipe-card__categories">
-            {categories.map(category => (
-              <span key={category.key} className="swipe-card__category">
-                {category.name}
-              </span>
-            ))}
+      {/* Горизонтальная прокрутка мини-превью стикеров */}
+      {stickers.length > 0 && (
+        <div className="swipe-card__thumbnails-container">
+          <div 
+            ref={thumbnailsScrollRef}
+            className="swipe-card__thumbnails-scroll"
+          >
+            {stickers.map((sticker, index) => {
+              const isActive = index === activeStickerIndex;
+              return (
+                <div
+                  key={sticker.file_id}
+                  data-thumbnail-index={index}
+                  className={`swipe-card__thumbnail ${isActive ? 'swipe-card__thumbnail--active' : ''}`}
+                  onClick={() => handleThumbnailClick(index)}
+                >
+                  <StickerThumbnail
+                    fileId={sticker.file_id}
+                    thumbFileId={sticker.thumb?.file_id}
+                    emoji={sticker.emoji}
+                    size={80}
+                  />
+                </div>
+              );
+            })}
           </div>
-        )}
-
-        {/* Счетчик лайков */}
-        <div className="swipe-card__likes">
-          <span className="swipe-card__likes-icon">❤️</span>
-          <span className="swipe-card__likes-count">{likesCount}</span>
         </div>
-      </div>
+      )}
+
+      {/* Категории */}
+      {categories.length > 0 && (
+        <div className="swipe-card__categories">
+          {categories.map(category => (
+            <span key={category.key} className="swipe-card__category">
+              {category.name}
+            </span>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 };

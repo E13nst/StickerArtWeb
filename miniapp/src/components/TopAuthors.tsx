@@ -23,6 +23,13 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
   const displayName = firstName || author.username || `Автор #${author.authorId}`;
   const initials = getInitials(firstName, lastName || undefined);
   const avatarBgColor = getAvatarColor(firstName || author.username || 'Author');
+  
+  // Размеры аватаров по дизайну Figma: 1 место - 80px, 2-3 места - 60px
+  const avatarSize = index === 0 ? 80 : 60;
+  
+  // Цвета бейджей по дизайну Figma
+  const badgeColors = ['#ffc424', '#919191', '#db7f13'];
+  const badgeColor = index < 3 ? badgeColors[index] : undefined;
 
   const handleClick = () => {
     navigate(`/author/${author.authorId}`);
@@ -33,18 +40,16 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
       onClick={handleClick}
       sx={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 1.5,
+        gap: '8px',
         py: 0.75,
-        borderRadius: 2,
-        backgroundColor: index === 0 ? 'var(--tg-theme-button-color)' : 'transparent',
         px: 1,
-        transition: 'background-color 0.2s ease',
+        width: index === 0 ? '80px' : '69px',
         cursor: 'pointer',
+        transition: 'opacity 0.2s ease',
         '&:hover': {
-          backgroundColor: index === 0 
-            ? 'var(--tg-theme-button-color)' 
-            : 'var(--tg-theme-secondary-bg-color)',
+          opacity: 0.8
         }
       }}
     >
@@ -53,33 +58,35 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
         <Avatar
           src={avatarBlobUrl || undefined}
           sx={{
-            width: 40,
-            height: 40,
+            width: avatarSize,
+            height: avatarSize,
             bgcolor: avatarBgColor,
-            fontSize: '0.875rem',
+            fontSize: index === 0 ? '1rem' : '0.875rem',
             fontWeight: 'bold'
           }}
         >
           {initials}
         </Avatar>
         {/* Бейдж места */}
-        {index < 3 && (
+        {index < 3 && badgeColor && (
           <Box
             sx={{
               position: 'absolute',
-              top: -4,
-              right: -4,
-              width: 20,
-              height: 20,
+              bottom: 0,
+              right: '50%',
+              transform: 'translateX(50%)',
+              width: '16px',
+              height: '16px',
               borderRadius: '50%',
-              backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32',
+              backgroundColor: badgeColor,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.7rem',
-              fontWeight: 'bold',
-              color: '#000',
-              border: '2px solid var(--tg-theme-bg-color)'
+              fontSize: '12px',
+              fontWeight: 400,
+              color: '#ffffff',
+              border: 'none',
+              fontFamily: 'Manrope, -apple-system, BlinkMacSystemFont, sans-serif'
             }}
           >
             {index + 1}
@@ -88,39 +95,38 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
       </Box>
 
       {/* Информация об авторе */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
         <Typography
-          variant="body2"
           sx={{
-            color: index === 0 ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-            fontSize: '0.875rem',
-            fontWeight: index === 0 ? 600 : 500,
+            color: '#ffffff',
+            fontSize: '16px',
+            fontWeight: 400,
+            fontFamily: 'Manrope, -apple-system, BlinkMacSystemFont, sans-serif',
+            textAlign: 'center',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            width: '100%',
+            lineHeight: '22px'
           }}
         >
           {displayName}
         </Typography>
+        
+        {/* Количество созданных стикерсетов */}
+        <Typography
+          sx={{
+            color: '#67f56b',
+            fontSize: '10px',
+            fontWeight: 400,
+            fontFamily: 'Manrope, -apple-system, BlinkMacSystemFont, sans-serif',
+            textAlign: 'center',
+            lineHeight: '22px'
+          }}
+        >
+          {author.publicCount} Create
+        </Typography>
       </Box>
-
-      {/* Количество публичных стикерсетов */}
-      <Chip
-        label={author.publicCount}
-        size="small"
-        sx={{
-          height: '24px',
-          fontSize: '0.7rem',
-          backgroundColor: index === 0 
-            ? 'rgba(255, 255, 255, 0.2)' 
-            : 'var(--tg-theme-button-color)',
-          color: index === 0 
-            ? 'var(--tg-theme-button-text-color)' 
-            : 'var(--tg-theme-button-text-color)',
-          fontWeight: 600,
-          minWidth: '40px'
-        }}
-      />
     </Box>
   );
 };
@@ -140,56 +146,63 @@ export const TopAuthors: React.FC<TopAuthorsProps> = ({ authors }) => {
     <>
       <Card
         sx={{
-          borderRadius: 3,
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          border: '1px solid var(--tg-theme-border-color)',
+          borderRadius: '16px',
+          backgroundColor: 'transparent',
+          border: 'none',
           boxShadow: 'none',
           height: '100%'
         }}
       >
         <CardContent sx={{ p: 2 }}>
           <Typography
-            variant="body2"
             sx={{
-              color: 'var(--tg-theme-hint-color)',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              mb: 1.5
+              color: '#ffffff',
+              fontSize: '24px',
+              fontWeight: 700,
+              fontFamily: 'Manrope, -apple-system, BlinkMacSystemFont, sans-serif',
+              mb: 1.5,
+              lineHeight: '22px'
             }}
           >
-            Топ авторов стикерсетов
+            Top Authors
           </Typography>
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {authors.map((author, index) => (
-              <AuthorItem key={author.authorId} author={author} index={index} />
-            ))}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', gap: 1, mb: 2 }}>
+            {/* Порядок: слева 2 место, в центре 1 место, справа 3 место */}
+            {authors.length > 1 && (
+              <AuthorItem key={authors[1].authorId} author={authors[1]} index={1} />
+            )}
+            {authors.length > 0 && (
+              <AuthorItem key={authors[0].authorId} author={authors[0]} index={0} />
+            )}
+            {authors.length > 2 && (
+              <AuthorItem key={authors[2].authorId} author={authors[2]} index={2} />
+            )}
           </Box>
           
-          {/* Ссылка "Полный список" */}
-          <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
+          {/* Ссылка "View all" */}
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Button
               onClick={handleOpenModal}
               variant="text"
               sx={{
                 textTransform: 'none',
-                textDecoration: 'underline',
-                textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45))',
-                fontSize: '0.82rem',
+                textDecoration: 'none',
+                fontSize: '12px',
                 fontWeight: 300,
-                color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7))',
+                fontFamily: 'Manrope, -apple-system, BlinkMacSystemFont, sans-serif',
+                color: 'rgba(255, 255, 255, 0.5)',
                 px: 0,
-                py: 0.5,
+                py: 0,
                 minWidth: 'auto',
+                lineHeight: '28px',
                 '&:hover': {
                   backgroundColor: 'transparent',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6))',
-                  color: 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85))',
+                  color: 'rgba(255, 255, 255, 0.7)',
                 },
               }}
             >
-              Полный список
+              View all
             </Button>
           </Box>
         </CardContent>

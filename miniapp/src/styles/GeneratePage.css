@@ -16,7 +16,7 @@
   padding: calc(100vh * 0.04) calc(100vw * 0.04);
   padding-top: clamp(80px, 12vh, 140px);
   padding-bottom: calc(100vh * 0.12 + 80px);
-  background: var(--tg-theme-bg-color);
+  background: var(--tg-theme-bg-color, #191818); /* Фон из Figma */
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;

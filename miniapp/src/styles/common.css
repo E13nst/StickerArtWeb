@@ -7,8 +7,8 @@
 .page-container {
   width: 100%;
   min-height: 100vh;
-  background-color: var(--tg-theme-bg-color, #ffffff);
-  color: var(--tg-theme-text-color, #000000);
+  background-color: var(--tg-theme-bg-color, #191818); /* Фон из Figma */
+  color: var(--tg-theme-text-color, #ffffff); /* Текст белый для темного фона */
   overflow-x: hidden;
   overflow-y: visible;
 }
@@ -23,8 +23,8 @@
 
 .page-container-full-height {
   min-height: 100%;
-  background-color: var(--tg-theme-bg-color, #ffffff);
-  color: var(--tg-theme-text-color, #000000);
+  background-color: var(--tg-theme-bg-color, #191818); /* Фон из Figma */
+  color: var(--tg-theme-text-color, #ffffff); /* Текст белый для темного фона */
   padding-bottom: 0;
 }
 

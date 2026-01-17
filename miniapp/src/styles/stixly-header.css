@@ -6,9 +6,9 @@
   --stixly-header-height: 140px; /* Default header height, will be updated dynamically */
 }
 
-/* The gallery/page base body color (fallback when header not visible) */
+/* The gallery/page base body color из Figma */
 html, body {
-  background-color: #0E0F1A;
+  background-color: #191818; /* Фон из Figma Gallery page */
 }
 
 /* StixlyTopHeader - Fixed positioning with safe area support */
@@ -166,6 +166,39 @@ header.stixlytopheader > .stixly-top-header > * {
   margin: 0 auto;
   padding: 0 16px; /* чтобы на широких экранах не липло к краям */
   box-sizing: border-box;
+  position: relative;
+}
+
+/* iOS time panel area - адаптирован под frame 32 из Figma */
+.stixly-ios-time-panel-area {
+  /* Позиционирование как в DOM Path: position: absolute, inset: 0px 0px 50px */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 50px;
+  /* Ограничение ширины и центрирование */
+  max-width: 600px;
+  margin: 0 auto;
+  /* Адаптация под frame 32: голубой фон #39d1e3, corner radius 16px */
+  background: #39d1e3;
+  border-radius: 16px;
+  /* Убеждаемся, что элемент находится за контентом */
+  z-index: 0;
+  /* Растягиваемся вверх на safe area для iOS time panel */
+  margin-top: calc(
+    -1 * (
+      var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+      var(--tg-content-safe-area-inset-top, 0px)
+    )
+  );
+  /* Увеличиваем высоту на safe area */
+  height: calc(
+    100% + 
+    var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+    var(--tg-content-safe-area-inset-top, 0px) +
+    50px
+  );
 }
 
 /* Inner wrapper for CompactControlsBar - ограничивает ширину на широких экранах */
