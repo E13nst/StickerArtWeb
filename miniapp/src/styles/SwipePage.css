@@ -43,26 +43,37 @@
 .discover-page__cards-wrapper {
   display: flex;
   align-items: center;
-  gap: var(--tg-spacing-3);
-  width: 100%;
-  max-width: 550px;
-  margin: 0 auto;
   justify-content: center;
+  gap: var(--tg-spacing-2);
+  width: 100%;
+  max-width: 600px; /* Как на GalleryPage */
+  margin: 0 auto;
   flex-wrap: nowrap;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  flex: 1;
+  /* Постоянные отступы от краев экрана, как на GalleryPage */
+  padding: 0 16px;
+  box-sizing: border-box;
+  /* Высота определяется содержимым (карточкой с aspect-ratio) */
+  overflow: visible; /* Разрешаем выход за пределы для свайпа */
+  /* Улучшенное центрирование */
+  align-self: center;
 }
 
 .discover-page__cards {
   position: relative;
   width: 100%;
-  max-width: 450px;
-  flex: 1;
-  height: calc(100vh - 130px);
-  min-height: 380px;
-  max-height: 520px;
-  flex-shrink: 1;
+  /* Сохраняем пропорции карточки: как у PackCard - 177/213 из Figma */
+  aspect-ratio: 177 / 213;
+  flex: 0 0 auto; /* Не растягивается, сохраняет свои пропорции */
   overflow: visible;
+  /* Максимальная ширина для больших экранов */
+  max-width: min(550px, 100%);
+  /* Фиксируем максимальную высоту как при ширине > 768px (540px) */
+  max-height: 540px;
+  /* Центрирование карточки */
+  margin: 0 auto;
 }
 
 .swipe-card-wrapper {
@@ -199,57 +210,6 @@
   font-size: var(--tg-font-size-m);
 }
 
-.discover-page__actions {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--tg-spacing-4);
-  z-index: var(--z-ui-controls, 200);
-  pointer-events: auto;
-  visibility: visible;
-  opacity: 1;
-  flex-shrink: 0;
-  align-self: center;
-}
-
-.discover-page__action-button {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--tg-theme-bg-color);
-  box-shadow: 0 4px 16px var(--tg-theme-shadow-color);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  flex-shrink: 0;
-}
-
-.discover-page__action-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px var(--tg-theme-shadow-color);
-}
-
-.discover-page__action-button:active {
-  transform: scale(0.95);
-}
-
-.discover-page__action-button--skip {
-  background: linear-gradient(135deg, #8b4513, #654321);
-}
-
-.discover-page__action-button--like {
-  background: linear-gradient(135deg, #ff6b9d, #ff1744);
-}
-
-.discover-page__action-icon {
-  font-size: 28px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-  line-height: 1;
-}
 
 .discover-page__loading {
   display: flex;
@@ -356,18 +316,6 @@
     max-height: 460px;
   }
 
-  .discover-page__actions {
-    gap: var(--tg-spacing-3);
-  }
-
-  .discover-page__action-button {
-    width: 52px;
-    height: 52px;
-  }
-
-  .discover-page__action-icon {
-    font-size: 24px;
-  }
 
   .swipe-card__title {
     font-size: var(--tg-font-size-m);
@@ -391,18 +339,6 @@
     max-height: 420px;
   }
 
-  .discover-page__actions {
-    gap: var(--tg-spacing-2);
-  }
-
-  .discover-page__action-button {
-    width: 48px;
-    height: 48px;
-  }
-
-  .discover-page__action-icon {
-    font-size: 22px;
-  }
 }
 
 @media (min-height: 700px) and (orientation: landscape) {
@@ -411,9 +347,6 @@
     max-height: 600px;
   }
 
-  .discover-page__actions {
-    gap: var(--tg-spacing-4);
-  }
 }
 
 @media (min-width: 768px) {
@@ -427,9 +360,6 @@
     max-height: 540px;
   }
 
-  .discover-page__actions {
-    gap: var(--tg-spacing-5);
-  }
 
   .swipe-card__info {
     padding: var(--tg-spacing-6);
@@ -447,8 +377,5 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   }
 
-  .discover-page__action-button {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  }
 }
 
