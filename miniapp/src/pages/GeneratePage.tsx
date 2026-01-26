@@ -476,18 +476,16 @@ export const GeneratePage: React.FC = () => {
         tg.sendData(JSON.stringify(dataToSend));
         console.log('✅ Стикер успешно отправлен в чат');
       } else {
-        // Открываем выбор чата с предзаполненным текстом "@stixlybot [StickerFileId]"
+        // Открываем чат с ботом с предзаполненным текстом "@stixlybot [StickerFileId]"
         // file_id необходим для того, чтобы бот мог обработать инлайн-запрос
         const messageText = `@stixlybot ${stickerFileId}`;
         
-        // Используем правильный формат share URL для открытия выбора чата
-        // Формат: https://t.me/share/url?url={url}&text={text}
-        // Используем ссылку на бота в качестве URL
-        const botUrl = 'https://t.me/stixlybot';
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(messageText)}`;
+        // Используем формат deep link для открытия чата с ботом с предзаполненным текстом
+        // Формат: t.me/botusername?text=message (без добавления URL в текст)
+        const shareUrl = `https://t.me/stixlybot?text=${encodeURIComponent(messageText)}`;
         
         // Альтернативный вариант с deep link схемой (для мобильных устройств)
-        const deepLinkUrl = `tg://msg_url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(messageText)}`;
+        const deepLinkUrl = `tg://resolve?domain=stixlybot&text=${encodeURIComponent(messageText)}`;
         
         console.log('📤 Открытие выбора чата с предзаполненным текстом');
         console.log('📋 Share URL (https):', shareUrl);
