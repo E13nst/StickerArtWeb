@@ -235,7 +235,7 @@
                     <div class="stat-label">Размер кэша</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="maxSize">5 GB</div>
+                    <div class="stat-value" id="maxSize">2 GB</div>
                     <div class="stat-label">Максимальный размер</div>
                 </div>
                 <div class="stat-card">
@@ -313,7 +313,7 @@
             <h2>⚙️ Настройки кэша</h2>
             <div style="margin-top: 15px;">
                 <p><strong>Время жизни кэша:</strong> 14 дней для успешных ответов</p>
-                <p><strong>Максимальный размер:</strong> 5 GB</p>
+                <p><strong>Максимальный размер:</strong> 2 GB</p>
                 <p><strong>Минимальное использование:</strong> 2 запроса перед кэшированием</p>
                 <p><strong>Путь кэша:</strong> <code>/data/cache/nginx/stickers</code></p>
             </div>
@@ -332,7 +332,7 @@
                 
                 document.getElementById('fileCount').textContent = data.fileCount || 0;
                 document.getElementById('cacheSize').textContent = data.cacheSize || '0';
-                document.getElementById('maxSize').textContent = data.maxSize || '5 GB';
+                document.getElementById('maxSize').textContent = data.maxSize || '2 GB';
                 
                 if (data.lastUpdated) {
                     const date = new Date(data.lastUpdated);

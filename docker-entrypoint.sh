@@ -17,7 +17,7 @@ echo "=== CREATING NGINX CACHE DIRECTORY ==="
 mkdir -p /data/cache/nginx/stickers
 
 # ✅ ОПТИМИЗАЦИЯ: меняем права только для директорий, не для всех файлов
-# При большом кэше (до 5GB) рекурсивный chown/chmod занимал минуты
+# При большом кэше (до 2GB) рекурсивный chown/chmod занимал минуты
 CACHE_OWNER=$(stat -c '%U' /data/cache/nginx/stickers 2>/dev/null || echo "unknown")
 if [ "$CACHE_OWNER" != "nginx" ]; then
     echo "Setting ownership for cache directories..."
@@ -48,7 +48,7 @@ if [ -d "/data/cache/nginx/stickers" ]; then
   "cacheSize": "${CACHE_SIZE}",
   "cacheSizeBytes": ${CACHE_SIZE_BYTES},
   "cachePath": "/data/cache/nginx/stickers",
-  "maxSize": "5 GB",
+  "maxSize": "2 GB",
   "ttl": "14 days",
   "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 }
@@ -63,7 +63,7 @@ else
   "cacheSize": "0",
   "cacheSizeBytes": 0,
   "cachePath": "/data/cache/nginx/stickers",
-  "maxSize": "5 GB",
+  "maxSize": "2 GB",
   "ttl": "14 days",
   "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 }
@@ -96,7 +96,7 @@ nginx -t
   "cacheSize": "${CACHE_SIZE}",
   "cacheSizeBytes": ${CACHE_SIZE_BYTES},
   "cachePath": "/data/cache/nginx/stickers",
-  "maxSize": "5 GB",
+  "maxSize": "2 GB",
   "ttl": "14 days",
   "lastUpdated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 }
