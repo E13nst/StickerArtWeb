@@ -70,6 +70,13 @@ export interface SaveImageRequest {
   emoji?: string;
 }
 
+export interface SaveImageResponse {
+  stickerSetName: string;
+  stickerIndex: number;
+  stickerFileId: string;
+  title: string;
+}
+
 interface TelegramApiUser {
   id: number;
   username?: string;
@@ -1450,10 +1457,11 @@ class ApiClient {
 
   // Сохранение сгенерированного изображения в стикерсет
   // API endpoint: POST /api/stickersets/save-image
-  async saveImageToStickerSet(request: SaveImageRequest): Promise<void> {
+  async saveImageToStickerSet(request: SaveImageRequest): Promise<SaveImageResponse> {
     try {
-      await this.client.post('/stickersets/save-image', request);
-      console.log('✅ Изображение сохранено в стикерсет');
+      const response = await this.client.post<SaveImageResponse>('/stickersets/save-image', request);
+      console.log('✅ Изображение сохранено в стикерсет:', response.data);
+      return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка сохранения изображения в стикерсет:', error);
       

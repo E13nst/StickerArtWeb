@@ -313,11 +313,17 @@ export const GeneratePage: React.FC = () => {
     setSaveError(null);
 
     try {
-      await apiClient.saveImageToStickerSet({
+      const response = await apiClient.saveImageToStickerSet({
         imageUuid: imageId,
         stickerSetName: null,
         emoji: '🎨'
       });
+      
+      // Обновляем fileId из ответа, если он есть
+      if (response.stickerFileId) {
+        setFileId(response.stickerFileId);
+        console.log('✅ Получен stickerFileId из ответа сохранения:', response.stickerFileId);
+      }
       
       setStickerSaved(true);
     } catch (error: any) {
@@ -338,10 +344,17 @@ export const GeneratePage: React.FC = () => {
   };
 
   // Отправка результата обратно боту через sendData (для inline режима)
-  const handleSendToChat = () => {
-    if (!fileId || !inlineQueryId || !tg) {
-      console.warn('⚠️ Недостаточно данных для отправки:', { fileId, inlineQueryId, hasTg: !!tg });
+  const handleSendToChat = async () => {
+    if (!inlineQueryId || !tg) {
+      console.warn('⚠️ Недостаточно данных для отправки:', { inlineQueryId, hasTg: !!tg });
       setErrorMessage('Недостаточно данных для отправки стикера в чат');
+      return;
+    }
+
+    // Если нет imageId, не можем сохранить
+    if (!imageId) {
+      console.warn('⚠️ Нет imageId для сохранения');
+      setErrorMessage('Стикер еще не готов для отправки');
       return;
     }
 
@@ -349,8 +362,30 @@ export const GeneratePage: React.FC = () => {
     setErrorMessage(null);
 
     try {
+      let stickerFileId = fileId;
+
+      // Если fileId еще нет, сначала сохраняем стикер
+      if (!stickerFileId) {
+        console.log('💾 Сохранение стикера перед отправкой...');
+        const saveResponse = await apiClient.saveImageToStickerSet({
+          imageUuid: imageId,
+          stickerSetName: null,
+          emoji: '🎨'
+        });
+
+        stickerFileId = saveResponse.stickerFileId;
+        if (!stickerFileId) {
+          throw new Error('Не получен stickerFileId из ответа сохранения');
+        }
+
+        // Обновляем локальное состояние
+        setFileId(stickerFileId);
+        setStickerSaved(true);
+        console.log('✅ Стикер сохранен, получен stickerFileId:', stickerFileId);
+      }
+
       const dataToSend = {
-        file_id: fileId,
+        file_id: stickerFileId,
         inline_query_id: inlineQueryId
       };
 
@@ -366,28 +401,84 @@ export const GeneratePage: React.FC = () => {
       console.log('✅ Данные успешно отправлены боту');
     } catch (error: any) {
       console.error('❌ Ошибка отправки результата боту:', error);
-      setErrorMessage('Не удалось отправить стикер в чат. Попробуйте еще раз.');
+      let message = 'Не удалось отправить стикер в чат';
+      
+      if (error.message?.includes('полон') || error.message?.includes('120')) {
+        message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
+      } else if (error.message?.includes('не найдено') || error.message?.includes('404')) {
+        message = 'Изображение не найдено';
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      setErrorMessage(message);
     } finally {
       setIsSendingToChat(false);
     }
   };
 
-  // Поделиться стикером (открыть бота для выбора чата)
-  const handleShareSticker = () => {
-    if (!fileId || !tg) {
-      console.warn('⚠️ Недостаточно данных для поделиться:', { fileId, hasTg: !!tg });
-      setErrorMessage('Недостаточно данных для поделиться стикером');
+  // Поделиться стикером (сохранить и отправить в чат)
+  const handleShareSticker = async () => {
+    if (!imageId || !tg) {
+      console.warn('⚠️ Недостаточно данных для поделиться:', { imageId, hasTg: !!tg });
+      setErrorMessage('Стикер еще не готов для поделиться');
       return;
     }
 
+    setIsSendingToChat(true);
+    setErrorMessage(null);
+
     try {
-      // Открываем бота с параметром file_id для выбора чата
-      const botUrl = `https://t.me/StickerGalleryBot?start=share_sticker_${fileId}`;
-      console.log('📤 Открытие бота для поделиться стикером:', botUrl);
-      tg.openTelegramLink(botUrl);
+      // Сначала сохраняем стикер в стикерсет (как при нажатии "Сохранить")
+      const saveResponse = await apiClient.saveImageToStickerSet({
+        imageUuid: imageId,
+        stickerSetName: null,
+        emoji: '🎨'
+      });
+
+      // Получаем stickerFileId из ответа
+      const stickerFileId = saveResponse.stickerFileId;
+      if (!stickerFileId) {
+        throw new Error('Не получен stickerFileId из ответа сохранения');
+      }
+
+      console.log('✅ Стикер сохранен, получен stickerFileId:', stickerFileId);
+
+      // Обновляем локальное состояние
+      setFileId(stickerFileId);
+      setStickerSaved(true);
+
+      // Если есть inlineQueryId, отправляем стикер напрямую в чат
+      if (inlineQueryId) {
+        const dataToSend = {
+          file_id: stickerFileId,
+          inline_query_id: inlineQueryId
+        };
+
+        console.log('📤 Отправка стикера в inline чат через sendData:', dataToSend);
+        tg.sendData(JSON.stringify(dataToSend));
+        console.log('✅ Стикер успешно отправлен в чат');
+      } else {
+        // Если нет inlineQueryId, открываем бота для выбора чата
+        const botUrl = `https://t.me/StickerGalleryBot?start=share_sticker_${stickerFileId}`;
+        console.log('📤 Открытие бота для поделиться стикером:', botUrl);
+        tg.openTelegramLink(botUrl);
+      }
     } catch (error: any) {
-      console.error('❌ Ошибка открытия бота для поделиться:', error);
-      setErrorMessage('Не удалось открыть бота для поделиться стикером');
+      console.error('❌ Ошибка при поделиться стикером:', error);
+      let message = 'Не удалось поделиться стикером';
+      
+      if (error.message?.includes('полон') || error.message?.includes('120')) {
+        message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
+      } else if (error.message?.includes('не найдено') || error.message?.includes('404')) {
+        message = 'Изображение не найдено';
+      } else if (error.message) {
+        message = error.message;
+      }
+      
+      setErrorMessage(message);
+    } finally {
+      setIsSendingToChat(false);
     }
   };
 
@@ -453,71 +544,74 @@ export const GeneratePage: React.FC = () => {
         </Typography>
       ) : null}
 
-      {/* Кнопка "Поделиться" - всегда показывается если есть fileId */}
-      {fileId && (
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={inlineQueryId ? handleSendToChat : handleShareSticker}
-          disabled={isSendingToChat}
-          startIcon={inlineQueryId ? <SendIcon /> : <ShareIcon />}
-          className="generate-button"
-          sx={{
-            mt: 2,
-            py: 1.5,
-            borderRadius: '12px',
-            fontSize: '16px',
-            fontWeight: 600,
-            textTransform: 'none',
-            backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-            color: '#ffffff',
-            '&:hover': {
+      {/* Кнопки действий: Сохранить и Поделиться */}
+      <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+        {imageId && !stickerSaved && (
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleSaveToStickerSet}
+            disabled={isSaving}
+            className="generate-button"
+            sx={{
+              py: 1.5,
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 600,
+              textTransform: 'none',
               backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-              opacity: 0.9,
-            },
-            '&:disabled': {
-              backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
-              color: 'var(--tg-theme-hint-color)',
-            },
-          }}
-        >
-          {isSendingToChat 
-            ? 'Отправка...' 
-            : inlineQueryId 
-              ? '📤 Отправить в чат' 
-              : '📤 Поделиться'}
-        </Button>
-      )}
+              color: '#ffffff',
+              flex: 1,
+              '&:hover': {
+                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+                opacity: 0.9,
+              },
+              '&:disabled': {
+                backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
+                color: 'var(--tg-theme-hint-color)',
+              },
+            }}
+          >
+            {isSaving ? 'Сохранение...' : '💾 Сохранить в стикерсет'}
+          </Button>
+        )}
 
-      {imageId && !stickerSaved && (
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleSaveToStickerSet}
-          disabled={isSaving}
-          className="generate-button"
-          sx={{
-            mt: 2,
-            py: 1.5,
-            borderRadius: '12px',
-            fontSize: '16px',
-            fontWeight: 600,
-            textTransform: 'none',
-            backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-            color: '#ffffff',
-            '&:hover': {
+        {/* Кнопка "Поделиться" - показывается если есть fileId или imageId */}
+        {(fileId || imageId) && (
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={fileId && inlineQueryId ? handleSendToChat : handleShareSticker}
+            disabled={isSendingToChat}
+            startIcon={inlineQueryId && fileId ? <SendIcon /> : <ShareIcon />}
+            className="generate-button"
+            sx={{
+              py: 1.5,
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 600,
+              textTransform: 'none',
               backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-              opacity: 0.9,
-            },
-            '&:disabled': {
-              backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
-              color: 'var(--tg-theme-hint-color)',
-            },
-          }}
-        >
-          {isSaving ? 'Сохранение...' : '💾 Сохранить в стикерсет'}
-        </Button>
-      )}
+              color: '#ffffff',
+              flex: 1,
+              '&:hover': {
+                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+                opacity: 0.9,
+              },
+              '&:disabled': {
+                backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
+                color: 'var(--tg-theme-hint-color)',
+              },
+            }}
+          >
+            {isSendingToChat 
+              ? 'Отправка...' 
+              : inlineQueryId && fileId
+                ? '📤 Отправить в чат' 
+                : '📤 Поделиться'}
+          </Button>
+        )}
+      </Box>
       
       <Button
         fullWidth
