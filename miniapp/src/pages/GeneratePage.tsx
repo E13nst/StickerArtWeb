@@ -439,7 +439,7 @@ export const GeneratePage: React.FC = () => {
       let stickerFileId = fileId;
 
       // ВАЖНО: Если fileId еще нет, обязательно сохраняем стикер в стикерсет для получения file_id
-      // Это необходимо для подстановки file_id в инлайн сообщение "@stixly [StickerFileId]"
+      // Это необходимо для подстановки file_id в инлайн сообщение "@stixlybot [StickerFileId]"
       if (!stickerFileId && imageId) {
         console.log('💾 Сохранение стикера перед отправкой для получения file_id...');
         const saveResponse = await apiClient.saveImageToStickerSet({
@@ -476,18 +476,18 @@ export const GeneratePage: React.FC = () => {
         tg.sendData(JSON.stringify(dataToSend));
         console.log('✅ Стикер успешно отправлен в чат');
       } else {
-        // Открываем выбор чата с предзаполненным текстом "@stixly [StickerFileId]"
+        // Открываем выбор чата с предзаполненным текстом "@stixlybot [StickerFileId]"
         // file_id необходим для того, чтобы бот мог обработать инлайн-запрос
-        const messageText = `@stixly ${stickerFileId}`;
+        const messageText = `@stixlybot ${stickerFileId}`;
         
         // Используем правильный формат share URL для открытия выбора чата
         // Формат: https://t.me/share/url?url={url}&text={text}
-        // url параметр обязателен, используем валидный URL
-        const placeholderUrl = 'https://t.me';
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(placeholderUrl)}&text=${encodeURIComponent(messageText)}`;
+        // Используем ссылку на бота в качестве URL
+        const botUrl = 'https://t.me/stixlybot';
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(messageText)}`;
         
         // Альтернативный вариант с deep link схемой (для мобильных устройств)
-        const deepLinkUrl = `tg://msg_url?url=${encodeURIComponent(placeholderUrl)}&text=${encodeURIComponent(messageText)}`;
+        const deepLinkUrl = `tg://msg_url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(messageText)}`;
         
         console.log('📤 Открытие выбора чата с предзаполненным текстом');
         console.log('📋 Share URL (https):', shareUrl);
