@@ -5,6 +5,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SendIcon from '@mui/icons-material/Send';
+import ShareIcon from '@mui/icons-material/Share';
 import '../styles/common.css';
 import '../styles/GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
@@ -336,7 +337,7 @@ export const GeneratePage: React.FC = () => {
     }
   };
 
-  // Отправка результата обратно боту через sendData
+  // Отправка результата обратно боту через sendData (для inline режима)
   const handleSendToChat = () => {
     if (!fileId || !inlineQueryId || !tg) {
       console.warn('⚠️ Недостаточно данных для отправки:', { fileId, inlineQueryId, hasTg: !!tg });
@@ -368,6 +369,25 @@ export const GeneratePage: React.FC = () => {
       setErrorMessage('Не удалось отправить стикер в чат. Попробуйте еще раз.');
     } finally {
       setIsSendingToChat(false);
+    }
+  };
+
+  // Поделиться стикером (открыть бота для выбора чата)
+  const handleShareSticker = () => {
+    if (!fileId || !tg) {
+      console.warn('⚠️ Недостаточно данных для поделиться:', { fileId, hasTg: !!tg });
+      setErrorMessage('Недостаточно данных для поделиться стикером');
+      return;
+    }
+
+    try {
+      // Открываем бота с параметром file_id для выбора чата
+      const botUrl = `https://t.me/StickerGalleryBot?start=share_sticker_${fileId}`;
+      console.log('📤 Открытие бота для поделиться стикером:', botUrl);
+      tg.openTelegramLink(botUrl);
+    } catch (error: any) {
+      console.error('❌ Ошибка открытия бота для поделиться:', error);
+      setErrorMessage('Не удалось открыть бота для поделиться стикером');
     }
   };
 
@@ -433,14 +453,14 @@ export const GeneratePage: React.FC = () => {
         </Typography>
       ) : null}
 
-      {/* Кнопка "Отправить в чат" для inline-режима */}
-      {inlineQueryId && fileId && (
+      {/* Кнопка "Поделиться" - всегда показывается если есть fileId */}
+      {fileId && (
         <Button
           fullWidth
           variant="contained"
-          onClick={handleSendToChat}
+          onClick={inlineQueryId ? handleSendToChat : handleShareSticker}
           disabled={isSendingToChat}
-          startIcon={<SendIcon />}
+          startIcon={inlineQueryId ? <SendIcon /> : <ShareIcon />}
           className="generate-button"
           sx={{
             mt: 2,
@@ -461,7 +481,11 @@ export const GeneratePage: React.FC = () => {
             },
           }}
         >
-          {isSendingToChat ? 'Отправка...' : '📤 Отправить в чат'}
+          {isSendingToChat 
+            ? 'Отправка...' 
+            : inlineQueryId 
+              ? '📤 Отправить в чат' 
+              : '📤 Поделиться'}
         </Button>
       )}
 
