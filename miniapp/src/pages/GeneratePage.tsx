@@ -5,7 +5,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SendIcon from '@mui/icons-material/Send';
-import ShareIcon from '@mui/icons-material/Share';
 import '../styles/common.css';
 import '../styles/GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
@@ -417,11 +416,19 @@ export const GeneratePage: React.FC = () => {
     }
   };
 
-  // Поделиться стикером (сохранить и отправить в чат)
+  // Отправить стикер в чат (открыть выбор чата с предзаполненным текстом)
+  // Стикер всегда сохраняется перед отправкой, чтобы гарантированно получить file_id
   const handleShareSticker = async () => {
-    if (!imageId || !tg) {
-      console.warn('⚠️ Недостаточно данных для поделиться:', { imageId, hasTg: !!tg });
-      setErrorMessage('Стикер еще не готов для поделиться');
+    if (!tg) {
+      console.warn('⚠️ Telegram WebApp недоступен');
+      setErrorMessage('Telegram WebApp недоступен');
+      return;
+    }
+
+    // Проверяем, что есть либо fileId, либо imageId для сохранения
+    if (!fileId && !imageId) {
+      console.warn('⚠️ Нет данных для отправки стикера:', { fileId, imageId });
+      setErrorMessage('Стикер еще не готов для отправки');
       return;
     }
 
@@ -429,26 +436,36 @@ export const GeneratePage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      // Сначала сохраняем стикер в стикерсет (как при нажатии "Сохранить")
-      const saveResponse = await apiClient.saveImageToStickerSet({
-        imageUuid: imageId,
-        stickerSetName: null,
-        emoji: '🎨'
-      });
+      let stickerFileId = fileId;
 
-      // Получаем stickerFileId из ответа
-      const stickerFileId = saveResponse.stickerFileId;
-      if (!stickerFileId) {
-        throw new Error('Не получен stickerFileId из ответа сохранения');
+      // ВАЖНО: Если fileId еще нет, обязательно сохраняем стикер в стикерсет для получения file_id
+      // Это необходимо для подстановки file_id в инлайн сообщение "@stixly [StickerFileId]"
+      if (!stickerFileId && imageId) {
+        console.log('💾 Сохранение стикера перед отправкой для получения file_id...');
+        const saveResponse = await apiClient.saveImageToStickerSet({
+          imageUuid: imageId,
+          stickerSetName: null,
+          emoji: '🎨'
+        });
+
+        stickerFileId = saveResponse.stickerFileId;
+        if (!stickerFileId) {
+          throw new Error('Не получен stickerFileId из ответа сохранения');
+        }
+
+        console.log('✅ Стикер сохранен, получен stickerFileId:', stickerFileId);
+
+        // Обновляем локальное состояние
+        setFileId(stickerFileId);
+        setStickerSaved(true);
       }
 
-      console.log('✅ Стикер сохранен, получен stickerFileId:', stickerFileId);
+      // Финальная проверка: file_id должен быть обязательно
+      if (!stickerFileId) {
+        throw new Error('Не удалось получить stickerFileId. Стикер должен быть сохранен перед отправкой.');
+      }
 
-      // Обновляем локальное состояние
-      setFileId(stickerFileId);
-      setStickerSaved(true);
-
-      // Если есть inlineQueryId, отправляем стикер напрямую в чат
+      // Если есть inlineQueryId, отправляем стикер напрямую в чат через inline режим
       if (inlineQueryId) {
         const dataToSend = {
           file_id: stickerFileId,
@@ -459,14 +476,17 @@ export const GeneratePage: React.FC = () => {
         tg.sendData(JSON.stringify(dataToSend));
         console.log('✅ Стикер успешно отправлен в чат');
       } else {
-        // Если нет inlineQueryId, открываем бота для выбора чата
-        const botUrl = `https://t.me/StickerGalleryBot?start=share_sticker_${stickerFileId}`;
-        console.log('📤 Открытие бота для поделиться стикером:', botUrl);
-        tg.openTelegramLink(botUrl);
+        // Открываем выбор чата с предзаполненным текстом "@stixly [StickerFileId]"
+        // file_id необходим для того, чтобы бот мог обработать инлайн-запрос
+        const messageText = `@stixly ${stickerFileId}`;
+        const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(messageText)}`;
+        console.log('📤 Открытие выбора чата с предзаполненным текстом:', shareUrl);
+        console.log('📋 StickerFileId для инлайн:', stickerFileId);
+        tg.openTelegramLink(shareUrl);
       }
     } catch (error: any) {
-      console.error('❌ Ошибка при поделиться стикером:', error);
-      let message = 'Не удалось поделиться стикером';
+      console.error('❌ Ошибка при отправке стикера в чат:', error);
+      let message = 'Не удалось отправить стикер в чат';
       
       if (error.message?.includes('полон') || error.message?.includes('120')) {
         message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
@@ -544,7 +564,7 @@ export const GeneratePage: React.FC = () => {
         </Typography>
       ) : null}
 
-      {/* Кнопки действий: Сохранить и Поделиться */}
+      {/* Кнопки действий: Сохранить и Отправить в чат */}
       <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
         {imageId && !stickerSaved && (
           <Button
@@ -583,7 +603,7 @@ export const GeneratePage: React.FC = () => {
             variant="contained"
             onClick={fileId && inlineQueryId ? handleSendToChat : handleShareSticker}
             disabled={isSendingToChat}
-            startIcon={inlineQueryId && fileId ? <SendIcon /> : <ShareIcon />}
+            startIcon={<SendIcon />}
             className="generate-button"
             sx={{
               py: 1.5,
@@ -606,9 +626,7 @@ export const GeneratePage: React.FC = () => {
           >
             {isSendingToChat 
               ? 'Отправка...' 
-              : inlineQueryId && fileId
-                ? '📤 Отправить в чат' 
-                : '📤 Поделиться'}
+              : '📤 Отправить в чат'}
           </Button>
         )}
       </Box>
