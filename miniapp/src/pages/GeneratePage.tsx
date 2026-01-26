@@ -479,10 +479,43 @@ export const GeneratePage: React.FC = () => {
         // Открываем выбор чата с предзаполненным текстом "@stixly [StickerFileId]"
         // file_id необходим для того, чтобы бот мог обработать инлайн-запрос
         const messageText = `@stixly ${stickerFileId}`;
-        const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(messageText)}`;
-        console.log('📤 Открытие выбора чата с предзаполненным текстом:', shareUrl);
+        
+        // Используем правильный формат share URL для открытия выбора чата
+        // Формат: https://t.me/share/url?url={url}&text={text}
+        // url параметр обязателен, используем валидный URL
+        const placeholderUrl = 'https://t.me';
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(placeholderUrl)}&text=${encodeURIComponent(messageText)}`;
+        
+        // Альтернативный вариант с deep link схемой (для мобильных устройств)
+        const deepLinkUrl = `tg://msg_url?url=${encodeURIComponent(placeholderUrl)}&text=${encodeURIComponent(messageText)}`;
+        
+        console.log('📤 Открытие выбора чата с предзаполненным текстом');
+        console.log('📋 Share URL (https):', shareUrl);
+        console.log('📋 Deep Link URL (tg://):', deepLinkUrl);
         console.log('📋 StickerFileId для инлайн:', stickerFileId);
-        tg.openTelegramLink(shareUrl);
+        console.log('📋 Текст сообщения:', messageText);
+        
+        // В WebApp контексте openTelegramLink должен открывать ссылку в основном приложении Telegram
+        // Это должно открыть окно выбора чата с предзаполненным текстом
+        // Используем небольшую задержку, чтобы убедиться, что состояние обновлено
+        setTimeout(() => {
+          try {
+            console.log('🔄 Вызов openTelegramLink...');
+            tg.openTelegramLink(shareUrl);
+            console.log('✅ openTelegramLink вызван успешно');
+          } catch (error) {
+            console.warn('⚠️ openTelegramLink не сработал, пробуем openLink:', error);
+            // Fallback: используем openLink
+            try {
+              tg.openLink(shareUrl, { try_instant_view: false });
+            } catch (linkError) {
+              console.error('❌ Оба метода не сработали:', linkError);
+              // Последний fallback: пробуем через window.location (только для отладки)
+              console.warn('⚠️ Пробуем открыть через window.location (fallback)');
+              window.location.href = shareUrl;
+            }
+          }
+        }, 100);
       }
     } catch (error: any) {
       console.error('❌ Ошибка при отправке стикера в чат:', error);
