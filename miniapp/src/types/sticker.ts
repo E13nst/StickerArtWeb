@@ -142,6 +142,29 @@ export interface StickerSetListResponse {
   numberOfElements: number;
 }
 
+export interface SwipeStatsResponse {
+  dailySwipes: number;
+  dailyLimit: number;
+  remainingSwipes: number;
+  hasSubscription: boolean;
+  subscriptionExpiresAt: string | null;
+  swipesPerReward: number;
+  swipesUntilReward: number;
+  rewardAmount: number;
+  isUnlimited: boolean;
+}
+
+export interface SwipeLimitError {
+  error: string;
+  message: string;
+  dailyLimit: number;
+  currentSwipes: number;
+  remainingSwipes: number;
+  resetType: string;
+  resetDescription: string;
+  timestamp: string;
+}
+
 export interface CreateStickerSetRequest {
   userId?: number;
   title?: string;

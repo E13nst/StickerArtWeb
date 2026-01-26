@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
@@ -511,6 +511,38 @@ class ApiClient {
       { id }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
+  }
+
+  // Получение случайного стикерсета для свайпа
+  // API endpoint: GET /api/stickersets/random
+  async getRandomStickerSet(): Promise<StickerSetResponse> {
+    const response = await this.client.get<StickerSetResponse>('/stickersets/random');
+    return response.data;
+  }
+
+  // Свайп-лайк стикерсета
+  // API endpoint: POST /api/likes/stickersets/{id}?isSwipe=true
+  async swipeLikeStickerSet(stickerSetId: number): Promise<any> {
+    const response = await this.client.post(`/likes/stickersets/${stickerSetId}`, null, {
+      params: { isSwipe: true }
+    });
+    return response.data;
+  }
+
+  // Свайп-дизлайк стикерсета
+  // API endpoint: POST /api/dislikes/stickersets/{id}?isSwipe=true
+  async swipeDislikeStickerSet(stickerSetId: number): Promise<any> {
+    const response = await this.client.post(`/dislikes/stickersets/${stickerSetId}`, null, {
+      params: { isSwipe: true }
+    });
+    return response.data;
+  }
+
+  // Статистика свайпов
+  // API endpoint: GET /api/swipes/stats
+  async getSwipeStats(): Promise<SwipeStatsResponse> {
+    const response = await this.client.get<SwipeStatsResponse>('/swipes/stats');
+    return response.data;
   }
 
   // Метаданные набора: автор и лайки

@@ -4,11 +4,13 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import SendIcon from '@mui/icons-material/Send';
 import '../styles/common.css';
 import '../styles/GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { StylePresetDropdown } from '@/components/StylePresetDropdown';
+import { useTelegram } from '@/hooks/useTelegram';
 
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 
@@ -32,6 +34,13 @@ const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
 
 export const GeneratePage: React.FC = () => {
+  // Telegram WebApp SDK
+  const { tg } = useTelegram();
+  
+  // Inline-режим параметры из URL
+  const [inlineQueryId, setInlineQueryId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  
   // Состояние формы
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
@@ -44,10 +53,12 @@ export const GeneratePage: React.FC = () => {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [imageId, setImageId] = useState<string | null>(null);
+  const [fileId, setFileId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSendingToChat, setIsSendingToChat] = useState(false);
   
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);
@@ -60,6 +71,23 @@ export const GeneratePage: React.FC = () => {
   
   // Polling ref
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Извлечение параметров из URL при инициализации
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryId = urlParams.get('inline_query_id');
+    const uid = urlParams.get('user_id');
+    
+    if (queryId) {
+      setInlineQueryId(queryId);
+      console.log('✅ Получен inline_query_id из URL:', queryId);
+    }
+    
+    if (uid) {
+      setUserId(uid);
+      console.log('✅ Получен user_id из URL:', uid);
+    }
+  }, []);
 
   // Загрузка тарифов при монтировании
   useEffect(() => {
@@ -171,7 +199,13 @@ export const GeneratePage: React.FC = () => {
           }
           setResultImageUrl(statusData.imageUrl || null);
           setImageId(statusData.imageId || null);
-          setStickerSaved(!!statusData.telegramSticker?.fileId);
+          // Сохраняем fileId для последующей отправки боту
+          const receivedFileId = statusData.telegramSticker?.fileId || null;
+          setFileId(receivedFileId);
+          setStickerSaved(!!receivedFileId);
+          if (receivedFileId) {
+            console.log('✅ Получен fileId из ответа API:', receivedFileId);
+          }
           setPageState('success');
         } else if (statusData.status === 'FAILED' || statusData.status === 'TIMEOUT') {
           // Ошибка
@@ -252,11 +286,14 @@ export const GeneratePage: React.FC = () => {
     setTaskId(null);
     setResultImageUrl(null);
     setImageId(null);
+    setFileId(null);
     setStickerSaved(false);
     setIsSaving(false);
     setSaveError(null);
     setErrorMessage(null);
+    setIsSendingToChat(false);
     // Не очищаем prompt чтобы пользователь мог повторить с тем же текстом
+    // Не очищаем inlineQueryId и userId - они нужны для повторной отправки
   };
 
   // Генерация еще раз (очищаем всё включая prompt)
@@ -296,6 +333,41 @@ export const GeneratePage: React.FC = () => {
       setSaveError(message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Отправка результата обратно боту через sendData
+  const handleSendToChat = () => {
+    if (!fileId || !inlineQueryId || !tg) {
+      console.warn('⚠️ Недостаточно данных для отправки:', { fileId, inlineQueryId, hasTg: !!tg });
+      setErrorMessage('Недостаточно данных для отправки стикера в чат');
+      return;
+    }
+
+    setIsSendingToChat(true);
+    setErrorMessage(null);
+
+    try {
+      const dataToSend = {
+        file_id: fileId,
+        inline_query_id: inlineQueryId
+      };
+
+      console.log('📤 Отправка данных боту через sendData:', dataToSend);
+      tg.sendData(JSON.stringify(dataToSend));
+      
+      // Опционально: закрыть MiniApp после отправки
+      // Можно раскомментировать, если нужно автоматически закрывать
+      // setTimeout(() => {
+      //   tg.close();
+      // }, 500);
+      
+      console.log('✅ Данные успешно отправлены боту');
+    } catch (error: any) {
+      console.error('❌ Ошибка отправки результата боту:', error);
+      setErrorMessage('Не удалось отправить стикер в чат. Попробуйте еще раз.');
+    } finally {
+      setIsSendingToChat(false);
     }
   };
 
@@ -360,6 +432,38 @@ export const GeneratePage: React.FC = () => {
           {saveError}
         </Typography>
       ) : null}
+
+      {/* Кнопка "Отправить в чат" для inline-режима */}
+      {inlineQueryId && fileId && (
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleSendToChat}
+          disabled={isSendingToChat}
+          startIcon={<SendIcon />}
+          className="generate-button"
+          sx={{
+            mt: 2,
+            py: 1.5,
+            borderRadius: '12px',
+            fontSize: '16px',
+            fontWeight: 600,
+            textTransform: 'none',
+            backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+            color: '#ffffff',
+            '&:hover': {
+              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
+              opacity: 0.9,
+            },
+            '&:disabled': {
+              backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
+              color: 'var(--tg-theme-hint-color)',
+            },
+          }}
+        >
+          {isSendingToChat ? 'Отправка...' : '📤 Отправить в чат'}
+        </Button>
+      )}
 
       {imageId && !stickerSaved && (
         <Button

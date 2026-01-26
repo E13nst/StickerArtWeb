@@ -2,25 +2,32 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
 import { useSwipeStickerFeed } from '@/hooks/useSwipeStickerFeed';
-import { useLikesStore } from '@/store/useLikesStore';
-import { useTelegram } from '@/hooks/useTelegram';
 import { SwipeCard } from '@/components/SwipeCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { LoadPriority } from '@/utils/imageLoader';
 
 export const SwipePage: React.FC = () => {
-  const { tg } = useTelegram();
-  const { stickerSets, currentIndex, isLoading, error, hasMore, next, reset, totalViewed } =
-    useSwipeStickerFeed({ pageSize: 20, preloadThreshold: 5 });
-
-  const toggleLike = useLikesStore((state) => state.toggleLike);
+  const {
+    stickerSets,
+    currentIndex,
+    isLoading,
+    error,
+    hasMore,
+    reset,
+    totalViewed,
+    swipeStats,
+    isLimitReached,
+    limitInfo,
+    emptyMessage,
+    swipeLike,
+    swipeDislike
+  } = useSwipeStickerFeed({ pageSize: 20, preloadThreshold: 5 });
 
   const visibleCards = useMemo(() => {
     return stickerSets.slice(currentIndex, currentIndex + 3);
   }, [stickerSets, currentIndex]);
 
   const currentCard = visibleCards[0];
-
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
@@ -35,24 +42,31 @@ export const SwipePage: React.FC = () => {
   }, []);
 
   const handleSwipeDown = useCallback(() => {
-    next();
-  }, [next]);
+    if (!currentCard) return;
+    swipeDislike(currentCard.id);
+  }, [currentCard, swipeDislike]);
 
   const handleSwipeUp = useCallback(async () => {
     if (!currentCard) return;
-    await toggleLike(String(currentCard.id));
-    next();
-  }, [currentCard, toggleLike, next]);
+    await swipeLike(currentCard.id);
+  }, [currentCard, swipeLike]);
 
-  const handleSkipButton = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred?.('light');
-    handleSwipeDown();
-  }, [tg, handleSwipeDown]);
-
-  const handleLikeButton = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred?.('medium');
-    handleSwipeUp();
-  }, [tg, handleSwipeUp]);
+  if (isLimitReached && limitInfo) {
+    return (
+      <div className="discover-page">
+        <div className="discover-page__empty">
+          <div className="discover-page__empty-icon">⛔</div>
+          <h2 className="discover-page__empty-title">
+            Достигнут дневной лимит: {limitInfo.currentSwipes}/{limitInfo.dailyLimit}
+          </h2>
+          <p className="discover-page__empty-description">{limitInfo.resetDescription}</p>
+          <button className="discover-page__reset-button" onClick={reset}>
+            Проверить снова
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading && stickerSets.length === 0) {
     return (
@@ -60,6 +74,20 @@ export const SwipePage: React.FC = () => {
         <div className="discover-page__loading">
           <LoadingSpinner />
           <p className="discover-page__loading-text">Загружаем стикеры...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (emptyMessage && currentIndex >= stickerSets.length) {
+    return (
+      <div className="discover-page">
+        <div className="discover-page__empty">
+          <div className="discover-page__empty-icon">🎉</div>
+          <h2 className="discover-page__empty-title">{emptyMessage}</h2>
+          <button className="discover-page__reset-button" onClick={reset}>
+            Попробовать снова
+          </button>
         </div>
       </div>
     );
@@ -97,9 +125,16 @@ export const SwipePage: React.FC = () => {
 
   return (
     <div className="discover-page">
-      {stickerSets.length > 0 && (
-        <div className="discover-page__counter">
-          <span className="discover-page__counter-text">Просмотрено: {totalViewed}</span>
+      {swipeStats && (
+        <div className="discover-page__progress">
+          <div className="discover-page__progress-row">
+            <span className="discover-page__progress-label">Свайпы</span>
+            <span className="discover-page__progress-value">
+              {swipeStats.isUnlimited
+                ? 'Безлимит'
+                : `${swipeStats.dailySwipes}/${swipeStats.dailyLimit}`}
+            </span>
+          </div>
         </div>
       )}
 
@@ -140,23 +175,6 @@ export const SwipePage: React.FC = () => {
             })}
           </div>
 
-          <div className="discover-page__actions">
-            <button
-              className="discover-page__action-button discover-page__action-button--like"
-              onClick={handleLikeButton}
-              aria-label="Лайк"
-            >
-              <span className="discover-page__action-icon">❤️</span>
-            </button>
-
-            <button
-              className="discover-page__action-button discover-page__action-button--skip"
-              onClick={handleSkipButton}
-              aria-label="Пропустить"
-            >
-              <span className="discover-page__action-icon">💩</span>
-            </button>
-          </div>
         </div>
       )}
 
