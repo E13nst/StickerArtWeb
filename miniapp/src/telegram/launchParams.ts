@@ -10,14 +10,41 @@ function readFromSearch(): string | null {
 }
 
 function readFromHash(): string | null {
-  const raw = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+  const hash = window.location.hash;
+  if (!hash) return null;
+
+  // Убираем начальный "#"
+  const raw = hash.startsWith("#") ? hash.slice(1) : hash;
   if (!raw) return null;
 
-  // HashRouter: "#/path?tgWebAppData=..."
-  const queryPart = raw.includes("?") ? raw.split("?").pop()! : raw; // "#tgWebAppData=..." тоже ок
-  const sp = new URLSearchParams(queryPart);
-  const v = sp.get("tgWebAppData");
-  return v ? decodeURIComponent(v) : null;
+  // Обрабатываем разные форматы:
+  // 1. "#tgWebAppData=..." (прямо в hash, без пути)
+  // 2. "#/path?tgWebAppData=..." (HashRouter формат с путем)
+  // 3. "#/miniapp/gallery?tgWebAppData=..." (с basename)
+  
+  let queryPart: string;
+  if (raw.includes("?")) {
+    // Есть query параметры после "?"
+    queryPart = raw.split("?").pop()!;
+  } else if (raw.startsWith("/")) {
+    // Только путь без query - tgWebAppData нет
+    return null;
+  } else {
+    // Прямо параметры без пути: "tgWebAppData=..."
+    queryPart = raw;
+  }
+
+  try {
+    const sp = new URLSearchParams(queryPart);
+    const v = sp.get("tgWebAppData");
+    return v ? decodeURIComponent(v) : null;
+  } catch (e) {
+    // Если парсинг не удался, возвращаем null
+    if (import.meta.env.DEV) {
+      console.warn('[launchParams] Ошибка парсинга hash:', e, 'hash:', hash);
+    }
+    return null;
+  }
 }
 
 function readFromSession(): string | null {

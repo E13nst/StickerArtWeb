@@ -45,8 +45,9 @@ const App: React.FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    // ✅ FIX: Всегда устанавливаем заголовки, даже если initData пустая
-    // Бэкенд сам решит, валидна ли initData или нет
+    // ✅ FIX: Установка заголовков через setAuthHeaders (дополнительный механизм)
+    // ОСНОВНОЙ механизм - interceptor в client.ts, который использует getInitData() на каждый запрос
+    // Это гарантирует работу даже если useEffect не сработал или сработал поздно
     // При inline query initData содержит user + query_id (без chat) - это нормально
     
     const currentInitData = initData || '';

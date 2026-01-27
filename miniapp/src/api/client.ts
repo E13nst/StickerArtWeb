@@ -116,33 +116,45 @@ class ApiClient {
         if (!headers['X-Telegram-Init-Data']) {
           // Сначала проверяем defaults (установленные через setAuthHeaders)
           let initData = this.client.defaults.headers.common['X-Telegram-Init-Data'] as string | undefined;
+          let source: 'request' | 'defaults' | 'getInitData()' | 'missing' = 'defaults';
           
           // Если в defaults нет, используем захватчик (читает из Telegram.WebApp, sessionStorage, URL)
           if (!initData) {
             initData = getInitData() || undefined;
+            source = initData ? 'getInitData()' : 'missing';
           }
           
-          if (initData) {
+          if (initData && initData.length > 0) {
             headers['X-Telegram-Init-Data'] = initData;
             
-            // ✅ FIX: Логирование для диагностики inline query контекста
-            if (import.meta.env.DEV && typeof initData === 'string') {
+            // ✅ FIX: Детальное логирование для диагностики каждого запроса (DEV режим)
+            if (import.meta.env.DEV && config.url?.startsWith('/api/')) {
               const hasQueryId = initData.includes('query_id=');
               const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
               const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
               
+              console.log(`[API] ${config.method?.toUpperCase()} ${config.url} - X-Telegram-Init-Data: ${initData.length} chars (${source}, ${context})`);
+              
+              // Специальное логирование для inline query контекста
               if (hasQueryId && !hasChat) {
                 console.log('🔍 Interceptor: initData добавлен (inline query контекст):', {
                   context,
                   hasQueryId,
                   hasChat: false,
                   initDataLength: initData.length,
-                  source: this.client.defaults.headers.common['X-Telegram-Init-Data'] ? 'defaults' : 'getInitData()'
+                  source
                 });
               }
             }
-          } else if (import.meta.env.DEV) {
-            console.warn('⚠️ Interceptor: X-Telegram-Init-Data отсутствует (проверьте getInitData() и setAuthHeaders)');
+          } else if (import.meta.env.DEV && config.url?.startsWith('/api/')) {
+            // Предупреждение только для API запросов (не для статики)
+            console.warn(`[API] ${config.method?.toUpperCase()} ${config.url} - X-Telegram-Init-Data MISSING`);
+          }
+        } else if (import.meta.env.DEV && config.url?.startsWith('/api/')) {
+          // Заголовок уже был установлен в запросе
+          const existingHeader = headers['X-Telegram-Init-Data'] as string;
+          if (existingHeader && existingHeader.length > 0) {
+            console.log(`[API] ${config.method?.toUpperCase()} ${config.url} - X-Telegram-Init-Data: ${existingHeader.length} chars (from request)`);
           }
         }
 
