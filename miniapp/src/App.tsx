@@ -45,33 +45,42 @@ const App: React.FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    // ✅ FIX: Проверяем, что initData не пустая строка
-    // При inline query initData содержит user и query_id (без chat) - это нормально
-    // initData должна отправляться независимо от наличия chat в initDataUnsafe
-    if (!initData || initData.trim() === '') {
-      if (import.meta.env.DEV) {
-        console.log('⚠️ App.tsx: initData отсутствует или пустая, заголовки не установлены');
-      }
-      return;
-    }
-
-    // ✅ FIX: Логирование для диагностики inline query контекста
+    // ✅ FIX: Всегда устанавливаем заголовки, даже если initData пустая
+    // Бэкенд сам решит, валидна ли initData или нет
+    // При inline query initData содержит user + query_id (без chat) - это нормально
+    
+    const currentInitData = initData || '';
+    
+    // Логирование для диагностики
     if (import.meta.env.DEV) {
-      const hasQueryId = initData.includes('query_id=');
-      const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
-      const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
+      const hasQueryId = currentInitData.includes('query_id=');
+      const hasChat = currentInitData.includes('chat=') || currentInitData.includes('chat_type=');
+      const hasUser = currentInitData.includes('user=');
+      const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : 
+                      hasChat ? 'CHAT' : 
+                      currentInitData ? 'UNKNOWN' : 'EMPTY';
       
       console.log('🔐 App.tsx: Установка заголовков авторизации:', {
         context,
         hasQueryId,
         hasChat,
-        initDataLength: initData.length,
-        hasUser: Boolean(user),
+        hasUser,
+        initDataLength: currentInitData.length,
+        isEmpty: !currentInitData,
+        hasUserObject: Boolean(user),
         language: user?.language_code
       });
+      
+      // Специальное предупреждение для inline query контекста
+      if (hasQueryId && !hasChat && hasUser) {
+        console.log('✅ Inline query контекст подтвержден: initData содержит user + query_id без chat');
+      } else if (!currentInitData) {
+        console.warn('⚠️ initData пустая - возможно, приложение открыто вне Telegram');
+      }
     }
 
-    apiClient.setAuthHeaders(initData, user?.language_code);
+    // Устанавливаем заголовки ВСЕГДА, независимо от содержимого
+    apiClient.setAuthHeaders(currentInitData, user?.language_code);
   }, [initData, user?.language_code]);
 
   useEffect(() => {

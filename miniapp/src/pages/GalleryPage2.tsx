@@ -93,12 +93,17 @@ export const GalleryPage2: React.FC = () => {
 
   // Установка заголовков авторизации
   useEffect(() => {
-    const currentInitData = manualInitData || initData;
-    if (currentInitData) {
-      apiClient.setAuthHeaders(currentInitData);
-    } else {
-      apiClient.checkExtensionHeaders();
+    // ✅ FIX: Всегда устанавливаем заголовки, независимо от содержимого initData
+    const currentInitData = manualInitData || initData || '';
+    
+    if (import.meta.env.DEV) {
+      console.log('🔐 GalleryPage2: Установка заголовков:', {
+        source: manualInitData ? 'manual' : initData ? 'telegram' : 'empty',
+        length: currentInitData.length
+      });
     }
+    
+    apiClient.setAuthHeaders(currentInitData);
   }, [initData, manualInitData]);
 
   // Загрузка стикерсетов

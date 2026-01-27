@@ -227,22 +227,36 @@ class ApiClient {
   }
 
   // Добавляем заголовки аутентификации (botName не отправляем)
-  // ✅ FIX: Метод устанавливает initData независимо от наличия chat в initDataUnsafe
+  // ✅ FIX: Метод устанавливает initData ВСЕГДА, независимо от содержания
+  // Пустая строка тоже отправляется - бэкенд сам решит, валидна ли она
   // При inline query initData содержит user и query_id (без chat) - это нормально
   setAuthHeaders(initData: string, language?: string) {
+    // Устанавливаем заголовок ВСЕГДА, даже если initData пустая строка
     this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
     this.setLanguage(language);
     
-    // ✅ FIX: Улучшенное логирование для диагностики inline query контекста
-    const hasQueryId = initData.includes('query_id=');
-    const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
-    const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
-    
-    console.log('✅ Заголовки аутентификации установлены:');
-    console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
-    console.log('  Контекст:', context);
-    console.log('  hasQueryId:', hasQueryId);
-    console.log('  hasChat:', hasChat);
+    // Улучшенное логирование для диагностики
+    if (import.meta.env.DEV) {
+      const hasQueryId = initData.includes('query_id=');
+      const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
+      const hasUser = initData.includes('user=');
+      const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : 
+                      hasChat ? 'CHAT' : 
+                      initData ? 'UNKNOWN' : 'EMPTY';
+      
+      console.log('✅ Заголовки аутентификации установлены:');
+      console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty string');
+      console.log('  Контекст:', context);
+      console.log('  hasQueryId:', hasQueryId);
+      console.log('  hasChat:', hasChat);
+      console.log('  hasUser:', hasUser);
+      
+      if (context === 'INLINE_QUERY') {
+        console.log('  🔍 INLINE_QUERY режим: initData валидная (user + query_id без chat)');
+      } else if (context === 'EMPTY') {
+        console.warn('  ⚠️ EMPTY: initData пустая - заголовок установлен, но бэкенд может отклонить');
+      }
+    }
   }
 
   setLanguage(language?: string) {
