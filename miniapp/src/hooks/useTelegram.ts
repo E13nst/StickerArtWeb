@@ -259,7 +259,10 @@ export const useTelegram = () => {
     initializationPromise = (async () => {
     const isDev = import.meta.env.DEV;
     const hasTelegramWebApp = Boolean(window.Telegram?.WebApp);
-    const hasInitData = Boolean(window.Telegram?.WebApp?.initData);
+    // ✅ FIX: Проверяем, что initData не только существует, но и не пустая строка
+    // При inline query initData может быть строкой с user и query_id (без chat)
+    const rawInitData = window.Telegram?.WebApp?.initData;
+    const hasInitData = Boolean(rawInitData && rawInitData.trim() !== '');
     
     let telegram: TelegramWebApp;
     let viewportChangedHandler: (() => void) | null = null;
@@ -294,7 +297,28 @@ export const useTelegram = () => {
       
       setTg(telegram);
       setUser(telegram.initDataUnsafe?.user || null);
-      setInitData(telegram.initData || '');
+      
+      // ✅ FIX: Всегда берем initData из telegram.initData (строка), независимо от наличия chat в initDataUnsafe
+      // При inline query initData содержит user и query_id, но не содержит chat - это нормально
+      const initDataValue = telegram.initData || '';
+      setInitData(initDataValue);
+      
+      // ✅ FIX: Логирование для диагностики inline query контекста
+      if (import.meta.env.DEV && initDataValue) {
+        const hasChat = Boolean(telegram.initDataUnsafe?.chat);
+        const hasQueryId = initDataValue.includes('query_id=');
+        const hasUser = Boolean(telegram.initDataUnsafe?.user);
+        
+        if (hasQueryId && !hasChat) {
+          console.log('🔍 Inline query контекст обнаружен:', {
+            hasUser,
+            hasQueryId,
+            hasChat: false,
+            initDataLength: initDataValue.length,
+            initDataPreview: initDataValue.substring(0, 100) + '...'
+          });
+        }
+      }
       
       // Определяем, находимся ли мы в реальном Telegram Mini App (не в браузере/mock)
       // Проверяем до ready(), чтобы знать, нужно ли ждать viewportChanged
@@ -655,12 +679,24 @@ export const useTelegram = () => {
         console.log('platform:', telegram.platform);
         console.log('version:', telegram.version);
         
-        // Детальная отладка initData
+        // ✅ FIX: Детальная отладка initData с определением контекста (inline query vs обычный)
         if (telegram.initData) {
-          console.log('🔍 Детальный разбор initData:');
           const params = new URLSearchParams(telegram.initData);
+          const hasChat = Boolean(telegram.initDataUnsafe?.chat);
+          const hasQueryId = telegram.initData.includes('query_id=');
+          const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
+          
+          console.log('🔍 Детальный разбор initData:');
+          console.log('  Контекст:', context);
+          console.log('  hasChat:', hasChat);
+          console.log('  hasQueryId:', hasQueryId);
           for (const [key, value] of params.entries()) {
             console.log(`  ${key}:`, value);
+          }
+          
+          // Предупреждение, если initData есть, но chat отсутствует (возможный inline query)
+          if (!hasChat && !hasQueryId && telegram.initDataUnsafe?.user) {
+            console.warn('⚠️ initData присутствует, но chat отсутствует. Возможно, это inline query контекст.');
           }
         }
       }

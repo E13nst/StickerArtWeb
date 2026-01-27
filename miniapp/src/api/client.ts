@@ -109,10 +109,30 @@ class ApiClient {
       (config) => {
         const headers = config.headers ?? {};
 
+        // ✅ FIX: Добавляем заголовок X-Telegram-Init-Data из defaults, если он не установлен в запросе
+        // Это работает для всех контекстов: обычный (с chat) и inline query (без chat, но с query_id)
         if (!headers['X-Telegram-Init-Data']) {
           const defaultInitData = this.client.defaults.headers.common['X-Telegram-Init-Data'];
           if (defaultInitData) {
             headers['X-Telegram-Init-Data'] = defaultInitData as string;
+            
+            // ✅ FIX: Логирование для диагностики inline query контекста
+            if (import.meta.env.DEV && typeof defaultInitData === 'string') {
+              const hasQueryId = defaultInitData.includes('query_id=');
+              const hasChat = defaultInitData.includes('chat=') || defaultInitData.includes('chat_type=');
+              const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
+              
+              if (hasQueryId && !hasChat) {
+                console.log('🔍 Interceptor: initData добавлен из defaults (inline query контекст):', {
+                  context,
+                  hasQueryId,
+                  hasChat: false,
+                  initDataLength: defaultInitData.length
+                });
+              }
+            }
+          } else if (import.meta.env.DEV) {
+            console.warn('⚠️ Interceptor: X-Telegram-Init-Data отсутствует в defaults.headers.common');
           }
         }
 
@@ -128,10 +148,16 @@ class ApiClient {
         
         // Детальное логирование для авторизации
         if (config.url?.includes('/auth/')) {
+          const initDataHeader = config.headers['X-Telegram-Init-Data'] as string | undefined;
+          const hasQueryId = initDataHeader?.includes('query_id=') || false;
+          const hasChat = initDataHeader?.includes('chat=') || initDataHeader?.includes('chat_type=') || false;
+          const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
+          
           console.log('🔐 Auth запрос детали:', {
             url: config.url,
+            context,
             headers: {
-              'X-Telegram-Init-Data': config.headers['X-Telegram-Init-Data'] ? 'present' : 'missing',
+              'X-Telegram-Init-Data': initDataHeader ? 'present' : 'missing',
               'Content-Type': config.headers['Content-Type'],
               'Accept': config.headers['Accept']
             },
@@ -201,11 +227,22 @@ class ApiClient {
   }
 
   // Добавляем заголовки аутентификации (botName не отправляем)
+  // ✅ FIX: Метод устанавливает initData независимо от наличия chat в initDataUnsafe
+  // При inline query initData содержит user и query_id (без chat) - это нормально
   setAuthHeaders(initData: string, language?: string) {
     this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
     this.setLanguage(language);
+    
+    // ✅ FIX: Улучшенное логирование для диагностики inline query контекста
+    const hasQueryId = initData.includes('query_id=');
+    const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
+    const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
+    
     console.log('✅ Заголовки аутентификации установлены:');
     console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty');
+    console.log('  Контекст:', context);
+    console.log('  hasQueryId:', hasQueryId);
+    console.log('  hasChat:', hasChat);
   }
 
   setLanguage(language?: string) {

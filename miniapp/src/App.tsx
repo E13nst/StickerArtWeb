@@ -45,8 +45,30 @@ const App: React.FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    if (!initData) {
+    // ✅ FIX: Проверяем, что initData не пустая строка
+    // При inline query initData содержит user и query_id (без chat) - это нормально
+    // initData должна отправляться независимо от наличия chat в initDataUnsafe
+    if (!initData || initData.trim() === '') {
+      if (import.meta.env.DEV) {
+        console.log('⚠️ App.tsx: initData отсутствует или пустая, заголовки не установлены');
+      }
       return;
+    }
+
+    // ✅ FIX: Логирование для диагностики inline query контекста
+    if (import.meta.env.DEV) {
+      const hasQueryId = initData.includes('query_id=');
+      const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
+      const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
+      
+      console.log('🔐 App.tsx: Установка заголовков авторизации:', {
+        context,
+        hasQueryId,
+        hasChat,
+        initDataLength: initData.length,
+        hasUser: Boolean(user),
+        language: user?.language_code
+      });
     }
 
     apiClient.setAuthHeaders(initData, user?.language_code);
