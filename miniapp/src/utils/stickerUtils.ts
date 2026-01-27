@@ -358,23 +358,26 @@ export function buildSwitchInlineQuery(fileId: string): string {
 
 /**
  * Создает fallback share URL для случаев, когда WebApp API недоступен
- * Использует createTelegramShareUrl для единообразия и корректного формата
  * 
- * Формат URL: https://t.me/stixlybot?text=@stixlybot%20[fileId]
- * Этот формат работает на всех платформах:
- * - iOS: открывает выбор чата с предзаполненным текстом
- * - Android: открывает выбор чата с предзаполненным текстом
- * - Desktop: открывает выбор чата с предзаполненным текстом
- * - Web: открывает выбор чата с предзаполненным текстом
+ * ВАЖНО: Используем t.me/share/url, а НЕ t.me/bot?text=
+ * - t.me/bot?text= открывает диалог с ботом (без выбора чата)
+ * - t.me/share/url показывает окно выбора чата (но inline режим может не всегда триггериться)
+ * 
+ * Формат URL: https://t.me/share/url?url=&text=@stixlybot%20[fileId]
+ * Этот формат гарантированно показывает окно выбора чата на всех платформах
  * 
  * @param fileId - Telegram file_id стикера
  * @param botUsername - Имя бота (без @)
  * @returns URL для открытия выбора чата с предзаполненным текстом
  */
 export function buildFallbackShareUrl(fileId: string, botUsername: string = 'stixlybot'): string {
-  // Используем createTelegramShareUrl с useDirectBotLink для корректного триггера inline режима
-  // Прямой deep link к боту лучше работает на всех платформах
-  return createTelegramShareUrl(botUsername, fileId, { useDirectBotLink: true });
+  // ВАЖНО: НЕ используем t.me/bot?text= - это открывает диалог с ботом, а не окно выбора чата!
+  // Используем t.me/share/url для гарантированного показа окна выбора чата
+  const cleanBotUsername = botUsername.startsWith('@') ? botUsername.slice(1) : botUsername;
+  const cleanFileId = removeInvisibleChars(fileId);
+  const messageText = `@${cleanBotUsername} ${cleanFileId}`;
+  const encodedText = encodeURIComponent(messageText);
+  return `https://t.me/share/url?url=&text=${encodedText}`;
 }
 
 /**

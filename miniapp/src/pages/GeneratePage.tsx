@@ -496,12 +496,18 @@ export const GeneratePage: React.FC = () => {
       // ОСНОВНОЙ ПУТЬ: Используем switchInlineQuery если доступен
       // ВАЖНО: switchInlineQuery автоматически добавляет "@bot" к query,
       // поэтому передаем только fileId без "@bot"
+      // ВАЖНО: Второй параметр ['users','groups','channels'] обязателен для показа окна выбора чата!
+      // Без него Telegram вставляет в текущий чат (или в чат с ботом на Desktop)
       const query = buildSwitchInlineQuery(cleanFileId);
       
-      if (tg && typeof tg.switchInlineQuery === 'function') {
-        console.log('📤 Используем switchInlineQuery (только fileId, без @bot):', query);
+      // Проверяем длину query (максимум 256 символов по документации)
+      if (query.length > 256) {
+        console.warn('⚠️ Query слишком длинный (>256 символов), используем fallback');
+      } else if (tg && typeof tg.switchInlineQuery === 'function') {
+        console.log('📤 Используем switchInlineQuery с выбором чата (только fileId, без @bot):', query);
         try {
-          tg.switchInlineQuery(query);
+          // ВАЖНО: Второй параметр ['users','groups','channels'] показывает окно выбора чата
+          tg.switchInlineQuery(query, ['users', 'groups', 'channels']);
           return;
         } catch (error) {
           console.warn('⚠️ switchInlineQuery не сработал, используем fallback:', error);
