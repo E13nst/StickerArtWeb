@@ -292,39 +292,42 @@ export function isValidTelegramFileId(fileId: string): boolean {
 }
 
 /**
- * Создает Telegram share URL с предзаполненным текстом, начинающимся с @username
+ * Создает Telegram share URL с предзаполненным текстом для триггера inline режима бота
  * 
- * Использует невидимый символ Word Joiner (U+2060) перед @ для обхода автоматического
- * добавления пробела Telegram перед @ в начале текста.
+ * ВАЖНО: Для корректного триггера inline режима бота (@username) в начале текста
+ * НЕ используем невидимые символы, так как они мешают Telegram распознать начало inline-запроса.
+ * 
+ * Telegram автоматически добавляет пробел перед @ в начале текста через t.me/share/url,
+ * поэтому для триггера inline режима используем прямой deep link к боту через t.me/bot?text=...
  * 
  * @param botUsername - Имя бота (без @)
- * @param text - Текст сообщения после @username
+ * @param text - Текст сообщения после @username (обычно file_id для inline запроса)
  * @param options - Опции для настройки поведения
- * @returns URL для открытия выбора чата с предзаполненным текстом
+ * @returns URL для открытия выбора чата с предзаполненным текстом, который триггерит inline режим
  * 
  * @example
  * createTelegramShareUrl('stixlybot', 'CAACAgIAAxkBAAIBY2...')
- * // Возвращает: https://t.me/share/url?url=&text=%E2%81%A0%40stixlybot%20CAACAgIAAxkBAAIBY2...
+ * // Возвращает: https://t.me/stixlybot?text=CAACAgIAAxkBAAIBY2...
  * 
- * @see https://core.telegram.org/widgets/share - Официальная документация Telegram Share
- * @see https://core.telegram.org/api/links - Документация по deep links
+ * @see https://core.telegram.org/api/links - Документация по deep links (Bot links)
  */
 export function createTelegramShareUrl(
   botUsername: string,
   text: string,
   options: {
     /**
-     * Невидимый символ для использования (по умолчанию WORD_JOINER)
-     * Можно использовать альтернативный символ для fallback
-     */
-    invisibleChar?: keyof typeof INVISIBLE_CHARS;
-    /**
-     * URL для шаринга (по умолчанию пустая строка, чтобы URL не отображался в тексте)
+     * URL для шаринга (по умолчанию пустая строка)
+     * Если указан, используется формат t.me/share/url вместо прямого deep link к боту
      */
     shareUrl?: string;
+    /**
+     * Использовать прямой deep link к боту вместо share URL
+     * Прямой deep link лучше триггерит inline режим на всех платформах
+     */
+    useDirectBotLink?: boolean;
   } = {}
 ): string {
-  const { invisibleChar = 'WORD_JOINER', shareUrl = '' } = options;
+  const { shareUrl = '', useDirectBotLink = true } = options;
   
   // Валидация botUsername
   if (!botUsername || typeof botUsername !== 'string') {
@@ -340,18 +343,25 @@ export function createTelegramShareUrl(
     throw new Error('botUsername не может быть пустым');
   }
   
-  // Выбираем невидимый символ
-  const char = INVISIBLE_CHARS[invisibleChar];
+  // Если указан shareUrl или useDirectBotLink = false, используем формат share/url
+  // Иначе используем прямой deep link к боту для лучшего триггера inline режима
+  if (shareUrl || !useDirectBotLink) {
+    // Формируем текст сообщения: @username + текст (БЕЗ невидимого символа)
+    // Telegram добавит пробел перед @, но это приемлемо для share URL
+    const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+    const encodedText = encodeURIComponent(messageText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+    return `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+  }
   
-  // Формируем текст сообщения: невидимый символ + @username + текст
-  const messageText = `${char}@${cleanBotUsername}${text ? ` ${text}` : ''}`;
-  
-  // Создаем share URL согласно документации Telegram
-  // Формат: https://t.me/share/url?url={url}&text={text}
+  // Прямой deep link к боту с текстом "@bot text" для триггера inline режима
+  // Формат: t.me/<bot_username>?text=@bot%20text
+  // ВАЖНО: Включаем @username в текст, чтобы Telegram распознал начало inline-запроса
+  // При использовании прямого deep link к боту (t.me/bot?text=...) Telegram
+  // НЕ добавляет пробел перед @ автоматически, что позволяет триггерить inline режим
+  const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
   const encodedText = encodeURIComponent(messageText);
-  const encodedUrl = encodeURIComponent(shareUrl);
-  
-  return `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+  return `https://t.me/${cleanBotUsername}?text=${encodedText}`;
 }
 
 /**
@@ -359,31 +369,38 @@ export function createTelegramShareUrl(
  * Альтернатива для мобильных устройств
  * 
  * @param botUsername - Имя бота (без @)
- * @param text - Текст сообщения после @username
+ * @param text - Текст сообщения (обычно file_id для inline запроса)
  * @param options - Опции для настройки поведения
- * @returns Deep link URL (tg://msg_url)
+ * @returns Deep link URL (tg://resolve для прямого deep link к боту)
  */
 export function createTelegramDeepLink(
   botUsername: string,
   text: string,
   options: {
-    invisibleChar?: keyof typeof INVISIBLE_CHARS;
     shareUrl?: string;
+    useDirectBotLink?: boolean;
   } = {}
 ): string {
-  const { invisibleChar = 'WORD_JOINER', shareUrl = '' } = options;
+  const { shareUrl = '', useDirectBotLink = true } = options;
   
-  // Используем ту же логику, что и для share URL
+  // Убираем @ из начала botUsername, если он есть
   const cleanBotUsername = botUsername.startsWith('@') 
     ? botUsername.slice(1) 
     : botUsername;
   
-  const char = INVISIBLE_CHARS[invisibleChar];
-  const messageText = `${char}@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+  // Если указан shareUrl или useDirectBotLink = false, используем формат msg_url
+  if (shareUrl || !useDirectBotLink) {
+    const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+    const encodedText = encodeURIComponent(messageText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+    return `tg://msg_url?url=${encodedUrl}&text=${encodedText}`;
+  }
   
+  // Прямой deep link к боту с текстом "@bot text" для триггера inline режима
+  // Формат: tg://resolve?domain=<bot_username>&text=@bot%20text
+  // ВАЖНО: Включаем @username в текст для корректного триггера inline режима
+  const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
   const encodedText = encodeURIComponent(messageText);
-  const encodedUrl = encodeURIComponent(shareUrl);
-  
-  return `tg://msg_url?url=${encodedUrl}&text=${encodedText}`;
+  return `tg://resolve?domain=${cleanBotUsername}&text=${encodedText}`;
 }
 
