@@ -2,6 +2,60 @@
  * Утилиты для работы со стикерами
  */
 
+/**
+ * Определяет платформу устройства
+ * @param telegram - Telegram WebApp объект (опционально)
+ * @returns Информация о платформе
+ */
+export function getPlatformInfo(telegram?: any): {
+  isIOS: boolean;
+  isAndroid: boolean;
+  isDesktop: boolean;
+  isWeb: boolean;
+  isMobile: boolean;
+  platform: string;
+} {
+  let platform = 'unknown';
+  let isIOS = false;
+  let isAndroid = false;
+  let isDesktop = false;
+  let isWeb = false;
+
+  // Проверяем platform из Telegram WebApp
+  if (telegram?.platform) {
+    platform = telegram.platform.toLowerCase();
+    isIOS = platform === 'ios' || platform === 'iphone' || platform === 'ipad';
+    isAndroid = platform === 'android';
+    isDesktop = platform === 'tdesktop' || platform === 'desktop' || platform === 'macos' || platform === 'windows' || platform === 'linux';
+    isWeb = platform === 'web' || platform === 'weba';
+  }
+
+  // Fallback на user agent, если platform не определен
+  if (platform === 'unknown' && typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent.toLowerCase();
+    isIOS = /ipad|iphone|ipod/.test(ua);
+    isAndroid = /android/.test(ua);
+    isDesktop = !isIOS && !isAndroid && (ua.includes('windows') || ua.includes('macintosh') || ua.includes('linux'));
+    isWeb = !isIOS && !isAndroid && !isDesktop;
+    
+    if (isIOS) platform = 'ios';
+    else if (isAndroid) platform = 'android';
+    else if (isDesktop) platform = 'desktop';
+    else platform = 'web';
+  }
+
+  const isMobile = isIOS || isAndroid;
+
+  return {
+    isIOS,
+    isAndroid,
+    isDesktop,
+    isWeb,
+    isMobile,
+    platform
+  };
+}
+
 const readEnv = (key: string): string | undefined => {
   try {
     // @ts-ignore
@@ -280,7 +334,7 @@ export function removeInvisibleChars(text: string): string {
 }
 
 /**
- * Строит inline query строку для бота (без невидимых символов)
+ * Строит inline query строку для share URL (с @bot в начале)
  * @param fileId - Telegram file_id стикера
  * @param botUsername - Имя бота (без @)
  * @returns Очищенная строка для inline query: "@bot fileId"
@@ -293,14 +347,34 @@ export function buildInlineQuery(fileId: string, botUsername: string = 'stixlybo
 }
 
 /**
+ * Строит query строку для switchInlineQuery (БЕЗ @bot, так как Telegram добавляет его автоматически)
+ * @param fileId - Telegram file_id стикера
+ * @returns Очищенный fileId без @bot
+ */
+export function buildSwitchInlineQuery(fileId: string): string {
+  // switchInlineQuery автоматически добавляет "@bot" к query, поэтому передаем только fileId
+  return removeInvisibleChars(fileId).trim();
+}
+
+/**
  * Создает fallback share URL для случаев, когда WebApp API недоступен
+ * Использует createTelegramShareUrl для единообразия и корректного формата
+ * 
+ * Формат URL: https://t.me/stixlybot?text=@stixlybot%20[fileId]
+ * Этот формат работает на всех платформах:
+ * - iOS: открывает выбор чата с предзаполненным текстом
+ * - Android: открывает выбор чата с предзаполненным текстом
+ * - Desktop: открывает выбор чата с предзаполненным текстом
+ * - Web: открывает выбор чата с предзаполненным текстом
+ * 
  * @param fileId - Telegram file_id стикера
  * @param botUsername - Имя бота (без @)
- * @returns URL для t.me/share/url без невидимых символов
+ * @returns URL для открытия выбора чата с предзаполненным текстом
  */
 export function buildFallbackShareUrl(fileId: string, botUsername: string = 'stixlybot'): string {
-  const query = buildInlineQuery(fileId, botUsername);
-  return `https://t.me/share/url?url=&text=${encodeURIComponent(query)}`;
+  // Используем createTelegramShareUrl с useDirectBotLink для корректного триггера inline режима
+  // Прямой deep link к боту лучше работает на всех платформах
+  return createTelegramShareUrl(botUsername, fileId, { useDirectBotLink: true });
 }
 
 /**
@@ -381,6 +455,11 @@ export function createTelegramShareUrl(
   }
   
   // Прямой deep link к боту (основной путь)
+  // Формат: https://t.me/bot?text=@bot%20fileId
+  // Этот формат корректно работает на всех платформах:
+  // - Открывает окно выбора чата
+  // - Предзаполняет текст "@bot fileId"
+  // - Триггерит inline режим бота
   const messageText = `@${cleanBotUsername}${cleanText ? ` ${cleanText}` : ''}`;
   const encodedText = encodeURIComponent(messageText);
   return `https://t.me/${cleanBotUsername}?text=${encodedText}`;

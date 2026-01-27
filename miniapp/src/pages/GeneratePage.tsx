@@ -13,9 +13,11 @@ import { StylePresetDropdown } from '@/components/StylePresetDropdown';
 import { useTelegram } from '@/hooks/useTelegram';
 import { 
   buildInlineQuery, 
+  buildSwitchInlineQuery,
   buildFallbackShareUrl, 
   removeInvisibleChars,
-  isValidTelegramFileId 
+  isValidTelegramFileId,
+  getPlatformInfo
 } from '@/utils/stickerUtils';
 
 type PageState = 'idle' | 'generating' | 'success' | 'error';
@@ -492,28 +494,54 @@ export const GeneratePage: React.FC = () => {
       }
       
       // ОСНОВНОЙ ПУТЬ: Используем switchInlineQuery если доступен
-      const query = buildInlineQuery(cleanFileId, 'stixlybot');
+      // ВАЖНО: switchInlineQuery автоматически добавляет "@bot" к query,
+      // поэтому передаем только fileId без "@bot"
+      const query = buildSwitchInlineQuery(cleanFileId);
       
       if (tg && typeof tg.switchInlineQuery === 'function') {
-        console.log('📤 Используем switchInlineQuery:', query);
-        tg.switchInlineQuery(query);
-        return;
+        console.log('📤 Используем switchInlineQuery (только fileId, без @bot):', query);
+        try {
+          tg.switchInlineQuery(query);
+          return;
+        } catch (error) {
+          console.warn('⚠️ switchInlineQuery не сработал, используем fallback:', error);
+          // Продолжаем к fallback
+        }
       }
       
       // FALLBACK: Если WebApp API недоступен, используем share URL
-      console.log('📤 WebApp API недоступен, используем fallback share URL');
+      console.log('📤 Используем fallback share URL');
       const shareUrl = buildFallbackShareUrl(cleanFileId, 'stixlybot');
       
-      // Определяем контекст: внутри Telegram WebApp или вне
+      // Определяем платформу для выбора оптимального метода открытия
+      const platformInfo = getPlatformInfo(tg);
       const isInTelegram = tg && tg.initData && tg.initData.trim() !== '';
       
-      if (isInTelegram && tg?.openTelegramLink) {
-        // Внутри Telegram: используем openTelegramLink
-        tg.openTelegramLink(shareUrl);
-      } else {
-        // Вне Telegram: используем window.open (не зависит от попап-блокеров на Desktop)
+      console.log('📱 Платформа:', platformInfo);
+      
+      // На Desktop всегда используем window.open для надежности
+      // openTelegramLink на Desktop может не открывать окно выбора чата корректно
+      if (platformInfo.isDesktop) {
+        console.log('🖥️ Desktop: используем window.open');
         window.open(shareUrl, '_blank', 'noopener,noreferrer');
+        return;
       }
+      
+      // На мобильных устройствах внутри Telegram используем openTelegramLink
+      if (isInTelegram && tg?.openTelegramLink) {
+        console.log('📱 Мобильное устройство в Telegram: используем openTelegramLink');
+        try {
+          tg.openTelegramLink(shareUrl);
+        } catch (error) {
+          console.warn('⚠️ openTelegramLink не сработал, используем window.open:', error);
+          window.open(shareUrl, '_blank', 'noopener,noreferrer');
+        }
+        return;
+      }
+      
+      // Вне Telegram или если openTelegramLink недоступен - используем window.open
+      console.log('🌐 Вне Telegram или fallback: используем window.open');
+      window.open(shareUrl, '_blank', 'noopener,noreferrer');
     } catch (error: any) {
       console.error('❌ Ошибка при отправке стикера в чат:', error);
       let message = 'Не удалось отправить стикер в чат';
