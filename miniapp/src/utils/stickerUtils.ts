@@ -269,13 +269,39 @@ export function formatStickerTitle(title: string | null | undefined): string {
 }
 
 /**
- * Невидимые символы для обхода автоматического добавления пробела Telegram перед @
- * Используются в порядке приоритета (от лучшего к худшему)
+ * Удаляет невидимые символы из строки (U+200B, U+2060 и другие)
+ * @param text - Текст для очистки
+ * @returns Очищенный текст
  */
-const INVISIBLE_CHARS = {
-  WORD_JOINER: '\u2060',      // U+2060 Word Joiner (рекомендуется Unicode)
-  ZERO_WIDTH_SPACE: '\u200B',  // U+200B Zero Width Space (альтернатива)
-} as const;
+export function removeInvisibleChars(text: string): string {
+  if (!text || typeof text !== 'string') return text;
+  // Удаляем Zero Width Space (U+200B), Word Joiner (U+2060), и другие невидимые символы
+  return text.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
+}
+
+/**
+ * Строит inline query строку для бота (без невидимых символов)
+ * @param fileId - Telegram file_id стикера
+ * @param botUsername - Имя бота (без @)
+ * @returns Очищенная строка для inline query: "@bot fileId"
+ */
+export function buildInlineQuery(fileId: string, botUsername: string = 'stixlybot'): string {
+  const cleanBotUsername = botUsername.startsWith('@') ? botUsername.slice(1) : botUsername;
+  const cleanFileId = removeInvisibleChars(fileId);
+  // Гарантируем отсутствие пробелов/невидимых символов перед @
+  return `@${cleanBotUsername} ${cleanFileId}`.trim();
+}
+
+/**
+ * Создает fallback share URL для случаев, когда WebApp API недоступен
+ * @param fileId - Telegram file_id стикера
+ * @param botUsername - Имя бота (без @)
+ * @returns URL для t.me/share/url без невидимых символов
+ */
+export function buildFallbackShareUrl(fileId: string, botUsername: string = 'stixlybot'): string {
+  const query = buildInlineQuery(fileId, botUsername);
+  return `https://t.me/share/url?url=&text=${encodeURIComponent(query)}`;
+}
 
 /**
  * Валидирует формат Telegram file_id
@@ -343,23 +369,19 @@ export function createTelegramShareUrl(
     throw new Error('botUsername не может быть пустым');
   }
   
+  // Очищаем текст от невидимых символов
+  const cleanText = removeInvisibleChars(text);
+  
   // Если указан shareUrl или useDirectBotLink = false, используем формат share/url
-  // Иначе используем прямой deep link к боту для лучшего триггера inline режима
-  if (shareUrl || !useDirectBotLink) {
-    // Формируем текст сообщения: @username + текст (БЕЗ невидимого символа)
-    // Telegram добавит пробел перед @, но это приемлемо для share URL
-    const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+  if (shareUrl && !useDirectBotLink) {
+    const messageText = `@${cleanBotUsername}${cleanText ? ` ${cleanText}` : ''}`;
     const encodedText = encodeURIComponent(messageText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
   }
   
-  // Прямой deep link к боту с текстом "@bot text" для триггера inline режима
-  // Формат: t.me/<bot_username>?text=@bot%20text
-  // ВАЖНО: Включаем @username в текст, чтобы Telegram распознал начало inline-запроса
-  // При использовании прямого deep link к боту (t.me/bot?text=...) Telegram
-  // НЕ добавляет пробел перед @ автоматически, что позволяет триггерить inline режим
-  const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+  // Прямой deep link к боту (основной путь)
+  const messageText = `@${cleanBotUsername}${cleanText ? ` ${cleanText}` : ''}`;
   const encodedText = encodeURIComponent(messageText);
   return `https://t.me/${cleanBotUsername}?text=${encodedText}`;
 }
@@ -388,9 +410,12 @@ export function createTelegramDeepLink(
     ? botUsername.slice(1) 
     : botUsername;
   
+  // Очищаем текст от невидимых символов
+  const cleanText = removeInvisibleChars(text);
+  
   // Если указан shareUrl или useDirectBotLink = false, используем формат msg_url
   if (shareUrl || !useDirectBotLink) {
-    const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+    const messageText = `@${cleanBotUsername}${cleanText ? ` ${cleanText}` : ''}`;
     const encodedText = encodeURIComponent(messageText);
     const encodedUrl = encodeURIComponent(shareUrl);
     return `tg://msg_url?url=${encodedUrl}&text=${encodedText}`;
@@ -399,7 +424,7 @@ export function createTelegramDeepLink(
   // Прямой deep link к боту с текстом "@bot text" для триггера inline режима
   // Формат: tg://resolve?domain=<bot_username>&text=@bot%20text
   // ВАЖНО: Включаем @username в текст для корректного триггера inline режима
-  const messageText = `@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+  const messageText = `@${cleanBotUsername}${cleanText ? ` ${cleanText}` : ''}`;
   const encodedText = encodeURIComponent(messageText);
   return `tg://resolve?domain=${cleanBotUsername}&text=${encodedText}`;
 }

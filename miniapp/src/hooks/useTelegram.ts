@@ -153,7 +153,12 @@ const createMockTelegramEnvBase = (mockUser: TelegramUser): Partial<TelegramWebA
     expand: () => console.log('🔧 Mock expand'),
     close: () => console.log('🔧 Mock close'),
     sendData: () => console.log('🔧 Mock sendData'),
-    switchInlineQuery: () => console.log('🔧 Mock switchInlineQuery'),
+    switchInlineQuery: (query: string) => {
+      console.log('🔧 Mock switchInlineQuery:', query);
+      // В mock режиме открываем fallback URL
+      const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(query)}`;
+      window.open(shareUrl, '_blank');
+    },
     openLink: (url: string) => window.open(url, '_blank'),
     openTelegramLink: (url: string) => console.log('🔧 Mock openTelegramLink:', url),
     openInvoice: () => console.log('🔧 Mock openInvoice'),

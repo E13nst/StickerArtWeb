@@ -11,7 +11,12 @@ import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { StylePresetDropdown } from '@/components/StylePresetDropdown';
 import { useTelegram } from '@/hooks/useTelegram';
-import { createTelegramShareUrl, createTelegramDeepLink, isValidTelegramFileId } from '@/utils/stickerUtils';
+import { 
+  buildInlineQuery, 
+  buildFallbackShareUrl, 
+  removeInvisibleChars,
+  isValidTelegramFileId 
+} from '@/utils/stickerUtils';
 
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 
@@ -466,92 +471,48 @@ export const GeneratePage: React.FC = () => {
         throw new Error('Не удалось получить stickerFileId. Стикер должен быть сохранен перед отправкой.');
       }
 
-      // Валидация формата stickerFileId для безопасности
-      if (!isValidTelegramFileId(stickerFileId)) {
-        console.warn('⚠️ Нестандартный формат stickerFileId:', stickerFileId);
+      // Валидация и очистка fileId
+      const cleanFileId = removeInvisibleChars(stickerFileId);
+      if (!isValidTelegramFileId(cleanFileId)) {
+        console.warn('⚠️ Нестандартный формат stickerFileId:', cleanFileId);
         // Не блокируем отправку, но логируем для отладки
       }
 
       // Если есть inlineQueryId, отправляем стикер напрямую в чат через inline режим
       if (inlineQueryId) {
         const dataToSend = {
-          file_id: stickerFileId,
+          file_id: cleanFileId,
           inline_query_id: inlineQueryId
         };
 
         console.log('📤 Отправка стикера в inline чат через sendData:', dataToSend);
         tg.sendData(JSON.stringify(dataToSend));
         console.log('✅ Стикер успешно отправлен в чат');
+        return;
+      }
+      
+      // ОСНОВНОЙ ПУТЬ: Используем switchInlineQuery если доступен
+      const query = buildInlineQuery(cleanFileId, 'stixlybot');
+      
+      if (tg && typeof tg.switchInlineQuery === 'function') {
+        console.log('📤 Используем switchInlineQuery:', query);
+        tg.switchInlineQuery(query);
+        return;
+      }
+      
+      // FALLBACK: Если WebApp API недоступен, используем share URL
+      console.log('📤 WebApp API недоступен, используем fallback share URL');
+      const shareUrl = buildFallbackShareUrl(cleanFileId, 'stixlybot');
+      
+      // Определяем контекст: внутри Telegram WebApp или вне
+      const isInTelegram = tg && tg.initData && tg.initData.trim() !== '';
+      
+      if (isInTelegram && tg?.openTelegramLink) {
+        // Внутри Telegram: используем openTelegramLink
+        tg.openTelegramLink(shareUrl);
       } else {
-        // Открываем выбор чата с предзаполненным текстом для триггера inline режима бота
-        // file_id необходим для того, чтобы бот мог обработать инлайн-запрос
-        // 
-        // ВАЖНО: Для корректного триггера inline режима используем прямой deep link к боту
-        // (t.me/bot?text=...) вместо t.me/share/url, так как:
-        // 1. Прямой deep link к боту лучше триггерит inline режим на всех платформах
-        // 2. Невидимые символы перед @ мешают Telegram распознать начало inline-запроса
-        // 3. Формат t.me/bot?text=... не добавляет пробел перед текстом автоматически
-        // 
-        // Используем утилиту createTelegramShareUrl с useDirectBotLink=true
-        // для создания прямого deep link к боту
-        const shareUrl = createTelegramShareUrl('stixlybot', stickerFileId, {
-          useDirectBotLink: true // Используем прямой deep link для лучшего триггера inline режима
-        });
-        
-        // Альтернативный вариант с deep link схемой tg:// (для мобильных устройств)
-        const deepLinkUrl = createTelegramDeepLink('stixlybot', stickerFileId, {
-          useDirectBotLink: true
-        });
-        
-        console.log('📤 Открытие выбора чата с предзаполненным текстом для inline режима');
-        console.log('📋 Share URL (https):', shareUrl);
-        console.log('📋 Deep Link URL (tg://):', deepLinkUrl);
-        console.log('📋 StickerFileId для инлайн:', stickerFileId);
-        console.log('📋 Текст сообщения: @stixlybot', stickerFileId);
-        
-        // Определяем платформу для выбора оптимального метода открытия
-        const isDesktop = typeof window !== 'undefined' && 
-          (window.navigator.platform.includes('Win') || 
-           window.navigator.platform.includes('Mac') || 
-           window.navigator.platform.includes('Linux'));
-        
-        // В WebApp контексте используем разные методы в зависимости от платформы
-        // Для Desktop: используем window.open для более надежного открытия
-        // Для мобильных: используем openTelegramLink или deep link
-        setTimeout(() => {
-          try {
-            if (isDesktop) {
-              // На Desktop используем window.open для более надежного открытия
-              // Прямой deep link к боту должен работать лучше, чем share URL
-              console.log('🖥️ Desktop обнаружен, используем window.open');
-              window.open(shareUrl, '_blank', 'noopener,noreferrer');
-            } else {
-              // На мобильных используем openTelegramLink
-              console.log('📱 Мобильная платформа, используем openTelegramLink');
-              tg.openTelegramLink(shareUrl);
-            }
-            console.log('✅ Ссылка открыта успешно');
-          } catch (error) {
-            console.warn('⚠️ Первый метод не сработал, пробуем fallback:', error);
-            // Fallback 1: используем openLink
-            try {
-              tg.openLink(shareUrl, { try_instant_view: false });
-              console.log('✅ openLink сработал');
-            } catch (linkError) {
-              console.warn('⚠️ openLink не сработал, пробуем window.open:', linkError);
-              // Fallback 2: используем window.open
-              try {
-                window.open(shareUrl, '_blank', 'noopener,noreferrer');
-                console.log('✅ window.open сработал');
-              } catch (windowError) {
-                console.error('❌ Все методы не сработали:', windowError);
-                // Последний fallback: пробуем через window.location (только для отладки)
-                console.warn('⚠️ Последний fallback: window.location.href');
-                window.location.href = shareUrl;
-              }
-            }
-          }
-        }, 100);
+        // Вне Telegram: используем window.open (не зависит от попап-блокеров на Desktop)
+        window.open(shareUrl, '_blank', 'noopener,noreferrer');
       }
     } catch (error: any) {
       console.error('❌ Ошибка при отправке стикера в чат:', error);

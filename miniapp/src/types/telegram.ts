@@ -73,6 +73,8 @@ export interface TelegramWebApp {
   sendData: (data: string) => void;
   openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
   openTelegramLink: (url: string) => void;
+  switchInlineQuery: (query: string, chatTypes?: string[]) => void;
+  shareMessage?: (messageId: string) => void;
   openInvoice: (url: string, callback?: (status: string) => void) => void;
   showPopup: (params: {
     title?: string;
