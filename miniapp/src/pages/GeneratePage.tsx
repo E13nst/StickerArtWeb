@@ -11,6 +11,7 @@ import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { StylePresetDropdown } from '@/components/StylePresetDropdown';
 import { useTelegram } from '@/hooks/useTelegram';
+import { createTelegramShareUrl, createTelegramDeepLink, isValidTelegramFileId } from '@/utils/stickerUtils';
 
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 
@@ -465,6 +466,12 @@ export const GeneratePage: React.FC = () => {
         throw new Error('Не удалось получить stickerFileId. Стикер должен быть сохранен перед отправкой.');
       }
 
+      // Валидация формата stickerFileId для безопасности
+      if (!isValidTelegramFileId(stickerFileId)) {
+        console.warn('⚠️ Нестандартный формат stickerFileId:', stickerFileId);
+        // Не блокируем отправку, но логируем для отладки
+      }
+
       // Если есть inlineQueryId, отправляем стикер напрямую в чат через inline режим
       if (inlineQueryId) {
         const dataToSend = {
@@ -476,22 +483,35 @@ export const GeneratePage: React.FC = () => {
         tg.sendData(JSON.stringify(dataToSend));
         console.log('✅ Стикер успешно отправлен в чат');
       } else {
-        // Открываем чат с ботом с предзаполненным текстом "@stixlybot [StickerFileId]"
+        // Открываем выбор чата с предзаполненным текстом "@stixlybot [StickerFileId]"
         // file_id необходим для того, чтобы бот мог обработать инлайн-запрос
-        const messageText = `@stixlybot ${stickerFileId}`;
-        
-        // Используем формат deep link для открытия чата с ботом с предзаполненным текстом
-        // Формат: t.me/botusername?text=message (без добавления URL в текст)
-        const shareUrl = `https://t.me/stixlybot?text=${encodeURIComponent(messageText)}`;
+        // 
+        // ВАЖНО: Telegram автоматически добавляет пробел перед @ в начале текста
+        // (см. https://core.telegram.org/api/links - раздел "Public username links")
+        // Используем невидимый символ Word Joiner (U+2060) перед @ для обхода этого ограничения.
+        // U+2060 предпочтительнее U+200B (Zero Width Space), так как:
+        // - Рекомендуется Unicode вместо deprecated U+FEFF
+        // - Лучшая совместимость с современными системами
+        // - Меньше вероятность фильтрации Telegram
+        // 
+        // Используем утилиту createTelegramShareUrl для создания корректного URL
+        // с поддержкой fallback на альтернативные невидимые символы при необходимости
+        const shareUrl = createTelegramShareUrl('stixlybot', stickerFileId, {
+          invisibleChar: 'WORD_JOINER',
+          shareUrl: '' // Пустая строка, чтобы URL не отображался в тексте
+        });
         
         // Альтернативный вариант с deep link схемой (для мобильных устройств)
-        const deepLinkUrl = `tg://resolve?domain=stixlybot&text=${encodeURIComponent(messageText)}`;
+        const deepLinkUrl = createTelegramDeepLink('stixlybot', stickerFileId, {
+          invisibleChar: 'WORD_JOINER',
+          shareUrl: ''
+        });
         
         console.log('📤 Открытие выбора чата с предзаполненным текстом');
         console.log('📋 Share URL (https):', shareUrl);
         console.log('📋 Deep Link URL (tg://):', deepLinkUrl);
         console.log('📋 StickerFileId для инлайн:', stickerFileId);
-        console.log('📋 Текст сообщения:', messageText);
+        console.log('📋 Текст сообщения: @stixlybot', stickerFileId);
         
         // В WebApp контексте openTelegramLink должен открывать ссылку в основном приложении Telegram
         // Это должно открыть окно выбора чата с предзаполненным текстом

@@ -268,3 +268,122 @@ export function formatStickerTitle(title: string | null | undefined): string {
   return firstMention;
 }
 
+/**
+ * Невидимые символы для обхода автоматического добавления пробела Telegram перед @
+ * Используются в порядке приоритета (от лучшего к худшему)
+ */
+const INVISIBLE_CHARS = {
+  WORD_JOINER: '\u2060',      // U+2060 Word Joiner (рекомендуется Unicode)
+  ZERO_WIDTH_SPACE: '\u200B',  // U+200B Zero Width Space (альтернатива)
+} as const;
+
+/**
+ * Валидирует формат Telegram file_id
+ * @param fileId - Telegram file_id для валидации
+ * @returns true если формат валиден
+ */
+export function isValidTelegramFileId(fileId: string): boolean {
+  if (!fileId || typeof fileId !== 'string') {
+    return false;
+  }
+  // Telegram file_id обычно содержит только буквы, цифры, дефисы и подчеркивания
+  // Длина может варьироваться, но обычно не превышает 200 символов
+  return /^[A-Za-z0-9_-]{1,200}$/.test(fileId);
+}
+
+/**
+ * Создает Telegram share URL с предзаполненным текстом, начинающимся с @username
+ * 
+ * Использует невидимый символ Word Joiner (U+2060) перед @ для обхода автоматического
+ * добавления пробела Telegram перед @ в начале текста.
+ * 
+ * @param botUsername - Имя бота (без @)
+ * @param text - Текст сообщения после @username
+ * @param options - Опции для настройки поведения
+ * @returns URL для открытия выбора чата с предзаполненным текстом
+ * 
+ * @example
+ * createTelegramShareUrl('stixlybot', 'CAACAgIAAxkBAAIBY2...')
+ * // Возвращает: https://t.me/share/url?url=&text=%E2%81%A0%40stixlybot%20CAACAgIAAxkBAAIBY2...
+ * 
+ * @see https://core.telegram.org/widgets/share - Официальная документация Telegram Share
+ * @see https://core.telegram.org/api/links - Документация по deep links
+ */
+export function createTelegramShareUrl(
+  botUsername: string,
+  text: string,
+  options: {
+    /**
+     * Невидимый символ для использования (по умолчанию WORD_JOINER)
+     * Можно использовать альтернативный символ для fallback
+     */
+    invisibleChar?: keyof typeof INVISIBLE_CHARS;
+    /**
+     * URL для шаринга (по умолчанию пустая строка, чтобы URL не отображался в тексте)
+     */
+    shareUrl?: string;
+  } = {}
+): string {
+  const { invisibleChar = 'WORD_JOINER', shareUrl = '' } = options;
+  
+  // Валидация botUsername
+  if (!botUsername || typeof botUsername !== 'string') {
+    throw new Error('botUsername должен быть непустой строкой');
+  }
+  
+  // Убираем @ из начала botUsername, если он есть
+  const cleanBotUsername = botUsername.startsWith('@') 
+    ? botUsername.slice(1) 
+    : botUsername;
+  
+  if (!cleanBotUsername.trim()) {
+    throw new Error('botUsername не может быть пустым');
+  }
+  
+  // Выбираем невидимый символ
+  const char = INVISIBLE_CHARS[invisibleChar];
+  
+  // Формируем текст сообщения: невидимый символ + @username + текст
+  const messageText = `${char}@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+  
+  // Создаем share URL согласно документации Telegram
+  // Формат: https://t.me/share/url?url={url}&text={text}
+  const encodedText = encodeURIComponent(messageText);
+  const encodedUrl = encodeURIComponent(shareUrl);
+  
+  return `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+}
+
+/**
+ * Создает Telegram deep link (tg://) для шаринга
+ * Альтернатива для мобильных устройств
+ * 
+ * @param botUsername - Имя бота (без @)
+ * @param text - Текст сообщения после @username
+ * @param options - Опции для настройки поведения
+ * @returns Deep link URL (tg://msg_url)
+ */
+export function createTelegramDeepLink(
+  botUsername: string,
+  text: string,
+  options: {
+    invisibleChar?: keyof typeof INVISIBLE_CHARS;
+    shareUrl?: string;
+  } = {}
+): string {
+  const { invisibleChar = 'WORD_JOINER', shareUrl = '' } = options;
+  
+  // Используем ту же логику, что и для share URL
+  const cleanBotUsername = botUsername.startsWith('@') 
+    ? botUsername.slice(1) 
+    : botUsername;
+  
+  const char = INVISIBLE_CHARS[invisibleChar];
+  const messageText = `${char}@${cleanBotUsername}${text ? ` ${text}` : ''}`;
+  
+  const encodedText = encodeURIComponent(messageText);
+  const encodedUrl = encodeURIComponent(shareUrl);
+  
+  return `tg://msg_url?url=${encodedUrl}&text=${encodedText}`;
+}
+
