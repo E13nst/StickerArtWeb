@@ -615,7 +615,7 @@ export const ProfilePage: React.FC = () => {
       </StixlyPageContainer>
 
       {/* Debug панель */}
-      {initData && <DebugPanel initData={initData} />}
+      <DebugPanel initData={initData} />
 
       {/* Модалка деталей стикерсета (мок) */}
       <StickerPackModal

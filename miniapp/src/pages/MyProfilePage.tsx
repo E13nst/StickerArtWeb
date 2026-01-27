@@ -1388,7 +1388,7 @@ export const MyProfilePage: React.FC = () => {
       />
 
       {/* Debug панель */}
-      {initData && <DebugPanel initData={initData} />}
+      <DebugPanel initData={initData} />
 
       {/* Модальное окно загрузки стикерпака */}
       <UploadStickerPackModal
