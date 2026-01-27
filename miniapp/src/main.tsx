@@ -3,6 +3,59 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
+// ✅ FIX: Импортируем захватчик initData ДО всего остального
+// Это гарантирует захват параметров из URL до инициализации роутера
+import { getInitData, smokeTestInitDataLocation } from './telegram/launchParams';
+
+// ✅ TEMP DIAG: Диагностика initData ДО React render (для inline query контекста)
+// Запускается синхронно до импорта App и рендера React
+(() => {
+  const tg = (window as any).Telegram?.WebApp;
+  const smokeTest = smokeTestInitDataLocation();
+  const capturedInitData = getInitData();
+  const initLen = typeof tg?.initData === 'string' ? tg.initData.length : -1;
+  const capturedLen = capturedInitData ? capturedInitData.length : 0;
+
+  console.log('[TG_DIAG] href=', smokeTest.href);
+  console.log('[TG_DIAG] search=', smokeTest.search);
+  console.log('[TG_DIAG] hash=', smokeTest.hash);
+  console.log('[TG_DIAG] has tgWebAppData in search=', smokeTest.hasInSearch);
+  console.log('[TG_DIAG] has tgWebAppData in hash=', smokeTest.hasInHash);
+  console.log('[TG_DIAG] Telegram.WebApp exists=', !!tg);
+  console.log('[TG_DIAG] Telegram.WebApp.initData.len=', initLen);
+  console.log('[TG_DIAG] captured initData.len=', capturedLen);
+  
+  // Показываем источник initData
+  if (capturedInitData) {
+    const source = initLen > 0 ? 'Telegram.WebApp' : (smokeTest.hasInSearch ? 'search' : smokeTest.hasInHash ? 'hash' : 'sessionStorage');
+    console.log('[TG_DIAG] initData source=', source);
+    
+    const initDataPreview = capturedInitData.slice(0, 120);
+    // Маскируем чувствительные данные
+    const masked = initDataPreview
+      .replace(/user=([^&]+)/, (_, user) => {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(user));
+          return `user={"id":${parsed.id},"first_name":"***","username":"***"}`;
+        } catch {
+          return 'user=***';
+        }
+      })
+      .replace(/hash=([^&]+)/, 'hash=***')
+      .replace(/query_id=([^&]+)/, 'query_id=***');
+    console.log('[TG_DIAG] initData.head=', masked);
+  }
+  
+  console.log('[TG_DIAG] initDataUnsafe.keys=', tg?.initDataUnsafe ? Object.keys(tg.initDataUnsafe) : null);
+  console.log('[TG_DIAG] platform=', tg?.platform);
+  console.log('[TG_DIAG] version=', tg?.version);
+  
+  // ✅ КРИТИЧНО: Если в Desktop/Mobile tgWebAppData в hash - причина найдена
+  if (smokeTest.hasInHash && !smokeTest.hasInSearch) {
+    console.warn('[TG_DIAG] ⚠️ tgWebAppData находится в hash (не в search) - это может быть причиной проблем в Desktop/Mobile');
+  }
+})();
+
 // Затем импортируем приложение
 import App from './App.tsx'
 import './index.css'

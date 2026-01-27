@@ -4,6 +4,7 @@ import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets, mockAuthResponse } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
+import { getInitData } from '../telegram/launchParams';
 
 // ============ ТИПЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
 
@@ -109,30 +110,39 @@ class ApiClient {
       (config) => {
         const headers = config.headers ?? {};
 
-        // ✅ FIX: Добавляем заголовок X-Telegram-Init-Data из defaults, если он не установлен в запросе
-        // Это работает для всех контекстов: обычный (с chat) и inline query (без chat, но с query_id)
+        // ✅ FIX: Добавляем заголовок X-Telegram-Init-Data на КАЖДЫЙ запрос в момент отправки
+        // Приоритет: 1) уже установлен в запросе, 2) из defaults, 3) из getInitData() (захватчик)
+        // Это гарантирует работу даже если setAuthHeaders не был вызван или был вызван поздно
         if (!headers['X-Telegram-Init-Data']) {
-          const defaultInitData = this.client.defaults.headers.common['X-Telegram-Init-Data'];
-          if (defaultInitData) {
-            headers['X-Telegram-Init-Data'] = defaultInitData as string;
+          // Сначала проверяем defaults (установленные через setAuthHeaders)
+          let initData = this.client.defaults.headers.common['X-Telegram-Init-Data'] as string | undefined;
+          
+          // Если в defaults нет, используем захватчик (читает из Telegram.WebApp, sessionStorage, URL)
+          if (!initData) {
+            initData = getInitData() || undefined;
+          }
+          
+          if (initData) {
+            headers['X-Telegram-Init-Data'] = initData;
             
             // ✅ FIX: Логирование для диагностики inline query контекста
-            if (import.meta.env.DEV && typeof defaultInitData === 'string') {
-              const hasQueryId = defaultInitData.includes('query_id=');
-              const hasChat = defaultInitData.includes('chat=') || defaultInitData.includes('chat_type=');
+            if (import.meta.env.DEV && typeof initData === 'string') {
+              const hasQueryId = initData.includes('query_id=');
+              const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
               const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
               
               if (hasQueryId && !hasChat) {
-                console.log('🔍 Interceptor: initData добавлен из defaults (inline query контекст):', {
+                console.log('🔍 Interceptor: initData добавлен (inline query контекст):', {
                   context,
                   hasQueryId,
                   hasChat: false,
-                  initDataLength: defaultInitData.length
+                  initDataLength: initData.length,
+                  source: this.client.defaults.headers.common['X-Telegram-Init-Data'] ? 'defaults' : 'getInitData()'
                 });
               }
             }
           } else if (import.meta.env.DEV) {
-            console.warn('⚠️ Interceptor: X-Telegram-Init-Data отсутствует в defaults.headers.common');
+            console.warn('⚠️ Interceptor: X-Telegram-Init-Data отсутствует (проверьте getInitData() и setAuthHeaders)');
           }
         }
 
