@@ -1,0 +1,152 @@
+/**
+ * Design Tokens extracted from Figma
+ * Generated: 2026-01-30
+ */
+
+:root {
+  /* Colors - Primary */
+  --color-primary: #ee449f;
+  --color-secondary: #007aff;
+  
+  /* Colors - Background */
+  --color-background: #191818;
+  --color-surface: #262626;
+  --color-surface-dark: #2f2f2f;
+  
+  /* Colors - Text */
+  --color-text: #ffffff;
+  --color-text-secondary: #8a8a8a;
+  
+  /* Colors - States */
+  --color-success: #00af12;
+  --color-error: #e03131;
+  --color-border: #8a8a8a;
+  
+  /* Colors - Overlay */
+  --color-overlay-light: rgba(255, 255, 255, 0.2);
+  --color-overlay-dark: rgba(0, 0, 0, 0.5);
+  --color-overlay-dark-strong: rgba(0, 0, 0, 0.4);
+  --color-overlay-primary: rgba(238, 68, 159, 0.2);
+  
+  /* Typography - Font Family */
+  --font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  
+  /* Typography - Headings */
+  --font-size-h1: 32px;
+  --font-weight-h1: 700;
+  --line-height-h1: 43.71px;
+  
+  --font-size-h2: 20px;
+  --font-weight-h2: 700;
+  --line-height-h2: 22px;
+  
+  --font-size-h3: 16px;
+  --font-weight-h3: 700;
+  --line-height-h3: 22px;
+  
+  --font-size-h4: 16px;
+  --font-weight-h4: 800;
+  --line-height-h4: 22px;
+  
+  /* Typography - Body */
+  --font-size-body: 16px;
+  --font-weight-body: 400;
+  --line-height-body: 22px;
+  
+  --font-size-body-large: 18px;
+  --font-weight-body-large: 400;
+  --line-height-body-large: 24.59px;
+  
+  --font-size-body-small: 12px;
+  --font-weight-body-small: 400;
+  --line-height-body-small: 22px;
+  
+  /* Typography - Caption & Light */
+  --font-size-caption: 8px;
+  --font-weight-caption: 400;
+  --line-height-caption: 22px;
+  
+  --font-size-light: 12px;
+  --font-weight-light: 300;
+  --line-height-light: 28px;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 80px;
+  
+  /* Border Radius */
+  --border-radius-sm: 8px;
+  --border-radius-md: 10px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  --border-radius-2xl: 30px;
+  --border-radius-3xl: 31px;
+  --border-radius-full: 32px;
+  
+  /* Components - Navbar */
+  --navbar-height: 50px;
+  --navbar-bg: var(--color-overlay-light);
+  --navbar-border-radius: var(--border-radius-lg);
+  --navbar-font-size: var(--font-size-caption);
+  --navbar-active-color: var(--color-primary);
+  
+  /* Components - Header Panel */
+  --header-panel-bg: var(--color-overlay-dark);
+  --header-panel-border-radius: var(--border-radius-lg);
+  --header-panel-height: 172px;
+  --header-panel-balance-bg: var(--color-surface-dark);
+  --header-panel-wallet-bg: var(--color-secondary);
+  
+  /* Components - Card */
+  --card-bg: var(--color-surface);
+  --card-border-radius: var(--border-radius-lg);
+  --card-width: 370px;
+  --card-accent: var(--color-overlay-primary);
+  
+  /* Components - Button */
+  --button-primary-bg: var(--color-primary);
+  --button-primary-color: var(--color-text);
+  --button-primary-radius: var(--border-radius-md);
+  --button-primary-height: 44px;
+  
+  --button-secondary-bg: var(--color-text-secondary);
+  --button-secondary-color: var(--color-text);
+  --button-secondary-radius: var(--border-radius-lg);
+  --button-secondary-height: 48px;
+  
+  --button-success-bg: var(--color-success);
+  --button-error-bg: var(--color-error);
+  --button-circle-radius: var(--border-radius-3xl);
+  --button-circle-size: 56px;
+  
+  /* Components - Search Bar */
+  --search-bar-bg: var(--color-overlay-dark-strong);
+  --search-bar-border: var(--color-border);
+  --search-bar-radius: var(--border-radius-full);
+  --search-bar-height: 30px;
+}
+
+/* Utility Classes */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-success { color: var(--color-success); }
+.text-error { color: var(--color-error); }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-background { background-color: var(--color-background); }
+
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.font-light { font-weight: 300; }
+
+.rounded-sm { border-radius: var(--border-radius-sm); }
+.rounded-md { border-radius: var(--border-radius-md); }
+.rounded-lg { border-radius: var(--border-radius-lg); }
+.rounded-xl { border-radius: var(--border-radius-xl); }
+.rounded-full { border-radius: var(--border-radius-full); }

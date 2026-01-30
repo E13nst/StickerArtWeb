@@ -1,0 +1,157 @@
+{
+  "colors": {
+    "primary": "#ee449f",
+    "secondary": "#007aff",
+    "background": "#191818",
+    "surface": "#262626",
+    "surfaceDark": "#2f2f2f",
+    "text": "#ffffff",
+    "textSecondary": "#8a8a8a",
+    "success": "#00af12",
+    "error": "#e03131",
+    "border": "#8a8a8a",
+    "overlay": {
+      "light": "rgba(255, 255, 255, 0.2)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "darkStrong": "rgba(0, 0, 0, 0.4)",
+      "primary": "rgba(238, 68, 159, 0.2)"
+    }
+  },
+  "typography": {
+    "fontFamily": "Manrope",
+    "h1": {
+      "fontSize": "32px",
+      "fontWeight": 700,
+      "lineHeight": "43.71px",
+      "fontStyle": "Bold"
+    },
+    "h2": {
+      "fontSize": "20px",
+      "fontWeight": 700,
+      "lineHeight": "22px",
+      "fontStyle": "Bold"
+    },
+    "h3": {
+      "fontSize": "16px",
+      "fontWeight": 700,
+      "lineHeight": "22px",
+      "fontStyle": "Bold"
+    },
+    "h4": {
+      "fontSize": "16px",
+      "fontWeight": 800,
+      "lineHeight": "22px",
+      "fontStyle": "ExtraBold"
+    },
+    "body": {
+      "fontSize": "16px",
+      "fontWeight": 400,
+      "lineHeight": "22px",
+      "fontStyle": "Regular"
+    },
+    "bodyLarge": {
+      "fontSize": "18px",
+      "fontWeight": 400,
+      "lineHeight": "24.59px",
+      "fontStyle": "Regular"
+    },
+    "bodySmall": {
+      "fontSize": "12px",
+      "fontWeight": 400,
+      "lineHeight": "22px",
+      "fontStyle": "Regular"
+    },
+    "caption": {
+      "fontSize": "8px",
+      "fontWeight": 400,
+      "lineHeight": "22px",
+      "fontStyle": "Regular"
+    },
+    "light": {
+      "fontSize": "12px",
+      "fontWeight": 300,
+      "lineHeight": "28px",
+      "fontStyle": "Light"
+    }
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px",
+    "2xl": "48px",
+    "3xl": "80px"
+  },
+  "borderRadius": {
+    "sm": "8px",
+    "md": "10px",
+    "lg": "16px",
+    "xl": "24px",
+    "2xl": "30px",
+    "3xl": "31px",
+    "full": "32px"
+  },
+  "components": {
+    "navbar": {
+      "height": "50px",
+      "backgroundColor": "rgba(255, 255, 255, 0.2)",
+      "borderRadius": "16px",
+      "fontSize": "8px",
+      "activeColor": "#ee449f"
+    },
+    "headerPanel": {
+      "backgroundColor": "rgba(0, 0, 0, 0.5)",
+      "borderRadius": "16px",
+      "height": "172px",
+      "balance": {
+        "backgroundColor": "#2f2f2f",
+        "borderRadius": "16px"
+      },
+      "wallet": {
+        "backgroundColor": "#007aff",
+        "borderRadius": "16px"
+      }
+    },
+    "card": {
+      "backgroundColor": "#262626",
+      "borderRadius": "16px",
+      "width": "370px",
+      "accentColor": "rgba(238, 68, 159, 0.2)",
+      "button": {
+        "success": "#00af12",
+        "error": "#e03131",
+        "default": "#8a8a8a",
+        "primary": "#ee449f",
+        "borderRadius": "16px",
+        "height": "48px"
+      }
+    },
+    "searchBar": {
+      "backgroundColor": "rgba(0, 0, 0, 0.4)",
+      "borderColor": "#8a8a8a",
+      "borderRadius": "32px",
+      "height": "30px"
+    },
+    "button": {
+      "primary": {
+        "backgroundColor": "#ee449f",
+        "color": "#ffffff",
+        "borderRadius": "10px",
+        "height": "44px"
+      },
+      "secondary": {
+        "backgroundColor": "#8a8a8a",
+        "color": "#ffffff",
+        "borderRadius": "16px",
+        "height": "48px"
+      },
+      "circle": {
+        "success": "#00af12",
+        "error": "#e03131",
+        "borderRadius": "31px",
+        "size": "56px"
+      }
+    }
+  }
+}
