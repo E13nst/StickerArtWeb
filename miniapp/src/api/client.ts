@@ -8,6 +8,9 @@ import { getInitData } from '../telegram/launchParams';
 
 // ============ ТИПЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
 
+/** Таймаут для запросов генерации (запуск и опрос статуса) — 5 минут */
+const GENERATION_TIMEOUT_MS = 5 * 60 * 1000;
+
 export interface ArtTariffDebit {
   code: string;
   amount: number;
@@ -1473,7 +1476,7 @@ class ApiClient {
   // API endpoint: POST /api/generation/generate
   async generateSticker(request: GenerateRequest): Promise<GenerateResponse> {
     try {
-      const response = await this.client.post<GenerateResponse>('/generation/generate', request);
+      const response = await this.client.post<GenerateResponse>('/generation/generate', request, { timeout: GENERATION_TIMEOUT_MS });
       console.log('✅ Генерация запущена:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1504,7 +1507,7 @@ class ApiClient {
   // API endpoint: GET /api/generation/status/{taskId}
   async getGenerationStatus(taskId: string): Promise<GenerationStatusResponse> {
     try {
-      const response = await this.client.get<GenerationStatusResponse>(`/generation/status/${taskId}`);
+      const response = await this.client.get<GenerationStatusResponse>(`/generation/status/${taskId}`, { timeout: GENERATION_TIMEOUT_MS });
       return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка получения статуса генерации:', error);
