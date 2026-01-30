@@ -19,6 +19,8 @@ import { CompactControlsBar } from '../components/CompactControlsBar';
 import { StickerSetType } from '../components/StickerSetTypeFilter';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
+import { HeaderPanel } from '@/components/ui/HeaderPanel';
+import './GalleryPage2.css';
 
 export const GalleryPage2: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -342,13 +344,21 @@ export const GalleryPage2: React.FC = () => {
   );
 
   if (!isReady) {
-    return <LoadingSpinner message="Инициализация..." />;
+    return (
+      <div className="gallery-page-loading">
+        <LoadingSpinner message="Инициализация..." />
+      </div>
+    );
   }
 
   const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
 
   return (
-    <>
+    <div className="gallery-page">
+      {/* Header Panel - профиль пользователя */}
+      <HeaderPanel />
+
+      {/* Controls Bar - поиск и фильтры */}
       {!isInitialLoading && (
         <CompactControlsBar
           searchValue={searchTerm}
@@ -373,24 +383,31 @@ export const GalleryPage2: React.FC = () => {
         />
       )}
 
+      {/* Main Content */}
       <StixlyPageContainer>
         {isInitialLoading ? (
-          <LoadingSpinner message="Загрузка стикеров..." />
+          <div className="gallery-page__content-loading">
+            <LoadingSpinner message="Загрузка стикеров..." />
+          </div>
         ) : error ? (
-          <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+          <div className="gallery-page__content-error">
+            <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+          </div>
         ) : galleryPacks.length === 0 ? (
-          <EmptyState
-            title="🎨 Стикеры не найдены"
-            message={
-              selectedCategories.length > 0 
-                ? `Нет стикеров с выбранными категориями.`
-                : searchTerm 
-                  ? 'По вашему запросу ничего не найдено' 
-                  : 'У вас пока нет созданных наборов стикеров'
-            }
-          />
+          <div className="gallery-page__content-empty">
+            <EmptyState
+              title="🎨 Стикеры не найдены"
+              message={
+                selectedCategories.length > 0 
+                  ? `Нет стикеров с выбранными категориями.`
+                  : searchTerm 
+                    ? 'По вашему запросу ничего не найдено' 
+                    : 'У вас пока нет созданных наборов стикеров'
+              }
+            />
+          </div>
         ) : (
-          <div className="fade-in">
+          <div className="gallery-page__content fade-in">
             <OptimizedGallery
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
@@ -403,6 +420,7 @@ export const GalleryPage2: React.FC = () => {
         )}
       </StixlyPageContainer>
 
+      {/* Sticker Pack Modal */}
       <StickerPackModal 
         open={isDetailOpen} 
         stickerSet={selectedStickerSet} 
@@ -411,7 +429,7 @@ export const GalleryPage2: React.FC = () => {
           console.log(`Лайк для стикерсета ${id}: ${title}`);
         }}
       />
-    </>
+    </div>
   );
 };
 

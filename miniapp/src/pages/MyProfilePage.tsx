@@ -1,18 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Box,
-  Alert,
-  Button,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
-  Menu,
-  MenuItem
-} from '@mui/material';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import AddIcon from '@mui/icons-material/Add';
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonAddress } from '@tonconnect/ui-react';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -21,6 +8,10 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';
+
+// UI Компоненты
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
 
 // Компоненты
 import StixlyTopHeader from '@/components/StixlyTopHeader';
@@ -959,11 +950,11 @@ export const MyProfilePage: React.FC = () => {
   // Основные ошибки (показываем только в Telegram приложении)
   if (error && isInTelegramApp) {
     return (
-      <Box className="error-page-container">
+      <div className="error-page-container">
         <StixlyPageContainer className="error-container">
-          <Alert severity="error" className="error-alert">
-            {error}
-          </Alert>
+          <div className="error-alert" role="alert">
+            <Text variant="body" color="default">{error}</Text>
+          </div>
           <EmptyState
             title="❌ Ошибка"
             message="Не удалось загрузить ваш профиль"
@@ -971,7 +962,7 @@ export const MyProfilePage: React.FC = () => {
             onAction={() => navigate('/')}
           />
         </StixlyPageContainer>
-      </Box>
+      </div>
     );
   }
 
@@ -999,7 +990,7 @@ export const MyProfilePage: React.FC = () => {
 
 
   return (
-    <Box className={cn('page-container', isInTelegramApp && 'telegram-app')}>
+    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
       {/* Профильный header */}
       <StixlyTopHeader
         profileMode={{
@@ -1011,19 +1002,19 @@ export const MyProfilePage: React.FC = () => {
           content: isUserLoading ? (
             <LoadingSpinner message="Загрузка профиля..." />
           ) : userError ? (
-            <Box className="profile-header-content-with-padding">
+            <div className="profile-header-content-with-padding">
               <ErrorDisplay 
                 error={userError} 
                 onRetry={() => loadMyProfile(true)}
               />
-            </Box>
+            </div>
           ) : userInfo ? (
-            <Box className="profile-header-content">
+            <div className="profile-header-content">
               {/* Аватар с overlap - наполовину на header */}
-              <Box className={cn('profile-header-avatar-wrapper', 'my-profile-avatar-wrapper')}>
+              <div className={cn('profile-header-avatar-wrapper', 'my-profile-avatar-wrapper')}>
                 <FloatingAvatar userInfo={userInfoWithAvatar || userInfo} size="large" overlap={0} />
-              </Box>
-            </Box>
+              </div>
+            </div>
           ) : null
         }}
       />
@@ -1032,73 +1023,73 @@ export const MyProfilePage: React.FC = () => {
       <StixlyPageContainer className="page-container-no-margin-top">
         {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
         {!isUserLoading && userError && !userInfo && (
-          <Box className="error-box">
+          <div className="error-box">
             <ErrorDisplay 
               error={userError} 
               onRetry={() => loadMyProfile(true)}
             />
-          </Box>
+          </div>
         )}
         
         {userInfo && (
-          <Card className={cn('card-base', 'card-base-no-padding-top')}>
-            <CardContent className="card-content-with-avatar">
+          <div className={cn('card-base', 'card-base-no-padding-top')}>
+            <div className="card-content-with-avatar">
               {/* Никнейм - отдельно, в одну строчку */}
-              <Box className="my-profile-username-container">
-                <Typography 
-                  variant="h5" 
-                  fontWeight="bold"
+              <div className="my-profile-username-container">
+                <Text 
+                  variant="h2" 
+                  weight="bold"
                   className="my-profile-username"
                 >
                   {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
-                </Typography>
-              </Box>
+                </Text>
+              </div>
               
               {/* Статистика - на второй строчке */}
-              <Box className="flex-row-space-around">
-                <Box className="stat-box">
-                  <Typography 
-                    variant="h5" 
-                    fontWeight="bold"
+              <div className="flex-row-space-around">
+                <div className="stat-box">
+                  <Text 
+                    variant="h2" 
+                    weight="bold"
                     className="stat-value"
                   >
                     {userStickerSets.length}
-                  </Typography>
-                  <Typography 
-                    variant="body2"
+                  </Text>
+                  <Text 
+                    variant="bodySmall"
                     className="stat-label"
                   >
                     Наборов
-                  </Typography>
-                </Box>
+                  </Text>
+                </div>
                 
-                <Box className="stat-box">
-                  <Typography 
-                    variant="h5" 
-                    fontWeight="bold"
+                <div className="stat-box">
+                  <Text 
+                    variant="h2" 
+                    weight="bold"
                     className={cn('stat-value', 'art')}
                   >
                     {userInfo.artBalance || 0}
-                  </Typography>
-                  <Typography 
-                    variant="body2"
+                  </Text>
+                  <Text 
+                    variant="bodySmall"
                     className="stat-label"
                   >
                     ART
-                  </Typography>
-                </Box>
-              </Box>
+                  </Text>
+                </div>
+              </div>
               
               {/* TON Connect: подключение кошелька */}
-              <Box className="flex-column-center my-profile-wallet-container">
+              <div className="flex-column-center my-profile-wallet-container">
                 {/* Кнопка подключения кошелька (если не подключен) */}
                 {!wallet ? (
                   <TonConnectButton />
                 ) : (
-                  <>
+                  <div className="wallet-menu-wrapper">
                     {/* Кнопка с адресом кошелька */}
                     <Button
-                      variant="outlined"
+                      variant="outline"
                       size="small"
                       onClick={(event) => {
                         if (tg?.HapticFeedback) {
@@ -1113,73 +1104,59 @@ export const MyProfilePage: React.FC = () => {
                     </Button>
                     
                     {/* Выпадающее меню */}
-                    <Menu
-                      anchorEl={walletMenuAnchor}
-                      open={Boolean(walletMenuAnchor)}
-                      onClose={() => setWalletMenuAnchor(null)}
-                      anchorOrigin={{
-                        vertical: 'bottom',
-                        horizontal: 'center',
-                      }}
-                      transformOrigin={{
-                        vertical: 'top',
-                        horizontal: 'center',
-                      }}
-                    >
-                      <MenuItem
-                        onClick={async () => {
-                          setWalletMenuAnchor(null);
-                          console.debug('[MyProfilePage] Нажата опция "Отключить кошелёк"');
-                          if (tg?.HapticFeedback) {
-                            tg.HapticFeedback.impactOccurred('light');
-                          }
-                          try {
-                            await unlinkWallet(tonConnectUI);
-                            console.debug('[MyProfilePage] Кошелёк успешно отвязан');
-                          } catch (err) {
-                            console.error('[MyProfilePage] Ошибка отключения кошелька', err);
-                          }
-                        }}
-                        disabled={walletLoading}
-                      >
-                        {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
-                      </MenuItem>
-                    </Menu>
-                  </>
+                    {Boolean(walletMenuAnchor) && (
+                      <div className="wallet-menu" role="menu">
+                        <button
+                          className="wallet-menu-item"
+                          onClick={async () => {
+                            setWalletMenuAnchor(null);
+                            console.debug('[MyProfilePage] Нажата опция "Отключить кошелёк"');
+                            if (tg?.HapticFeedback) {
+                              tg.HapticFeedback.impactOccurred('light');
+                            }
+                            try {
+                              await unlinkWallet(tonConnectUI);
+                              console.debug('[MyProfilePage] Кошелёк успешно отвязан');
+                            } catch (err) {
+                              console.error('[MyProfilePage] Ошибка отключения кошелька', err);
+                            }
+                          }}
+                          disabled={walletLoading}
+                          type="button"
+                        >
+                          {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
                 
                 {/* Состояние загрузки */}
                 {walletLoading && !wallet && (
-                  <Typography 
+                  <Text 
                     variant="caption"
                     className="my-profile-wallet-loading"
                   >
                     Загрузка...
-                  </Typography>
+                  </Text>
                 )}
                 
                 {/* Отображение ошибок */}
                 {walletError && (
-                  <Alert 
-                    severity="error" 
-                    className="my-profile-wallet-error"
-                  >
-                    {walletError}
-                  </Alert>
+                  <div className="my-profile-wallet-error" role="alert">
+                    <Text variant="bodySmall" color="default">{walletError}</Text>
+                  </div>
                 )}
-              </Box>
-            </CardContent>
-          </Card>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Ошибка пользователя */}
         {userError && isInTelegramApp && (
-          <Alert 
-            severity="error" 
-            className="error-alert-inline"
-          >
-            {userError}
-          </Alert>
+          <div className="error-alert-inline" role="alert">
+            <Text variant="body" color="default">{userError}</Text>
+          </div>
         )}
 
         {/* Вкладки профиля */}
@@ -1198,7 +1175,7 @@ export const MyProfilePage: React.FC = () => {
             {/* Контент вкладок - прокручиваемый */}
             <TabPanel value={activeProfileTab} index={0}>
               {/* Табы для переключения между Загруженные и Понравившиеся */}
-              <Box 
+              <div 
                 ref={tabsContainerRef}
                 className="my-profile-tabs-container"
               >
@@ -1207,7 +1184,7 @@ export const MyProfilePage: React.FC = () => {
                   onChange={setSetsFilterTab}
                   disabled={isStickerSetsLoading}
                 />
-              </Box>
+              </div>
               
               {/* CompactControlsBar - над карточками стикерсетов */}
               {setsFilterTab === 0 && (
@@ -1249,35 +1226,33 @@ export const MyProfilePage: React.FC = () => {
                     message="Лайкните понравившиеся наборы в галерее, и они появятся здесь"
                   />
                 ) : (
-                  <Box className="flex-column-center py-3 px-1 my-profile-empty-state-container">
-                    <Typography variant="h6" className="my-profile-empty-state-title">
+                  <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
+                    <Text variant="h3" className="my-profile-empty-state-title">
                       📁 У вас пока нет стикерсетов
-                    </Typography>
-                    <Typography variant="body2" className="my-profile-empty-state-message">
+                    </Text>
+                    <Text variant="bodySmall" className="my-profile-empty-state-message">
                       {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
-                    </Typography>
-                    <Box className="my-profile-empty-state-button-container">
+                    </Text>
+                    <div className="my-profile-empty-state-button-container">
                       <Button 
-                        fullWidth 
-                        variant="contained" 
+                        variant="primary"
+                        size="large"
                         onClick={() => {
                           if (tg?.HapticFeedback) {
                             tg.HapticFeedback.impactOccurred('light');
                           }
                           handleCreateSticker();
                         }} 
-                        startIcon={<AddIcon />}
                         className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
                       >
+                        <span className="button-icon">+</span>
                         Добавьте стикерпак
-                        <Chip 
-                          label="+10 ART" 
-                          size="small" 
-                          className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}
-                        />
+                        <span className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}>
+                          +10 ART
+                        </span>
                       </Button>
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 )
               ) : (
                 <div className="fade-in">
@@ -1298,45 +1273,55 @@ export const MyProfilePage: React.FC = () => {
 
               {/* Кнопка "Показать ещё" убрана, так как OptimizedGallery использует infinite scroll */}
               {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
-                <Box className="my-profile-load-more-container">
+                <div className="my-profile-load-more-container">
                   <Button
-                    variant="outlined"
+                    variant="outline"
                     onClick={() => currentUserId && loadUserStickerSets(currentUserId, undefined, currentPage + 1, true)}
                   >
                     Показать ещё
                   </Button>
-                </Box>
+                </div>
               )}
             </TabPanel>
 
             <TabPanel value={activeProfileTab} index={1}>
               {/* Баланс ART */}
-              <Card className="card-base my-profile-balance-card">
-                <CardContent>
-                  <Box className="my-profile-balance-header">
-                    <AccountBalanceWalletIcon sx={{ fontSize: 40, color: 'var(--tg-theme-button-color)' }} />
-                    <Box>
-                      <Typography variant="h6" fontWeight="bold" className="my-profile-balance-title">
+              <div className="card-base my-profile-balance-card">
+                <div className="card-content-base">
+                  <div className="my-profile-balance-header">
+                    <svg 
+                      width="40" 
+                      height="40" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      style={{ color: 'var(--tg-theme-button-color)' }}
+                    >
+                      <path 
+                        d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" 
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <div>
+                      <Text variant="h3" weight="bold" className="my-profile-balance-title">
                         Баланс ART
-                      </Typography>
-                      <Typography variant="body2" className="my-profile-balance-subtitle">
+                      </Text>
+                      <Text variant="bodySmall" className="my-profile-balance-subtitle">
                         Ваши стикер-токены
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </Text>
+                    </div>
+                  </div>
                   
-                  <Box className="my-profile-balance-value-container">
-                    <Chip 
-                      label={`${userInfo?.artBalance || 0} ART`}
-                      className="my-profile-balance-chip"
-                    />
-                  </Box>
+                  <div className="my-profile-balance-value-container">
+                    <span className="my-profile-balance-chip">
+                      {userInfo?.artBalance || 0} ART
+                    </span>
+                  </div>
 
-                  <Typography variant="body2" className="my-profile-balance-description">
+                  <Text variant="bodySmall" className="my-profile-balance-description">
                     Создавайте стикеры и зарабатывайте ART токены!
-                  </Typography>
-                </CardContent>
-              </Card>
+                  </Text>
+                </div>
+              </div>
 
               {/* Кнопка создания стикерпака */}
               <AddStickerPackButton
@@ -1347,27 +1332,27 @@ export const MyProfilePage: React.FC = () => {
 
             <TabPanel value={activeProfileTab} index={2}>
               {/* Достижения профиля */}
-              <Box className="achievements-container">
-                <Typography variant="h6" className="achievements-title">
+              <div className="achievements-container">
+                <Text variant="h3" className="achievements-title">
                   Достижения
-                </Typography>
+                </Text>
 
-                <Box className="achievements-list">
-                  <Box className="achievement-badge">
+                <div className="achievements-list">
+                  <div className="achievement-badge">
                     Сеты: {userStickerSets.length}
-                  </Box>
-                  <Box className="achievement-badge">
+                  </div>
+                  <div className="achievement-badge">
                     Стикеры: {userStickerSets.reduce((s, set) => s + (set.stickerCount || 0), 0)}
-                  </Box>
-                  <Box className="achievement-badge">
+                  </div>
+                  <div className="achievement-badge">
                     ART: {userInfo?.artBalance || 0}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
-                <Typography variant="body2" className="achievements-description">
+                <Text variant="bodySmall" className="achievements-description">
                   Скоро появятся уровни, streak и редкие ачивки.
-                </Typography>
-              </Box>
+                </Text>
+              </div>
             </TabPanel>
         </>
       </StixlyPageContainer>
@@ -1403,7 +1388,7 @@ export const MyProfilePage: React.FC = () => {
           }
         }}
       />
-    </Box>
+    </div>
   );
 };
 

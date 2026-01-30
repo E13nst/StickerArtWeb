@@ -1,0 +1,108 @@
+/* GalleryPage2.css - стили для страницы галереи */
+
+/* ============================================
+   Main Gallery Page Container
+   ============================================ */
+
+.gallery-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  position: relative;
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+
+.gallery-page-loading {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+}
+
+.gallery-page__content-loading {
+  width: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+/* ============================================
+   Content States
+   ============================================ */
+
+.gallery-page__content {
+  width: 100%;
+  padding-top: var(--spacing-md);
+}
+
+.gallery-page__content-error {
+  width: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.gallery-page__content-empty {
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+}
+
+/* ============================================
+   Fade-in Animation
+   ============================================ */
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+/* Mobile Devices */
+@media (max-width: 480px) {
+  .gallery-page__content {
+    padding-top: var(--spacing-sm);
+  }
+}
+
+/* Tablet and Desktop */
+@media (min-width: 768px) {
+  .gallery-page {
+    max-width: 100%;
+  }
+}
+
+/* Large Screens */
+@media (min-width: 1024px) {
+  .gallery-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}

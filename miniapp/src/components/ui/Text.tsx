@@ -1,4 +1,5 @@
 import React from 'react';
+import './Text.css';
 
 export type TextVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'bodySmall' | 'caption' | 'label';
 export type TextWeight = 'bold' | 'semibold' | 'regular' | 'light';

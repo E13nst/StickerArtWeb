@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path mapping */
-    "baseUrl": ".",
+    "baseUrl": "./miniapp",
     "paths": {
       "@/*": ["src/*"],
       "@/components/*": ["src/components/*"],
@@ -32,6 +32,6 @@
       "@/api/*": ["src/api/*"]
     }
   },
-  "include": ["src"],
+  "include": ["miniapp/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

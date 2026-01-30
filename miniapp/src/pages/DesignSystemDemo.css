@@ -1,45 +1,79 @@
-/* Additional styles for Design System Demo page */
+/* Design System Demo Styles */
 
-.design-system-demo {
-  font-family: var(--font-family-base);
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-md);
 }
 
-/* Color swatch styles */
+.color-item {
+  display: flex;
+  flex-direction: column;
+}
+
 .color-swatch {
   width: 100%;
   height: 80px;
   border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-xs);
   border: 1px solid var(--color-border);
-  margin-bottom: var(--spacing-xs);
 }
 
-/* Typography preview */
-.typography-preview {
-  padding: var(--spacing-sm);
-  background-color: var(--color-surface);
-  border-radius: var(--border-radius-sm);
-  margin-bottom: var(--spacing-xs);
-}
-
-/* Spacing demo */
-.spacing-demo {
-  display: flex;
-  align-items: center;
+.radius-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
 }
 
-.spacing-bar {
-  height: 40px;
-  background-color: var(--color-primary);
-  border-radius: var(--border-radius-sm);
+/* Custom Toggle Switch */
+.theme-toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
 }
 
-/* Border radius demo */
-.border-radius-demo {
-  width: 100px;
-  height: 100px;
+.theme-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-surface);
+  transition: 0.3s;
+  border-radius: 24px;
+  border: 2px solid var(--color-border);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--color-text-secondary);
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.theme-toggle input:checked + .slider {
   background-color: var(--color-primary);
-  border: 1px solid var(--color-border);
-  margin: 0 auto var(--spacing-sm);
+  border-color: var(--color-primary);
+}
+
+.theme-toggle input:checked + .slider:before {
+  transform: translateX(24px);
+  background-color: white;
+}
+
+.theme-toggle input:focus + .slider {
+  box-shadow: 0 0 1px var(--color-primary);
 }

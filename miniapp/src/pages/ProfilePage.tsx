@@ -1,12 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Box,
-  Alert,
-  Typography,
-  Card,
-  CardContent
-} from '@mui/material';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore, UserInfo } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
@@ -14,13 +7,15 @@ import { apiClient } from '@/api/client';
 import { getUserFirstName, getUserFullName, isUserPremium } from '@/utils/userUtils';
 import { StickerSetResponse } from '@/types/sticker';
 
+// UI Компоненты
+import { Text } from '@/components/ui/Text';
+
 // Компоненты
 import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
-import { StickerSetDetail } from '@/components/StickerSetDetail';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { OptimizedGallery } from '@/components/OptimizedGallery';
@@ -30,6 +25,7 @@ import { useStickerFeed } from '@/hooks/useStickerFeed';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import '@/styles/common.css';
+import '@/styles/ProfilePage.css';
 
 // Утилита для объединения классов
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
@@ -426,11 +422,11 @@ export const ProfilePage: React.FC = () => {
   // Основные ошибки
   if (error) {
     return (
-      <Box className="error-page-container">
+      <div className="error-page-container">
         <StixlyPageContainer className="error-container">
-          <Alert severity="error" className="error-alert">
-            {error}
-          </Alert>
+          <div className="error-alert" role="alert">
+            <Text variant="body" color="default">{error}</Text>
+          </div>
           <EmptyState
             title="❌ Ошибка"
             message="Не удалось загрузить профиль пользователя"
@@ -438,7 +434,7 @@ export const ProfilePage: React.FC = () => {
             onAction={() => navigate('/')}
           />
         </StixlyPageContainer>
-      </Box>
+      </div>
     );
   }
 
@@ -446,7 +442,7 @@ export const ProfilePage: React.FC = () => {
   const isPremium = userInfo ? isUserPremium(userInfo) : false;
 
   return (
-    <Box className={cn('page-container', isInTelegramApp && 'telegram-app')}>
+    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
       {/* Профильный header */}
       <StixlyTopHeader
         profileMode={{
@@ -458,64 +454,88 @@ export const ProfilePage: React.FC = () => {
           content: isUserLoading ? (
             <LoadingSpinner message="Загрузка профиля..." />
           ) : userInfo ? (
-            <Box className="profile-header-content-center">
-              {/* Аватар наполовину на header */}
-              <Box className={cn('absolute', 'z-index-10')} style={{ bottom: 0, left: '50%', transform: 'translate(-50%, 50%)' }}>
+            <div className="profile-header-content">
+              {/* Аватар с overlap - наполовину на header */}
+              <div className="profile-header-avatar-wrapper">
                 <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
-              </Box>
-            </Box>
+              </div>
+            </div>
           ) : null
         }}
       />
 
-      {/* Карточка профиля под аватаром (как в MyProfile) */}
+      {/* Карточка профиля под аватаром */}
       <StixlyPageContainer className="page-container-no-margin-top">
         {isUserLoading ? (
           <LoadingSpinner message="Загрузка профиля..." />
         ) : userInfo ? (
           <>
             {/* Карточка со статистикой */}
-            <Card className={cn('card-base', 'card-base-no-padding-top')}>
-              <CardContent className="card-content-with-avatar">
+            <div className={cn('card-base', 'card-base-no-padding-top')}>
+              <div className="card-content-with-avatar">
                 {/* Имя пользователя */}
-                <Box className={cn('text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
-                  {userInfo && (
-                    <Typography variant="h6" className="typography-bold">
-                      {getUserFullName(userInfo)}
-                    </Typography>
+                <div className="profile-username-container">
+                  <Text 
+                    variant="h2" 
+                    weight="bold"
+                    className="profile-username"
+                  >
+                    {getUserFullName(userInfo)}
+                  </Text>
+                  {userInfo.username && (
+                    <Text 
+                      variant="bodySmall"
+                      className="profile-handle"
+                    >
+                      @{userInfo.username}
+                    </Text>
                   )}
-                </Box>
+                </div>
 
                 {/* Статистика */}
-                <Box className="flex-row-space-around">
-                  <Box className="stat-box">
-                    <Typography variant="h5" fontWeight="bold" className="stat-value">
+                <div className="flex-row-space-around">
+                  <div className="stat-box">
+                    <Text 
+                      variant="h2" 
+                      weight="bold"
+                      className="stat-value"
+                    >
                       {userStickerSets.length}
-                    </Typography>
-                    <Typography variant="body2" className="stat-label">
+                    </Text>
+                    <Text 
+                      variant="bodySmall"
+                      className="stat-label"
+                    >
                       Наборов
-                    </Typography>
-                  </Box>
+                    </Text>
+                  </div>
                   
-                  <Box className="stat-box">
-                    <Typography variant="h5" fontWeight="bold" className="stat-value">
+                  <div className="stat-box">
+                    <Text 
+                      variant="h2" 
+                      weight="bold"
+                      className="stat-value"
+                    >
                       {userStickerSets.reduce((sum, set) => sum + (set.stickerCount || 0), 0)}
-                    </Typography>
-                    <Typography variant="body2" className="stat-label">
+                    </Text>
+                    <Text 
+                      variant="bodySmall"
+                      className="stat-label"
+                    >
                       Стикеров
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            </div>
           </>
         ) : null}
 
         {/* Ошибка пользователя */}
         {userError && (
-          <Alert severity="error" className="error-alert-inline">
-            {userError}
-          </Alert>
+          <div className="error-alert-inline" role="alert">
+            <Text variant="body" color="default">{userError}</Text>
+          </div>
         )}
 
         {/* Вкладки профиля */}
@@ -582,33 +602,24 @@ export const ProfilePage: React.FC = () => {
 
             <TabPanel value={activeProfileTab} index={2}>
               {/* Достижения пользователя */}
-              <Box className="achievements-container" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
-                <Typography 
-                  variant="h6" 
-                  textAlign="center" 
-                  className={cn('achievements-title', 'text-default')}
-                  style={{ marginBottom: '0.5rem' }}
-                >
+              <div className="achievements-container">
+                <Text variant="h3" className="achievements-title">
                   Достижения
-                </Typography>
+                </Text>
 
-                <Box className="achievements-list">
-                  <Box className="achievement-badge">
+                <div className="achievements-list">
+                  <div className="achievement-badge">
                     Сеты: {userStickerSets.length}
-                  </Box>
-                  <Box className="achievement-badge">
+                  </div>
+                  <div className="achievement-badge">
                     Стикеры: {userStickerSets.reduce((s, set) => s + (set.stickerCount || 0), 0)}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
-                <Typography 
-                  variant="body2" 
-                  textAlign="center"
-                  className="achievements-description"
-                >
+                <Text variant="bodySmall" className="achievements-description">
                   Больше достижений скоро: streak, лайки, топ‑автор и др.
-                </Typography>
-              </Box>
+                </Text>
+              </div>
             </TabPanel>
           </>
         ) : null}
@@ -617,7 +628,7 @@ export const ProfilePage: React.FC = () => {
       {/* Debug панель */}
       <DebugPanel initData={initData} />
 
-      {/* Модалка деталей стикерсета (мок) */}
+      {/* Модалка деталей стикерсета */}
       <StickerPackModal
         open={isModalOpen}
         stickerSet={selectedStickerSet}
@@ -627,6 +638,6 @@ export const ProfilePage: React.FC = () => {
         }}
         onStickerSetUpdated={handleStickerSetUpdated}
       />
-    </Box>
+    </div>
   );
 };

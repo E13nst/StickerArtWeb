@@ -1,0 +1,89 @@
+/* ProfilePage Styles (чужой профиль) */
+
+@import './common.css';
+
+/* ============================================
+   Стили профильного header
+   ============================================ */
+
+/* Использует .profile-header-content из common.css */
+/* Использует .profile-header-avatar-wrapper из common.css */
+
+.profile-header-avatar-wrapper {
+  z-index: 20;
+}
+
+/* ============================================
+   Стили карточки профиля
+   ============================================ */
+
+/* Использует .page-container-no-margin-top из common.css */
+/* Использует .card-base и .card-base-no-padding-top из common.css */
+/* Использует .card-content-with-avatar из common.css */
+
+/* Имя пользователя и handle */
+.profile-username-container {
+  text-align: center;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  position: relative;
+  z-index: 11; /* Выше аватарки */
+}
+
+.profile-username {
+  color: var(--tg-theme-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  position: relative;
+  z-index: 11;
+  margin-bottom: 0.25rem;
+}
+
+.profile-handle {
+  color: var(--tg-theme-button-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  position: relative;
+  z-index: 11;
+}
+
+/* Статистика */
+/* Использует .flex-row-space-around, .stat-box, .stat-value, .stat-label из common.css */
+
+/* ============================================
+   Стили алертов
+   ============================================ */
+
+/* Использует .error-alert-inline из common.css */
+
+/* ============================================
+   Стили достижений
+   ============================================ */
+
+/* Использует .achievements-* классы из common.css */
+
+/* ============================================
+   Утилиты
+   ============================================ */
+
+/* Использует .page-container-no-padding-top из common.css */
+
+/* Fade-in анимация */
+.fade-in {
+  animation: fadeInContent 0.3s ease-in;
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

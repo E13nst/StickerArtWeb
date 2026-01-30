@@ -1,12 +1,21 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
 import { useSwipeStickerFeed } from '@/hooks/useSwipeStickerFeed';
-import { SwipeCard } from '@/components/SwipeCard';
+import { SwipeCardStack } from '@/components/ui/SwipeCardStack';
+import { HeaderPanel } from '@/components/ui/HeaderPanel';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { LoadPriority } from '@/utils/imageLoader';
+import { getStickerImageUrl } from '@/utils/stickerUtils';
+import { StickerSetResponse } from '@/types/sticker';
+
+const SHOW_HELLO_KEY = 'swipe-hello-shown';
 
 export const SwipePage: React.FC = () => {
+  const [showHello, setShowHello] = useState(false);
+  
   const {
     stickerSets,
     currentIndex,
@@ -23,11 +32,21 @@ export const SwipePage: React.FC = () => {
     swipeDislike
   } = useSwipeStickerFeed({ pageSize: 20, preloadThreshold: 5 });
 
-  const visibleCards = useMemo(() => {
-    return stickerSets.slice(currentIndex, currentIndex + 3);
-  }, [stickerSets, currentIndex]);
+  // Проверяем, первый ли раз пользователь на странице Swipe
+  useEffect(() => {
+    const hasShownHello = localStorage.getItem(SHOW_HELLO_KEY);
+    if (!hasShownHello && !isLoading) {
+      setShowHello(true);
+    }
+  }, [isLoading]);
 
-  const currentCard = visibleCards[0];
+  // Закрытие приветственного экрана
+  const handleCloseHello = useCallback(() => {
+    localStorage.setItem(SHOW_HELLO_KEY, 'true');
+    setShowHello(false);
+  }, []);
+
+  // Блокируем прокрутку страницы
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
@@ -41,28 +60,86 @@ export const SwipePage: React.FC = () => {
     };
   }, []);
 
-  const handleSwipeDown = useCallback(() => {
-    if (!currentCard) return;
-    swipeDislike(currentCard.id);
-  }, [currentCard, swipeDislike]);
+  // Обработчики свайпа
+  const handleSwipeLeft = useCallback((card: any) => {
+    const stickerSet = card as StickerSetResponse;
+    swipeDislike(stickerSet.id);
+  }, [swipeDislike]);
 
-  const handleSwipeUp = useCallback(async () => {
-    if (!currentCard) return;
-    await swipeLike(currentCard.id);
-  }, [currentCard, swipeLike]);
+  const handleSwipeRight = useCallback(async (card: any) => {
+    const stickerSet = card as StickerSetResponse;
+    await swipeLike(stickerSet.id);
+  }, [swipeLike]);
 
+  const handleEnd = useCallback(() => {
+    // Когда все карточки просмотрены
+    console.log('All cards swiped!');
+  }, []);
+
+  // Рендер карточки для SwipeCardStack
+  const renderCard = useCallback((card: any, index: number) => {
+    const stickerSet = card as StickerSetResponse;
+    const previewSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
+    const imageUrl = previewSticker ? getStickerImageUrl(previewSticker.file_id) : '';
+
+    return (
+      <div className="swipe-card">
+        <div className="swipe-card__content">
+          <Text variant="h2" weight="bold" className="swipe-card__title">
+            {stickerSet.title}
+          </Text>
+          <Text variant="body" color="primary" className="swipe-card__subtitle">
+            @{stickerSet.name}
+          </Text>
+        </div>
+
+        <div className="swipe-card__preview">
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={stickerSet.title}
+              className="swipe-card__image"
+              loading={index === 0 ? 'eager' : 'lazy'}
+            />
+          )}
+        </div>
+
+        <div className="swipe-card__footer">
+          <Button variant="primary" size="large" className="swipe-card__button">
+            Download
+          </Button>
+          
+          <div className="swipe-card__info">
+            <Text variant="caption" color="secondary">
+              {stickerSet.telegramStickerSetInfo?.stickers?.length || 0} stickers
+            </Text>
+          </div>
+        </div>
+      </div>
+    );
+  }, []);
+
+  // Получаем видимые карточки для SwipeCardStack
+  const visibleCards = useMemo(() => {
+    return stickerSets.slice(currentIndex, currentIndex + 4);
+  }, [stickerSets, currentIndex]);
+
+  // Состояния загрузки и ошибок
   if (isLimitReached && limitInfo) {
     return (
-      <div className="discover-page">
-        <div className="discover-page__empty">
-          <div className="discover-page__empty-icon">⛔</div>
-          <h2 className="discover-page__empty-title">
+      <div className="swipe-page">
+        <HeaderPanel />
+        <div className="swipe-page__empty">
+          <div className="swipe-page__empty-icon">⛔</div>
+          <Text variant="h2" weight="bold" align="center">
             Достигнут дневной лимит: {limitInfo.currentSwipes}/{limitInfo.dailyLimit}
-          </h2>
-          <p className="discover-page__empty-description">{limitInfo.resetDescription}</p>
-          <button className="discover-page__reset-button" onClick={reset}>
+          </Text>
+          <Text variant="body" color="secondary" align="center">
+            {limitInfo.resetDescription}
+          </Text>
+          <Button variant="primary" onClick={reset}>
             Проверить снова
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -70,24 +147,13 @@ export const SwipePage: React.FC = () => {
 
   if (isLoading && stickerSets.length === 0) {
     return (
-      <div className="discover-page">
-        <div className="discover-page__loading">
+      <div className="swipe-page">
+        <HeaderPanel />
+        <div className="swipe-page__loading">
           <LoadingSpinner />
-          <p className="discover-page__loading-text">Загружаем стикеры...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (emptyMessage && currentIndex >= stickerSets.length) {
-    return (
-      <div className="discover-page">
-        <div className="discover-page__empty">
-          <div className="discover-page__empty-icon">🎉</div>
-          <h2 className="discover-page__empty-title">{emptyMessage}</h2>
-          <button className="discover-page__reset-button" onClick={reset}>
-            Попробовать снова
-          </button>
+          <Text variant="body" color="secondary">
+            Загружаем стикеры...
+          </Text>
         </div>
       </div>
     );
@@ -95,14 +161,36 @@ export const SwipePage: React.FC = () => {
 
   if (error && stickerSets.length === 0) {
     return (
-      <div className="discover-page">
-        <div className="discover-page__empty">
-          <div className="discover-page__empty-icon">⚠️</div>
-          <h2 className="discover-page__empty-title">Не удалось загрузить стикеры</h2>
-          <p className="discover-page__empty-description">{error}</p>
-          <button className="discover-page__reset-button" onClick={reset}>
+      <div className="swipe-page">
+        <HeaderPanel />
+        <div className="swipe-page__empty">
+          <div className="swipe-page__empty-icon">⚠️</div>
+          <Text variant="h2" weight="bold" align="center">
+            Не удалось загрузить стикеры
+          </Text>
+          <Text variant="body" color="secondary" align="center">
+            {error}
+          </Text>
+          <Button variant="primary" onClick={reset}>
             Попробовать снова
-          </button>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (emptyMessage && currentIndex >= stickerSets.length) {
+    return (
+      <div className="swipe-page">
+        <HeaderPanel />
+        <div className="swipe-page__empty">
+          <div className="swipe-page__empty-icon">🎉</div>
+          <Text variant="h2" weight="bold" align="center">
+            {emptyMessage}
+          </Text>
+          <Button variant="primary" onClick={reset}>
+            Попробовать снова
+          </Button>
         </div>
       </div>
     );
@@ -110,79 +198,125 @@ export const SwipePage: React.FC = () => {
 
   if (!hasMore && currentIndex >= stickerSets.length) {
     return (
-      <div className="discover-page">
-        <div className="discover-page__empty">
-          <div className="discover-page__empty-icon">🎉</div>
-          <h2 className="discover-page__empty-title">Вы просмотрели все стикеры!</h2>
-          <p className="discover-page__empty-description">Просмотрено: {totalViewed} стикерсетов</p>
-          <button className="discover-page__reset-button" onClick={reset}>
+      <div className="swipe-page">
+        <HeaderPanel />
+        <div className="swipe-page__empty">
+          <div className="swipe-page__empty-icon">🎉</div>
+          <Text variant="h2" weight="bold" align="center">
+            Вы просмотрели все стикеры!
+          </Text>
+          <Text variant="body" color="secondary" align="center">
+            Просмотрено: {totalViewed} стикерсетов
+          </Text>
+          <Button variant="primary" onClick={reset}>
             Начать сначала
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="discover-page">
+    <div className="swipe-page">
+      {/* Header Panel */}
+      <HeaderPanel />
+
+      {/* Swipe Stats */}
       {swipeStats && (
-        <div className="discover-page__progress">
-          <div className="discover-page__progress-row">
-            <span className="discover-page__progress-label">Свайпы</span>
-            <span className="discover-page__progress-value">
-              {swipeStats.isUnlimited
-                ? 'Безлимит'
-                : `${swipeStats.dailySwipes}/${swipeStats.dailyLimit}`}
-            </span>
-          </div>
+        <div className="swipe-page__stats">
+          <Text variant="bodySmall" color="secondary">
+            Свайпы
+          </Text>
+          <Text variant="body" weight="bold">
+            {swipeStats.isUnlimited
+              ? 'Безлимит'
+              : `${swipeStats.dailySwipes}/${swipeStats.dailyLimit}`}
+          </Text>
         </div>
       )}
 
-      {currentCard && (
-        <div className="discover-page__cards-wrapper">
-          <div className="discover-page__cards">
-            {visibleCards.map((stickerSet, index) => {
-              const isTop = index === 0;
-              const zIndex = visibleCards.length - index;
-              const scale = 1 - index * 0.05;
-              const translateY = index * 10;
+      {/* Background Pattern */}
+      <div className="swipe-page__background">
+        <div className="swipe-page__background-item" />
+        <div className="swipe-page__background-item" />
+        <div className="swipe-page__background-item" />
+        <div className="swipe-page__background-item" />
+      </div>
 
-              return (
-                <div
-                  key={`wrapper-${stickerSet.id}-${currentIndex + index}`}
-                  className="swipe-card-wrapper"
-                  style={{
-                    position: 'absolute',
-                    zIndex,
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: index < 2 ? 1 : 0.5,
-                    transform: `scale(${scale}) translateY(${translateY}px)`,
-                    pointerEvents: isTop ? 'auto' : 'none',
-                  }}
-                >
-                  <SwipeCard
-                    stickerSet={stickerSet}
-                    onSwipeLeft={isTop ? handleSwipeDown : () => {}}
-                    onSwipeRight={isTop ? handleSwipeUp : () => {}}
-                    isTopCard={isTop}
-                    priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT}
-                  />
-                </div>
-              );
-            })}
-          </div>
+      {/* Swipe Gradients */}
+      <div className="swipe-page__gradient swipe-page__gradient--green" />
+      <div className="swipe-page__gradient swipe-page__gradient--red" />
 
+      {/* SwipeCardStack Component */}
+      {visibleCards.length > 0 && (
+        <div className="swipe-page__cards">
+          <SwipeCardStack
+            cards={visibleCards}
+            onSwipeLeft={handleSwipeLeft}
+            onSwipeRight={handleSwipeRight}
+            onEnd={handleEnd}
+            renderCard={renderCard}
+            maxVisibleCards={4}
+            swipeThreshold={100}
+          />
         </div>
       )}
 
+      {/* Loading Indicator */}
       {isLoading && stickerSets.length > 0 && (
-        <div className="discover-page__loading-indicator">
-          <div className="discover-page__loading-spinner"></div>
+        <div className="swipe-page__loading-indicator">
+          <div className="swipe-page__loading-spinner" />
         </div>
       )}
+
+      {/* Swipe Hello Screen (Overlay) */}
+      <AnimatePresence>
+        {showHello && (
+          <motion.div
+            className="swipe-hello"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              className="swipe-hello__content"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Text variant="h1" weight="bold" align="center" className="swipe-hello__title">
+                How it works
+              </Text>
+
+              <div className="swipe-hello__instructions">
+                <div className="swipe-hello__instruction">
+                  <Text variant="body" align="left">
+                    Swipe up - I want to go
+                  </Text>
+                </div>
+                <div className="swipe-hello__instruction">
+                  <Text variant="body" align="left">
+                    Swipe down - skip
+                  </Text>
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="large"
+                onClick={handleCloseHello}
+                className="swipe-hello__button"
+              >
+                <Text variant="body" color="secondary">
+                  Click to continue
+                </Text>
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

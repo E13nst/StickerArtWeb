@@ -1,18 +1,14 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Box, Typography, Paper, TextField, Button, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import SendIcon from '@mui/icons-material/Send';
-import '../styles/common.css';
-import '../styles/GeneratePage.css';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { HeaderPanel } from '@/components/ui/HeaderPanel';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import './GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { StylePresetDropdown } from '@/components/StylePresetDropdown';
 import { useTelegram } from '@/hooks/useTelegram';
 import { 
-  buildInlineQuery, 
   buildSwitchInlineQuery,
   buildFallbackShareUrl, 
   removeInvisibleChars,
@@ -21,11 +17,6 @@ import {
 } from '@/utils/stickerUtils';
 
 type PageState = 'idle' | 'generating' | 'success' | 'error';
-
-interface StatusMessage {
-  status: GenerationStatus;
-  text: string;
-}
 
 const STATUS_MESSAGES: Record<GenerationStatus, string> = {
   PROCESSING_PROMPT: '🤖 Улучшаем промпт...',
@@ -78,7 +69,7 @@ export const GeneratePage: React.FC = () => {
   const [artBalance, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
   
   // Polling ref
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<number | null>(null);
   
   // Извлечение параметров из URL при инициализации
   useEffect(() => {
@@ -572,89 +563,56 @@ export const GeneratePage: React.FC = () => {
 
   // Рендер состояния генерации
   const renderGeneratingState = () => (
-    <Box className="generate-status-container">
-      <CircularProgress 
-        size={64}
-        thickness={3}
-        sx={{ 
-          color: '#ff6b35',
-          mb: 3
-        }}
-      />
-      <Typography className="generate-status-text">
-        {currentStatus ? STATUS_MESSAGES[currentStatus] : 'Инициализация...'}
-      </Typography>
-      <Typography className="generate-status-hint">
+    <div className="generate-status-container">
+      <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Инициализация...'} />
+      <Text variant="bodySmall" color="hint" align="center" style={{ marginTop: 'var(--spacing-md)' }}>
         Это может занять некоторое время
-      </Typography>
-    </Box>
+      </Text>
+    </div>
   );
 
   // Рендер результата
   const renderSuccessState = () => (
-    <Box className="generate-result-container">
+    <div className="generate-result-container">
       {resultImageUrl && (
-        <Box className="generate-result-image-wrapper">
+        <div className="generate-result-image-wrapper">
           <img 
             src={resultImageUrl} 
             alt="Сгенерированный стикер" 
             className="generate-result-image"
           />
-        </Box>
+        </div>
       )}
       
-      <Box className="generate-success-info">
-        <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 32, mr: 1 }} />
-        <Typography className="generate-success-text">
+      <div className="generate-success-info">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ marginRight: 'var(--spacing-sm)' }}>
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <Text variant="h3" weight="semibold" color="default">
           Стикер успешно создан!
-        </Typography>
-      </Box>
+        </Text>
+      </div>
       
       {stickerSaved ? (
-        <Typography className="generate-sticker-saved">
+        <Text variant="bodySmall" color="default" align="center" className="generate-sticker-saved">
           ✅ Сохранено в стикерсет
-        </Typography>
+        </Text>
       ) : saveError ? (
-        <Typography
-          sx={{
-            color: 'var(--tg-theme-error-color, #f44336)',
-            fontSize: '14px',
-            textAlign: 'center',
-            mt: 1,
-            mb: 1,
-          }}
-        >
+        <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
           {saveError}
-        </Typography>
+        </Text>
       ) : null}
 
       {/* Кнопки действий: Сохранить и Отправить в чат */}
-      <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+      <div className="generate-actions">
         {imageId && !stickerSaved && (
           <Button
-            fullWidth
-            variant="contained"
+            variant="secondary"
+            size="large"
             onClick={handleSaveToStickerSet}
             disabled={isSaving}
-            className="generate-button"
-            sx={{
-              py: 1.5,
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: 600,
-              textTransform: 'none',
-              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-              color: '#ffffff',
-              flex: 1,
-              '&:hover': {
-                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-                opacity: 0.9,
-              },
-              '&:disabled': {
-                backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
-                color: 'var(--tg-theme-hint-color)',
-              },
-            }}
+            loading={isSaving}
+            className="generate-action-button"
           >
             {isSaving ? 'Сохранение...' : '💾 Сохранить в стикерсет'}
           </Button>
@@ -663,286 +621,153 @@ export const GeneratePage: React.FC = () => {
         {/* Кнопка "Поделиться" - показывается если есть fileId или imageId */}
         {(fileId || imageId) && (
           <Button
-            fullWidth
-            variant="contained"
+            variant="secondary"
+            size="large"
             onClick={fileId && inlineQueryId ? handleSendToChat : handleShareSticker}
             disabled={isSendingToChat}
-            startIcon={<SendIcon />}
-            className="generate-button"
-            sx={{
-              py: 1.5,
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: 600,
-              textTransform: 'none',
-              backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-              color: '#ffffff',
-              flex: 1,
-              '&:hover': {
-                backgroundColor: 'var(--tg-theme-button-color, #3390ec)',
-                opacity: 0.9,
-              },
-              '&:disabled': {
-                backgroundColor: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
-                color: 'var(--tg-theme-hint-color)',
-              },
-            }}
+            loading={isSendingToChat}
+            className="generate-action-button"
           >
-            {isSendingToChat 
-              ? 'Отправка...' 
-              : '📤 Отправить в чат'}
+            {isSendingToChat ? 'Отправка...' : '📤 Отправить в чат'}
           </Button>
         )}
-      </Box>
+      </div>
       
       <Button
-        fullWidth
-        variant="contained"
+        variant="primary"
+        size="large"
         onClick={handleGenerateAnother}
-        startIcon={<RefreshIcon />}
-        className="generate-button generate-button-success"
-        sx={{
-          mt: 2,
-          py: 1.5,
-          borderRadius: '12px',
-          fontSize: '16px',
-          fontWeight: 600,
-          textTransform: 'none',
-          backgroundColor: '#ff6b35',
-          color: '#ffffff',
-          '&:hover': {
-            backgroundColor: '#ff5722',
-          },
-        }}
+        className="generate-button-regenerate"
       >
-        Сгенерировать ещё
+        🔄 Сгенерировать ещё
       </Button>
-    </Box>
+    </div>
   );
 
   // Рендер ошибки
   const renderErrorState = () => (
-    <Box className="generate-error-container">
-      <ErrorOutlineIcon 
-        sx={{ 
-          fontSize: 64, 
-          color: 'var(--tg-theme-error-color, #f44336)',
-          mb: 2
-        }} 
-      />
-      <Typography className="generate-error-text">
+    <div className="generate-error-container">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 'var(--spacing-md)' }}>
+        <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="var(--color-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <Text variant="h3" weight="semibold" style={{ color: 'var(--color-error)' }} align="center">
         {errorMessage || 'Произошла ошибка'}
-      </Typography>
+      </Text>
       
       <Button
-        fullWidth
-        variant="contained"
+        variant="primary"
+        size="large"
         onClick={handleReset}
-        startIcon={<RefreshIcon />}
-        className="generate-button"
-        sx={{
-          mt: 3,
-          py: 1.5,
-          borderRadius: '12px',
-          fontSize: '16px',
-          fontWeight: 600,
-          textTransform: 'none',
-          backgroundColor: '#ff6b35',
-          color: '#ffffff',
-          '&:hover': {
-            backgroundColor: '#ff5722',
-          },
-        }}
+        className="generate-button-retry"
+        style={{ marginTop: 'var(--spacing-lg)' }}
       >
-        Попробовать снова
+        🔄 Попробовать снова
       </Button>
-    </Box>
+    </div>
   );
 
   // Рендер формы
   const renderIdleState = () => (
     <>
-      <Box className="generate-icon-wrapper">
-        <AutoAwesomeIcon className="generate-icon" />
-      </Box>
+      <div className="generate-icon-wrapper">
+        <svg className="generate-icon" width="48" height="48" viewBox="0 0 24 24" fill="none">
+          <path d="M9.813 15.904L9 18.75l-.813 2.846a.75.75 0 001.155.644l.427-.271 3.041-1.92a.75.75 0 011.03.212l1.171 1.756a.75.75 0 001.155-.644L15.354 18.75l-.813-2.846m-4.728 0l.813-2.846A.75.75 0 0111.25 12h1.5a.75.75 0 01.625.333l.813 2.846m-4.728 0h4.728m6.988-7.179a3 3 0 11-4.242 4.242 3 3 0 014.242-4.242z" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
       
-      <Typography variant="h4" className="generate-title">
+      <Text variant="h1" weight="bold" color="default" align="center" className="generate-title">
         Создайте стикер
-      </Typography>
+      </Text>
 
       {/* Стоимость генерации */}
-      <Box className="generate-cost-info">
+      <div className="generate-cost-info">
         {isLoadingTariffs ? (
-          <Typography className="generate-cost-text">
+          <Text variant="body" color="hint" align="center">
             Загрузка тарифов...
-          </Typography>
+          </Text>
         ) : generateCost !== null ? (
-          <Typography className="generate-cost-text">
+          <Text variant="body" color="hint" align="center">
             Стоимость генерации: <span className="generate-cost-value">{generateCost} ART</span>
-          </Typography>
+          </Text>
         ) : null}
-      </Box>
+      </div>
 
-      <Box className="generate-form-container">
-        <Box sx={{ position: 'relative' }}>
-          <TextField
-            fullWidth
-            multiline
+      <div className="generate-form-container">
+        <div className="generate-input-wrapper">
+          <textarea
+            className="generate-input"
             rows={4}
             placeholder="Подробно опишите стикер, например: пушистый кот в очках сидит на окне и смотрит на закат"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="generate-input"
-            inputProps={{
-              maxLength: MAX_PROMPT_LENGTH
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '16px',
-                backgroundColor: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 40%, transparent)',
-                color: 'var(--tg-theme-text-color)',
-                border: '1px solid color-mix(in srgb, var(--tg-theme-border-color) 30%, transparent)',
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                paddingBottom: '24px', // Space for the inline counter
-                '&:hover': {
-                  backgroundColor: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 60%, transparent)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 60%, transparent)',
-                  borderColor: 'var(--tg-theme-button-color)',
-                  boxShadow: '0 0 0 2px color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent)',
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  border: 'none',
-                },
-                '& .MuiInputBase-input': {
-                  color: 'var(--tg-theme-text-color)',
-                  fontSize: '15px',
-                  lineHeight: '1.5',
-                  '&::placeholder': {
-                    color: 'var(--tg-theme-hint-color)',
-                    opacity: 0.5,
-                  },
-                },
-              },
-            }}
+            maxLength={MAX_PROMPT_LENGTH}
           />
           
           {/* Полупрозрачный счетчик символов внутри поля */}
-          <Typography className="generate-char-counter-inline">
+          <Text variant="caption" color="hint" className="generate-char-counter-inline">
             {prompt.length}/{MAX_PROMPT_LENGTH}
-          </Typography>
-        </Box>
+          </Text>
+        </div>
 
         {/* Выбор пресета стиля */}
         {stylePresets.length > 0 && (
-          <Box sx={{ mt: 2 }}>
+          <div style={{ marginTop: 'var(--spacing-md)' }}>
             <StylePresetDropdown
               presets={stylePresets}
               selectedPresetId={selectedStylePresetId}
               onPresetChange={setSelectedStylePresetId}
               disabled={pageState === 'generating'}
             />
-          </Box>
+          </div>
         )}
 
         {/* Подсказка об энхансерах */}
-        <Box sx={{ mt: 1, mb: 1 }}>
-          <Typography
-            sx={{
-              fontSize: '13px',
-              color: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.6))',
-              fontStyle: 'italic',
-              textAlign: 'center',
-            }}
-          >
+        <div style={{ marginTop: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
+          <Text variant="caption" color="hint" align="center" style={{ fontStyle: 'italic' }}>
             💡 Ваш промпт будет автоматически улучшен с помощью AI
-          </Typography>
-        </Box>
+          </Text>
+        </div>
 
         {/* Чекбокс удаления фона */}
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={removeBackground}
-              onChange={(e) => setRemoveBackground(e.target.checked)}
-              disabled={pageState === 'generating'}
-              sx={{
-                color: 'var(--tg-theme-button-color, #3390ec)',
-                '&.Mui-checked': {
-                  color: 'var(--tg-theme-button-color, #3390ec)',
-                },
-              }}
-            />
-          }
-          label={
-            <Typography
-              sx={{
-                fontSize: '14px',
-                color: 'var(--tg-theme-text-color)',
-              }}
-            >
-              Удалить фон
-            </Typography>
-          }
-          sx={{ mt: 1, mb: 1 }}
-        />
+        <label className="generate-checkbox-label">
+          <input
+            type="checkbox"
+            checked={removeBackground}
+            onChange={(e) => setRemoveBackground(e.target.checked)}
+            disabled={pageState === 'generating'}
+            className="generate-checkbox"
+          />
+          <Text variant="body" color="default">
+            Удалить фон
+          </Text>
+        </label>
 
         <Button
-          fullWidth
-          variant="contained"
+          variant="primary"
+          size="large"
           onClick={handleGenerate}
           disabled={isDisabled}
-          className="generate-button"
-          sx={{
-            mt: 3,
-            py: 1.8,
-            borderRadius: '16px',
-            fontSize: '16px',
-            fontWeight: 700,
-            textTransform: 'none',
-            background: 'linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%)',
-            color: '#ffffff',
-            boxShadow: '0 8px 20px rgba(255, 107, 53, 0.25)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #ff5722 0%, #ff7a45 100%)',
-              transform: 'translateY(-1px)',
-              boxShadow: '0 10px 24px rgba(255, 107, 53, 0.35)',
-            },
-            '&:active': {
-              transform: 'translateY(0)',
-            },
-            '&:disabled': {
-              background: 'color-mix(in srgb, var(--tg-theme-hint-color) 20%, transparent)',
-              color: 'var(--tg-theme-hint-color)',
-              boxShadow: 'none',
-            },
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
+          loading={pageState === 'generating'}
+          className="generate-button-submit"
         >
-          {pageState === 'generating' ? 'Инициализация...' : 'Нарисовать'}
+          {pageState === 'generating' ? 'Инициализация...' : '✨ Нарисовать'}
         </Button>
-      </Box>
+      </div>
     </>
   );
 
   return (
-    <Box className="generate-page">
-      {/* Баланс ART в правом верхнем углу */}
-      <Box className="generate-balance-badge">
-        <Typography className="generate-balance-text">
-          {artBalance !== null ? `🎨 ${artBalance} ART` : '🎨 — ART'}
-        </Typography>
-      </Box>
+    <div className="generate-page">
+      {/* Header с балансом */}
+      <HeaderPanel />
 
-      <Paper elevation={0} className="generate-card" sx={{ mb: '100px' }}>
+      <div className="generate-card">
         {pageState === 'idle' && renderIdleState()}
         {pageState === 'generating' && renderGeneratingState()}
         {pageState === 'success' && renderSuccessState()}
         {pageState === 'error' && renderErrorState()}
-      </Paper>
-    </Box>
+      </div>
+    </div>
   );
 };
 

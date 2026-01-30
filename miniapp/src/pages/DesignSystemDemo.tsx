@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Button, Card, CardContent, Typography, Switch, FormControlLabel } from '@mui/material';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
 import '@/styles/common.css';
 import './DesignSystemDemo.css';
 
@@ -31,15 +32,14 @@ export const DesignSystemDemo: React.FC = () => {
 
   // Типографика
   const typography = [
-    { name: 'H1', var: '--typography-h1', fontSize: '32px', fontWeight: 700, lineHeight: '43.71px' },
-    { name: 'H2', var: '--typography-h2', fontSize: '20px', fontWeight: 700, lineHeight: '22px' },
-    { name: 'H3', var: '--typography-h3', fontSize: '16px', fontWeight: 700, lineHeight: '22px' },
-    { name: 'H4', var: '--typography-h4', fontSize: '16px', fontWeight: 800, lineHeight: '22px' },
-    { name: 'Body', var: '--typography-body', fontSize: '16px', fontWeight: 400, lineHeight: '22px' },
-    { name: 'Body Large', var: '--typography-body-large', fontSize: '18px', fontWeight: 400, lineHeight: '24.59px' },
-    { name: 'Body Small', var: '--typography-body-small', fontSize: '12px', fontWeight: 400, lineHeight: '22px' },
-    { name: 'Caption', var: '--typography-caption', fontSize: '8px', fontWeight: 400, lineHeight: '22px' },
-    { name: 'Light', var: '--typography-light', fontSize: '12px', fontWeight: 300, lineHeight: '28px' },
+    { name: 'H1', variant: 'h1' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'H2', variant: 'h2' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'H3', variant: 'h3' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'H4', variant: 'h4' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'Body', variant: 'body' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'Body Small', variant: 'bodySmall' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'Caption', variant: 'caption' as const, example: 'The quick brown fox jumps over the lazy dog' },
+    { name: 'Label', variant: 'label' as const, example: 'The quick brown fox jumps over the lazy dog' },
   ];
 
   // Spacing
@@ -66,377 +66,226 @@ export const DesignSystemDemo: React.FC = () => {
 
   return (
     <div className="page-container" data-theme={theme}>
-      <Box sx={{ padding: 'var(--spacing-md)' }}>
+      <div style={{ padding: 'var(--spacing-md)' }}>
         {/* Header */}
-        <Box className="flex-row-center" sx={{ justifyContent: 'space-between', marginBottom: 'var(--spacing-xl)' }}>
-          <Typography 
-            variant="h1" 
-            sx={{ 
-              fontSize: 'var(--typography-h1-font-size)',
-              fontWeight: 'var(--typography-h1-font-weight)',
-              lineHeight: 'var(--typography-h1-line-height)',
-              color: 'var(--color-text)'
-            }}
-          >
+        <div className="flex-row-center" style={{ justifyContent: 'space-between', marginBottom: 'var(--spacing-xl)' }}>
+          <Text variant="h1" weight="bold" color="default">
             Design System Demo
-          </Typography>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={theme === 'dark'}
+          </Text>
+          <div className="flex-row-center" style={{ gap: 'var(--spacing-sm)' }}>
+            <Text variant="body" color="default">{theme === 'dark' ? 'Dark' : 'Light'}</Text>
+            <label className="theme-toggle">
+              <input 
+                type="checkbox" 
+                checked={theme === 'dark'} 
                 onChange={toggleTheme}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': {
-                    color: 'var(--color-primary)',
-                  },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: 'var(--color-primary)',
-                  },
-                }}
               />
-            }
-            label={theme === 'dark' ? 'Dark' : 'Light'}
-            sx={{ color: 'var(--color-text)' }}
-          />
-        </Box>
+              <span className="slider"></span>
+            </label>
+          </div>
+        </div>
 
         {/* Colors Section */}
-        <Card className="card-base" sx={{ marginBottom: 'var(--spacing-lg)' }}>
-          <CardContent>
-            <Typography 
-              variant="h2"
-              sx={{ 
-                fontSize: 'var(--typography-h2-font-size)',
-                fontWeight: 'var(--typography-h2-font-weight)',
-                marginBottom: 'var(--spacing-md)',
-                color: 'var(--color-text)'
-              }}
-            >
-              Colors
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--spacing-md)' }}>
-              {colors.map((color) => (
-                <Box key={color.name} sx={{ marginBottom: 'var(--spacing-sm)' }}>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: '80px',
-                      backgroundColor: `var(${color.var})`,
-                      borderRadius: 'var(--border-radius-md)',
-                      marginBottom: 'var(--spacing-xs)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  />
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-body-small-font-size)',
-                      fontWeight: 600,
-                      color: 'var(--color-text)',
-                      marginBottom: 'var(--spacing-xs)'
-                    }}
-                  >
-                    {color.name}
-                  </Typography>
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-caption-font-size)',
-                      color: 'var(--color-text-secondary)',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {color.var}
-                  </Typography>
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-caption-font-size)',
-                      color: 'var(--color-text-secondary)',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {color.value}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+        <div className="card-base" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)' }}>
+          <Text variant="h2" weight="bold" color="default" style={{ marginBottom: 'var(--spacing-md)' }}>
+            Colors
+          </Text>
+          <div className="color-grid">
+            {colors.map((color) => (
+              <div key={color.name} className="color-item">
+                <div
+                  className="color-swatch"
+                  style={{
+                    backgroundColor: `var(${color.var})`,
+                  }}
+                />
+                <Text variant="bodySmall" weight="semibold" color="default" style={{ marginBottom: '4px' }}>
+                  {color.name}
+                </Text>
+                <Text variant="caption" color="hint" style={{ fontFamily: 'monospace' }}>
+                  {color.var}
+                </Text>
+                <Text variant="caption" color="hint" style={{ fontFamily: 'monospace' }}>
+                  {color.value}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Typography Section */}
-        <Card className="card-base" sx={{ marginBottom: 'var(--spacing-lg)' }}>
-          <CardContent>
-            <Typography 
-              variant="h2"
-              sx={{ 
-                fontSize: 'var(--typography-h2-font-size)',
-                fontWeight: 'var(--typography-h2-font-weight)',
-                marginBottom: 'var(--spacing-md)',
-                color: 'var(--color-text)'
-              }}
-            >
-              Typography
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-              {typography.map((type) => (
-                <Box key={type.name} sx={{ padding: 'var(--spacing-sm)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)' }}>
-                  <Typography 
-                    sx={{ 
-                      fontSize: type.fontSize,
-                      fontWeight: type.fontWeight,
-                      lineHeight: type.lineHeight,
-                      color: 'var(--color-text)',
-                      marginBottom: 'var(--spacing-xs)',
-                      fontFamily: 'var(--font-family-base)'
-                    }}
-                  >
-                    {type.name}: The quick brown fox jumps over the lazy dog
-                  </Typography>
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-caption-font-size)',
-                      color: 'var(--color-text-secondary)',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {type.var} | {type.fontSize} | {type.fontWeight} | {type.lineHeight}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+        <div className="card-base" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)' }}>
+          <Text variant="h2" weight="bold" color="default" style={{ marginBottom: 'var(--spacing-md)' }}>
+            Typography
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+            {typography.map((type) => (
+              <div 
+                key={type.name} 
+                style={{ 
+                  padding: 'var(--spacing-sm)', 
+                  backgroundColor: 'var(--color-surface)', 
+                  borderRadius: 'var(--border-radius-sm)' 
+                }}
+              >
+                <Text variant={type.variant} color="default" style={{ marginBottom: '4px' }}>
+                  {type.name}: {type.example}
+                </Text>
+                <Text variant="caption" color="hint" style={{ fontFamily: 'monospace' }}>
+                  variant="{type.variant}"
+                </Text>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Buttons Section */}
+        <div className="card-base" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)' }}>
+          <Text variant="h2" weight="bold" color="default" style={{ marginBottom: 'var(--spacing-md)' }}>
+            Buttons
+          </Text>
+          
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <Text variant="h3" weight="semibold" color="default" style={{ marginBottom: 'var(--spacing-sm)' }}>
+              Variants
+            </Text>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+              <Button variant="primary" size="medium">Primary</Button>
+              <Button variant="secondary" size="medium">Secondary</Button>
+              <Button variant="outline" size="medium">Outline</Button>
+              <Button variant="ghost" size="medium">Ghost</Button>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <Text variant="h3" weight="semibold" color="default" style={{ marginBottom: 'var(--spacing-sm)' }}>
+              Sizes
+            </Text>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap', alignItems: 'center' }}>
+              <Button variant="primary" size="small">Small</Button>
+              <Button variant="primary" size="medium">Medium</Button>
+              <Button variant="primary" size="large">Large</Button>
+            </div>
+          </div>
+
+          <div>
+            <Text variant="h3" weight="semibold" color="default" style={{ marginBottom: 'var(--spacing-sm)' }}>
+              States
+            </Text>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+              <Button variant="primary" size="medium">Normal</Button>
+              <Button variant="primary" size="medium" disabled>Disabled</Button>
+              <Button variant="primary" size="medium" loading>Loading</Button>
+            </div>
+          </div>
+        </div>
 
         {/* Spacing Section */}
-        <Card className="card-base" sx={{ marginBottom: 'var(--spacing-lg)' }}>
-          <CardContent>
-            <Typography 
-              variant="h2"
-              sx={{ 
-                fontSize: 'var(--typography-h2-font-size)',
-                fontWeight: 'var(--typography-h2-font-weight)',
-                marginBottom: 'var(--spacing-md)',
-                color: 'var(--color-text)'
-              }}
-            >
-              Spacing
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-              {spacing.map((space) => (
-                <Box key={space.name} sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-                  <Box
-                    sx={{
-                      width: `var(${space.var})`,
-                      height: '40px',
-                      backgroundColor: 'var(--color-primary)',
-                      borderRadius: 'var(--border-radius-sm)',
-                      minWidth: `var(${space.var})`,
-                    }}
-                  />
-                  <Box>
-                    <Typography 
-                      sx={{ 
-                        fontSize: 'var(--typography-body-small-font-size)',
-                        fontWeight: 600,
-                        color: 'var(--color-text)'
-                      }}
-                    >
-                      {space.name}
-                    </Typography>
-                    <Typography 
-                      sx={{ 
-                        fontSize: 'var(--typography-caption-font-size)',
-                        color: 'var(--color-text-secondary)',
-                        fontFamily: 'monospace'
-                      }}
-                    >
-                      {space.var} = {space.value}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+        <div className="card-base" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)' }}>
+          <Text variant="h2" weight="bold" color="default" style={{ marginBottom: 'var(--spacing-md)' }}>
+            Spacing
+          </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+            {spacing.map((space) => (
+              <div key={space.name} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                <div
+                  style={{
+                    width: `var(${space.var})`,
+                    height: '40px',
+                    backgroundColor: 'var(--color-primary)',
+                    borderRadius: 'var(--border-radius-sm)',
+                    minWidth: `var(${space.var})`,
+                  }}
+                />
+                <div>
+                  <Text variant="bodySmall" weight="semibold" color="default">
+                    {space.name}
+                  </Text>
+                  <Text variant="caption" color="hint" style={{ fontFamily: 'monospace' }}>
+                    {space.var} = {space.value}
+                  </Text>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Border Radius Section */}
-        <Card className="card-base" sx={{ marginBottom: 'var(--spacing-lg)' }}>
-          <CardContent>
-            <Typography 
-              variant="h2"
-              sx={{ 
-                fontSize: 'var(--typography-h2-font-size)',
-                fontWeight: 'var(--typography-h2-font-weight)',
-                marginBottom: 'var(--spacing-md)',
-                color: 'var(--color-text)'
-              }}
-            >
-              Border Radius
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 'var(--spacing-md)' }}>
-              {borderRadius.map((radius) => (
-                <Box key={radius.name} sx={{ textAlign: 'center' }}>
-                  <Box
-                    sx={{
-                      width: '100px',
-                      height: '100px',
-                      backgroundColor: 'var(--color-primary)',
-                      borderRadius: `var(${radius.var})`,
-                      margin: '0 auto var(--spacing-sm)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  />
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-body-small-font-size)',
-                      fontWeight: 600,
-                      color: 'var(--color-text)',
-                      marginBottom: 'var(--spacing-xs)'
-                    }}
-                  >
-                    {radius.name}
-                  </Typography>
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-caption-font-size)',
-                      color: 'var(--color-text-secondary)',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {radius.var}
-                  </Typography>
-                  <Typography 
-                    sx={{ 
-                      fontSize: 'var(--typography-caption-font-size)',
-                      color: 'var(--color-text-secondary)',
-                      fontFamily: 'monospace'
-                    }}
-                  >
-                    {radius.value}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+        <div className="card-base" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)' }}>
+          <Text variant="h2" weight="bold" color="default" style={{ marginBottom: 'var(--spacing-md)' }}>
+            Border Radius
+          </Text>
+          <div className="radius-grid">
+            {borderRadius.map((radius) => (
+              <div key={radius.name} style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    width: '100px',
+                    height: '100px',
+                    backgroundColor: 'var(--color-primary)',
+                    borderRadius: `var(${radius.var})`,
+                    margin: '0 auto var(--spacing-sm)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                />
+                <Text variant="bodySmall" weight="semibold" color="default" style={{ marginBottom: '4px' }}>
+                  {radius.name}
+                </Text>
+                <Text variant="caption" color="hint" style={{ fontFamily: 'monospace' }}>
+                  {radius.var}
+                </Text>
+                <Text variant="caption" color="hint" style={{ fontFamily: 'monospace' }}>
+                  {radius.value}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Utility Classes Demo */}
-        <Card className="card-base" sx={{ marginBottom: 'var(--spacing-lg)' }}>
-          <CardContent>
-            <Typography 
-              variant="h2"
-              sx={{ 
-                fontSize: 'var(--typography-h2-font-size)',
-                fontWeight: 'var(--typography-h2-font-weight)',
-                marginBottom: 'var(--spacing-md)',
-                color: 'var(--color-text)'
-              }}
-            >
-              Utility Classes
-            </Typography>
-            
-            {/* Flex Utilities */}
-            <Box sx={{ marginBottom: 'var(--spacing-md)' }}>
-              <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: 'var(--typography-h3-font-size)',
-                  fontWeight: 'var(--typography-h3-font-weight)',
-                  marginBottom: 'var(--spacing-sm)',
-                  color: 'var(--color-text)'
-                }}
-              >
-                Flex Utilities
-              </Typography>
-              <Box className="flex-center" sx={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                <Typography sx={{ color: 'var(--color-text)' }}>.flex-center</Typography>
-              </Box>
-              <Box className="flex-column-center" sx={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                <Typography sx={{ color: 'var(--color-text)' }}>.flex-column-center</Typography>
-              </Box>
-              <Box className="flex-row-center" sx={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)' }}>
-                <Typography sx={{ color: 'var(--color-text)' }}>.flex-row-center</Typography>
-              </Box>
-            </Box>
+        <div className="card-base" style={{ marginBottom: 'var(--spacing-lg)', padding: 'var(--spacing-md)' }}>
+          <Text variant="h2" weight="bold" color="default" style={{ marginBottom: 'var(--spacing-md)' }}>
+            Utility Classes
+          </Text>
+          
+          {/* Flex Utilities */}
+          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <Text variant="h3" weight="semibold" color="default" style={{ marginBottom: 'var(--spacing-sm)' }}>
+              Flex Utilities
+            </Text>
+            <div className="flex-center" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)', marginBottom: 'var(--spacing-sm)' }}>
+              <Text variant="body" color="default">.flex-center</Text>
+            </div>
+            <div className="flex-column-center" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)', marginBottom: 'var(--spacing-sm)' }}>
+              <Text variant="body" color="default">.flex-column-center</Text>
+            </div>
+            <div className="flex-row-center" style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)' }}>
+              <Text variant="body" color="default">.flex-row-center</Text>
+            </div>
+          </div>
 
-            {/* Text Utilities */}
-            <Box sx={{ marginBottom: 'var(--spacing-md)' }}>
-              <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: 'var(--typography-h3-font-size)',
-                  fontWeight: 'var(--typography-h3-font-weight)',
-                  marginBottom: 'var(--spacing-sm)',
-                  color: 'var(--color-text)'
-                }}
-              >
-                Text Utilities
-              </Typography>
-              <Box sx={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)' }}>
-                <Typography className="text-primary" sx={{ marginBottom: 'var(--spacing-xs)' }}>.text-primary</Typography>
-                <Typography className="text-hint" sx={{ marginBottom: 'var(--spacing-xs)' }}>.text-hint</Typography>
-                <Typography className="text-default" sx={{ marginBottom: 'var(--spacing-xs)' }}>.text-default</Typography>
-                <Typography className="text-center" sx={{ color: 'var(--color-text)' }}>.text-center</Typography>
-              </Box>
-            </Box>
-
-            {/* Button Utilities */}
-            <Box>
-              <Typography 
-                variant="h3"
-                sx={{ 
-                  fontSize: 'var(--typography-h3-font-size)',
-                  fontWeight: 'var(--typography-h3-font-weight)',
-                  marginBottom: 'var(--spacing-sm)',
-                  color: 'var(--color-text)'
-                }}
-              >
-                Button Styles
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
-                <Button 
-                  className="button-base button-rounded-sm"
-                  sx={{ 
-                    backgroundColor: 'var(--color-primary)',
-                    color: 'var(--color-text)',
-                    padding: 'var(--spacing-sm) var(--spacing-md)'
-                  }}
-                >
-                  Rounded SM
-                </Button>
-                <Button 
-                  className="button-base button-rounded-md"
-                  sx={{ 
-                    backgroundColor: 'var(--color-secondary)',
-                    color: 'var(--color-text)',
-                    padding: 'var(--spacing-sm) var(--spacing-md)'
-                  }}
-                >
-                  Rounded MD
-                </Button>
-                <Button 
-                  className="button-base button-rounded-lg"
-                  sx={{ 
-                    backgroundColor: 'var(--color-success)',
-                    color: 'var(--color-text)',
-                    padding: 'var(--spacing-sm) var(--spacing-md)'
-                  }}
-                >
-                  Rounded LG
-                </Button>
-                <Button 
-                  className="button-base button-rounded"
-                  sx={{ 
-                    backgroundColor: 'var(--color-error)',
-                    color: 'var(--color-text)',
-                    padding: 'var(--spacing-sm) var(--spacing-md)'
-                  }}
-                >
-                  Rounded Full
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+          {/* Text Utilities */}
+          <div>
+            <Text variant="h3" weight="semibold" color="default" style={{ marginBottom: 'var(--spacing-sm)' }}>
+              Text Utilities
+            </Text>
+            <div style={{ padding: 'var(--spacing-md)', backgroundColor: 'var(--color-surface)', borderRadius: 'var(--border-radius-sm)' }}>
+              <Text variant="body" color="primary" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                color="primary"
+              </Text>
+              <Text variant="body" color="secondary" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                color="secondary"
+              </Text>
+              <Text variant="body" color="hint" style={{ marginBottom: 'var(--spacing-xs)' }}>
+                color="hint"
+              </Text>
+              <Text variant="body" color="default">
+                color="default"
+              </Text>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
