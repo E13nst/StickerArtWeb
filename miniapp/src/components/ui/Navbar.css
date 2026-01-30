@@ -1,0 +1,62 @@
+.navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: var(--component-navbar-height, 50px);
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--component-navbar-border-radius, 16px) var(--component-navbar-border-radius, 16px) 0 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0;
+  z-index: var(--z-header, 100);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.navbar__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  height: 100%;
+  text-decoration: none;
+  color: var(--color-text, #ffffff);
+  transition: color 0.2s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.navbar__tab--active {
+  color: var(--color-primary, #ee449f);
+}
+
+.navbar__icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.navbar__label {
+  font-family: var(--font-family-base, 'Manrope', sans-serif);
+  font-size: var(--component-navbar-font-size, 8px);
+  font-weight: 400;
+  font-style: normal;
+  line-height: 22px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Hover effect */
+.navbar__tab:hover {
+  opacity: 0.8;
+}
+
+.navbar__tab--active .navbar__icon,
+.navbar__tab--active .navbar__label {
+  color: var(--color-primary, #ee449f);
+}

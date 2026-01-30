@@ -1,0 +1,149 @@
+.swipe-card-stack-example {
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.swipe-card-stack-example__header {
+  text-align: center;
+  margin-bottom: 40px;
+  color: white;
+}
+
+.swipe-card-stack-example__header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.swipe-card-stack-example__header p {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.swipe-card-stack-example__instructions {
+  display: flex;
+  gap: 40px;
+  margin-top: 40px;
+  color: white;
+}
+
+.instruction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.instruction__icon {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.instruction__text {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Example card styling */
+.example-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.example-card__header {
+  padding: 30px 20px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+}
+
+.example-card__title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.example-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 30px;
+  position: relative;
+}
+
+.example-card__description {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #333;
+  text-align: center;
+  margin: 0;
+}
+
+.example-card__number {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.example-card__footer {
+  padding: 20px;
+  background: #f8f8f8;
+  border-top: 1px solid #e0e0e0;
+}
+
+.example-card__hint {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.example-card__hint span:first-child {
+  color: #f44336;
+}
+
+.example-card__hint span:last-child {
+  color: #4caf50;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .swipe-card-stack-example__header h1 {
+    font-size: 24px;
+  }
+
+  .swipe-card-stack-example__instructions {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .example-card__title {
+    font-size: 24px;
+  }
+
+  .example-card__description {
+    font-size: 16px;
+  }
+}

@@ -1,0 +1,362 @@
+/* UploadModal Component Styles */
+
+/* Overlay */
+.upload-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md, 16px);
+  animation: upload-modal-overlay-fade-in 0.3s ease-out;
+}
+
+@keyframes upload-modal-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.upload-modal {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  background-color: var(--color-surface, #262626);
+  border-radius: var(--border-radius-lg, 16px);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  animation: upload-modal-scale-in 0.3s ease-out;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes upload-modal-scale-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.upload-modal-header {
+  position: relative;
+  padding: var(--spacing-lg, 24px) var(--spacing-lg, 24px) var(--spacing-md, 16px);
+  border-bottom: 1px solid rgba(138, 138, 138, 0.2);
+}
+
+.upload-modal-title {
+  font-family: var(--font-family-base, 'Manrope', sans-serif);
+  font-size: var(--typography-h1-font-size, 32px);
+  font-weight: var(--typography-h1-font-weight, 700);
+  line-height: 1.2;
+  color: var(--color-text, #ffffff);
+  margin: 0;
+  padding-right: var(--spacing-xl, 32px);
+}
+
+.upload-modal-close {
+  position: absolute;
+  top: var(--spacing-lg, 24px);
+  right: var(--spacing-lg, 24px);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 296px;
+  color: var(--color-text, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.upload-modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.upload-modal-close:active {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.95);
+}
+
+.upload-modal-close:focus-visible {
+  outline: 2px solid var(--color-primary, #ee449f);
+  outline-offset: 2px;
+}
+
+.upload-modal-close svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Content */
+.upload-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--spacing-lg, 24px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.upload-modal-subtitle {
+  font-family: var(--font-family-base, 'Manrope', sans-serif);
+  font-size: var(--typography-body-font-size, 16px);
+  font-weight: var(--typography-body-font-weight, 400);
+  line-height: var(--typography-body-line-height, 22px);
+  color: var(--color-text-secondary, #8a8a8a);
+  text-align: center;
+  margin: 0 0 var(--spacing-lg, 24px) 0;
+}
+
+/* Drop Zone */
+.upload-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--spacing-xl, 32px) var(--spacing-lg, 24px);
+  background-color: var(--color-background, #171717);
+  border: 2px dashed var(--color-border, #8a8a8a);
+  border-radius: var(--border-radius-lg, 16px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  gap: var(--spacing-md, 16px);
+}
+
+.upload-drop-zone:hover {
+  border-color: var(--color-text, #ffffff);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.upload-drop-zone:focus-visible {
+  outline: 2px solid var(--color-primary, #ee449f);
+  outline-offset: 2px;
+}
+
+.upload-drop-zone-active {
+  border-color: var(--color-primary, #ee449f);
+  background-color: rgba(238, 68, 159, 0.1);
+}
+
+.upload-drop-zone-icon {
+  color: var(--color-text-secondary, #8a8a8a);
+  transition: color 0.3s ease;
+}
+
+.upload-drop-zone:hover .upload-drop-zone-icon,
+.upload-drop-zone-active .upload-drop-zone-icon {
+  color: var(--color-primary, #ee449f);
+}
+
+.upload-drop-zone-text {
+  font-family: var(--font-family-base, 'Manrope', sans-serif);
+  font-size: var(--typography-body-font-size, 16px);
+  color: var(--color-text, #ffffff);
+  text-align: center;
+}
+
+.upload-drop-zone-text strong {
+  font-weight: 700;
+}
+
+.upload-drop-zone-hint {
+  font-family: var(--font-family-base, 'Manrope', sans-serif);
+  font-size: var(--typography-body-small-font-size, 12px);
+  color: var(--color-text-secondary, #8a8a8a);
+  text-align: center;
+}
+
+/* Hidden file input */
+.upload-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Error message */
+.upload-error {
+  margin-top: var(--spacing-md, 16px);
+  padding: var(--spacing-md, 16px);
+  background-color: var(--color-error, #e03131);
+  color: #ffffff;
+  border-radius: var(--border-radius-md, 10px);
+  font-size: var(--typography-body-small-font-size, 12px);
+  text-align: center;
+}
+
+/* Files list */
+.upload-files-list {
+  margin-top: var(--spacing-md, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 8px);
+}
+
+.upload-file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius-sm, 8px);
+  gap: var(--spacing-md, 16px);
+}
+
+.upload-file-name {
+  font-size: var(--typography-body-small-font-size, 12px);
+  color: var(--color-text, #ffffff);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-file-size {
+  font-size: var(--typography-body-small-font-size, 12px);
+  color: var(--color-text-secondary, #8a8a8a);
+  flex-shrink: 0;
+}
+
+/* Footer */
+.upload-modal-footer {
+  display: flex;
+  gap: var(--spacing-md, 16px);
+  padding: var(--spacing-lg, 24px);
+  border-top: 1px solid rgba(138, 138, 138, 0.2);
+}
+
+.upload-modal-button {
+  flex: 1;
+  height: var(--component-button-primary-height, 44px);
+  border-radius: var(--component-button-primary-border-radius, 10px);
+  font-family: var(--font-family-base, 'Manrope', sans-serif);
+  font-size: var(--typography-body-font-size, 16px);
+  font-weight: var(--typography-h4-font-weight, 800);
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm, 8px);
+}
+
+.upload-modal-button-cancel {
+  background-color: var(--color-text-secondary, #8a8a8a);
+  color: #ffffff;
+}
+
+.upload-modal-button-cancel:hover {
+  background-color: #999999;
+}
+
+.upload-modal-button-cancel:active {
+  transform: scale(0.98);
+}
+
+.upload-modal-button-upload {
+  background-color: var(--color-primary, #ee449f);
+  color: #ffffff;
+}
+
+.upload-modal-button-upload:hover:not(:disabled) {
+  background-color: #f555a9;
+}
+
+.upload-modal-button-upload:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.upload-modal-button-upload:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-modal-button:focus-visible {
+  outline: 2px solid var(--color-primary, #ee449f);
+  outline-offset: 2px;
+}
+
+/* Scrollbar Styling */
+.upload-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.upload-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.upload-modal-content::-webkit-scrollbar-thumb {
+  background: var(--color-text-secondary, #8a8a8a);
+  border-radius: 3px;
+  opacity: 0.3;
+}
+
+.upload-modal-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text, #ffffff);
+  opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .upload-modal {
+    width: 100%;
+    max-width: none;
+    margin: var(--spacing-md, 16px);
+  }
+
+  .upload-modal-title {
+    font-size: 24px;
+  }
+
+  .upload-drop-zone {
+    min-height: 150px;
+  }
+
+  .upload-modal-footer {
+    flex-direction: column;
+  }
+
+  .upload-modal-button {
+    width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .upload-modal-overlay,
+  .upload-modal,
+  .upload-drop-zone,
+  .upload-modal-button {
+    animation: none;
+    transition: none;
+  }
+
+  .upload-modal-close:active,
+  .upload-modal-button:active {
+    transform: none;
+  }
+}

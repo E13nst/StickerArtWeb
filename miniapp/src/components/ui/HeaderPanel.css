@@ -1,0 +1,129 @@
+/* HeaderPanel Component Styles */
+
+.header-panel {
+  width: 100%;
+  max-width: 402px;
+  height: 172px;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--spacing-md);
+  background: var(--component-header-panel-background-color);
+  border-radius: var(--component-header-panel-border-radius);
+  box-sizing: border-box;
+}
+
+.header-panel__content {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+/* Avatar */
+.header-panel__avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.header-panel__avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-dark);
+  color: var(--color-text);
+  font-size: var(--typography-h2-font-size);
+  font-weight: var(--typography-h2-font-weight);
+  font-family: var(--font-family-base);
+}
+
+/* Balance section */
+.header-panel__balance {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 48px;
+  padding: 0 var(--spacing-md);
+  background: var(--component-header-panel-balance-background-color);
+  border-radius: var(--component-header-panel-balance-border-radius);
+  flex: 1;
+  min-width: 140px;
+}
+
+.header-panel__balance-text {
+  flex: 1;
+  color: var(--color-text);
+  font-size: var(--typography-h3-font-size);
+  font-weight: var(--typography-h3-font-weight);
+  font-family: var(--font-family-base);
+  line-height: var(--typography-h3-line-height);
+  white-space: nowrap;
+}
+
+/* Plus button */
+.header-panel__plus-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-text);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-background);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.header-panel__plus-button:hover {
+  opacity: 0.8;
+}
+
+.header-panel__plus-button:active {
+  opacity: 0.6;
+}
+
+/* Wallet button */
+.header-panel__wallet {
+  width: 45px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--component-header-panel-wallet-background-color);
+  border: none;
+  border-radius: var(--component-header-panel-wallet-border-radius);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.header-panel__wallet:hover {
+  opacity: 0.9;
+}
+
+.header-panel__wallet:active {
+  opacity: 0.7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .header-panel {
+    max-width: 100%;
+  }
+
+  .header-panel__balance {
+    min-width: unset;
+    padding: 0 var(--spacing-sm);
+  }
+
+  .header-panel__balance-text {
+    font-size: 14px;
+  }
+}
