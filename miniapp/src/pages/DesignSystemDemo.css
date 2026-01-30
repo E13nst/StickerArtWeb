@@ -1,0 +1,45 @@
+/* Additional styles for Design System Demo page */
+
+.design-system-demo {
+  font-family: var(--font-family-base);
+}
+
+/* Color swatch styles */
+.color-swatch {
+  width: 100%;
+  height: 80px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Typography preview */
+.typography-preview {
+  padding: var(--spacing-sm);
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Spacing demo */
+.spacing-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.spacing-bar {
+  height: 40px;
+  background-color: var(--color-primary);
+  border-radius: var(--border-radius-sm);
+}
+
+/* Border radius demo */
+.border-radius-demo {
+  width: 100px;
+  height: 100px;
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  margin: 0 auto var(--spacing-sm);
+}

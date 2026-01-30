@@ -1,0 +1,200 @@
+/* Design Tokens - CSS Custom Properties */
+/* Based on design-tokens.json */
+
+:root {
+  /* ============================================
+     Colors
+     ============================================ */
+  
+  /* Primary Colors */
+  --color-primary: var(--tg-theme-button-color, #ee449f);
+  --color-secondary: var(--tg-theme-link-color, #007aff);
+  
+  /* Background Colors */
+  --color-background: var(--tg-theme-bg-color, #191818);
+  --color-surface: var(--tg-theme-secondary-bg-color, #262626);
+  --color-surface-dark: #2f2f2f;
+  
+  /* Text Colors */
+  --color-text: var(--tg-theme-text-color, #ffffff);
+  --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
+  
+  /* Status Colors */
+  --color-success: var(--tg-theme-success-color, #00af12);
+  --color-error: var(--tg-theme-error-color, #e03131);
+  --color-border: var(--tg-theme-border-color, #8a8a8a);
+  
+  /* Overlay Colors */
+  --color-overlay-light: rgba(255, 255, 255, 0.2);
+  --color-overlay-dark: rgba(0, 0, 0, 0.5);
+  --color-overlay-dark-strong: rgba(0, 0, 0, 0.4);
+  --color-overlay-primary: rgba(238, 68, 159, 0.2);
+  
+  /* ============================================
+     Typography
+     ============================================ */
+  
+  --font-family-base: 'Manrope', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  
+  /* Heading Styles */
+  --typography-h1-font-size: 32px;
+  --typography-h1-font-weight: 700;
+  --typography-h1-line-height: 43.71px;
+  --typography-h1-font-style: Bold;
+  
+  --typography-h2-font-size: 20px;
+  --typography-h2-font-weight: 700;
+  --typography-h2-line-height: 22px;
+  --typography-h2-font-style: Bold;
+  
+  --typography-h3-font-size: 16px;
+  --typography-h3-font-weight: 700;
+  --typography-h3-line-height: 22px;
+  --typography-h3-font-style: Bold;
+  
+  --typography-h4-font-size: 16px;
+  --typography-h4-font-weight: 800;
+  --typography-h4-line-height: 22px;
+  --typography-h4-font-style: ExtraBold;
+  
+  /* Body Styles */
+  --typography-body-font-size: 16px;
+  --typography-body-font-weight: 400;
+  --typography-body-line-height: 22px;
+  --typography-body-font-style: Regular;
+  
+  --typography-body-large-font-size: 18px;
+  --typography-body-large-font-weight: 400;
+  --typography-body-large-line-height: 24.59px;
+  --typography-body-large-font-style: Regular;
+  
+  --typography-body-small-font-size: 12px;
+  --typography-body-small-font-weight: 400;
+  --typography-body-small-line-height: 22px;
+  --typography-body-small-font-style: Regular;
+  
+  /* Caption */
+  --typography-caption-font-size: 8px;
+  --typography-caption-font-weight: 400;
+  --typography-caption-line-height: 22px;
+  --typography-caption-font-style: Regular;
+  
+  /* Light */
+  --typography-light-font-size: 12px;
+  --typography-light-font-weight: 300;
+  --typography-light-line-height: 28px;
+  --typography-light-font-style: Light;
+  
+  /* ============================================
+     Spacing
+     ============================================ */
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 80px;
+  
+  /* ============================================
+     Border Radius
+     ============================================ */
+  
+  --border-radius-sm: 8px;
+  --border-radius-md: 10px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  --border-radius-2xl: 30px;
+  --border-radius-3xl: 31px;
+  --border-radius-full: 32px;
+  
+  /* ============================================
+     Component Tokens
+     ============================================ */
+  
+  /* Navbar */
+  --component-navbar-height: 50px;
+  --component-navbar-background-color: rgba(255, 255, 255, 0.2);
+  --component-navbar-border-radius: 16px;
+  --component-navbar-font-size: 8px;
+  --component-navbar-active-color: var(--color-primary);
+  
+  /* Header Panel */
+  --component-header-panel-background-color: rgba(0, 0, 0, 0.5);
+  --component-header-panel-border-radius: 16px;
+  --component-header-panel-height: 172px;
+  --component-header-panel-balance-background-color: #2f2f2f;
+  --component-header-panel-balance-border-radius: 16px;
+  --component-header-panel-wallet-background-color: var(--color-secondary);
+  --component-header-panel-wallet-border-radius: 16px;
+  
+  /* Card */
+  --component-card-background-color: var(--color-surface);
+  --component-card-border-radius: 16px;
+  --component-card-width: 370px;
+  --component-card-accent-color: rgba(238, 68, 159, 0.2);
+  --component-card-button-success: var(--color-success);
+  --component-card-button-error: var(--color-error);
+  --component-card-button-default: var(--color-text-secondary);
+  --component-card-button-primary: var(--color-primary);
+  --component-card-button-border-radius: 16px;
+  --component-card-button-height: 48px;
+  
+  /* Search Bar */
+  --component-search-bar-background-color: rgba(0, 0, 0, 0.4);
+  --component-search-bar-border-color: var(--color-border);
+  --component-search-bar-border-radius: 32px;
+  --component-search-bar-height: 30px;
+  
+  /* Button */
+  --component-button-primary-background-color: var(--color-primary);
+  --component-button-primary-color: #ffffff;
+  --component-button-primary-border-radius: 10px;
+  --component-button-primary-height: 44px;
+  
+  --component-button-secondary-background-color: var(--color-text-secondary);
+  --component-button-secondary-color: #ffffff;
+  --component-button-secondary-border-radius: 16px;
+  --component-button-secondary-height: 48px;
+  
+  --component-button-circle-success: var(--color-success);
+  --component-button-circle-error: var(--color-error);
+  --component-button-circle-border-radius: 31px;
+  --component-button-circle-size: 56px;
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: var(--tg-theme-bg-color, #191818);
+    --color-surface: var(--tg-theme-secondary-bg-color, #262626);
+    --color-text: var(--tg-theme-text-color, #ffffff);
+    --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
+  }
+}
+
+/* Light Theme Support */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-background: var(--tg-theme-bg-color, #ffffff);
+    --color-surface: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    --color-text: var(--tg-theme-text-color, #000000);
+    --color-text-secondary: var(--tg-theme-hint-color, #999999);
+  }
+}
+
+/* Data Theme Attribute Support */
+[data-theme="dark"] {
+  --color-background: var(--tg-theme-bg-color, #191818);
+  --color-surface: var(--tg-theme-secondary-bg-color, #262626);
+  --color-text: var(--tg-theme-text-color, #ffffff);
+  --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
+}
+
+[data-theme="light"] {
+  --color-background: var(--tg-theme-bg-color, #ffffff);
+  --color-surface: var(--tg-theme-secondary-bg-color, #f8f9fa);
+  --color-text: var(--tg-theme-text-color, #000000);
+  --color-text-secondary: var(--tg-theme-hint-color, #999999);
+}

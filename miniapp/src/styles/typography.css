@@ -1,0 +1,129 @@
+/* Typography System - Based on design-tokens.json */
+
+/* ============================================
+   Heading Styles
+   ============================================ */
+
+.text-h1 {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-h1-font-size);
+  font-weight: var(--typography-h1-font-weight);
+  line-height: var(--typography-h1-line-height);
+  margin: 0;
+}
+
+.text-h2 {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-h2-font-size);
+  font-weight: var(--typography-h2-font-weight);
+  line-height: var(--typography-h2-line-height);
+  margin: 0;
+}
+
+.text-h3 {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-h3-font-size);
+  font-weight: var(--typography-h3-font-weight);
+  line-height: var(--typography-h3-line-height);
+  margin: 0;
+}
+
+.text-h4 {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-h4-font-size);
+  font-weight: var(--typography-h4-font-weight);
+  line-height: var(--typography-h4-line-height);
+  margin: 0;
+}
+
+/* ============================================
+   Body Text Styles
+   ============================================ */
+
+.text-body {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-body-font-size);
+  font-weight: var(--typography-body-font-weight);
+  line-height: var(--typography-body-line-height);
+  margin: 0;
+}
+
+.text-bodySmall {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-body-small-font-size);
+  font-weight: var(--typography-body-small-font-weight);
+  line-height: var(--typography-body-small-line-height);
+  margin: 0;
+}
+
+.text-caption {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-caption-font-size);
+  font-weight: var(--typography-caption-font-weight);
+  line-height: var(--typography-caption-line-height);
+  margin: 0;
+}
+
+.text-label {
+  font-family: var(--font-family-base);
+  font-size: var(--typography-body-small-font-size);
+  font-weight: 600;
+  line-height: var(--typography-body-small-line-height);
+  margin: 0;
+}
+
+/* ============================================
+   Font Weight Utilities
+   ============================================ */
+
+.text-bold {
+  font-weight: 700;
+}
+
+.text-semibold {
+  font-weight: 600;
+}
+
+.text-regular {
+  font-weight: 400;
+}
+
+.text-light {
+  font-weight: 300;
+}
+
+/* ============================================
+   Text Color Utilities
+   ============================================ */
+
+.text-primary {
+  color: var(--color-text);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-hint {
+  color: var(--color-text-secondary);
+}
+
+.text-default {
+  color: var(--color-text);
+}
+
+/* ============================================
+   Text Alignment Utilities
+   ============================================ */
+
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}

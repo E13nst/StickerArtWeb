@@ -1,3 +1,7 @@
+/* Design Tokens - Must be imported first */
+@import './styles/tokens.css';
+@import './styles/typography.css';
+
 /* Telegram Mini App Styles */
 @import '@telegram-apps/telegram-ui/dist/styles.css';
 
