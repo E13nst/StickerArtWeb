@@ -1,21 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Box,
-  Typography,
-  Alert,
-  CircularProgress,
-  IconButton,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
+import { CheckCircleIcon } from '@/components/ui/Icons';;
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import { apiClient } from '@/api/client';
 import { DonationPrepareResponse } from '@/types/sticker';
@@ -325,7 +311,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
         }}
       >
         {success ? (
-          <Box 
+          <div 
             sx={{ 
               textAlign: 'center', 
               py: isMobile ? 4 : 5,
@@ -338,7 +324,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <Box
+            <div
               sx={{
                 animation: 'scaleIn 0.4s ease-out',
                 '@keyframes scaleIn': {
@@ -360,7 +346,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
                   filter: 'drop-shadow(0 2px 8px rgba(255, 215, 0, 0.3))'
                 }} 
               />
-            </Box>
+            </div>
             <Typography 
               variant="h6" 
               sx={{ 
@@ -382,7 +368,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
             >
               Ваш донат успешно отправлен!
             </Typography>
-          </Box>
+          </div>
         ) : (
           <>
             {error && (
@@ -425,7 +411,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
             </Typography>
 
             {/* Preset кнопки */}
-            <Box 
+            <div 
               sx={{ 
                 display: 'flex', 
                 gap: 1.5, 
@@ -492,7 +478,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
                   </Button>
                 );
               })}
-            </Box>
+            </div>
 
             {/* Поле ввода суммы */}
             <TextField
@@ -585,7 +571,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
             />
 
             {amount && !error && validateAmount(amount).valid && (
-              <Box
+              <div
                 sx={{
                   mb: 2,
                   p: 2,
@@ -618,7 +604,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
                 >
                   {amount} TON
                 </Typography>
-              </Box>
+              </div>
             )}
           </>
         )}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, IconButton, Chip } from '@mui/material';
-import ShareIcon from '@mui/icons-material/Share';
+;
+import { ShareIcon } from '@/components/ui/Icons';;
 import { UserInfo } from '@/store/useProfileStore';
 import { getUserFirstName, getUserLastName, getUserFullName, getUserTelegramId, getUserUsername, isUserPremium } from '@/utils/userUtils';
 
@@ -36,7 +36,7 @@ export const UserInfoCardModern: React.FC<UserInfoCardModernProps> = ({
     >
       <CardContent sx={{ p: 3 }}>
         {/* Заголовок с именем и кнопкой поделиться */}
-        <Box
+        <div
           sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -87,10 +87,10 @@ export const UserInfoCardModern: React.FC<UserInfoCardModernProps> = ({
               }}
             />
           )}
-        </Box>
+        </div>
 
         {/* Разделитель */}
-        <Box
+        <div
           sx={{
             height: 1,
             backgroundColor: 'var(--tg-theme-border-color, #e0e0e0)',
@@ -99,7 +99,7 @@ export const UserInfoCardModern: React.FC<UserInfoCardModernProps> = ({
         />
 
         {/* Telegram ID и кнопка поделиться */}
-        <Box
+        <div
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -132,12 +132,12 @@ export const UserInfoCardModern: React.FC<UserInfoCardModernProps> = ({
               <ShareIcon fontSize="small" />
             </IconButton>
           )}
-        </Box>
+        </div>
 
         {/* Кнопка кастомизации баннера для premium */}
         {isPremium && onCustomizeBanner && (
-          <Box sx={{ mt: 2 }}>
-            <Box
+          <div sx={{ mt: 2 }}>
+            <div
               onClick={onCustomizeBanner}
               sx={{
                 display: 'flex',
@@ -170,8 +170,8 @@ export const UserInfoCardModern: React.FC<UserInfoCardModernProps> = ({
               >
                 Настроить баннер
               </Typography>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

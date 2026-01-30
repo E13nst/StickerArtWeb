@@ -1,0 +1,35 @@
+.metric-card {
+  height: 100%;
+  padding: var(--spacing-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.metric-card-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.metric-card-icon {
+  font-size: 24px;
+}
+
+.metric-card-value {
+  margin-bottom: var(--spacing-xs);
+}
+
+.metric-card-trend {
+  font-size: 11px;
+  font-weight: 500;
+}

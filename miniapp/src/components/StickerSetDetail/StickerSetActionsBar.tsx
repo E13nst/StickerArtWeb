@@ -1,8 +1,6 @@
 import React from 'react';
-import { Box, IconButton, Typography, Tooltip, Popover } from '@mui/material';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import DownloadIcon from '@mui/icons-material/Download';
-import StarBorderIcon from '@mui/icons-material/StarBorder';
+;
+import { FavoriteIcon, DownloadIcon, StarBorderIcon } from '@/components/ui/Icons';
 
 interface StickerSetActionsBarProps {
   liked: boolean;
@@ -27,7 +25,7 @@ export const StickerSetActionsBar: React.FC<StickerSetActionsBarProps> = ({
 }) => {
   return (
     <>
-      <Box 
+      <div 
         onClick={(e) => e.stopPropagation()}
         sx={{ 
           display: 'flex', 
@@ -145,7 +143,7 @@ export const StickerSetActionsBar: React.FC<StickerSetActionsBarProps> = ({
         >
           <DownloadIcon sx={{ fontSize: '32px' }} />
         </IconButton>
-      </Box>
+      </div>
 
       <Popover
         open={Boolean(starsInfoAnchor)}

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Box } from '@mui/material';
+;
 import { SearchBar } from '@/components/SearchBar';
 import { SortButton } from '@/components/SortButton';
 
@@ -116,9 +116,9 @@ export const useStickerFeed = (config: StickerFeedConfig): StickerFeedControls =
     }
 
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
+      <div sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
         {!disableSearch && (
-          <Box sx={{ flex: 1 }}>
+          <div sx={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}
@@ -126,7 +126,7 @@ export const useStickerFeed = (config: StickerFeedConfig): StickerFeedControls =
               placeholder={searchPlaceholder}
               disabled={isLoading}
             />
-          </Box>
+          </div>
         )}
         {!disableSort && (
           <SortButton
@@ -135,7 +135,7 @@ export const useStickerFeed = (config: StickerFeedConfig): StickerFeedControls =
             disabled={isLoading || disableSortCondition || !!searchTerm}
           />
         )}
-      </Box>
+      </div>
     );
   }, [
     disableSearch,

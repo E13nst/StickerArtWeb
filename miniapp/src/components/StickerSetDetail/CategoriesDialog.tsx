@@ -1,18 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Typography,
-  Box,
-  Alert,
-  Button,
-  CircularProgress,
-  SvgIcon
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
 import { CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';
@@ -207,12 +195,12 @@ export const CategoriesDialog: React.FC<CategoriesDialogProps> = ({
         </Typography>
         
         {categoriesLoading && availableCategories.length === 0 ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <CircularProgress size={18} sx={{ color: 'white' }} />
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
               Загрузка категорий…
             </Typography>
-          </Box>
+          </div>
         ) : categoriesLoadError ? (
           <Alert 
             severity="error" 
@@ -248,11 +236,11 @@ export const CategoriesDialog: React.FC<CategoriesDialogProps> = ({
             </Button>
           </Alert>
         ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mb: 2 }}>
+          <div sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mb: 2 }}>
             {availableCategories.map((category) => {
               const isSelected = selectedCategoryKeys.includes(category.key);
               return (
-                <Box
+                <div
                   key={category.key}
                   onClick={() => handleToggleCategory(category.key)}
                   sx={{
@@ -285,10 +273,10 @@ export const CategoriesDialog: React.FC<CategoriesDialogProps> = ({
                   }}
                 >
                   {category.name}
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
 
         <Typography 

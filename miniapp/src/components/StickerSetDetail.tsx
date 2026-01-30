@@ -1,17 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  Tooltip,
-  SvgIcon
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import EditIcon from '@mui/icons-material/Edit';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
+import { EditIcon } from '@/components/ui/Icons';;
 import { StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
@@ -23,14 +13,12 @@ import { Link } from 'react-router-dom';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useStickerStore } from '@/store/useStickerStore';
 import { StickerSetActions } from './StickerSetActions';
-import type { SvgIconProps } from '@mui/material/SvgIcon';
 // Новые модули
 import { useStickerSetData } from '@/hooks/useStickerSetData';
 import { useStickerNavigation } from '@/hooks/useStickerNavigation';
 import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetActionsBar, StickerSetDetailEdit } from './StickerSetDetail/index';
 import { StickerSetEditOperations } from '@/types/sticker';
 import { DonateModal } from './DonateModal';
-
 
 type VisibilityState = 'public' | 'private';
 
@@ -102,7 +90,6 @@ interface LazyThumbnailProps {
   onClick: (idx: number) => void;
 }
 
-
 const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
   sticker,
   index,
@@ -112,7 +99,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
   const isActive = index === activeIndex;
 
   return (
-    <Box
+    <div
       data-thumbnail-index={index}
       data-active={isActive}
       onClick={() => onClick(index)}
@@ -144,7 +131,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
             size={72}
           />
           {sticker.emoji && (
-            <Box sx={{
+            <div sx={{
               position: 'absolute',
               bottom: '3px',
               left: '3px',
@@ -153,9 +140,9 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
               textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
             }}>
               {sticker.emoji}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 });
 
@@ -545,7 +532,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     });
   }
 
-
   const handleOpenCategoriesDialog = useCallback(() => {
     setIsCategoriesDialogOpen(true);
   }, []);
@@ -639,7 +625,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       // Уведомляем родительский компонент
       onStickerSetUpdated?.(mergedUpdate);
   }, [stickerSet.id, isModal, onBack, fullStickerSet, stickerSet, onStickerSetUpdated]);
-
 
   const handleVisibilityInfoClose = useCallback(() => {
     if (visibilityInfoTimeoutRef.current) {
@@ -784,7 +769,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   // Индикатор загрузки показываем только если данных совсем нет
   if (loading && !fullStickerSet) {
     return (
-      <Box sx={{ 
+      <div sx={{ 
         height: isModal ? 'auto' : '100vh', 
         display: 'flex', 
         alignItems: 'center', 
@@ -800,14 +785,14 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         >
           Загрузка стикерсета...
         </Typography>
-      </Box>
+      </div>
     );
   }
 
   // Показываем ошибку если не удалось загрузить
   if (error && !fullStickerSet) {
     return (
-      <Box sx={{ 
+      <div sx={{ 
         height: isModal ? 'auto' : '100vh', 
         display: 'flex', 
         flexDirection: 'column', 
@@ -835,7 +820,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         >
           <CloseIcon />
         </IconButton>
-      </Box>
+      </div>
     );
   }
 
@@ -957,7 +942,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   // Условный рендеринг: edit-режим или view-режим
   if (mode === 'edit' && isAuthor) {
     return (
-      <Box 
+      <div 
         ref={modalContentRef}
         data-modal-content
         sx={{
@@ -1013,13 +998,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           onCancel={handleEditCancel}
           onDone={handleEditDone}
         />
-      </Box>
+      </div>
     );
   }
 
   // View-режим (обычный режим просмотра)
   return (
-    <Box 
+    <div 
       ref={modalContentRef}
       data-modal-content
       onClick={handleOutsidePreviewClick}
@@ -1073,7 +1058,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }}>
       {/* Grab handle для свайпа */}
       {isModal && (
-        <Box
+        <div
           sx={{
             width: '34px',
             height: '3px',
@@ -1088,7 +1073,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       )}
       
       {/* Название и автор вверху */}
-      <Box sx={{ 
+      <div sx={{ 
         width: '92vw',
         maxWidth: '450px',
         margin: '0 auto',
@@ -1139,10 +1124,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             {authorUsername}
           </Typography>
         )}
-      </Box>
+      </div>
       {/* Основной блок: превью слева, кнопки справа */}
       {stickerCount > 0 && (
-        <Box sx={{ 
+        <div sx={{ 
           width: '92vw',
           maxWidth: '450px',
           margin: '0 auto',
@@ -1186,18 +1171,18 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             onStarsInfoOpen={(anchor) => setStarsInfoAnchor(anchor)}
             onStarsInfoClose={() => setStarsInfoAnchor(null)}
           />
-        </Box>
+        </div>
       )}
 
       {/* Нижняя горизонтальная лента */}
-      <Box sx={{ 
+      <div sx={{ 
         width: '92vw',
         maxWidth: '450px',
         margin: '0 auto',
         display: 'flex',
         alignItems: 'flex-start'
       }}>
-        <Box
+        <div
           ref={scrollerRef}
           onClick={(e) => e.stopPropagation()}
           sx={{
@@ -1217,7 +1202,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           }}
         >
           {stickers.length === 0 ? (
-            <Box sx={{ 
+            <div sx={{ 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
@@ -1232,7 +1217,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               >
                 Нет стикеров для отображения
               </Typography>
-            </Box>
+            </div>
           ) : (
             stickers.map((s, idx) => {
               return (
@@ -1246,11 +1231,11 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               );
             })
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Информация о наборе: полупрозрачная карточка как превью стикеров */}
-      <Box 
+      <div 
         className="sticker-detail-info-card"
         onClick={(e) => e.stopPropagation()}
         sx={{ 
@@ -1262,7 +1247,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         }}
       >
           {/* Только категории и кнопки управления */}
-          <Box
+          <div
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -1282,7 +1267,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               }
             }}
           >
-            <Box
+            <div
               sx={{
                 flexGrow: 1,
                 flexShrink: 1,
@@ -1306,7 +1291,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
             >
               {displayedCategories.length > 0 ? (
                 displayedCategories.map((category) => (
-                  <Box
+                  <div
                     key={category.id}
                     sx={{
                       flexShrink: 0,
@@ -1347,7 +1332,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                     }}
                   >
                     {category.name}
-                  </Box>
+                  </div>
                 ))
               ) : (
                 <Typography 
@@ -1363,8 +1348,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   Категории не назначены
                 </Typography>
               )}
-            </Box>
-            <Box
+            </div>
+            <div
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1462,10 +1447,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                   <EditIcon sx={{ fontSize: '18px' }} />
                 </IconButton>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
           {/* Минималистичная горизонтальная черта под категориями */}
-          <Box
+          <div
             sx={{
               width: '100%',
               height: '1px',
@@ -1492,7 +1477,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
 
           {/* Кнопка доната */}
           {effectiveStickerSet.availableActions?.includes('DONATE') && (
-            <Box
+            <div
               sx={{
                 mt: 2,
                 mx: '8px',
@@ -1520,12 +1505,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               >
                 Поддержать автора
               </Button>
-            </Box>
+            </div>
           )}
 
           {/* Кнопки действий внизу модального окна */}
           {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
-            <Box
+            <div
               sx={{
                 mt: 2,
                 px: '8px',
@@ -1541,9 +1526,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
                 availableActions={effectiveStickerSet.availableActions}
                 onActionComplete={handleActionComplete}
               />
-            </Box>
+            </div>
           )}
-      </Box>
+      </div>
 
       <CategoriesDialog
         open={isCategoriesDialogOpen}
@@ -1570,7 +1555,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         stickerSetId={effectiveStickerSet?.id || stickerSet.id}
         authorName={authorUsername || undefined}
       />
-    </Box>
+    </div>
   );
 };
 

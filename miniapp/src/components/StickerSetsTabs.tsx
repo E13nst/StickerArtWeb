@@ -1,11 +1,5 @@
 import React from 'react';
-import { 
-  Box, 
-  Tabs, 
-  Tab, 
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
+;
 
 interface StickerSetsTabsProps {
   activeTab: number;
@@ -43,7 +37,7 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
   const dividerBottom = '23.6%';
 
   return (
-    <Box sx={{ 
+    <div sx={{ 
       width: '100%',
       mb: 0, // Убираем отступ снизу
       mt: 0, // Убираем отступ сверху
@@ -116,6 +110,6 @@ export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
           disabled={disabled}
         />
       </Tabs>
-    </Box>
+    </div>
   );
 };

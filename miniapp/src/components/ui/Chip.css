@@ -1,0 +1,45 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.chip-small {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 0.75rem;
+}
+
+.chip-medium {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+}
+
+.chip-filled {
+  background-color: var(--tg-theme-button-color, #3390ec);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  border: none;
+}
+
+.chip-outlined {
+  background-color: transparent;
+  color: var(--tg-theme-text-color, #000000);
+  border: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.23));
+}
+
+.chip-clickable {
+  cursor: pointer;
+}
+
+.chip-clickable:hover {
+  opacity: 0.9;
+}
+
+.chip-clickable:active {
+  transform: scale(0.98);
+}

@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Box, Typography, IconButton, CircularProgress } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
 import { useNavigate } from 'react-router-dom';
 import { ModalBackdrop } from './ModalBackdrop';
 import { LeaderboardAuthor } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
-import { Avatar, Chip } from '@mui/material';
+;
 
 interface AuthorsLeaderboardModalProps {
   open: boolean;
@@ -33,7 +33,7 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
   };
 
   return (
-    <Box
+    <div
       onClick={handleClick}
       sx={{
         display: 'flex',
@@ -53,7 +53,7 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
       }}
     >
       {/* Номер места */}
-      <Box
+      <div
         sx={{
           minWidth: 24,
           textAlign: 'center',
@@ -65,10 +65,10 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
         }}
       >
         {index + 1}
-      </Box>
+      </div>
 
       {/* Аватар */}
-      <Box sx={{ position: 'relative' }}>
+      <div sx={{ position: 'relative' }}>
         <Avatar
           src={avatarBlobUrl || undefined}
           sx={{
@@ -83,7 +83,7 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
         </Avatar>
         {/* Бейдж места для топ-3 */}
         {index < 3 && (
-          <Box
+          <div
             sx={{
               position: 'absolute',
               top: -3,
@@ -102,12 +102,12 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
             }}
           >
             {index + 1}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Информация об авторе */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="body2"
           sx={{
@@ -121,7 +121,7 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
         >
           {displayName}
         </Typography>
-      </Box>
+      </div>
 
       {/* Количество публичных стикерсетов */}
       <Chip
@@ -140,7 +140,7 @@ const LeaderboardAuthorItem: React.FC<LeaderboardAuthorItemProps> = ({ author, i
           minWidth: '40px'
         }}
       />
-    </Box>
+    </div>
   );
 };
 
@@ -243,7 +243,7 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
 
   return (
     <ModalBackdrop open={open} onClose={onClose}>
-      <Box
+      <div
         ref={modalContentRef}
         data-modal-content
         onClick={handleOutsideClick}
@@ -279,7 +279,7 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
         }}
       >
         {/* Grab handle для свайпа */}
-        <Box
+        <div
           data-modal-header
           sx={{
             width: '34px',
@@ -295,7 +295,7 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
         />
 
         {/* Компактный заголовок */}
-        <Box
+        <div
           data-modal-header
           sx={{
             display: 'flex',
@@ -327,10 +327,10 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
           >
             <CloseIcon fontSize="small" />
           </IconButton>
-        </Box>
+        </div>
 
         {/* Скроллируемый список */}
-        <Box
+        <div
           ref={scrollContainerRef}
           onClick={(e) => e.stopPropagation()}
           sx={{
@@ -344,7 +344,7 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
           }}
         >
           {loading ? (
-            <Box
+            <div
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -353,9 +353,9 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
               }}
             >
               <CircularProgress size={32} />
-            </Box>
+            </div>
           ) : error ? (
-            <Box
+            <div
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -374,9 +374,9 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
               >
                 {error}
               </Typography>
-            </Box>
+            </div>
           ) : authors.length === 0 ? (
-            <Box
+            <div
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -393,16 +393,16 @@ export const AuthorsLeaderboardModal: React.FC<AuthorsLeaderboardModalProps> = (
               >
                 Нет данных
               </Typography>
-            </Box>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
               {authors.map((author, index) => (
                 <LeaderboardAuthorItem key={author.authorId} author={author} index={index} />
               ))}
-            </Box>
+            </div>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </ModalBackdrop>
   );
 };

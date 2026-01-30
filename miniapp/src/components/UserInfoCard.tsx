@@ -1,16 +1,6 @@
+import { PersonIcon } from '@/components/ui/Icons';
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Box, 
-  Avatar,
-  Chip,
-  Button,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
+;
 import { UserInfo } from '@/store/useProfileStore';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { getUserFirstName, getUserLastName, getUserFullName, getUserTelegramId } from '@/utils/userUtils';
@@ -41,7 +31,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
         boxShadow: '0 2px 8px var(--tg-theme-shadow-color)'
       }}>
         <CardContent sx={{ p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <div sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ 
               width: 'calc(100% * 0.382)', // Гармоническая пропорция 0.382
               height: 'calc(100% * 0.382)',
@@ -51,12 +41,12 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
             }}>
               <PersonIcon />
             </Avatar>
-            <Box sx={{ flexGrow: 1 }}>
+            <div sx={{ flexGrow: 1 }}>
               <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
                 Загрузка информации о пользователе...
               </Typography>
-            </Box>
-          </Box>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -90,7 +80,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
     >
       <CardContent sx={{ p: isSmallScreen ? 2 : 3 }}>
         {/* Основная информация */}
-        <Box sx={{ 
+        <div sx={{ 
           display: 'flex', 
           alignItems: isSmallScreen ? 'flex-start' : 'center',
           flexDirection: isSmallScreen ? 'column' : 'row',
@@ -121,7 +111,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
           </Avatar>
 
           {/* Информация о пользователе */}
-          <Box sx={{ 
+          <div sx={{ 
             flexGrow: 1,
             textAlign: isSmallScreen ? 'center' : 'left'
           }}>
@@ -152,14 +142,14 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
                 backgroundColor: 'transparent'
               }}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
 
 
 
 
         {/* Telegram ID */}
-        <Box sx={{ 
+        <div sx={{ 
           mt: 2, 
           pt: 2, 
           borderTop: '1px solid',
@@ -176,7 +166,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
           >
             Telegram ID: {telegramId}
           </Typography>
-        </Box>
+        </div>
       </CardContent>
     </Card>
   );

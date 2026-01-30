@@ -1,0 +1,26 @@
+.lazy-image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.lazy-image-placeholder,
+.lazy-image-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.lazy-image-emoji {
+  font-size: 24px;
+  color: var(--color-text-secondary);
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Box, Avatar } from '@mui/material';
+;
 import { UserInfo } from '@/store/useProfileStore';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
@@ -85,7 +85,7 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
   const avatarHeight = avatarSize;
 
   return (
-    <Box
+    <div
       ref={containerRef}
       onClick={() => onBannerClick?.(current)}
       sx={{
@@ -120,7 +120,7 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
         >
           {/* Опциональное изображение поверх градиента */}
           {current.imageUrl && (
-            <Box
+            <div
               component="img"
               src={current.imageUrl}
               alt="Banner"
@@ -138,7 +138,7 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
 
           {/* Текст баннера */}
           {current.text && (
-            <Box
+            <div
               component="p"
               sx={{
                 position: 'relative',
@@ -153,14 +153,14 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
               }}
             >
               {current.text}
-            </Box>
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
 
       {/* Индикаторы слайдов */}
       {activeBanners.length > 1 && (
-        <Box
+        <div
           sx={{
             position: 'absolute',
             bottom: 16,
@@ -172,7 +172,7 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
           }}
         >
           {activeBanners.map((_, i) => (
-            <Box
+            <div
               key={i}
               onClick={(e) => {
                 e.stopPropagation();
@@ -192,14 +192,14 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
               }}
             />
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Аватар - абсолютное позиционирование снизу */}
       {userInfo && (
         <TxLitAvatarOverlay userInfo={userInfo} avatarSize={avatarSize} />
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -225,7 +225,7 @@ const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
   const avatarHeight = avatarSize;
 
   return (
-    <Box
+    <div
       sx={{
         position: 'absolute',
         bottom: -(avatarHeight * 0.5),
@@ -261,7 +261,7 @@ const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
       >
         {initials}
       </Avatar>
-    </Box>
+    </div>
   );
 };
 

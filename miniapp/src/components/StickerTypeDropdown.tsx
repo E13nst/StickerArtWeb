@@ -1,7 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box } from '@mui/material';
-import CheckIcon from '@mui/icons-material/Check';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface StickerTypeDropdownProps {
@@ -16,6 +13,41 @@ const STICKER_TYPES = [
   { id: 'video', label: 'Видео', emoji: '🎬' },
   { id: 'official', label: 'Официальные', emoji: '✓' },
 ];
+
+// SVG Icons
+const ArrowDownIcon = ({ isOpen }: { isOpen: boolean }) => (
+  <svg 
+    width="19" 
+    height="19" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{
+      transition: 'transform 0.3s',
+      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+    }}
+  >
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg 
+    width="11" 
+    height="11" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="3" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+);
 
 export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
   selectedTypes,
@@ -122,19 +154,13 @@ export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
         }}
       >
         <span>{getSelectedLabel()}</span>
-        <KeyboardArrowDownIcon 
-          sx={{ 
-            fontSize: '1.2rem',
-            transition: 'transform 0.3s',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          }} 
-        />
+        <ArrowDownIcon isOpen={isOpen} />
       </button>
 
       {/* Dropdown menu */}
       {isOpen && (
-        <Box
-          sx={{
+        <div
+          style={{
             position: 'absolute',
             top: 'calc(100% + 0.25rem)',
             left: 0,
@@ -187,16 +213,10 @@ export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
                     justifyContent: 'center',
                     transition: 'all 0.2s',
                     flexShrink: 0,
+                    color: textColorResolved,
                   }}
                 >
-                  {isSelected && (
-                    <CheckIcon 
-                      sx={{ 
-                        fontSize: '0.7rem', 
-                        color: textColorResolved,
-                      }} 
-                    />
-                  )}
+                  {isSelected && <CheckIcon />}
                 </div>
 
                 {/* Emoji and Label */}
@@ -212,7 +232,7 @@ export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
               </div>
             );
           })}
-        </Box>
+        </div>
       )}
 
       <style>{`
@@ -230,4 +250,3 @@ export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
     </div>
   );
 };
-

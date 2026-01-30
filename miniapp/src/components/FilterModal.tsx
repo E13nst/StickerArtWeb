@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Drawer, Typography, Button, Divider } from '@mui/material';
 import { useTelegram } from '../hooks/useTelegram';
-import CloseIcon from '@mui/icons-material/Close';
+import { BottomSheet } from './ui/BottomSheet';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import './FilterModal.css';
 
 interface FilterModalProps {
   open: boolean;
@@ -41,21 +43,12 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
 }) => {
   const { tg } = useTelegram();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
 
   const [filters, setFilters] = useState<FilterState>({
     stickerType: [],
     difficulty: null,
     dateAdded: 'all',
   });
-
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.28)' : 'rgba(88, 138, 255, 0.20)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.42)' : 'rgba(78, 132, 255, 0.20)';
-  const glassHover = isLight ? 'rgba(148, 198, 255, 0.38)' : 'rgba(98, 150, 255, 0.34)';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.52)' : 'rgba(118, 168, 255, 0.24)';
-  const bgColor = isLight ? '#F8FBFF' : '#12161D';
 
   const handleToggleStickerType = (typeId: string) => {
     setFilters((prev) => ({
@@ -101,230 +94,96 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   };
 
   return (
-    <Drawer
-      anchor="bottom"
-      open={open}
+    <BottomSheet
+      isOpen={open}
       onClose={handleClose}
-      sx={{
-        '& .MuiDrawer-paper': {
-          backgroundColor: bgColor,
-          borderTopLeftRadius: '1rem',
-          borderTopRightRadius: '1rem',
-          maxHeight: '80vh',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        },
-      }}
+      title="Фильтры"
+      showCloseButton={true}
     >
-      <Box sx={{ p: '1rem' }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: '1rem',
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              color: textColorResolved,
-              fontWeight: 600,
-              fontSize: '1.125rem',
-            }}
-          >
-            Фильтры
-          </Typography>
-          <button
-            onClick={handleClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: textColorResolved,
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0.5rem',
-            }}
-            aria-label="Закрыть"
-          >
-            <CloseIcon />
-          </button>
-        </Box>
-
-        <Divider sx={{ mb: '1rem', borderColor: borderColor }} />
-
+      <div className="filter-modal-content">
         {/* Sticker Type Section */}
-        <Box sx={{ mb: '1.5rem' }}>
-          <Typography
-            sx={{
-              color: textColorResolved,
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              mb: '0.618rem',
-              opacity: 0.8,
-            }}
-          >
+        <div className="filter-section">
+          <Text variant="bodySmall" weight="semibold" color="secondary" className="filter-section-title">
             Тип стикеров
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          </Text>
+          <div className="filter-options">
             {STICKER_TYPES.map((type) => {
               const isSelected = filters.stickerType.includes(type.id);
               return (
                 <button
                   key={type.id}
                   onClick={() => handleToggleStickerType(type.id)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.75rem',
-                    background: isSelected ? glassHover : glassBase,
-                    backgroundColor: isSelected ? glassHover : glassSolid,
-                    color: textColorResolved,
-                    border: `1px solid ${borderColor}`,
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`filter-option ${isSelected ? 'filter-option--selected' : ''}`}
                 >
                   {type.label}
                 </button>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Difficulty Section */}
-        <Box sx={{ mb: '1.5rem' }}>
-          <Typography
-            sx={{
-              color: textColorResolved,
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              mb: '0.618rem',
-              opacity: 0.8,
-            }}
-          >
+        <div className="filter-section">
+          <Text variant="bodySmall" weight="semibold" color="secondary" className="filter-section-title">
             Сложность
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          </Text>
+          <div className="filter-options">
             {DIFFICULTY_LEVELS.map((level) => {
               const isSelected = filters.difficulty === level.id;
               return (
                 <button
                   key={level.id}
                   onClick={() => handleSelectDifficulty(level.id)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.75rem',
-                    background: isSelected ? glassHover : glassBase,
-                    backgroundColor: isSelected ? glassHover : glassSolid,
-                    color: textColorResolved,
-                    border: `1px solid ${borderColor}`,
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`filter-option ${isSelected ? 'filter-option--selected' : ''}`}
                 >
                   {level.label}
                 </button>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Date Added Section */}
-        <Box sx={{ mb: '1.5rem' }}>
-          <Typography
-            sx={{
-              color: textColorResolved,
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              mb: '0.618rem',
-              opacity: 0.8,
-            }}
-          >
+        <div className="filter-section">
+          <Text variant="bodySmall" weight="semibold" color="secondary" className="filter-section-title">
             Дата добавления
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          </Text>
+          <div className="filter-options">
             {DATE_RANGES.map((range) => {
               const isSelected = filters.dateAdded === range.id;
               return (
                 <button
                   key={range.id}
                   onClick={() => handleSelectDateRange(range.id)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.75rem',
-                    background: isSelected ? glassHover : glassBase,
-                    backgroundColor: isSelected ? glassHover : glassSolid,
-                    color: textColorResolved,
-                    border: `1px solid ${borderColor}`,
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`filter-option ${isSelected ? 'filter-option--selected' : ''}`}
                 >
                   {range.label}
                 </button>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        <Divider sx={{ mb: '1rem', borderColor: borderColor }} />
+        <div className="filter-divider" />
 
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: '0.618rem' }}>
+        <div className="filter-actions">
           <Button
-            fullWidth
-            variant="outlined"
+            variant="outline"
             onClick={handleReset}
-            sx={{
-              borderRadius: '0.75rem',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              padding: '0.75rem',
-              color: textColorResolved,
-              borderColor: borderColor,
-              '&:hover': {
-                borderColor: borderColor,
-                backgroundColor: glassBase,
-              },
-            }}
+            className="filter-action-button"
           >
             Сбросить
           </Button>
           <Button
-            fullWidth
-            variant="contained"
+            variant="primary"
             onClick={handleApply}
-            sx={{
-              borderRadius: '0.75rem',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              padding: '0.75rem',
-              background: glassHover,
-              backgroundColor: glassHover,
-              color: textColorResolved,
-              boxShadow: 'none',
-              '&:hover': {
-                background: glassHover,
-                backgroundColor: glassHover,
-                opacity: 0.9,
-                boxShadow: 'none',
-              },
-            }}
+            className="filter-action-button"
           >
             Применить
           </Button>
-        </Box>
-      </Box>
-    </Drawer>
+        </div>
+      </div>
+    </BottomSheet>
   );
 };
-

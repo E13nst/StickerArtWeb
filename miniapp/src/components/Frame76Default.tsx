@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import './Frame76Default.css';
 
 export interface Frame76TaskProgress {
   title: string;
@@ -18,92 +18,46 @@ interface Frame76DefaultProps {
  */
 export const Frame76Default: React.FC<Frame76DefaultProps> = ({ tasks }) => {
   return (
-    <Box
+    <div
       data-figma-component="Frame 76 Default"
       data-react-component="Frame76Default"
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '12px 16px',
-        marginBottom: '16px'
-      }}
+      className="frame-76-container"
     >
       {tasks.map((task, index) => {
         const progress = task.total > 0 ? (task.current / task.total) * 100 : 0;
         const isCompleted = task.completed || task.current >= task.total;
 
         return (
-          <Box
-            key={index}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px'
-            }}
-          >
-            <Typography
-              sx={{
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 700,
-                fontFamily: 'SF Pro Rounded, -apple-system, BlinkMacSystemFont, sans-serif',
-                lineHeight: '22px'
-              }}
-            >
-              {task.title}
-            </Typography>
+          <div key={index} className="task-item">
+            <p className="task-title">{task.title}</p>
 
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                height: '6px',
-                borderRadius: '6px',
-                backgroundColor: isCompleted ? '#ee449f' : 'rgba(255, 255, 255, 1)',
-                overflow: 'hidden'
+            <div 
+              className="progress-bar-container"
+              style={{
+                backgroundColor: isCompleted ? '#ee449f' : 'rgba(255, 255, 255, 1)'
               }}
             >
               {!isCompleted && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    height: '100%',
-                    width: `${progress}%`,
-                    backgroundColor: '#ee449f',
-                    borderRadius: '6px'
-                  }}
+                <div
+                  className="progress-bar-fill"
+                  style={{ width: `${progress}%` }}
                 />
               )}
 
-              <Box
-                sx={{
-                  position: 'absolute',
-                  right: 0,
-                  top: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
-                  paddingX: '4px'
-                }}
-              >
-                <Typography
-                  sx={{
-                    color: isCompleted ? '#ee449f' : '#ee449f',
-                    fontSize: '8px',
-                    fontWeight: 700,
-                    fontFamily: 'SF Pro Rounded, -apple-system, BlinkMacSystemFont, sans-serif',
-                    lineHeight: '6px'
+              <div className="progress-bar-label">
+                <span
+                  className="progress-text"
+                  style={{
+                    color: isCompleted ? '#ee449f' : '#ee449f'
                   }}
                 >
                   {task.current}/{task.total}
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
+                </span>
+              </div>
+            </div>
+          </div>
         );
       })}
-    </Box>
+    </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Box } from '@mui/material';
 import { useTelegram } from '@/hooks/useTelegram';
 import { clearNonGalleryAnimations } from '@/utils/imageLoader';
+import './ModalBackdrop.css';
 
 interface ModalBackdropProps {
   open: boolean;
@@ -69,81 +69,22 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
   };
 
   return (
-    <Box
+    <div
       onClick={handleBackdropClick}
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        // Modal backdrop: must be above all UI controls, header and content
-        zIndex: 'var(--z-modal, 1000)',
-        backgroundColor: getBackdropColor(),
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        animation: open 
-          ? 'backdropFadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1)' 
-          : 'backdropFadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        willChange: 'opacity, backdrop-filter',
-        transform: 'translateZ(0)', // Принудительное использование GPU
-        '@keyframes backdropFadeIn': {
-          '0%': {
-            opacity: 0,
-            backdropFilter: 'blur(0px)',
-            WebkitBackdropFilter: 'blur(0px)',
-          },
-          '100%': {
-            opacity: 1,
-            backdropFilter: 'blur(15px)',
-            WebkitBackdropFilter: 'blur(15px)',
-          },
-        },
-        '@keyframes backdropFadeOut': {
-          '0%': {
-            opacity: 1,
-            backdropFilter: 'blur(15px)',
-            WebkitBackdropFilter: 'blur(15px)',
-          },
-          '100%': {
-            opacity: 0,
-            backdropFilter: 'blur(0px)',
-            WebkitBackdropFilter: 'blur(0px)',
-          },
-        },
-        // Адаптивность для разных размеров экрана
-        '@media (max-width: 480px)': {
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-        },
-        // Поддержка для устройств без backdrop-filter
-        '@supports not (backdrop-filter: blur(15px))': {
-          backgroundColor: themeParams?.colorScheme === 'dark' 
-            ? 'rgba(0, 0, 0, 0.6)' 
-            : 'rgba(0, 0, 0, 0.5)',
-        },
+      className={`modal-backdrop ${open ? 'modal-backdrop--open' : ''}`}
+      style={{
+        backgroundColor: getBackdropColor()
       }}
     >
-      <Box
+      <div
+        className="modal-backdrop-content"
         onTouchMove={(e) => {
           // Предотвращаем сворачивание Mini App при свайпе внутри модального окна
-          // События touchmove внутри модального окна не должны сворачивать приложение
           e.stopPropagation();
-        }}
-        sx={{
-          touchAction: 'pan-y', // Разрешаем только вертикальный скролл внутри контента
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
         }}
       >
         {children}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

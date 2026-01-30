@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Lottie from 'lottie-react';
 import type { LottieRefCurrentProps } from 'lottie-react';
-import { CircularProgress } from '@mui/material';
 import { animationCache, imageLoader, LoadPriority, getCachedAnimation } from '../utils/imageLoader';
 
 interface AnimatedStickerProps {
@@ -249,7 +248,14 @@ export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
         }}
       >
         {hidePlaceholder ? null : (
-          <CircularProgress size={40} />
+          <div style={{
+            width: 40,
+            height: 40,
+            border: '3px solid rgba(0, 0, 0, 0.1)',
+            borderTop: '3px solid var(--tg-theme-button-color, #3390ec)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }} />
         )}
       </div>
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+;
 
 interface Category {
   name: string;
@@ -13,7 +13,7 @@ interface TopCategoriesProps {
 
 export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
   return (
-    <Box sx={{ mt: 4 }}>
+    <div sx={{ mt: 4 }}>
       <Typography
         variant="h6"
         fontWeight="bold"
@@ -25,7 +25,7 @@ export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
       >
         ТОП-8 КАТЕГОРИЙ
       </Typography>
-      <Box
+      <div
         sx={{
           display: 'flex',
           overflowX: 'auto',
@@ -41,7 +41,7 @@ export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
         }}
       >
         {categories.map((category) => (
-          <Box
+          <div
             key={category.name}
             role="button"
             tabIndex={0}
@@ -75,10 +75,10 @@ export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
             }}
           >
             {category.name} ({category.count})
-          </Box>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

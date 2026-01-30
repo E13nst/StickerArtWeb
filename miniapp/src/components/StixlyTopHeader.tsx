@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "../api/client";
-import CollectionsIcon from "@mui/icons-material/Collections";
-import FavoriteIcon from "@mui/icons-material/Favorite";
+import { FavoriteIcon, CollectionsIcon } from '@/components/ui/Icons';
 
 // Build asset path respecting Vite base (/miniapp/)
 const BASE = (import.meta as any).env?.BASE_URL || "/miniapp/";

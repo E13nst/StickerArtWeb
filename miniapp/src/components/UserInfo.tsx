@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box } from '@mui/material';
+;
 import { TelegramUser } from '@/types/telegram';
 
 interface UserInfoProps {
@@ -43,7 +43,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
-        <Box textAlign="center">
+        <div textAlign="center">
           <Typography 
             variant="h6" 
             component="p" 
@@ -67,7 +67,7 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
               Username: <strong>@{user.username}</strong>
             </Typography>
           )}
-        </Box>
+        </div>
       </CardContent>
     </Card>
   );

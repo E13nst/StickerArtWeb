@@ -4,8 +4,8 @@
  */
 
 import React, { memo } from 'react';
-import { Box, Typography, Chip } from '@mui/material';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import { AccountBalanceWalletIcon } from '@/components/ui/Icons';
+;
 import { FloatingAvatar } from './FloatingAvatar';
 import { isUserPremium } from '@/utils/userUtils';
 
@@ -39,7 +39,7 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
   const premium = isPremium ?? (role ? isUserPremium(role) : false);
 
   return (
-    <Box
+    <div
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -58,7 +58,7 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
       />
 
       {/* Имя пользователя */}
-      <Box sx={{ textAlign: 'center' }}>
+      <div sx={{ textAlign: 'center' }}>
         <Typography
           variant="h5"
           sx={{
@@ -92,10 +92,10 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
             @{username}
           </Typography>
         )}
-      </Box>
+      </div>
 
       {/* Статистика */}
-      <Box
+      <div
         sx={{
           display: 'flex',
           gap: 2,
@@ -131,8 +131,8 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
             fontWeight: 500
           }}
         />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

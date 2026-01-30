@@ -1,0 +1,22 @@
+.telegram-theme-toggle {
+  padding: 6px 12px;
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+  border: 1px solid var(--tg-theme-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: none;
+}
+
+.telegram-theme-toggle:hover {
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  border-color: var(--tg-theme-button-color);
+}
+
+.telegram-theme-toggle:active {
+  transform: scale(0.98);
+}

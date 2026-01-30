@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  TextField,
-  Typography
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
 import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
 import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
@@ -506,16 +496,16 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             }
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <span>{linkError}</span>
             {linkErrorDetails.length > 0 && (
-              <Box component="ul" sx={{ pl: 3, m: 0 }}>
+              <div component="ul" sx={{ pl: 3, m: 0 }}>
                 {linkErrorDetails.map((msg, index) => (
                   <li key={index}>{msg}</li>
                 ))}
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
         </Alert>
       )}
 
@@ -545,10 +535,10 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         }}
       >
         {isSubmittingLink ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <div sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             <CircularProgress size={16} sx={{ color: 'var(--tg-theme-button-text-color, #ffffff)' }} />
             <span>Добавляем</span>
-          </Box>
+          </div>
         ) : (
           'Добавить (+10 ART)'
         )}
@@ -559,28 +549,28 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const renderPreviewStrip = () => {
     if (isPreviewLoading) {
       return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: 'center', py: 4 }}>
+        <div sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={28} sx={{ color: 'var(--tg-theme-hint-color)' }} />
           <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
             Загружаем данные из Telegram…
           </Typography>
-        </Box>
+        </div>
       );
     }
 
     if (previewStickers.length === 0) {
       return (
-        <Box sx={{ py: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div sx={{ py: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
             Telegram не передал превью. Попробуйте обновить позже.
           </Typography>
-        </Box>
+        </div>
       );
     }
 
     return (
-      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-        <Box
+      <div sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div
           sx={{
             width: '100%',
             maxWidth: 420,
@@ -615,7 +605,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             };
 
             return (
-              <Box
+              <div
                 key={`${sticker.file_id}-${index}`}
                 role="button"
                 tabIndex={0}
@@ -653,11 +643,11 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 )}
-              </Box>
+              </div>
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   };
 
@@ -667,7 +657,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         Добавьте категории
       </Typography>
 
-      <Box
+      <div
         sx={{
           borderRadius: '16px',
           border: '1px solid var(--tg-theme-border-color)',
@@ -676,7 +666,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           overflow: 'hidden'
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', p: 2, gap: 1.5 }}>
+        <div sx={{ display: 'flex', flexDirection: 'column', p: 2, gap: 1.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
             {displayTitle}
           </Typography>
@@ -710,10 +700,10 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             </span>
           </Tooltip>
           {renderPreviewStrip()}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+      <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
           Выберите категории для стикерсета:
         </Typography>
@@ -722,15 +712,15 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             ✨ {aiSuggestedKeys.size} от AI
           </Typography>
         )}
-      </Box>
+      </div>
 
       {suggestionLoading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <CircularProgress size={16} />
           <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
             AI подбирает лучшие категории...
           </Typography>
-        </Box>
+        </div>
       )}
 
       {suggestionError && (
@@ -749,21 +739,21 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       )}
 
       {categoriesLoading ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <CircularProgress size={16} />
           <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
             Загрузка категорий...
           </Typography>
-        </Box>
+        </div>
       ) : categoriesError ? (
         <Alert severity="error" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <span>{categoriesError}</span>
           {categoriesErrorDetails.length > 0 && (
-            <Box component="ul" sx={{ pl: 3, m: 0 }}>
+            <div component="ul" sx={{ pl: 3, m: 0 }}>
               {categoriesErrorDetails.map((msg, index) => (
                 <li key={index}>{msg}</li>
               ))}
-            </Box>
+            </div>
           )}
           <Button
             variant="outlined"
@@ -776,7 +766,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           </Button>
         </Alert>
       ) : (
-        <Box
+        <div
           sx={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -834,7 +824,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
               );
             })
           )}
-        </Box>
+        </div>
       )}
 
       {step === 'categories' && selectedCategories.length === 0 && categories.length > 0 && (
@@ -870,10 +860,10 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
         }}
       >
         {isApplyingCategories ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <div sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             <CircularProgress size={16} sx={{ color: 'var(--tg-theme-button-text-color)' }} />
             <span>Сохраняем...</span>
-          </Box>
+          </div>
         ) : (
           'Подтвердить категории'
         )}
@@ -885,7 +875,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     <>
       {open && !isCreatedPackModalOpen && (
         <ModalBackdrop open={open} onClose={handleClose}>
-          <Box
+          <div
             sx={{
               width: '90%',
               maxWidth: '440px',
@@ -923,7 +913,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            <Box sx={{ position: 'relative', width: '100%' }}>
+            <div sx={{ position: 'relative', width: '100%' }}>
               <IconButton
                 aria-label="close"
                 onClick={handleClose}
@@ -945,8 +935,8 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                 <CloseIcon fontSize="small" />
               </IconButton>
               {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
-            </Box>
-          </Box>
+            </div>
+          </div>
         </ModalBackdrop>
       )}
 

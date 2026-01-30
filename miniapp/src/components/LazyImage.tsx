@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { Box, Typography } from '@mui/material';
+import './LazyImage.css';
 
 interface LazyImageProps {
   src: string;
@@ -37,7 +37,7 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
         });
       },
       {
-        rootMargin: '50px' // Загружаем изображения за 50px до появления в viewport
+        rootMargin: '50px'
       }
     );
 
@@ -59,36 +59,12 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
   };
 
   return (
-    <Box
-      ref={containerRef}
-      sx={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden'
-      }}
-    >
+    <div ref={containerRef} className="lazy-image-container">
       {/* Placeholder пока изображение не загружено */}
       {!isLoaded && !hasError && (
-        <Box>
-          {placeholder || (
-            <Typography
-              sx={{
-                fontSize: '1.5rem',
-                color: 'text.secondary'
-              }}
-            >
-              🎨
-            </Typography>
-          )}
-        </Box>
+        <div className="lazy-image-placeholder">
+          {placeholder || <span className="lazy-image-emoji">🎨</span>}
+        </div>
       )}
 
       {/* Изображение загружается только когда попадает в viewport */}
@@ -112,22 +88,12 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
 
       {/* Fallback при ошибке загрузки */}
       {hasError && (
-        <Box>
-          {fallback || (
-            <Typography
-              sx={{
-                fontSize: '1.5rem',
-                color: 'text.secondary'
-              }}
-            >
-              ❌
-            </Typography>
-          )}
-        </Box>
+        <div className="lazy-image-fallback">
+          {fallback || <span className="lazy-image-emoji">❌</span>}
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
-// Мемоизируем компонент для предотвращения лишних ре-рендеров
 export const LazyImage = memo(LazyImageComponent);

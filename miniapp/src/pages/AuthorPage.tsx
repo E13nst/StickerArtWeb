@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Card, CardContent, Alert } from '@mui/material';
+;
 import StixlyTopHeader from '../components/StixlyTopHeader';
 import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -442,18 +442,18 @@ export const AuthorPage: React.FC = () => {
   const packCount = totalElements || stickerSets.length;
 
   return (
-    <Box className={cn('page-container', isInTelegramApp && 'telegram-app')}>
+    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
       <StixlyTopHeader
         profileMode={{
           enabled: true,
           backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           pattern: 'dots',
           content: avatarUserInfo ? (
-            <Box className="profile-header-content">
-              <Box className="profile-header-avatar-wrapper">
+            <div className="profile-header-content">
+              <div className="profile-header-avatar-wrapper">
                 <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
-              </Box>
-            </Box>
+              </div>
+            </div>
           ) : null
         }}
       />
@@ -470,24 +470,24 @@ export const AuthorPage: React.FC = () => {
         ) : profile ? (
           <Card className={cn('card-base', 'card-base-no-padding-top')}>
             <CardContent className="card-content-with-avatar">
-              <Box className={cn('text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
+              <div className={cn('text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
                 {displayName && (
                   <Typography variant="h6" className="typography-bold">
                     {displayName}
                   </Typography>
                 )}
-              </Box>
+              </div>
 
-              <Box className="flex-row-space-around">
-                <Box className="stat-box">
+              <div className="flex-row-space-around">
+                <div className="stat-box">
                   <Typography variant="h5" fontWeight="bold" className="stat-value">
                     {packCount}
                   </Typography>
                   <Typography variant="body2" className="stat-label">
                     Наборов
                   </Typography>
-                </Box>
-              </Box>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : null}
@@ -501,8 +501,8 @@ export const AuthorPage: React.FC = () => {
         )}
 
         {/* SearchBar и SortButton всегда видны */}
-        <Box className="flex-row author-search-container">
-          <Box style={{ flex: 1 }}>
+        <div className="flex-row author-search-container">
+          <div style={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}
@@ -510,13 +510,13 @@ export const AuthorPage: React.FC = () => {
               placeholder="Поиск стикерсетов автора..."
               disabled={isSetsLoading && stickerSets.length === 0}
             />
-          </Box>
+          </div>
           <SortButton
             sortByLikes={sortByLikes}
             onToggle={handleSortToggle}
             disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
           />
-        </Box>
+        </div>
 
         {displayedStickerSets.length === 0 && !isProfileLoading && !isSetsLoading ? (
           <EmptyState
@@ -547,6 +547,6 @@ export const AuthorPage: React.FC = () => {
         onClose={handleCloseModal}
         onStickerSetUpdated={handleStickerSetUpdated}
       />
-    </Box>
+    </div>
   );
 };

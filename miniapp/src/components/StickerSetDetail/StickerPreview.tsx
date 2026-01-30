@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+;
 import { AnimatedSticker } from '../AnimatedSticker';
 import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache } from '@/utils/imageLoader';
 import { getStickerImageUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
@@ -149,7 +149,7 @@ const renderStickerMedia = (
 
   if (!cachedUrl) {
     return (
-      <Box
+      <div
         sx={{
           width,
           height,
@@ -161,7 +161,7 @@ const renderStickerMedia = (
         }}
       >
         <CircularProgress size={40} />
-      </Box>
+      </div>
     );
   }
 
@@ -207,7 +207,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
   previewRef
 }) => {
   return (
-    <Box 
+    <div 
       ref={previewRef}
       key={sticker?.file_id || `preview-${sticker?.file_id}`}
       onClick={(e) => e.stopPropagation()}
@@ -222,7 +222,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
         flexShrink: 0
       }}
     >
-      <Box
+      <div
         sx={{
           width: '100%',
           height: '100%',
@@ -246,7 +246,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
         onTouchCancel={onTouchCancel}
       >
         {!isMainLoaded && (
-          <Box
+          <div
             sx={{
               position: 'absolute',
               inset: 0,
@@ -259,7 +259,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
               opacity: isMainLoaded ? 0 : 1
             }}
           >
-            <Box
+            <div
               sx={{
                 width: 48,
                 height: 48,
@@ -269,7 +269,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
                 animation: 'spin 1s linear infinite'
               }}
             />
-          </Box>
+          </div>
         )}
         {renderStickerMedia(sticker, {
           className: '',
@@ -277,8 +277,8 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
           height: '100%',
           onLoad
         })}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

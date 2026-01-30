@@ -1,18 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  IconButton,
-  Button,
-  List,
-  ListItem,
-  Snackbar,
-  Alert
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RestoreIcon from '@mui/icons-material/Restore';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+;
+import { DeleteIcon, RestoreIcon, DragIndicatorIcon } from '@/components/ui/Icons';
 import { StickerSetResponse, Sticker, StickerSetEditOperations } from '@/types/sticker';
 import { StickerThumbnail } from '../StickerThumbnail';
 
@@ -164,7 +152,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
   // Это позволяет восстановить их, если пользователь передумал
 
   return (
-    <Box
+    <div
       sx={{
         width: '100%',
         display: 'flex',
@@ -207,7 +195,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
               }}
             >
               {/* Burger handle (для будущего DnD) */}
-              <Box
+              <div
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
@@ -222,17 +210,17 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
                 }}
               >
                 <BurgerIcon size={20} />
-              </Box>
+              </div>
 
               {/* Мини-превью */}
-              <Box sx={{ flexShrink: 0 }}>
+              <div sx={{ flexShrink: 0 }}>
                 <StickerThumbnail
                   fileId={sticker.file_id}
                   thumbFileId={sticker.thumb?.file_id}
                   emoji={sticker.emoji}
                   size={64}
                 />
-              </Box>
+              </div>
 
               {/* Поле эмодзи */}
               <TextField
@@ -255,7 +243,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
               />
 
               {/* Кнопки перемещения (fallback, если DnD не работает) */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 <IconButton
                   size="small"
                   onClick={() => moveUp(index)}
@@ -288,7 +276,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
                 >
                   ↓
                 </IconButton>
-              </Box>
+              </div>
 
               {/* Кнопка удаления/восстановления */}
               <IconButton
@@ -308,7 +296,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
       </List>
 
       {/* Кнопки управления */}
-      <Box
+      <div
         sx={{
           display: 'flex',
           gap: 2,
@@ -338,7 +326,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
         >
           Готово
         </Button>
-      </Box>
+      </div>
 
       {/* Уведомление о том, что изменения не сохраняются */}
       <Snackbar
@@ -358,7 +346,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
           Изменения пока не сохраняются на сервере. Это прототип редактора.
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

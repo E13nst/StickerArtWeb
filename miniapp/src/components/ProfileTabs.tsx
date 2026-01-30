@@ -1,14 +1,6 @@
 import React from 'react';
-import { 
-  Box, 
-  Tabs, 
-  Tab, 
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
-import CollectionsIcon from '@mui/icons-material/Collections';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { CollectionsIcon, AccountBalanceWalletIcon, EmojiEventsIcon } from '@/components/ui/Icons';
+;
 
 interface ProfileTabsProps {
   activeTab: number;
@@ -34,9 +26,9 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 0, pb: '0.764rem', mt: 0, mb: 0 }}>
+        <div sx={{ pt: 0, pb: '0.764rem', mt: 0, mb: 0 }}>
           {children}
-        </Box>
+        </div>
       )}
     </div>
   );
@@ -70,7 +62,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   const dividerBottom = '23.6%';
 
   return (
-    <Box sx={{ 
+    <div sx={{ 
       width: '100%',
       mb: 0, // Убираем отступ снизу
       backgroundColor: 'transparent',
@@ -135,7 +127,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           iconPosition="top"
         />
       </Tabs>
-    </Box>
+    </div>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+;
 import { imageLoader, getCachedStickerUrl, LoadPriority } from '@/utils/imageLoader';
 
 interface Sticker {
@@ -34,7 +34,7 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
   }, [stickers]);
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <div sx={{ width: '100%' }}>
       <Typography
         variant="h6"
         fontWeight="bold"
@@ -47,7 +47,7 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
         ТОП-5 СТИКЕРОВ
       </Typography>
       
-      <Box
+      <div
         sx={{
           display: 'flex',
           gap: 2,
@@ -65,7 +65,7 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
         }}
       >
         {stickers.map((sticker, index) => (
-          <Box
+          <div
             key={sticker.id}
             onClick={() => onStickerClick?.(sticker)}
             sx={{
@@ -79,7 +79,7 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
               } : {}
             }}
           >
-            <Box
+            <div
               sx={{
                 width: '100%',
                 aspectRatio: '1 / 1',
@@ -113,7 +113,7 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
               )}
               
               {/* Бейдж места */}
-              <Box
+              <div
                 sx={{
                   position: 'absolute',
                   top: 4,
@@ -131,8 +131,8 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
                 }}
               >
                 {index + 1}
-              </Box>
-            </Box>
+              </div>
+            </div>
             
             <Typography
               variant="caption"
@@ -156,10 +156,10 @@ export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
             >
               {sticker.likes} ❤️
             </Typography>
-          </Box>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

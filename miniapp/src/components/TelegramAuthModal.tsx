@@ -1,18 +1,6 @@
+import { TelegramIcon, DeveloperModeIcon } from '@/components/ui/Icons';
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Alert,
-  TextField,
-  Divider
-} from '@mui/material';
-import TelegramIcon from '@mui/icons-material/Telegram';
-import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
+import { TelegramIcon, DeveloperModeIcon } from '@/components/ui/Icons';
 
 interface TelegramAuthModalProps {
   open: boolean;
@@ -76,8 +64,8 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
 
   const renderContent = () => {
     return (
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
+      <div sx={{ p: 2 }}>
+        <div sx={{ textAlign: 'center', mb: 3 }}>
           <TelegramIcon sx={{ fontSize: 48, color: 'var(--tg-theme-button-color)', mb: 2 }} />
           <Typography 
             variant="h6" 
@@ -95,7 +83,7 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
           >
             Для доступа к полному функционалу откройте приложение через Telegram бота
           </Typography>
-        </Box>
+        </div>
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -113,7 +101,7 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
           </Typography>
         </Divider>
 
-        <Box sx={{ mb: 2 }}>
+        <div sx={{ mb: 2 }}>
           <TextField
             fullWidth
             multiline
@@ -125,9 +113,9 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
             variant="outlined"
             size="small"
           />
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <div sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             size="small"
@@ -143,9 +131,9 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
           >
             Очистить
           </Button>
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+        <div sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
           <Button
             variant="contained"
             onClick={handleManualAuth}
@@ -159,8 +147,8 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
           >
             Продолжить без авторизации
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   };
 

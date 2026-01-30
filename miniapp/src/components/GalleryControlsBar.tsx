@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Box } from '@mui/material';
+;
 import { SearchBar } from './SearchBar';
 import { CategoryFilter, Category } from './CategoryFilter';
 import { SortButton } from './SortButton';
 import { AddStickerPackButton } from './AddStickerPackButton';
 import { StickerTypeFilter } from './StickerTypeFilter';
 import { DateFilter } from './DateFilter';
-import TuneIcon from '@mui/icons-material/Tune';
-import SearchIcon from '@mui/icons-material/Search';
+import { TuneIcon } from '@/components/ui/Icons';;
+import { SearchIcon } from '@/components/ui/Icons';;
 import { throttle } from '../utils/throttle';
 import { useTelegram } from '../hooks/useTelegram';
 import { useScrollElement } from '../contexts/ScrollContext';
@@ -165,7 +165,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
       }}
     >
       {/* Top row: Search + Filter + Sort */}
-      <Box
+      <div
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -174,7 +174,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
         }}
       >
         {/* Search Bar or Icon - collapses to icon when filter is active */}
-        <Box 
+        <div 
           sx={{ 
             flex: isFilterActive ? '0 0 auto' : '1 1 auto',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -238,7 +238,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
               compact={true}
             />
           )}
-        </Box>
+        </div>
 
         {/* Filter Button - expands with text when active */}
         <button
@@ -309,10 +309,10 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
           onToggle={onSortToggle}
           disabled={sortDisabled}
         />
-      </Box>
+      </div>
 
       {/* Filter content row - shows different content based on filter mode */}
-      <Box 
+      <div 
         sx={{ 
           mb: '0.5rem',
         }}
@@ -347,7 +347,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
             />
           ) : null}
         </div>
-      </Box>
+      </div>
       
       <style>{`
         @keyframes fadeSlideIn {
@@ -363,12 +363,12 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
       `}</style>
 
       {/* Add button */}
-      <Box sx={{ mb: '0' }}>
+      <div sx={{ mb: '0' }}>
         <AddStickerPackButton
           variant="gallery"
           onClick={onAddClick}
         />
-      </Box>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
+import { AddIcon } from '@/components/ui/Icons';
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { Box } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+;
 import { useTelegram } from '../hooks/useTelegram';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { useStickerStore } from '../store/useStickerStore';
@@ -258,7 +258,7 @@ export const GalleryNewPage: React.FC = () => {
   return (
     <>
       {/* Fixed top panel */}
-      <Box
+      <div
         sx={{
           position: 'fixed',
           top: 0,
@@ -272,7 +272,7 @@ export const GalleryNewPage: React.FC = () => {
         }}
       >
         {/* Header Banner */}
-        <Box
+        <div
           sx={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             padding: '1rem',
@@ -280,16 +280,16 @@ export const GalleryNewPage: React.FC = () => {
             textAlign: 'center',
           }}
         >
-          <Box sx={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+          <div sx={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
             🎨 Галерея Стикеров
-          </Box>
-          <Box sx={{ fontSize: '0.875rem', opacity: 0.9, mt: 0.5 }}>
+          </div>
+          <div sx={{ fontSize: '0.875rem', opacity: 0.9, mt: 0.5 }}>
             Найдите и добавьте стикеры в Telegram
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Search and Add Button */}
-        <Box
+        <div
           sx={{
             display: 'flex',
             gap: '0.5rem',
@@ -298,7 +298,7 @@ export const GalleryNewPage: React.FC = () => {
             backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
           }}
         >
-          <Box sx={{ flex: 1 }}>
+          <div sx={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}
@@ -307,7 +307,7 @@ export const GalleryNewPage: React.FC = () => {
               disabled={false}
               compact={true}
             />
-          </Box>
+          </div>
           <button
             onClick={handleAddClick}
             aria-label="Добавить стикерпак"
@@ -340,11 +340,11 @@ export const GalleryNewPage: React.FC = () => {
             <AddIcon sx={{ fontSize: '1rem' }} />
             <span>Добавить</span>
           </button>
-        </Box>
+        </div>
 
         {/* Categories */}
         {categories.length > 0 && (
-          <Box
+          <div
             sx={{
               padding: '0 0.75rem 0.75rem',
               overflowX: 'auto',
@@ -352,9 +352,9 @@ export const GalleryNewPage: React.FC = () => {
               '&::-webkit-scrollbar': { height: 0 },
             }}
           >
-            <Box sx={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
+            <div sx={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
               {categories.map((category) => (
-                <Box
+                <div
                   key={category.id}
                   onClick={() => {
                     tg?.HapticFeedback?.impactOccurred('light');
@@ -381,15 +381,15 @@ export const GalleryNewPage: React.FC = () => {
                   }}
                 >
                   {category.label}
-                </Box>
+                </div>
               ))}
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Content with top padding */}
-      <Box sx={{ paddingTop: '180px' }}>
+      <div sx={{ paddingTop: '180px' }}>
         <StixlyPageContainer>
           {isInitialLoading ? (
             <LoadingSpinner message="Загрузка стикеров..." />
@@ -417,7 +417,7 @@ export const GalleryNewPage: React.FC = () => {
             />
           )}
         </StixlyPageContainer>
-      </Box>
+      </div>
 
       {/* Modals */}
       {selectedStickerSet && (

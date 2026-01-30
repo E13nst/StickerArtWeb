@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Box, Typography, IconButton, CircularProgress } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
 import { ModalBackdrop } from './ModalBackdrop';
 import { LeaderboardUser } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
-import { Avatar, Chip } from '@mui/material';
+;
 
 interface LeaderboardModalProps {
   open: boolean;
@@ -27,7 +27,7 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
   const avatarBgColor = getAvatarColor(firstName || user.username || 'User');
 
   return (
-    <Box
+    <div
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -41,7 +41,7 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
       }}
     >
       {/* Номер места */}
-      <Box
+      <div
         sx={{
           minWidth: 24,
           textAlign: 'center',
@@ -53,10 +53,10 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
         }}
       >
         {index + 1}
-      </Box>
+      </div>
 
       {/* Аватар */}
-      <Box sx={{ position: 'relative' }}>
+      <div sx={{ position: 'relative' }}>
         <Avatar
           src={avatarBlobUrl || undefined}
           sx={{
@@ -71,7 +71,7 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
         </Avatar>
         {/* Бейдж места для топ-3 */}
         {index < 3 && (
-          <Box
+          <div
             sx={{
               position: 'absolute',
               top: -3,
@@ -90,12 +90,12 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
             }}
           >
             {index + 1}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Информация о пользователе */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="body2"
           sx={{
@@ -109,7 +109,7 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
         >
           {displayName}
         </Typography>
-      </Box>
+      </div>
 
       {/* Количество публичных стикеров */}
       <Chip
@@ -128,7 +128,7 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
           minWidth: '40px'
         }}
       />
-    </Box>
+    </div>
   );
 };
 
@@ -231,7 +231,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
 
   return (
     <ModalBackdrop open={open} onClose={onClose}>
-      <Box
+      <div
         ref={modalContentRef}
         data-modal-content
         onClick={handleOutsideClick}
@@ -267,7 +267,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
         }}
       >
         {/* Grab handle для свайпа */}
-        <Box
+        <div
           data-modal-header
           sx={{
             width: '34px',
@@ -283,7 +283,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
         />
 
         {/* Компактный заголовок */}
-        <Box
+        <div
           data-modal-header
           sx={{
             display: 'flex',
@@ -315,10 +315,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
           >
             <CloseIcon fontSize="small" />
           </IconButton>
-        </Box>
+        </div>
 
         {/* Скроллируемый список */}
-        <Box
+        <div
           ref={scrollContainerRef}
           onClick={(e) => e.stopPropagation()}
           sx={{
@@ -332,7 +332,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
           }}
         >
           {loading ? (
-            <Box
+            <div
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -341,9 +341,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
               }}
             >
               <CircularProgress size={32} />
-            </Box>
+            </div>
           ) : error ? (
-            <Box
+            <div
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -362,9 +362,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
               >
                 {error}
               </Typography>
-            </Box>
+            </div>
           ) : users.length === 0 ? (
-            <Box
+            <div
               sx={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -381,16 +381,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
               >
                 Нет данных
               </Typography>
-            </Box>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
               {users.map((user, index) => (
                 <LeaderboardUserItem key={user.userId} user={user} index={index} />
               ))}
-            </Box>
+            </div>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </ModalBackdrop>
   );
 };

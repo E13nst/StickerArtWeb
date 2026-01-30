@@ -33,10 +33,6 @@
     "benchmark:analyze": "node scripts/analyze-benchmark.cjs"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.15.0",
-    "@mui/material": "^5.15.0",
     "@tanstack/react-virtual": "^3.13.12",
     "@telegram-apps/bridge": "^2.0.0",
     "@telegram-apps/sdk": "^2.0.0",

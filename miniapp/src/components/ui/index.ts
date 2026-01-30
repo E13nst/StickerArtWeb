@@ -8,3 +8,7 @@ export { Toast } from './Toast';
 export { Text } from './Text';
 export { BottomSheet } from './BottomSheet';
 export { UploadModal } from './UploadModal';
+export { Avatar } from './Avatar';
+export { Chip } from './Chip';
+export { Card, CardContent } from './Card';
+export * from './Icons';

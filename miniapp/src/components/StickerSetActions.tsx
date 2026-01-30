@@ -1,20 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  TextField,
-  Alert,
-  Tooltip,
-  CircularProgress,
-  SvgIcon
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
 import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { useStickerStore } from '@/store/useStickerStore';
@@ -259,7 +245,7 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
 
   return (
     <>
-      <Box
+      <div
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -369,7 +355,7 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             </IconButton>
           </Tooltip>
         )}
-      </Box>
+      </div>
 
       {/* Модальное окно подтверждения */}
       {currentConfig && (

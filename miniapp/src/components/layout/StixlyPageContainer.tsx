@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, ContainerProps } from '@mui/material';
+;
 import { useTelegram } from '@/hooks/useTelegram';
 
 export const StixlyPageContainer: React.FC<ContainerProps> = ({ children, sx, ...rest }) => {

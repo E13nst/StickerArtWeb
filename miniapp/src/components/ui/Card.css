@@ -1,0 +1,24 @@
+.card {
+  background-color: var(--tg-theme-secondary-bg-color, #ffffff);
+  border: 1px solid var(--tg-theme-border-color, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+
+.card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-clickable:active {
+  transform: translateY(0);
+}
+
+.card-content {
+  padding: 16px;
+}

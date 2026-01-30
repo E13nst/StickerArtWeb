@@ -1,8 +1,4 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import TuneIcon from '@mui/icons-material/Tune';
-import CloseIcon from '@mui/icons-material/Close';
 import { useTelegram } from '../hooks/useTelegram';
 import { SearchBar } from './SearchBar';
 import { CategoryFilter, Category } from './CategoryFilter';
@@ -50,6 +46,35 @@ interface CompactControlsBarProps {
   // Position variant
   variant?: 'fixed' | 'static';
 }
+
+// SVG Icons
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"></circle>
+    <path d="m21 21-4.35-4.35"></path>
+  </svg>
+);
+
+const TuneIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="4" y1="21" x2="4" y2="14"></line>
+    <line x1="4" y1="10" x2="4" y2="3"></line>
+    <line x1="12" y1="21" x2="12" y2="12"></line>
+    <line x1="12" y1="8" x2="12" y2="3"></line>
+    <line x1="20" y1="21" x2="20" y2="16"></line>
+    <line x1="20" y1="12" x2="20" y2="3"></line>
+    <line x1="1" y1="14" x2="7" y2="14"></line>
+    <line x1="9" y1="8" x2="15" y2="8"></line>
+    <line x1="17" y1="16" x2="23" y2="16"></line>
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
 
 const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   searchValue,
@@ -109,8 +134,6 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     : 'rgba(118, 168, 255, 0.24)';
   
   // Background color с учетом темы Telegram
-  // Используем цвет из темы, но с прозрачностью для glass effect
-  // Если есть themeParams, используем их, иначе fallback на стандартные цвета
   const bgColorBase = themeParams?.secondary_bg_color 
     ? themeParams.secondary_bg_color 
     : (isLight ? '#f8f9fa' : '#131415');
@@ -154,20 +177,6 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   // Handle reset filters
   const handleResetFilters = useCallback(() => {
     tg?.HapticFeedback?.impactOccurred('light');
-    // Reset all filters to default values
-    
-    // Type filter - СКРЫТО: ждем API
-    // const allTypes = ['static', 'animated', 'video', 'official'];
-    // selectedStickerTypes.forEach(typeId => {
-    //   if (!allTypes.includes(typeId)) {
-    //     onStickerTypeToggle(typeId);
-    //   }
-    // });
-    // allTypes.forEach(typeId => {
-    //   if (!selectedStickerTypes.includes(typeId)) {
-    //     onStickerTypeToggle(typeId);
-    //   }
-    // });
     
     // StickerSet Type filter - reset to all (empty array = all types)
     if (selectedStickerSetTypes.length > 0) {
@@ -175,11 +184,6 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
         onStickerSetTypeToggle(type);
       });
     }
-    
-    // Date filter - СКРЫТО: ждем API
-    // if (selectedDate !== 'all') {
-    //   onDateChange('all');
-    // }
     
     // Sort - set to false (новые)
     if (sortByLikes) {
@@ -203,7 +207,6 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      // Don't close if clicking on the filters button or inside the filters menu
       if (
         filtersButtonRef.current?.contains(target) ||
         filtersMenuRef.current?.contains(target)
@@ -213,7 +216,6 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
       setFiltersExpanded(false);
     };
 
-    // Add a small delay to prevent immediate closing
     const timeoutId = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
     }, 100);
@@ -270,9 +272,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
         left: isFixed ? '50%' : 'auto',
         right: isFixed ? 'auto' : 'auto',
         width: isFixed ? '100%' : 'auto',
-        maxWidth: isFixed ? '600px' : 'none', // узкий лейаут для основного контента
+        maxWidth: isFixed ? '600px' : 'none',
         transform: isFixed ? 'translateX(-50%)' : 'none',
-        // UI controls bar: above content/header, below modals
         zIndex: 'var(--z-ui-controls, 200)',
         backgroundColor: 'transparent',
         padding: 0,
@@ -280,12 +281,12 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     >
       <div className="compact-controls-bar-inner">
       {/* Main controls row */}
-      <Box
-        sx={{
+      <div
+        style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          mb: searchExpanded || filtersExpanded ? '0.5rem' : 0,
+          marginBottom: searchExpanded || filtersExpanded ? '0.5rem' : 0,
         }}
       >
         {/* Filters button */}
@@ -317,7 +318,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
             });
           }}
         >
-          <TuneIcon sx={{ fontSize: '1rem' }} />
+          <TuneIcon />
         </button>
 
         {/* Add button (hidden when search is expanded) */}
@@ -360,7 +361,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
 
         {/* Search button/bar */}
         {searchExpanded ? (
-          <Box sx={{ flex: '1 1 auto' }}>
+          <div style={{ flex: '1 1 auto' }}>
             <SearchBar
               value={searchValue}
               onChange={onSearchChange}
@@ -369,7 +370,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               disabled={searchDisabled}
               compact={true}
             />
-          </Box>
+          </div>
         ) : (
           <button
             onClick={handleSearchToggle}
@@ -392,7 +393,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               });
             }}
           >
-            <SearchIcon sx={{ fontSize: '1rem' }} />
+            <SearchIcon />
           </button>
         )}
 
@@ -419,15 +420,15 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               });
             }}
           >
-            <CloseIcon sx={{ fontSize: '1rem' }} />
+            <CloseIcon />
           </button>
         )}
-      </Box>
+      </div>
 
       {/* Categories row (when search is expanded) */}
       {searchExpanded && categories.length > 0 && (
-        <Box
-          sx={{
+        <div
+          style={{
             animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
@@ -438,16 +439,16 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
             disabled={categoriesDisabled}
             compact={true}
           />
-        </Box>
+        </div>
       )}
 
       {/* Filters dropdown menu (when filters are expanded) - Overlay */}
       {filtersExpanded && (
         <>
           {/* Backdrop для закрытия по клику мимо - невидимый */}
-          <Box
+          <div
             onClick={handleFiltersToggle}
-            sx={{
+            style={{
               position: 'fixed',
               top: 0,
               left: 0,
@@ -459,22 +460,22 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
             }}
           />
           {/* Окно фильтров */}
-          <Box
+          <div
             ref={filtersMenuRef}
             onClick={(e) => e.stopPropagation()}
-            sx={{
+            style={{
               position: 'absolute',
               top: '100%',
               left: '0.618rem',
               right: 'auto',
-              mt: '0.5rem',
+              marginTop: '0.5rem',
               zIndex: 'var(--z-dropdown, 300)',
               animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               maxWidth: '200px',
             }}
           >
-            <Box
-              sx={{
+            <div
+              style={{
                 backgroundColor: bgColor,
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
@@ -490,8 +491,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
               }}
             >
             {/* Filter section title */}
-            <Box
-              sx={{
+            <div
+              style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -499,7 +500,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
                 borderBottom: `1px solid ${borderColor}`,
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ 
                   fontSize: '0.75rem', 
                   fontWeight: 600, 
@@ -508,8 +509,8 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
                 }}>
                   Фильтры
                 </span>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {/* Reset button */}
                 <button
                   onClick={handleResetFilters}
@@ -566,48 +567,30 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <CloseIcon sx={{ fontSize: '0.875rem' }} />
+                  <CloseIcon />
                 </button>
-              </Box>
-            </Box>
-
-            {/* Sticker Type Filter - СКРЫТО: ждем API */}
-            {/* <Box>
-              <StickerTypeDropdown
-                selectedTypes={selectedStickerTypes}
-                onTypeToggle={onStickerTypeToggle}
-                disabled={false}
-              />
-            </Box> */}
+              </div>
+            </div>
             
             {/* StickerSet Type Filter (USER/OFFICIAL) */}
-            <Box>
+            <div>
               <StickerSetTypeFilter
                 selectedTypes={selectedStickerSetTypes}
                 onTypeToggle={onStickerSetTypeToggle}
                 disabled={false}
               />
-            </Box>
-            
-            {/* Date Filter - СКРЫТО: ждем API */}
-            {/* <Box>
-              <DateFilterDropdown
-                selectedDate={selectedDate}
-                onDateChange={onDateChange}
-                disabled={false}
-              />
-            </Box> */}
+            </div>
             
             {/* Sort Dropdown */}
-            <Box>
+            <div>
               <SortDropdown
                 sortByLikes={sortByLikes}
                 onToggle={onSortToggle}
                 disabled={sortDisabled}
               />
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
         </>
       )}
 
@@ -642,7 +625,6 @@ const arePropsEqual = (
   prevProps: CompactControlsBarProps,
   nextProps: CompactControlsBarProps
 ): boolean => {
-  // Check simple values
   if (
     prevProps.searchValue !== nextProps.searchValue ||
     prevProps.searchDisabled !== nextProps.searchDisabled ||
@@ -653,7 +635,6 @@ const arePropsEqual = (
     return false;
   }
 
-  // Check arrays
   if (
     prevProps.selectedCategories?.length !== nextProps.selectedCategories?.length ||
     prevProps.selectedCategories?.some((cat, i) => cat !== nextProps.selectedCategories[i])
@@ -679,7 +660,6 @@ const arePropsEqual = (
     return false;
   }
 
-  // Check categories array
   if (
     prevProps.categories?.length !== nextProps.categories?.length ||
     prevProps.categories?.some((cat, i) => cat.id !== nextProps.categories?.[i]?.id)
@@ -687,7 +667,6 @@ const arePropsEqual = (
     return false;
   }
 
-  // Check function references
   if (
     prevProps.onSearchChange !== nextProps.onSearchChange ||
     prevProps.onSearch !== nextProps.onSearch ||
@@ -702,9 +681,7 @@ const arePropsEqual = (
     return false;
   }
 
-  // All checks passed - props are equal, don't re-render
   return true;
 };
 
 export const CompactControlsBar = React.memo(CompactControlsBarComponent, arePropsEqual);
-

@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box } from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface DateFilterDropdownProps {
@@ -15,6 +13,26 @@ const DATE_RANGES = [
   { id: 'month', label: 'Месяц' },
   { id: 'all', label: 'Всё время' },
 ];
+
+// SVG Icon
+const ArrowDownIcon = ({ isOpen }: { isOpen: boolean }) => (
+  <svg 
+    width="19" 
+    height="19" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    style={{
+      transition: 'transform 0.3s',
+      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+    }}
+  >
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+);
 
 export const DateFilterDropdown: React.FC<DateFilterDropdownProps> = ({
   selectedDate,
@@ -117,19 +135,13 @@ export const DateFilterDropdown: React.FC<DateFilterDropdownProps> = ({
         }}
       >
         <span>{getSelectedLabel()}</span>
-        <KeyboardArrowDownIcon 
-          sx={{ 
-            fontSize: '1.2rem',
-            transition: 'transform 0.3s',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          }} 
-        />
+        <ArrowDownIcon isOpen={isOpen} />
       </button>
 
       {/* Dropdown menu */}
       {isOpen && (
-        <Box
-          sx={{
+        <div
+          style={{
             position: 'absolute',
             top: 'calc(100% + 0.25rem)',
             left: 0,
@@ -182,7 +194,7 @@ export const DateFilterDropdown: React.FC<DateFilterDropdownProps> = ({
               </div>
             );
           })}
-        </Box>
+        </div>
       )}
 
       <style>{`
@@ -200,4 +212,3 @@ export const DateFilterDropdown: React.FC<DateFilterDropdownProps> = ({
     </div>
   );
 };
-

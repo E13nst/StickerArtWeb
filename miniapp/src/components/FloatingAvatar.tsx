@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Avatar, Box } from '@mui/material';
+;
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { UserInfo } from '@/store/useProfileStore';
 import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
@@ -52,7 +52,7 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
   const maxAvatarSize = size === 'large' ? '160px' : size === 'medium' ? '130px' : '100px';
 
   return (
-    <Box
+    <div
       sx={{
         position: 'relative',
         display: 'flex',
@@ -88,7 +88,7 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
       >
         {initials}
       </Avatar>
-    </Box>
+    </div>
   );
 };
 

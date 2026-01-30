@@ -1,17 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Typography,
-  TextField,
-  Alert,
-  CircularProgress,
-  SvgIcon
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+;
+import { CloseIcon } from '@/components/ui/Icons';;
 import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 

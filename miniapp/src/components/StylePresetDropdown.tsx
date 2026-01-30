@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box } from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import CheckIcon from '@mui/icons-material/Check';
+;
+import { KeyboardArrowDownIcon, CheckIcon } from '@/components/ui/Icons';
 import { useTelegram } from '../hooks/useTelegram';
 import { StylePreset } from '../api/client';
 
@@ -136,7 +135,7 @@ export const StylePresetDropdown: React.FC<StylePresetDropdownProps> = ({
 
       {/* Dropdown menu */}
       {isOpen && (
-        <Box
+        <div
           sx={{
             position: 'absolute',
             top: 'calc(100% + 0.5rem)',
@@ -218,7 +217,7 @@ export const StylePresetDropdown: React.FC<StylePresetDropdownProps> = ({
               </div>
             );
           })}
-        </Box>
+        </div>
       )}
 
       <style>{`

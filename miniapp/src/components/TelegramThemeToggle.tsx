@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@mui/material';
+import './TelegramThemeToggle.css';
 
 // Пресеты темы в стиле Telegram WebApp
 const lightTheme = {
@@ -94,29 +94,11 @@ export const TelegramThemeToggle: React.FC = () => {
   };
 
   return (
-    <Button
-      variant="outlined"
-      size="small"
+    <button 
+      className="telegram-theme-toggle"
       onClick={handleToggle}
-      sx={{ 
-        textTransform: 'none',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        color: 'var(--tg-theme-text-color)',
-        border: '1px solid var(--tg-theme-border-color)',
-        borderRadius: 'var(--tg-radius-m)',
-        '&:hover': {
-          backgroundColor: 'var(--tg-theme-button-color)',
-          color: 'var(--tg-theme-button-text-color)',
-          borderColor: 'var(--tg-theme-button-color)'
-        },
-        '&:active': {
-          transform: 'scale(0.98)'
-        }
-      }}
     >
       {isDark ? '☀️ Светлая' : '🌙 Тёмная'}
-    </Button>
+    </button>
   );
 };
-
-

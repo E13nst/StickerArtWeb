@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Button, Chip } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import { useTelegram } from '../hooks/useTelegram';
+import './AddStickerPackButton.css';
 
 interface AddStickerPackButtonProps {
   onClick: () => void;
@@ -64,59 +63,65 @@ const AddStickerPackButtonComponent: React.FC<AddStickerPackButtonProps> = ({ on
     ? 'rgba(164, 206, 255, 0.32)'
     : 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)';
   const glassSolid = isLightTheme ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
-  const glassHover = isLightTheme
-    ? 'color-mix(in srgb, rgba(148, 198, 255, 0.38) 58%, transparent)'
-    : 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)';
   const borderColor = isLightTheme ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
 
-  const buttonStyles: React.CSSProperties = {
-    width: '100%',
-    maxWidth: '100%',
-    height: '2rem',
-    padding: '0 0.75rem',
-    borderRadius: '0.75rem',
-    border: `1px solid ${borderColor}`,
-    backgroundColor: glassSolid,
-    background: glassBase,
-    color: isLightTheme ? '#0D1B2A' : textColor,
-    fontSize: '0.8125rem',
-    fontWeight: 500,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 6px 18px rgba(30, 72, 185, 0.14)',
-    backdropFilter: 'blur(18px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(18px) saturate(180%)',
-    boxSizing: 'border-box'
-  }; 
-
   const textColorResolved = isLightTheme ? '#0D1B2A' : textColor;
-  const hover = { opacity: '1', transform: 'scale(0.98)', background: glassHover, color: textColorResolved };
-  const reset = { opacity: '1', transform: 'scale(1)', background: glassBase, color: textColorResolved };
 
   if (variant === 'gallery') {
     return (
-      <button onClick={handleClick} style={buttonStyles} onMouseEnter={(e) => Object.assign(e.currentTarget.style, hover)} onMouseLeave={(e) => Object.assign(e.currentTarget.style, reset)}>
-        <span style={{ fontSize: '0.875rem', lineHeight: '1', display: 'flex', alignItems: 'center', fontWeight: 400, color: textColorResolved }}>+</span>
-        <span style={{ color: textColorResolved }}>Добавить</span>
-        <span style={{ fontSize: '0.6875rem', opacity: isLightTheme ? 0.82 : 0.88, backgroundColor: glassSolid, padding: '2px 5px', borderRadius: '5px', color: textColorResolved, border: `1px solid ${borderColor}` }}>+10 ART</span>
+      <button 
+        onClick={handleClick} 
+        className="add-sticker-pack-button add-sticker-pack-button--gallery"
+        style={{
+          backgroundColor: glassSolid,
+          background: glassBase,
+          borderColor: borderColor,
+          color: textColorResolved,
+        }}
+      >
+        <span className="add-sticker-pack-button__plus">+</span>
+        <span>Добавить</span>
+        <span 
+          className="add-sticker-pack-button__badge"
+          style={{
+            backgroundColor: glassSolid,
+            borderColor: borderColor,
+          }}
+        >
+          +10 ART
+        </span>
       </button>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '2.5rem', px: '0.618rem', mb: 2 }}>
-      <Button fullWidth variant="contained" onClick={handleClick} startIcon={<AddIcon />}
-        sx={{ height: '2.5rem', px: '0.618rem', borderRadius: '0.59rem', color: `${textColorResolved} !important`, fontSize: '0.875rem', fontWeight: 600, textTransform: 'none', gap: '0.5rem', backgroundColor: glassSolid, background: glassBase, border: `1px solid ${borderColor}`, boxShadow: '0 6px 18px rgba(30, 72, 185, 0.14)', backdropFilter: 'blur(18px) saturate(180%)', WebkitBackdropFilter: 'blur(18px) saturate(180%)', '& .MuiButton-startIcon': { margin: 0, '& svg': { fontSize: '0.955rem', color: 'inherit' } }, '&:hover': { background: glassHover, backgroundColor: glassHover, opacity: 1, transform: 'scale(0.98)', boxShadow: '0 10px 26px rgba(30, 72, 185, 0.18)', color: `${textColorResolved} !important` }, transition: 'all 0.2s ease', '& *': { color: `${textColorResolved} !important` } }}>
-        Добавьте стикерпак
-        <Chip label="+10 ART" size="small" sx={{ ml: 1, height: 'auto', fontSize: '0.75rem', backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)', color: textColor, fontWeight: 600, py: 0.25, '& .MuiChip-label': { color: `${textColor} !important` } }} />
-      </Button>
-    </Box>
+    <div className="add-sticker-pack-button-wrapper">
+      <button 
+        onClick={handleClick} 
+        className="add-sticker-pack-button add-sticker-pack-button--profile"
+        style={{
+          backgroundColor: glassSolid,
+          background: glassBase,
+          borderColor: borderColor,
+          color: textColorResolved,
+        }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Добавьте стикерпак</span>
+        <span 
+          className="add-sticker-pack-button__badge"
+          style={{
+            backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)',
+          }}
+        >
+          +10 ART
+        </span>
+      </button>
+    </div>
   );
 };
 
-// Мемоизация для предотвращения ререндера при изменении других пропсов родителя
 export const AddStickerPackButton = React.memo(AddStickerPackButtonComponent);

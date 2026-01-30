@@ -1,0 +1,140 @@
+.top-authors-card {
+  padding: 16px;
+  height: 100%;
+  border-radius: 12px;
+  background-color: var(--tg-theme-secondary-bg-color);
+  border: 1px solid var(--tg-theme-border-color, rgba(0, 0, 0, 0.12));
+}
+
+.top-authors-title {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.top-authors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-author-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.top-author-item--first {
+  background-color: var(--tg-theme-button-color);
+}
+
+.top-author-item:hover {
+  background-color: var(--tg-theme-secondary-bg-color);
+}
+
+.top-author-item--first:hover {
+  background-color: var(--tg-theme-button-color);
+  opacity: 0.9;
+}
+
+.top-author-avatar-container {
+  position: relative;
+}
+
+.top-author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.top-author-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.top-author-avatar-initials {
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.top-author-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #000;
+  border: 2px solid var(--tg-theme-bg-color);
+}
+
+.top-author-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-author-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tg-theme-text-color);
+}
+
+.top-author-name--first {
+  color: var(--tg-theme-button-text-color);
+}
+
+.top-author-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 40px;
+  padding: 0 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background-color: var(--tg-theme-button-color);
+  color: var(--tg-theme-button-text-color);
+  border-radius: 12px;
+}
+
+.top-author-count--first {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.top-authors-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.top-authors-link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 0.82rem;
+  font-weight: 300;
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7));
+  text-decoration: underline;
+  text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.top-authors-link:hover {
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85));
+  text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6));
+}
