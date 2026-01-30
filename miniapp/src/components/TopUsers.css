@@ -132,3 +132,88 @@
   color: var(--color-text);
   text-decoration-color: var(--color-text);
 }
+
+/* ============================================
+   Responsive Styles
+   ============================================ */
+
+/* Mobile Devices (< 480px) */
+@media (max-width: 480px) {
+  .top-users-card {
+    padding: 12px;
+  }
+  
+  .top-users-title {
+    font-size: 11px;
+  }
+  
+  .top-user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  
+  .top-user-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+  
+  .top-user-name {
+    font-size: 13px;
+  }
+  
+  .top-user-count {
+    height: 22px;
+    min-width: 36px;
+    font-size: 10px;
+  }
+  
+  .top-users-link {
+    font-size: 12px;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .top-users-card {
+    padding: 18px;
+  }
+  
+  .top-user-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+  
+  .top-user-name {
+    font-size: 15px;
+  }
+}
+
+/* Desktop (> 1024px) */
+@media (min-width: 1024px) {
+  .top-users-card {
+    padding: 20px;
+  }
+  
+  .top-user-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  
+  .top-user-name {
+    font-size: 15px;
+  }
+  
+  .top-user-count {
+    height: 26px;
+    min-width: 44px;
+    font-size: 12px;
+  }
+  
+  .top-users-link {
+    font-size: 14px;
+  }
+}

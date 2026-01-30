@@ -138,3 +138,73 @@
   color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85));
   text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6));
 }
+
+/* ============================================
+   Responsive Styles
+   ============================================ */
+
+/* Mobile Devices (< 480px) */
+@media (max-width: 480px) {
+  .top-authors-card {
+    padding: 12px;
+  }
+  
+  .top-author-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .top-author-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+  }
+  
+  .top-author-name {
+    font-size: 13px;
+  }
+  
+  .top-author-count {
+    height: 22px;
+    min-width: 36px;
+    font-size: 0.65rem;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .top-authors-card {
+    padding: 18px;
+  }
+  
+  .top-author-avatar {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .top-author-name {
+    font-size: 15px;
+  }
+}
+
+/* Desktop (> 1024px) */
+@media (min-width: 1024px) {
+  .top-authors-card {
+    padding: 20px;
+  }
+  
+  .top-author-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .top-author-name {
+    font-size: 16px;
+  }
+  
+  .top-author-count {
+    height: 26px;
+    min-width: 44px;
+    font-size: 0.75rem;
+  }
+}

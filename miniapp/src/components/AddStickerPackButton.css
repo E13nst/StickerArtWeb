@@ -55,3 +55,53 @@
   padding: 0 10px;
   margin-bottom: var(--spacing-md);
 }
+
+/* ============================================
+   Responsive Styles
+   ============================================ */
+
+/* Mobile Devices (< 480px) */
+@media (max-width: 480px) {
+  .add-sticker-pack-button {
+    font-size: 12px;
+    padding: 0 10px;
+  }
+  
+  .add-sticker-pack-button--gallery {
+    height: 30px;
+  }
+  
+  .add-sticker-pack-button--profile {
+    height: 36px;
+    font-size: 13px;
+  }
+  
+  .add-sticker-pack-button__plus {
+    font-size: 13px;
+  }
+  
+  .add-sticker-pack-button__badge {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+  
+  .add-sticker-pack-button-wrapper {
+    padding: 0 8px;
+  }
+}
+
+/* Tablet and Desktop (> 768px) */
+@media (min-width: 768px) {
+  .add-sticker-pack-button {
+    font-size: 14px;
+  }
+  
+  .add-sticker-pack-button--gallery {
+    height: 36px;
+  }
+  
+  .add-sticker-pack-button--profile {
+    height: 44px;
+    font-size: 15px;
+  }
+}
