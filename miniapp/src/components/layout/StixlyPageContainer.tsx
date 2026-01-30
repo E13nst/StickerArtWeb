@@ -1,33 +1,29 @@
 import React from 'react';
-;
 import { useTelegram } from '@/hooks/useTelegram';
+import './StixlyPageContainer.css';
 
-export const StixlyPageContainer: React.FC<ContainerProps> = ({ children, sx, ...rest }) => {
+interface StixlyPageContainerProps {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export const StixlyPageContainer: React.FC<StixlyPageContainerProps> = ({ 
+  children, 
+  className = '', 
+  style,
+  ...rest 
+}) => {
   const { isInTelegramApp } = useTelegram();
 
   return (
-    <Container
-      maxWidth={isInTelegramApp ? 'sm' : 'lg'}
-      sx={{ 
-        px: 0, 
-        pb: 0, 
-        pt: 0,
-        mt: 0,
-        mb: 0,
-        '&.MuiContainer-root': {
-          paddingLeft: 0,
-          paddingRight: 0,
-          paddingTop: 0,
-          paddingBottom: 0,
-          marginTop: 0,
-          marginBottom: 0,
-        },
-        ...sx 
-      }}
+    <div 
+      className={`stixly-page-container ${isInTelegramApp ? 'telegram-mode' : 'web-mode'} ${className}`}
+      style={style}
       {...rest}
     >
       {children}
-    </Container>
+    </div>
   );
 };
 

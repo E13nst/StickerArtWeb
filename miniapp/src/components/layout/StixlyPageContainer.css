@@ -1,0 +1,29 @@
+/* Stixly Page Container Styles */
+
+.stixly-page-container {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Telegram mode - smaller max width */
+.stixly-page-container.telegram-mode {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Web mode - larger max width */
+.stixly-page-container.web-mode {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Ensure no padding/margin by default */
+.stixly-page-container {
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
