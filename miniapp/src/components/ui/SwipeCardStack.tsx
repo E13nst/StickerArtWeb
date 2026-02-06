@@ -28,7 +28,7 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
   swipeThreshold = 100,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
+  const [exitDirection, setExitDirection] = useState<'up' | 'down' | null>(null);
   const [toastState, setToastState] = useState<{
     isVisible: boolean;
     message: string;
@@ -39,9 +39,8 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
     type: 'success',
   });
 
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+  const y = useMotionValue(0);
+  const opacity = useTransform(y, [-200, -80, 0, 80, 200], [0, 1, 1, 1, 0]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToastState({
@@ -57,16 +56,16 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
 
   const handleDragEnd = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      const swipeDistance = info.offset.x;
-      const swipeVelocity = info.velocity.x;
+      const swipeDistance = info.offset.y;
+      const swipeVelocity = info.velocity.y;
 
       if (Math.abs(swipeDistance) > swipeThreshold || Math.abs(swipeVelocity) > 500) {
-        const direction = swipeDistance > 0 ? 'right' : 'left';
+        const direction = swipeDistance < 0 ? 'up' : 'down';
         setExitDirection(direction);
 
         const currentCard = cards[currentIndex];
 
-        if (direction === 'left') {
+        if (direction === 'down') {
           onSwipeLeft(currentCard);
           showToast('Skipped', 'error');
         } else {
@@ -74,23 +73,20 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
           showToast('Liked', 'success');
         }
 
-        // Move to next card
         setTimeout(() => {
           setCurrentIndex((prev) => prev + 1);
           setExitDirection(null);
-          x.set(0);
+          y.set(0);
 
-          // Check if all cards are swiped
           if (currentIndex + 1 >= cards.length) {
             onEnd();
           }
         }, 300);
       } else {
-        // Return to center
-        x.set(0);
+        y.set(0);
       }
     },
-    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, showToast, swipeThreshold, x]
+    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, showToast, swipeThreshold, y]
   );
 
   // Calculate visible cards
@@ -117,20 +113,18 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
                 key={`${card.id}-${cardIndex}`}
                 className="swipe-card-stack__card swipe-card-stack__card--top"
                 style={{
-                  x: exitDirection ? undefined : x,
-                  rotate: exitDirection ? undefined : rotate,
+                  y: exitDirection ? undefined : y,
                   opacity: exitDirection ? undefined : opacity,
                   zIndex: maxVisibleCards - index,
                 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
                 dragElastic={1}
                 onDragEnd={handleDragEnd}
                 animate={
                   exitDirection
                     ? {
-                        x: exitDirection === 'left' ? -400 : 400,
-                        rotate: exitDirection === 'left' ? -20 : 20,
+                        y: exitDirection === 'up' ? -400 : 400,
                         opacity: 0,
                       }
                     : {}
@@ -142,7 +136,9 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
             );
           }
 
-          // Background cards
+          // Background cards (Figma: second 333×470.7 at 18.5px, 67.15px) — контент 370×523 масштабируется
+          const scaleX = 333 / 370;
+          const scaleY = 470.7 / 523;
           return (
             <motion.div
               key={`${card.id}-${cardIndex}`}
@@ -150,17 +146,19 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
               style={{
                 zIndex: maxVisibleCards - index,
               }}
-              initial={{
-                scale: 1 - index * 0.05,
-                y: index * 10,
-              }}
-              animate={{
-                scale: 1 - index * 0.05,
-                y: index * 10,
-              }}
+              initial={{ opacity: 0.95 }}
+              animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
-              {renderCard(card, cardIndex)}
+              <div
+                className="swipe-card-stack__card-scaled"
+                style={{
+                  transform: `scale(${scaleX}, ${scaleY})`,
+                  transformOrigin: '0 0',
+                }}
+              >
+                {renderCard(card, cardIndex)}
+              </div>
             </motion.div>
           );
         })}

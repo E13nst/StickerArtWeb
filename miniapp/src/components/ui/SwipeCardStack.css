@@ -1,9 +1,16 @@
+/* Figma: Swipe 370×537; first 370×523 at 0,0; second 333×470.7 at 18.5px, 67.15px */
 .swipe-card-stack {
+  --swipe-first-width: 370px;
+  --swipe-first-height: 523px;
+  --swipe-second-width: 333px;
+  --swipe-second-height: 470.7px;
+  --swipe-second-left: 18.5px;
+  --swipe-second-top: 67.15px;
   position: relative;
-  width: 100%;
-  max-width: 400px;
-  height: 500px;
-  margin: 0 auto;
+  inline-size: var(--swipe-first-width);
+  block-size: 537px;
+  max-inline-size: 100%;
+  margin: 0;
   perspective: 1000px;
 }
 
@@ -15,22 +22,24 @@
 
 .swipe-card-stack__empty-message {
   font-size: 18px;
-  color: var(--color-text-secondary, #666);
+  color: rgba(255, 255, 255, 0.7);
   text-align: center;
 }
 
+/* first — Figma: 370×523, left 0, top 0 */
 .swipe-card-stack__card {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--color-surface, #ffffff);
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: var(--swipe-first-width);
+  block-size: var(--swipe-first-height);
+  max-inline-size: 100%;
+  background: transparent;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   cursor: grab;
   user-select: none;
+  box-sizing: border-box;
 }
 
 .swipe-card-stack__card--top {
@@ -42,7 +51,24 @@
   cursor: grabbing;
 }
 
+/* second — Figma: 333×470.7, left 18.5px, top 67.15px */
 .swipe-card-stack__card--background {
+  pointer-events: none;
+  inset-block-start: var(--swipe-second-top);
+  inset-inline-start: var(--swipe-second-left);
+  inline-size: var(--swipe-second-width);
+  block-size: var(--swipe-second-height);
+  overflow: hidden;
+  border-radius: 14.4px;
+}
+
+/* Scaled wrapper: first card 370×523 scaled to fit second */
+.swipe-card-stack__card-scaled {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: var(--swipe-first-width);
+  block-size: var(--swipe-first-height);
   pointer-events: none;
 }
 
@@ -57,11 +83,10 @@
   padding: 20px;
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments — размер задаётся родителем (.swipe-page__cards), не выходим за viewport */
 @media (max-width: 768px) {
   .swipe-card-stack {
     max-width: 100%;
-    height: 400px;
   }
 }
 

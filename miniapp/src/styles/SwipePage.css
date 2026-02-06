@@ -1,22 +1,170 @@
-/* SwipePage Styles */
-/* Использует токены из tokens.css */
+/* Swipe Page — по макету Figma #Swipe */
+
+/* Убираем отступы по краям у page-container.swipe-page */
+.page-container.swipe-page {
+  margin: 0;
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Высота зоны header на Swipe (Figma: 172px) */
+.swipe-page {
+  --stixly-swipe-header-height: 172px;
+}
 
 .swipe-page {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background: var(--color-background);
+  max-height: 100vh; /* ограничить по viewport, чтобы внутренний скролл .swipe-page__empty работал */
+  margin: 0;
+  max-width: none;
+  background: #191818;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  touch-action: none; /* отключаем скролл — свайп только по карточке вверх/вниз */
+  padding-top: var(--stixly-swipe-header-height); /* отступ под header */
+  padding-bottom: var(--stixly-taskbar-height, 90.25px); /* место под Bottom nav */
+  box-sizing: border-box;
+}
+
+/* На Swipe свой фон по Figma — отключаем other-account background */
+.swipe-page .other-account-background {
+  background-image: none;
 }
 
 /* ============================================
-   Stats Section
+   Background (Figma: 402×1600, left 0, top 151px, blur 22.3px)
+   ============================================ */
+
+.swipe-page__background {
+  position: absolute;
+  left: 0;
+  top: 151px;
+  width: 402px;
+  max-width: 100%;
+  height: 1600px;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(22.3px);
+  overflow: hidden;
+}
+
+.swipe-page__background-item {
+  position: absolute;
+  width: 402px;
+  max-width: 100%;
+  height: 400px;
+  left: calc(50% - 402px / 2);
+  background: var(--color-primary);
+  opacity: 0.15;
+  filter: none;
+  box-sizing: border-box;
+}
+
+.swipe-page__background-item:nth-child(1) {
+  top: 0;
+  background: linear-gradient(180deg, rgba(238, 68, 159, 0.2) 0%, transparent 100%);
+}
+
+.swipe-page__background-item:nth-child(2) {
+  top: 397px;
+  background: linear-gradient(180deg, rgba(238, 68, 159, 0.15) 0%, transparent 100%);
+  transform: matrix(-1, 0, 0, 1, 0, 0);
+}
+
+.swipe-page__background-item:nth-child(3) {
+  top: 796px;
+  left: calc(50% - 402px / 2 + 1px);
+  transform: rotate(90deg);
+  background: linear-gradient(180deg, rgba(238, 68, 159, 0.12) 0%, transparent 100%);
+}
+
+.swipe-page__background-item:nth-child(4) {
+  top: 1198px;
+  left: calc(50% - 402px / 2 + 1px);
+  transform: rotate(-90deg);
+  background: linear-gradient(180deg, rgba(238, 68, 159, 0.12) 0%, transparent 100%);
+}
+
+/* Rectangles (Figma: 402×400, left calc(50% - 402px/2), tops 151, 548, 947, 1349) */
+.swipe-page__rectangles {
+  position: absolute;
+  left: 0;
+  top: 151px;
+  width: 402px;
+  max-width: 100%;
+  height: 1600px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.swipe-page__rect-item {
+  position: absolute;
+  width: 402px;
+  max-width: 100%;
+  height: 400px;
+  left: calc(50% - 402px / 2);
+  background: linear-gradient(180deg, rgba(238, 68, 159, 0.08) 0%, transparent 100%);
+  filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25));
+  box-sizing: border-box;
+}
+
+.swipe-page__rect-item:nth-child(1) {
+  top: 0;
+}
+
+.swipe-page__rect-item:nth-child(2) {
+  top: 397px;
+  transform: matrix(-1, 0, 0, 1, 0, 0);
+}
+
+.swipe-page__rect-item:nth-child(3) {
+  top: 796px;
+  left: calc(50% - 402px / 2 + 1px);
+  transform: rotate(90deg);
+}
+
+.swipe-page__rect-item:nth-child(4) {
+  top: 1198px;
+  left: calc(50% - 402px / 2 + 1px);
+  transform: rotate(-90deg);
+}
+
+/* ============================================
+   Gradients (Figma: 465×323, left -29px, blur 50px)
+   ============================================ */
+
+.swipe-page__gradient {
+  position: absolute;
+  width: 465px;
+  height: 323px;
+  left: -29px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  filter: blur(50px);
+  box-sizing: border-box;
+}
+
+.swipe-page__gradient--green {
+  background: #00AF11;
+  top: 49px;
+}
+
+.swipe-page__gradient--red {
+  background: #E03131;
+  top: 631px;
+}
+
+/* ============================================
+   Stats — скрыты по Figma (при необходимости показать — убрать display: none)
    ============================================ */
 
 .swipe-page__stats {
-  display: flex;
+  display: none;
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-sm) var(--spacing-md);
@@ -24,176 +172,252 @@
   border-radius: var(--border-radius-md);
   margin: var(--spacing-md);
   backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 2;
 }
 
 /* ============================================
-   Background Pattern
-   ============================================ */
-
-.swipe-page__background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.2;
-}
-
-.swipe-page__background-item {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2VlNDQ5ZiIgb3BhY2l0eT0iMC4xIi8+PC9zdmc+');
-  background-size: cover;
-  background-position: center;
-}
-
-.swipe-page__background-item:nth-child(1) {
-  top: 150px;
-  left: 0;
-}
-
-.swipe-page__background-item:nth-child(2) {
-  top: 550px;
-  left: 0;
-}
-
-.swipe-page__background-item:nth-child(3) {
-  top: 950px;
-  left: 0;
-}
-
-.swipe-page__background-item:nth-child(4) {
-  top: 1350px;
-  left: 0;
-}
-
-/* ============================================
-   Swipe Gradients
-   ============================================ */
-
-.swipe-page__gradient {
-  position: absolute;
-  width: 465px;
-  height: 323px;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  filter: blur(60px);
-}
-
-.swipe-page__gradient--green {
-  background: var(--color-success);
-  top: 50px;
-  left: -50px;
-}
-
-.swipe-page__gradient--red {
-  background: var(--color-error);
-  top: 630px;
-  left: -50px;
-}
-
-/* ============================================
-   Cards Container
+   Cards Container — Figma: Swipe 370×537, left 16px, top calc(50% - 537px/2 + 38px)
    ============================================ */
 
 .swipe-page__cards {
-  position: relative;
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: var(--spacing-lg);
+  --swipe-stack-width: 370px;
+  --swipe-stack-height: 537px;
+  position: absolute;
+  inset-inline: 16px;
+  inline-size: var(--swipe-stack-width);
+  block-size: var(--swipe-stack-height);
+  max-inline-size: calc(100% - 32px);
+  /* Центр между header и нижним меню: кнопка Download не перекрывается навигацией */
+  top: calc(var(--stixly-swipe-header-height, 172px) + (100vh - var(--stixly-swipe-header-height, 172px) - var(--stixly-taskbar-height, 90.25px) - var(--swipe-stack-height)) / 2);
+  margin-inline: auto;
   z-index: 2;
-  margin-top: var(--spacing-2xl);
+  box-sizing: border-box;
 }
 
 /* ============================================
-   Swipe Card Styles (for renderCard)
+   Swipe Card — Figma first: 370×523, padding 16px, gap 16px
    ============================================ */
 
 .swipe-card {
-  width: 370px;
-  height: 523px;
-  background: var(--color-surface);
-  border-radius: var(--border-radius-lg);
+  --swipe-card-padding: 16px;
+  --swipe-card-gap: 16px;
+  --swipe-card-content-width: 338px; /* 370 - 32 */
+  --swipe-card-radius: 16px;
+  --swipe-card-shadow: 0px 20px 25px 1px rgba(0, 0, 0, 0.5), 0px 10px 10px -5px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  padding: var(--swipe-card-padding);
+  gap: var(--swipe-card-gap);
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  background: #262626;
+  box-shadow: var(--swipe-card-shadow);
+  border-radius: var(--swipe-card-radius);
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+/* Content — Figma: 338×73, Text gap 4px */
 .swipe-card__content {
-  padding: var(--spacing-md);
-}
-
-.swipe-card__title {
-  margin: 0 0 var(--spacing-xs) 0;
-}
-
-.swipe-card__subtitle {
-  margin: 0;
-  color: var(--color-primary);
-}
-
-.swipe-card__preview {
-  flex: 1;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  gap: 4px;
+  inline-size: var(--swipe-card-content-width);
+  max-inline-size: 100%;
+  flex: none;
+  min-inline-size: 0;
+}
+
+/* Figma: Title 32px / 44px, #FFFFFF — переопределяем Text variant (h2 = 20px) */
+.swipe-card__content .swipe-card__title {
+  inline-size: var(--swipe-card-content-width);
+  max-inline-size: 100%;
+  block-size: 44px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 44px;
+  color: #FFFFFF;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Figma: Subtitle 18px / 25px, #EE449F — переопределяем Text variant (body = 16px) */
+.swipe-card__content .swipe-card__subtitle {
+  inline-size: var(--swipe-card-content-width);
+  max-inline-size: 100%;
+  block-size: 25px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 25px;
+  color: #EE449F;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Preview — Figma: 338×338, gap 16px */
+.swipe-card__preview {
+  display: flex;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding: var(--spacing-md);
-  background: var(--color-surface-dark);
+  padding: 0;
+  gap: var(--swipe-card-gap);
+  inline-size: var(--swipe-card-content-width);
+  block-size: 338px;
+  max-inline-size: 100%;
+  flex: none;
+  min-inline-size: 0;
   overflow: hidden;
 }
 
-.swipe-card__image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: var(--border-radius-lg);
+.swipe-card__preview-inner {
+  inline-size: var(--swipe-card-content-width);
+  block-size: 338px;
+  max-inline-size: 100%;
+  max-block-size: 100%;
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 0;
+  border-radius: var(--swipe-card-radius);
+  overflow: hidden;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+.swipe-card__image,
+.swipe-card .pack-card__placeholder,
+.swipe-card .pack-card-animated-sticker,
+.swipe-card .pack-card-image,
+.swipe-card .pack-card-video {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+  border-radius: var(--swipe-card-radius);
+}
+
+/* Footer — Figma: Button 338×48, padding 16px 8px, gap 10px */
 .swipe-card__footer {
-  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  align-items: flex-start;
+  gap: 8px;
+  inline-size: var(--swipe-card-content-width);
+  max-inline-size: 100%;
+  flex: none;
+  min-inline-size: 0;
 }
 
 .swipe-card__button {
-  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 8px;
+  inline-size: var(--swipe-card-content-width);
+  max-inline-size: 100%;
+  block-size: 48px;
+  background: #EE449F;
+  border-radius: var(--swipe-card-radius);
+  border: none;
+  cursor: pointer;
+  flex: none;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
 }
 
-.swipe-card__info {
-  text-align: center;
+.swipe-card__button-text {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 22px;
+  color: #FFFFFF;
+}
+
+.swipe-card__button svg {
+  inline-size: 16px;
+  block-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Legacy overlay — скрыт, т.к. есть блок Content */
+.swipe-card .pack-card__title-overlay {
+  display: none;
 }
 
 /* ============================================
-   Empty States
+   Empty / Loading
    ============================================ */
 
 .swipe-page__empty {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   padding: var(--spacing-2xl);
   gap: var(--spacing-lg);
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 2;
+}
+
+/* CTA на Swipe — прижат к верху, компактный, кнопка в зоне видимости */
+.swipe-page__empty .auth-required-cta {
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  align-self: stretch;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-2xl);
+  min-height: 0;
+  /* переопределить flex: 1 из базового компонента */
+}
+.swipe-page__empty .auth-required-cta {
+  flex: 0 0 auto !important;
+}
+
+/* Минимальный верхний отступ, чтобы CTA был у верхнего края зоны */
+.swipe-page__empty--auth-cta {
+  padding-top: var(--spacing-md);
+  justify-content: flex-start;
+}
+
+.swipe-page__empty .auth-required-cta .auth-required-cta__icon {
+  font-size: 40px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.swipe-page__empty .auth-required-cta .auth-required-cta__title {
+  font-size: var(--font-size-h3);
+  line-height: 1.3;
+}
+
+.swipe-page__empty .auth-required-cta .auth-required-cta__description {
+  font-size: var(--font-size-body-small);
+  line-height: 1.35;
 }
 
 .swipe-page__empty-icon {
   font-size: 64px;
   margin-bottom: var(--spacing-md);
 }
-
-/* ============================================
-   Loading States
-   ============================================ */
 
 .swipe-page__loading {
   display: flex;
@@ -202,6 +426,8 @@
   align-items: center;
   gap: var(--spacing-md);
   flex: 1;
+  position: relative;
+  z-index: 2;
 }
 
 .swipe-page__loading-indicator {
@@ -216,19 +442,19 @@
   width: 32px;
   height: 32px;
   border: 3px solid rgba(255, 255, 255, 0.2);
-  border-top-color: var(--color-primary);
+  border-top-color: #EE449F;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: swipe-spin 1s linear infinite;
 }
 
-@keyframes spin {
+@keyframes swipe-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
 /* ============================================
-   Swipe Hello Screen (Welcome Overlay)
+   Swipe Hello (Welcome Overlay)
    ============================================ */
 
 .swipe-hello {
@@ -257,7 +483,10 @@
 
 .swipe-hello__title {
   margin: 0;
-  color: var(--color-text);
+  color: #FFFFFF;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
 }
 
 .swipe-hello__instructions {
@@ -271,6 +500,7 @@
   background: rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius-md);
   backdrop-filter: blur(5px);
+  color: #FFFFFF;
 }
 
 .swipe-hello__button {
@@ -278,58 +508,35 @@
 }
 
 /* ============================================
-   Responsive Design
+   Header panel на странице Swipe (Figma)
    ============================================ */
 
-@media (max-width: 768px) {
-  .swipe-page__cards {
-    padding: var(--spacing-md);
-  }
-
-  .swipe-card {
-    width: 100%;
-    max-width: 370px;
-    height: auto;
-    min-height: 500px;
-  }
-
-  .swipe-hello__content {
-    max-width: 90%;
-  }
-}
-
-@media (max-width: 480px) {
-  .swipe-page__stats {
-    margin: var(--spacing-sm);
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-
-  .swipe-card {
-    min-height: 450px;
-  }
-
-  .swipe-hello__title {
-    font-size: 24px;
-  }
+.stixly-main-layout:has(.swipe-page) .header-panel {
+  /* Figma: 108px top — как на остальных страницах */
+  padding: calc(108px + var(--stixly-safe-area-top)) 16px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
 }
 
 /* ============================================
-   Dark Mode Support
+   Responsive
    ============================================ */
 
-[data-theme="light"] .swipe-page {
-  background: var(--color-background);
-}
+@media (max-width: 430px) {
+  .swipe-page__cards {
+    width: calc(100% - 32px);
+    left: 16px;
+  }
 
-[data-theme="light"] .swipe-card {
-  background: var(--color-surface);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
+  /* Карточка заполняет контейнер, контент масштабируется внутри */
+  .swipe-card {
+    width: 100%;
+    height: 100%;
+  }
 
-[data-theme="light"] .swipe-page__stats {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme="light"] .swipe-hello {
-  background: rgba(255, 255, 255, 0.75);
+  .swipe-card__preview-inner {
+    width: 100%;
+    aspect-ratio: 1;
+    max-height: 100%;
+  }
 }
