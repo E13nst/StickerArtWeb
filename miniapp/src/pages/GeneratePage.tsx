@@ -570,7 +570,7 @@ export const GeneratePage: React.FC = () => {
   const renderGeneratingState = () => (
     <>
       <p className="generate-logo-label">Generation</p>
-      <p className="generate-status-header">Подождите...</p>
+      <p className="generate-status-header">Please wait...</p>
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
           <textarea
@@ -586,7 +586,7 @@ export const GeneratePage: React.FC = () => {
         </div>
         <label className="generate-checkbox-label">
           <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
-          <span>Удалить фон</span>
+          <span>Delete background</span>
         </label>
         <div className="generate-style-row">
           <StylePresetStrip
@@ -597,9 +597,9 @@ export const GeneratePage: React.FC = () => {
           />
         </div>
         <div className="generate-status-container">
-          <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Инициализация...'} />
+          <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Please wait...'} />
           <Button variant="secondary" size="medium" onClick={handleReset} className="generate-button-cancel">
-            Отмена
+            CANCEL
           </Button>
         </div>
       </div>
@@ -614,14 +614,14 @@ export const GeneratePage: React.FC = () => {
         <div className="generate-result-image-wrapper">
           <img
             src={resultImageUrl}
-            alt="Сгенерированный стикер"
+            alt="Generated sticker"
             className="generate-result-image"
           />
         </div>
       )}
 
       {stickerSaved ? (
-        <span className="generate-sticker-saved">Сохранено в стикерсет</span>
+        <span className="generate-sticker-saved">Saved in stickerset</span>
       ) : saveError ? (
         <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
           {saveError}
@@ -637,7 +637,7 @@ export const GeneratePage: React.FC = () => {
           loading={isSaving}
           className="generate-action-button save"
         >
-          {isSaving ? 'Сохранение...' : 'Сохранить в стикерсет'}
+          {isSaving ? 'Saving...' : 'Save in stickerset'}
         </Button>
       )}
 
@@ -656,7 +656,7 @@ export const GeneratePage: React.FC = () => {
         </div>
         <label className="generate-checkbox-label">
           <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
-          <span>Удалить фон</span>
+          <span>Delete background</span>
         </label>
         <div className="generate-style-row">
           <StylePresetStrip
@@ -672,31 +672,52 @@ export const GeneratePage: React.FC = () => {
           onClick={handleGenerateAnother}
           className="generate-button-regenerate"
         >
-          {generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать ещё'}
+          {generateCost != null ? `GENERATE ${generateCost} ART` : 'GENERATE 10 ART'}
         </Button>
       </div>
     </div>
   );
 
-  // Рендер ошибки
+  // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="var(--color-error)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-      <Text variant="h3" weight="semibold" style={{ color: 'var(--color-error)' }} align="center">
-        {errorMessage || 'Произошла ошибка'}
-      </Text>
-      
-      <Button
-        variant="primary"
-        size="large"
-        onClick={handleReset}
-        className="generate-button-retry"
-        style={{ marginTop: 'var(--spacing-lg)' }}
-      >
-        🔄 Попробовать снова
-      </Button>
+      <p className="generate-logo-label">Generation</p>
+      <p className="generate-header">Generate a sticker with Stixly Generation</p>
+      <div className="generate-form-block">
+        <div className={cn('generate-input-wrapper', 'generate-input-wrapper--error')}>
+          <div className="generate-error-message-block">
+            <p className="generate-error-message">
+              {errorMessage || 'Please insert prompt / oops, uploading failed'}
+            </p>
+          </div>
+        </div>
+        <label className="generate-checkbox-label">
+          <input
+            type="checkbox"
+            checked={removeBackground}
+            onChange={(e) => setRemoveBackground(e.target.checked)}
+            className="generate-checkbox"
+          />
+          <span>Delete background</span>
+        </label>
+        <div className="generate-style-row">
+          <StylePresetStrip
+            presets={stylePresets}
+            selectedPresetId={selectedStylePresetId}
+            onPresetChange={setSelectedStylePresetId}
+            disabled={false}
+          />
+        </div>
+        <Button
+          variant="primary"
+          size="medium"
+          onClick={handleGenerate}
+          disabled={!isFormValid}
+          className="generate-button-submit generate-button-retry"
+        >
+          {generateCost != null ? `GENERATE ${generateCost} ART` : 'GENERATE 10 ART'}
+        </Button>
+      </div>
     </div>
   );
 
@@ -704,14 +725,14 @@ export const GeneratePage: React.FC = () => {
   const renderIdleState = () => (
     <>
       <p className="generate-logo-label">Generation</p>
-      <p className="generate-header">Создайте стикер с Stixly Generation</p>
+      <p className="generate-header">Generate a sticker with Stixly Generation</p>
 
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
           <textarea
             className="generate-input"
             rows={4}
-            placeholder="Подробно опишите стикер, например: собака летит на ракете"
+            placeholder="Describe in detail the sticker you want to draw, for example: a dog is flying on a rocket"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
@@ -729,7 +750,7 @@ export const GeneratePage: React.FC = () => {
             disabled={pageState === 'generating'}
             className="generate-checkbox"
           />
-          <span>Удалить фон</span>
+          <span>Delete background</span>
         </label>
 
         <div className="generate-style-row">
@@ -750,10 +771,10 @@ export const GeneratePage: React.FC = () => {
           className="generate-button-submit"
         >
           {pageState === 'generating'
-            ? 'Инициализация...'
+            ? 'Please wait...'
             : generateCost != null
-              ? `Сгенерировать ${generateCost} ART`
-              : 'Сгенерировать'}
+              ? `Generate ${generateCost} ART`
+              : 'Generate 10 ART'}
         </Button>
       </div>
     </>

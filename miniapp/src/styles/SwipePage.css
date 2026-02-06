@@ -8,25 +8,22 @@
   padding-right: 0;
 }
 
-/* Высота зоны header на Swipe (Figma: 172px) */
-.swipe-page {
-  --stixly-swipe-header-height: 172px;
-}
-
+/* Контент Swipe уже под HeaderPanel (MainLayout), дополнительный отступ сверху не нужен */
 .swipe-page {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  max-height: 100vh; /* ограничить по viewport, чтобы внутренний скролл .swipe-page__empty работал */
+  max-height: 100vh;
   margin: 0;
   max-width: none;
   background: #191818;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  touch-action: none; /* отключаем скролл — свайп только по карточке вверх/вниз */
-  padding-top: var(--stixly-swipe-header-height); /* отступ под header */
-  padding-bottom: var(--stixly-taskbar-height, 90.25px); /* место под Bottom nav */
+  touch-action: none;
+  padding-top: 0;
+  padding-inline: 16px;
+  padding-bottom: var(--stixly-taskbar-height, 90.25px);
   box-sizing: border-box;
 }
 
@@ -183,14 +180,24 @@
 .swipe-page__cards {
   --swipe-stack-width: 370px;
   --swipe-stack-height: 537px;
+  --swipe-taskbar-h: var(--stixly-taskbar-height, 120px);
+  --swipe-available-h: calc(100vh - var(--swipe-taskbar-h));
+  --swipe-gap-top: 16px; /* минимальный отступ от header */
   position: absolute;
-  inset-inline: 16px;
+  left: 0;
+  right: 0;
   inline-size: var(--swipe-stack-width);
   block-size: var(--swipe-stack-height);
-  max-inline-size: calc(100% - 32px);
-  /* Центр между header и нижним меню: кнопка Download не перекрывается навигацией */
-  top: calc(var(--stixly-swipe-header-height, 172px) + (100vh - var(--stixly-swipe-header-height, 172px) - var(--stixly-taskbar-height, 90.25px) - var(--swipe-stack-height)) / 2);
+  max-inline-size: 100%;
   margin-inline: auto;
+  /* Центр по вертикали, не прилипать к header и не заходить под bottom nav */
+  top: max(
+    var(--swipe-gap-top),
+    min(
+      calc((var(--swipe-available-h) - var(--swipe-stack-height)) / 2),
+      calc(100vh - var(--swipe-taskbar-h) - var(--swipe-stack-height))
+    )
+  );
   z-index: 2;
   box-sizing: border-box;
 }
