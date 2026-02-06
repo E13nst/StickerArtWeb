@@ -1,0 +1,157 @@
+/* SortDropdown — по Figma #Sort (SORT) */
+
+.sort-dropdown {
+  position: relative;
+}
+
+/* Триггер в баре — оставляем компактным, стили задаёт CompactControlsBar */
+.sort-dropdown__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: #8A8A8A;
+  font-family: 'Manrope', var(--font-family-base);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition: color 0.2s, background 0.2s;
+}
+
+.sort-dropdown__trigger:hover:not(:disabled) {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sort-dropdown__trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Затемнение под панелью */
+.sort-dropdown__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dropdown, 300);
+  background: rgba(0, 0, 0, 0.5);
+  animation: sort-dropdown-backdrop 0.25s ease-out;
+}
+
+@keyframes sort-dropdown-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Панель снизу на всю ширину экрана — выезжает снизу */
+.sort-dropdown__panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: calc(var(--z-dropdown, 300) + 1);
+  background: #262626;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  animation: sort-dropdown-slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@keyframes sort-dropdown-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Внутренний блок Sort — padding 40px 0 0 */
+.sort-dropdown__inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 0 0;
+}
+
+/* Header — "Sort By" / "Сортировка" */
+.sort-dropdown__header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0 0 32px;
+  gap: 10px;
+  width: 100%;
+  height: 55px;
+  flex: none;
+  align-self: stretch;
+}
+
+.sort-dropdown__title {
+  font-family: 'Manrope', var(--font-family-base);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 22px;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+/* Строка варианта сортировки — Sort_1, Sort_2, Sort_active, Sort_3, Sort_4 */
+.sort-dropdown__option {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 24px 10px 8px;
+  gap: 16px;
+  width: 100%;
+  height: 50px;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  flex: none;
+  align-self: stretch;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sort-dropdown__option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sort-dropdown__option--active {
+  /* активный вариант — цвет текста #EE449F задаётся в .sort-dropdown__option-label--active */
+}
+
+.sort-dropdown__option-label {
+  font-family: 'Manrope', var(--font-family-base);
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  flex: none;
+}
+
+.sort-dropdown__option-label--active {
+  color: #EE449F;
+}

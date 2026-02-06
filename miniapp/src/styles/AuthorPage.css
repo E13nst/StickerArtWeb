@@ -3,6 +3,31 @@
 @import './common.css';
 
 /* ============================================
+   OTHER ACCOUNT (Figma) — шапка профиля автора
+   SVG «#Other account background»: задать в :root или здесь:
+   --other-account-bg-image: url('/assets/other-account-bg.svg');
+   ============================================ */
+
+.other-account {
+  width: 100%;
+  margin: 0 auto;
+  margin-top: 0;
+  padding: 0;
+}
+
+.other-account--telegram {
+  max-width: 600px;
+}
+
+.other-account__card {
+  /* карточка внутри OTHER ACCOUNT */
+}
+
+.other-account__name {
+  /* имя автора */
+}
+
+/* ============================================
    Стили поиска и сортировки
    ============================================ */
 

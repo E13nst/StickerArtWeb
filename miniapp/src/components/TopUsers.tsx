@@ -3,7 +3,6 @@ import { LeaderboardUser } from '@/types/sticker';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { LeaderboardModal } from './LeaderboardModal';
-import { Text } from '@/components/ui/Text';
 import './TopUsers.css';
 
 interface TopUsersProps {
@@ -12,10 +11,16 @@ interface TopUsersProps {
 
 interface UserItemProps {
   author: LeaderboardUser;
-  index: number;
+  place: 1 | 2 | 3;
 }
 
-const UserItem: React.FC<UserItemProps> = ({ author, index }) => {
+const BADGE_COLORS: Record<number, string> = {
+  1: '#FFC424',
+  2: '#919191',
+  3: '#DB7F13',
+};
+
+const UserItem: React.FC<UserItemProps> = ({ author, place }) => {
   const { avatarBlobUrl } = useUserAvatar(author.userId);
   const firstName = author.firstName || '';
   const lastName = author.lastName || '';
@@ -24,8 +29,7 @@ const UserItem: React.FC<UserItemProps> = ({ author, index }) => {
   const avatarBgColor = getAvatarColor(firstName || author.username || 'User');
 
   return (
-    <div className={`top-user-item ${index === 0 ? 'top-user-item--first' : ''}`}>
-      {/* Аватар */}
+    <div className={`top-user-item top-user-item--place-${place}`}>
       <div className="top-user-avatar-container">
         <div className="top-user-avatar" style={{ backgroundColor: avatarBgColor }}>
           {avatarBlobUrl ? (
@@ -34,34 +38,12 @@ const UserItem: React.FC<UserItemProps> = ({ author, index }) => {
             <span className="top-user-avatar-initials">{initials}</span>
           )}
         </div>
-        {/* Бейдж места */}
-        {index < 3 && (
-          <div 
-            className="top-user-badge"
-            style={{
-              backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'
-            }}
-          >
-            {index + 1}
-          </div>
-        )}
+        <div className="top-user-badge" style={{ backgroundColor: BADGE_COLORS[place] }}>
+          {place}
+        </div>
       </div>
-
-      {/* Информация о пользователе */}
-      <div className="top-user-info">
-        <Text 
-          variant="bodySmall" 
-          weight={index === 0 ? 'semibold' : 'regular'}
-          className={`top-user-name ${index === 0 ? 'top-user-name--first' : ''}`}
-        >
-          {displayName}
-        </Text>
-      </div>
-
-      {/* Количество публичных стикеров */}
-      <span className={`top-user-count ${index === 0 ? 'top-user-count--first' : ''}`}>
-        {author.publicCount}
-      </span>
+      <span className="top-user-name">{displayName}</span>
+      <span className="top-user-count">{author.publicCount} Added</span>
     </div>
   );
 };
@@ -77,25 +59,24 @@ export const TopUsers: React.FC<TopUsersProps> = ({ authors }) => {
     setIsModalOpen(false);
   };
 
+  /* Порядок по Figma: слева 2-е, по центру 1-е, справа 3-е */
+  const topThree: Array<{ author: LeaderboardUser; place: 1 | 2 | 3 }> = [
+    ...(authors[1] ? [{ author: authors[1], place: 2 as const }] : []),
+    ...(authors[0] ? [{ author: authors[0], place: 1 as const }] : []),
+    ...(authors[2] ? [{ author: authors[2], place: 3 as const }] : []),
+  ];
+
   return (
     <>
       <div className="top-users-card card-base">
-        <Text variant="caption" color="hint" className="top-users-title">
-          Топ пользователей по добавленным стикерам
-        </Text>
-        
+        <h2 className="top-users-title">Топ пользователей</h2>
         <div className="top-users-list">
-          {authors.map((author, index) => (
-            <UserItem key={author.userId} author={author} index={index} />
+          {topThree.map(({ author, place }) => (
+            <UserItem key={author.userId} author={author} place={place} />
           ))}
         </div>
-        
-        {/* Ссылка "Полный список" */}
         <div className="top-users-footer">
-          <button
-            onClick={handleOpenModal}
-            className="top-users-link"
-          >
+          <button type="button" onClick={handleOpenModal} className="top-users-link">
             Полный список
           </button>
         </div>

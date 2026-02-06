@@ -20,7 +20,12 @@ import { StickerSetType } from '../components/StickerSetTypeFilter';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { HeaderPanel } from '@/components/ui/HeaderPanel';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import './GalleryPage2.css';
+
+const cn = (...classes: (string | boolean | undefined | null)[]): string => {
+  return classes.filter(Boolean).join(' ');
+};
 
 export const GalleryPage2: React.FC = () => {
   const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
@@ -42,6 +47,8 @@ export const GalleryPage2: React.FC = () => {
   
   const { checkAuth } = useAuth();
   const initializeLikes = useLikesStore(state => state.initializeLikes);
+  const getLikesCount = useLikesStore(state => state.getLikesCount);
+  const toggleLike = useLikesStore(state => state.toggleLike);
   const { userInfo, setUserInfo } = useProfileStore();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -345,7 +352,8 @@ export const GalleryPage2: React.FC = () => {
 
   if (!isReady) {
     return (
-      <div className="gallery-page-loading">
+      <div className={cn('page-container', 'gallery-page', 'gallery-page-loading', isInTelegramApp && 'telegram-app')}>
+        <OtherAccountBackground />
         <LoadingSpinner message="Инициализация..." />
       </div>
     );
@@ -354,11 +362,9 @@ export const GalleryPage2: React.FC = () => {
   const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
 
   return (
-    <div className="gallery-page">
-      {/* Header Panel - профиль пользователя */}
-      <HeaderPanel />
-
-      {/* Controls Bar - поиск и фильтры */}
+    <div className={cn('page-container', 'gallery-page', isInTelegramApp && 'telegram-app')}>
+      <OtherAccountBackground />
+      {/* Controls Bar - поиск и фильтры (Header Panel в MainLayout) */}
       {!isInitialLoading && (
         <CompactControlsBar
           searchValue={searchTerm}
@@ -411,10 +417,13 @@ export const GalleryPage2: React.FC = () => {
             <OptimizedGallery
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}
+              getLikesCount={getLikesCount}
+              onLikeClick={toggleLike}
               hasNextPage={currentPage < totalPages - 1}
               isLoadingMore={isLoadingMore}
               onLoadMore={loadMoreStickerSets}
               scrollElement={scrollElement}
+              variant="gallery"
             />
           </div>
         )}

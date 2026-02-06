@@ -56,6 +56,15 @@
 /* Статистика */
 /* Использует .flex-row-space-around, .stat-box, .stat-value, .stat-label из common.css */
 
+/* Обёртка вкладок menu/stickers/Artpoints — вне карточки, стили как Create/Likes/Upload */
+.profile-page-tabs-wrap {
+  width: 100%;
+  max-width: 370px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+  box-sizing: border-box;
+}
+
 /* ============================================
    Стили алертов
    ============================================ */

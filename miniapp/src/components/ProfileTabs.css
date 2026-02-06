@@ -1,0 +1,180 @@
+/* ProfileTabs */
+
+.profile-tabs {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  color: var(--tg-theme-text-color, #000000);
+  border: none;
+  border-top: none;
+  box-shadow: none;
+}
+
+.profile-tabs__list {
+  display: flex;
+  width: 100%;
+  border: none;
+  min-height: 48px;
+  height: 48px;
+  max-height: 48px;
+}
+
+.profile-tabs__tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  height: 48px;
+  max-height: 48px;
+  padding: 0.618rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--tg-theme-hint-color, #999999);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.profile-tabs__tab:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 23.6%;
+  bottom: 23.6%;
+  width: 1px;
+  background-color: var(--tg-theme-border-color, rgba(0, 0, 0, 0.12));
+  opacity: 0.618;
+}
+
+.profile-tabs__tab:hover {
+  color: var(--tg-theme-button-color, #2481cc);
+  opacity: 0.85;
+}
+
+.profile-tabs__tab--active {
+  color: var(--tg-theme-button-color, #2481cc);
+}
+
+.profile-tabs__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.profile-tabs__icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.profile-tabs__label {
+  margin-left: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.profile-tabs__panel {
+  padding-top: 0;
+  padding-bottom: 0.764rem;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ============================================
+   profile variant (menu / stickers / Artpoints) — Figma "menu"
+   ============================================ */
+
+/* profile variant: те же стили, что Create/Likes/Upload (28px, контейнер 370px) */
+.profile-tabs--profile {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  width: 100%;
+  max-width: 370px;
+  height: 28px;
+  margin: 0 auto;
+  background: #262626;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.profile-tabs--profile .profile-tabs__list {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+  width: 100%;
+  min-height: 28px;
+  height: 28px;
+  max-height: 28px;
+  background: transparent;
+}
+
+.profile-tabs--profile .profile-tabs__tab {
+  flex: none;
+  flex-grow: 1;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  max-height: 28px;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  font-family: var(--font-family-primary, 'Manrope'), sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: #8A8A8A;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.profile-tabs--profile .profile-tabs__tab::after {
+  display: none;
+}
+
+.profile-tabs--profile .profile-tabs__tab--active {
+  background: #000000;
+  color: #EE449F;
+}
+
+.profile-tabs--profile .profile-tabs__tab:hover:not(.profile-tabs__tab--active) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.profile-tabs--profile .profile-tabs__icon {
+  display: none;
+}
+
+.profile-tabs--profile .profile-tabs__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  font-family: var(--font-family-primary, 'Manrope'), sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: inherit;
+  margin: 0;
+}

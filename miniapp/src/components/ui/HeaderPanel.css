@@ -1,15 +1,31 @@
-/* HeaderPanel Component Styles */
+/* HeaderPanel — шапка на всю ширину, полупрозрачная на всех страницах */
 
 .header-panel {
   width: 100%;
-  max-width: 402px;
-  height: 172px;
+  flex-shrink: 0;
   display: flex;
-  align-items: flex-end;
-  padding: var(--spacing-md);
-  background: var(--component-header-panel-background-color);
-  border-radius: var(--component-header-panel-border-radius);
+  align-items: center;
+  justify-content: center;
+  /* Поверх скроллящегося контента — иначе полупрозрачность и backdrop-filter не видны */
+  position: relative;
+  z-index: var(--z-header, 100);
+  /* Figma: 108px top — резерв под кнопки/status bar Telegram UI */
+  padding: calc(108px + var(--stixly-safe-area-top)) var(--spacing-sm) var(--spacing-md);
+  background: var(--component-header-panel-background-color, rgba(0, 0, 0, 0.5));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 0 0 var(--component-header-panel-border-radius) var(--component-header-panel-border-radius);
   box-sizing: border-box;
+  min-height: var(--component-header-panel-height);
+}
+
+/* Центрированный контейнер контента (ограниченная ширина на больших экранах) */
+.header-panel__inner {
+  width: 100%;
+  max-width: 402px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-panel__content {
@@ -51,17 +67,21 @@
   background: var(--component-header-panel-balance-background-color);
   border-radius: var(--component-header-panel-balance-border-radius);
   flex: 1;
-  min-width: 140px;
+  min-width: 0;
+  max-width: 220px;
 }
 
 .header-panel__balance-text {
   flex: 1;
+  min-width: 0;
   color: var(--color-text);
   font-size: var(--typography-h3-font-size);
   font-weight: var(--typography-h3-font-weight);
   font-family: var(--font-family-base);
   line-height: var(--typography-h3-line-height);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Plus button */
@@ -112,14 +132,9 @@
   opacity: 0.7;
 }
 
-/* Responsive adjustments */
-@media (max-width: 400px) {
-  .header-panel {
-    max-width: 100%;
-  }
-
+/* Responsive: на узких экранах баланс не сжимает кнопки */
+@media (max-width: 360px) {
   .header-panel__balance {
-    min-width: unset;
     padding: 0 var(--spacing-sm);
   }
 

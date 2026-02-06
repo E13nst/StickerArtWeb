@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-;
-import { CloseIcon } from '@/components/ui/Icons';;
+import { CloseIcon } from '@/components/ui/Icons';
 import { ModalBackdrop } from './ModalBackdrop';
 import { LeaderboardUser } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
+import { AuthRequiredCTA } from '@/components/AuthRequiredCTA';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
-;
+import { Avatar } from '@/components/ui/Avatar';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import './LeaderboardModal.css';
 
 interface LeaderboardModalProps {
   open: boolean;
@@ -25,109 +27,34 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
   const displayName = firstName || user.username || `Пользователь #${user.userId}`;
   const initials = getInitials(firstName, lastName || undefined);
   const avatarBgColor = getAvatarColor(firstName || user.username || 'User');
+  const isFirst = index === 0;
 
   return (
     <div
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        py: 0.75,
-        px: 1,
-        borderRadius: 1.5,
-        backgroundColor: index === 0 ? 'var(--tg-theme-button-color)' : 'transparent',
-        transition: 'background-color 0.2s ease',
-        cursor: 'default'
-      }}
+      className={`leaderboard-modal__user-item ${isFirst ? 'leaderboard-modal__user-item--first' : ''}`}
     >
-      {/* Номер места */}
-      <div
-        sx={{
-          minWidth: 24,
-          textAlign: 'center',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          color: index < 3 
-            ? 'var(--tg-theme-text-color)' 
-            : 'var(--tg-theme-hint-color)',
-        }}
-      >
+      <div className="leaderboard-modal__user-item__place">
         {index + 1}
       </div>
-
-      {/* Аватар */}
-      <div sx={{ position: 'relative' }}>
+      <div className="leaderboard-modal__user-item__avatar-wrap">
         <Avatar
           src={avatarBlobUrl || undefined}
-          sx={{
-            width: 36,
-            height: 36,
-            bgcolor: avatarBgColor,
+          size={40}
+          style={{
+            backgroundColor: avatarBgColor,
             fontSize: '0.75rem',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
           }}
         >
           {initials}
         </Avatar>
-        {/* Бейдж места для топ-3 */}
-        {index < 3 && (
-          <div
-            sx={{
-              position: 'absolute',
-              top: -3,
-              right: -3,
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.65rem',
-              fontWeight: 'bold',
-              color: '#000',
-              border: '2px solid var(--tg-theme-bg-color)'
-            }}
-          >
-            {index + 1}
-          </div>
-        )}
       </div>
-
-      {/* Информация о пользователе */}
-      <div sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          variant="body2"
-          sx={{
-            color: index === 0 ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-            fontSize: '0.8125rem',
-            fontWeight: index === 0 ? 600 : 500,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {displayName}
-        </Typography>
+      <div className="leaderboard-modal__user-item__info">
+        {displayName}
       </div>
-
-      {/* Количество публичных стикеров */}
-      <Chip
-        label={user.publicCount}
-        size="small"
-        sx={{
-          height: '24px',
-          fontSize: '0.7rem',
-          backgroundColor: index === 0 
-            ? 'rgba(255, 255, 255, 0.2)' 
-            : 'var(--tg-theme-button-color)',
-          color: index === 0 
-            ? 'var(--tg-theme-button-text-color)' 
-            : 'var(--tg-theme-button-text-color)',
-          fontWeight: 600,
-          minWidth: '40px'
-        }}
-      />
+      <span className="leaderboard-modal__chip">
+        {user.publicCount}
+      </span>
     </div>
   );
 };
@@ -136,26 +63,30 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartYRef = useRef<number | null>(null);
   const hasLoadedRef = useRef<boolean>(false);
 
-  // Загрузка пользователей при открытии модального окна (только один раз)
+  const handleRetryAuth = useCallback(() => {
+    hasLoadedRef.current = false;
+    setRefreshKey((k) => k + 1);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
-    
-    // Если данные уже загружены, не загружаем повторно
-    if (hasLoadedRef.current) {
-      return;
-    }
+    if (hasLoadedRef.current) return;
 
     setLoading(true);
     setError(null);
-    
+    setAuthRequired(false);
+
     apiClient.getUsersLeaderboard(0, 100)
       .then((response) => {
-        setUsers(response.content);
+        setUsers(response.content ?? []);
+        setAuthRequired(!!response.authRequired);
         setLoading(false);
         hasLoadedRef.current = true;
       })
@@ -164,9 +95,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
         setError('Не удалось загрузить лидерборд');
         setLoading(false);
       });
-  }, [open]); // Загружаем только один раз при первом открытии
+  }, [open, refreshKey]);
 
-  // Свайп вниз для закрытия модального окна
   useEffect(() => {
     if (!open) return;
 
@@ -176,22 +106,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
 
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStartYRef.current === null) return;
-
       const deltaY = e.touches[0].clientY - touchStartYRef.current;
-      
-      // Если свайп по заголовку или grab handle, всегда разрешаем закрытие
       const target = e.target as HTMLElement;
       const isHeaderArea = target.closest('[data-modal-header]') !== null;
-      
-      // Если свайп по области списка - проверяем скролл
+
       if (!isHeaderArea && scrollContainerRef.current) {
         const scrollContainer = scrollContainerRef.current;
         const isAtTop = scrollContainer.scrollTop === 0;
-        // Если не на верху списка - не закрываем
         if (!isAtTop) return;
       }
-      
-      // Свайп вниз > 80px - закрываем модальное окно
+
       if (deltaY > 80) {
         e.preventDefault();
         e.stopPropagation();
@@ -234,164 +158,57 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
       <div
         ref={modalContentRef}
         data-modal-content
+        className="leaderboard-modal__content"
         onClick={handleOutsideClick}
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          width: '100%',
-          height: 'auto',
-          maxHeight: { xs: '60vh', sm: '50vh' },
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.75)',
-          backdropFilter: 'blur(15px)',
-          WebkitBackdropFilter: 'blur(15px)',
-          borderTopLeftRadius: '24px',
-          borderTopRightRadius: '24px',
-          touchAction: 'pan-y',
-          zIndex: 'var(--z-modal, 1000)',
-          animation: 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          '@keyframes modalSlideUpFromBottom': {
-            '0%': {
-              opacity: 0,
-              transform: 'translateY(100%)',
-            },
-            '100%': {
-              opacity: 1,
-              transform: 'translateY(0)',
-            },
-          },
-        }}
       >
-        {/* Grab handle для свайпа */}
-        <div
+        <div data-modal-header className="leaderboard-modal__grab-handle" />
+        <button
+          type="button"
+          className="leaderboard-modal__close-btn"
+          onClick={onClose}
+          aria-label="Закрыть"
           data-modal-header
-          sx={{
-            width: '34px',
-            height: '3px',
-            backgroundColor: 'var(--tg-theme-hint-color)',
-            opacity: 0.4,
-            borderRadius: '2px',
-            marginTop: '3px',
-            marginBottom: '3px',
-            alignSelf: 'center',
-            flexShrink: 0,
-          }}
-        />
-
-        {/* Компактный заголовок */}
-        <div
-          data-modal-header
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 2,
-            py: 1,
-            flexShrink: 0,
-          }}
         >
-          <Typography
-            variant="h6"
-            sx={{
-              fontSize: '1rem',
-              fontWeight: 600,
-              color: 'var(--tg-theme-text-color)',
-            }}
+          <CloseIcon />
+        </button>
+        <div className="leaderboard-modal__inner">
+          <div data-modal-header className="leaderboard-modal__header">
+            <h2 className="leaderboard-modal__title">
+              Топ пользователей по добавлениям
+            </h2>
+          </div>
+          <div
+            ref={scrollContainerRef}
+            className="leaderboard-modal__scroll"
+            onClick={(e) => e.stopPropagation()}
           >
-            Топ пользователей по добавленным стикерам
-          </Typography>
-          <IconButton
-            onClick={onClose}
-            size="small"
-            sx={{
-              color: 'var(--tg-theme-text-color)',
-              width: 32,
-              height: 32,
-            }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </div>
-
-        {/* Скроллируемый список */}
-        <div
-          ref={scrollContainerRef}
-          onClick={(e) => e.stopPropagation()}
-          sx={{
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            padding: '8px',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            '&::-webkit-scrollbar': { display: 'none' },
-          }}
-        >
           {loading ? (
-            <div
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                py: 4,
-              }}
-            >
-              <CircularProgress size={32} />
+            <div style={{ padding: '32px 0' }}>
+              <LoadingSpinner message="" />
+            </div>
+          ) : authRequired ? (
+            <div className="leaderboard-modal__empty leaderboard-modal__empty--cta">
+              <AuthRequiredCTA
+                description="Откройте Stixly в Telegram, чтобы видеть лидерборд"
+                buttonText="Открыть @stixlybot"
+                icon="🔐"
+                onRetry={handleRetryAuth}
+              />
             </div>
           ) : error ? (
-            <div
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                py: 4,
-                px: 2,
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'var(--tg-theme-hint-color)',
-                  textAlign: 'center',
-                  fontSize: '0.8125rem',
-                }}
-              >
-                {error}
-              </Typography>
-            </div>
+            <div className="leaderboard-modal__empty">{error}</div>
           ) : users.length === 0 ? (
-            <div
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                py: 4,
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{
-                  color: 'var(--tg-theme-hint-color)',
-                  fontSize: '0.8125rem',
-                }}
-              >
-                Нет данных
-              </Typography>
-            </div>
+            <div className="leaderboard-modal__empty">Нет данных</div>
           ) : (
-            <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+            <div className="leaderboard-modal__list">
               {users.map((user, index) => (
                 <LeaderboardUserItem key={user.userId} user={user} index={index} />
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </ModalBackdrop>
   );
 };
-

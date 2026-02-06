@@ -3,6 +3,501 @@
 @import './common.css';
 
 /* ============================================
+   Head account (Figma ACCOUNT) — шапка профиля
+   Специфичность .page-container повышена, чтобы перекрыть глобальные стили
+   ============================================ */
+
+/* Head account — на всю ширину */
+.page-container .head-account,
+.head-account {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  margin-top: 0;
+  padding: 0;
+}
+
+.head-account--telegram {
+  max-width: none;
+}
+
+/* Вкладки Stickers | Art-points — между head-account и head-account-tabs-wrap */
+.account-main-tabs-wrap {
+  width: 100%;
+  max-width: 402px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+  box-sizing: border-box;
+}
+
+.account-main-tabs {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+  width: 100%;
+  max-width: 370px;
+  height: 28px;
+  margin: 0 auto;
+  background: #262626;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.account-main-tabs__tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  font-family: var(--font-family-primary, 'Manrope'), sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: #8A8A8A;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.account-main-tabs__tab--active {
+  background: #000000;
+  color: #EE449F;
+}
+
+.account-main-tabs__tab:hover:not(.account-main-tabs__tab--active) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Обёртка вкладок Create/Likes/Upload — вне Head account, отдельный блок */
+.head-account-tabs-wrap {
+  width: 100%;
+  max-width: 402px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+  box-sizing: border-box;
+}
+
+/* Карточка Head account — на всю ширину */
+.page-container .head-account__card,
+.head-account__card {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 347px !important;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center;
+  align-items: center;
+  padding: 108px 16px 16px !important;
+  gap: 16px !important;
+  background: #262626 !important;
+  background-color: #262626 !important;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px !important;
+  border: none !important;
+}
+
+.page-container .head-account__avatar,
+.head-account__avatar {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 50% !important;
+  border: 4px solid #1a1a1a !important;
+  overflow: hidden;
+  flex-shrink: 0;
+  order: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #333 !important;
+}
+
+.head-account__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-container .head-account__name,
+.head-account__name {
+  width: 370px;
+  max-width: 100%;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  text-align: center;
+  margin: 0;
+}
+
+.page-container .head-account__info,
+.head-account__info {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  width: 370px;
+  max-width: 100%;
+}
+
+.page-container .head-account__stat,
+.head-account__stat {
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-container .head-account__stat-value,
+.head-account__stat-value {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #EE449F !important;
+}
+
+.page-container .head-account__stat-label,
+.head-account__stat-label {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #fff !important;
+}
+
+.page-container .head-account__wallet,
+.head-account__wallet {
+  width: 370px;
+  max-width: 100%;
+  height: 45px !important;
+  min-height: 45px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: #007AFF !important;
+  background-color: #007AFF !important;
+  border-radius: 16px;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border: none !important;
+}
+
+/* Кнопка Connect wallet (Figma ACCOUNT) */
+.head-account__connect-wallet-btn {
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  color: #fff !important;
+  border: none !important;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 16px !important;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+}
+
+.head-account__connect-wallet-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Адаптивность для узких экранов */
+@media (max-width: 380px) {
+  .page-container .head-account__card,
+  .head-account__card {
+    padding: clamp(64px, 28vw, 108px) 12px 12px !important;
+    gap: clamp(12px, 4vw, 16px) !important;
+  }
+  .page-container .head-account__avatar,
+  .head-account__avatar {
+    width: clamp(64px, 21vw, 80px) !important;
+    height: clamp(64px, 21vw, 80px) !important;
+  }
+  .page-container .head-account__name,
+  .head-account__name {
+    font-size: clamp(16px, 4.5vw, 20px) !important;
+  }
+  .page-container .head-account__info,
+  .head-account__info {
+    gap: 8px;
+    width: 100%;
+  }
+  .page-container .head-account__stat,
+  .head-account__stat {
+    width: 50%;
+    max-width: 180px;
+  }
+  .page-container .head-account__stat-value,
+  .head-account__stat-value {
+    font-size: 16px !important;
+  }
+  .page-container .head-account__stat-label,
+  .head-account__stat-label {
+    font-size: clamp(14px, 4vw, 16px) !important;
+  }
+  .page-container .head-account__wallet,
+  .head-account__wallet {
+    width: 100%;
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+/* ============================================
+   Страница аккаунта — переопределение старых стилей под Figma ACCOUNT
+   ============================================ */
+
+.account-page {
+  --account-surface: #262626;
+  --account-text: #fff;
+  --account-primary: #EE449F;
+  --account-wallet: #007AFF;
+  --account-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+}
+
+/* Фон скролла унифицирован в stixly-header.css (.stixly-main-scroll — #191818 на всех страницах).
+   Класс stixly-main-scroll--account в MainLayout по pathname не меняет фон. */
+
+/* Цвет текста и переменные для страницы аккаунта. */
+.account-page {
+  color: var(--account-text);
+}
+
+/* Любая карточка на странице аккаунта — поверхность #262626 */
+.account-page .card-base {
+  background-color: var(--account-surface) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--account-text);
+}
+
+.account-page .card-content-base {
+  color: var(--account-text);
+}
+
+/* Карточка баланса — как Head account (Figma ACCOUNT) */
+.account-page .my-profile-balance-card,
+.account-page .card-base.my-profile-balance-card {
+  background: var(--account-surface) !important;
+  background-color: var(--account-surface) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: var(--account-shadow) !important;
+  color: var(--account-text);
+}
+
+.account-page .my-profile-balance-title,
+.account-page .my-profile-balance-subtitle,
+.account-page .my-profile-balance-description {
+  color: var(--account-text) !important;
+}
+
+.account-page .my-profile-balance-subtitle,
+.account-page .my-profile-balance-description {
+  opacity: 0.9;
+}
+
+.account-page .my-profile-balance-chip {
+  background-color: var(--account-primary) !important;
+  color: var(--account-text) !important;
+}
+
+/* Табы Create/Likes/Upload (account) — type view по Figma */
+.account-page .profile-tabs.profile-tabs--account {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  max-width: 370px;
+  width: 100%;
+  margin: 0 auto;
+  height: 28px;
+  background: #262626;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  overflow: hidden;
+  color: var(--account-text);
+}
+
+.account-page .profile-tabs--account .profile-tabs__list {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+  width: 100%;
+  min-height: 28px;
+  height: 28px;
+  max-height: 28px;
+  border: none;
+  background: transparent;
+}
+
+.account-page .profile-tabs--account .profile-tabs__tab {
+  flex: none;
+  flex-grow: 1;
+  min-width: 0;
+  min-height: 28px;
+  height: 28px;
+  max-height: 28px;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  color: #8A8A8A;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.account-page .profile-tabs--account .profile-tabs__tab::after {
+  display: none;
+}
+
+.account-page .profile-tabs--account .profile-tabs__tab--active {
+  background: #000000;
+  color: #EE449F;
+}
+
+.account-page .profile-tabs--account .profile-tabs__tab:hover:not(.profile-tabs__tab--active) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.account-page .profile-tabs--account .profile-tabs__icon {
+  display: none;
+}
+
+.account-page .profile-tabs--account .profile-tabs__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: inherit;
+  margin: 0;
+}
+
+/* Контейнер с Search+Filter под вкладками Create/Upload — без фона, с отступами как на GalleryPage2 */
+.account-page .my-profile-tabs-container {
+  background-color: transparent !important;
+  margin-top: var(--spacing-sm, 8px);
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+/* Внутренние табы Загруженные/Понравившиеся — в стиле ACCOUNT */
+.account-page .sticker-sets-tabs {
+  color: var(--account-text) !important;
+}
+
+.account-page .sticker-sets-tabs__tab {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.account-page .sticker-sets-tabs__tab:hover {
+  color: var(--account-text) !important;
+}
+
+.account-page .sticker-sets-tabs__tab--active {
+  color: var(--account-primary) !important;
+}
+
+.account-page .sticker-sets-tabs__tab:not(:last-child)::after {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Type view (Create/Likes/Upload) — высота 28px по Figma */
+.account-page .sticker-sets-tabs__list {
+  min-height: 28px;
+  height: 28px;
+  max-height: 28px;
+}
+
+.account-page .sticker-sets-tabs__tab {
+  min-height: 28px;
+  height: 28px;
+  max-height: 28px;
+  font-size: 16px;
+}
+
+/* Пустые состояния и заголовки */
+.account-page .my-profile-empty-state-title {
+  color: var(--account-text) !important;
+}
+
+.account-page .my-profile-empty-state-message {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.account-page .my-profile-wallet-loading {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Достижения — карточка в стиле ACCOUNT */
+.account-page .achievements-container,
+.account-page .achievements-title,
+.account-page .achievements-list,
+.account-page .achievement-badge,
+.account-page .achievements-description {
+  color: var(--account-text);
+}
+
+.account-page .achievement-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+/* Ошибки и алерты на странице аккаунта */
+.account-page .error-box,
+.account-page .error-alert-inline {
+  background-color: var(--account-surface) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: var(--account-text) !important;
+}
+
+/* CompactControlsBar внутри account-page — отступы как на галерее, фон прозрачный */
+.account-page .compact-controls-bar {
+  background-color: transparent;
+  color: var(--account-text);
+}
+
+/* Горизонтальный отступ контейнера панели — как на GalleryPage2, без лишней полосы по бокам */
+.account-page .compact-controls-bar .compact-controls-bar-inner {
+  padding-left: var(--spacing-md, 16px);
+  padding-right: var(--spacing-md, 16px);
+}
+
+.account-page .tg-search__input,
+.account-page input[type="search"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--account-text) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ============================================
    Стили профильного header
    ============================================ */
 
@@ -290,6 +785,70 @@
 .my-profile-add-button-chip.dark-theme {
   background-color: rgba(135, 182, 255, 0.24);
   color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+/* ============================================
+   Карточки стикеров 177×213px (Figma ACCOUNT)
+   ============================================ */
+
+/* Карточки галереи на странице профиля — фиолетово-розовые сразу (и при загрузке) */
+.account-page .optimized-gallery--account .pack-card,
+.account-page .optimized-gallery--account .pack-card__placeholder {
+  background: rgba(238, 68, 159, 0.2) !important;
+  background-color: rgba(238, 68, 159, 0.2) !important;
+}
+
+.account-page .optimized-gallery--account .pack-card {
+  width: 177px !important;
+  height: 213px !important;
+  aspect-ratio: auto !important;
+  max-width: 177px;
+}
+
+/* ============================================
+   Контент menu (Quest Stixly, activity blocks)
+   ============================================ */
+
+.account-menu-content {
+  padding: 16px 0;
+}
+
+/* ============================================
+   Карточка баланса Artpoints + Creations (вкладка Artpoints)
+   ============================================ */
+
+.my-profile-balance-card--figma .my-profile-balance-row {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+  background: #000;
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+.my-profile-balance-chip-block {
+  flex: 1;
+  padding: 12px;
+  background: #EE449F;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.my-profile-balance-chip-value {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.my-profile-balance-chip-label {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  color: #fff;
 }
 
 /* ============================================

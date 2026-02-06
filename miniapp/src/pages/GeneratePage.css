@@ -1,115 +1,97 @@
-/* GeneratePage Styles */
-/* Using design tokens from tokens.css */
-
+/* GeneratePage — по макету Figma. Фон как на других страницах: .page-container + OtherAccountBackground */
 .generate-page {
-  min-height: 100vh;
-  background-color: var(--color-background);
-  padding: var(--spacing-md);
   padding-bottom: 100px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: 0;
 }
 
-.generate-card {
-  background-color: var(--color-surface);
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-xl);
-  max-width: 600px;
-  margin: 0 auto;
+/* Контент по Figma: 402px, отступы 16px (как Gallery/Dashboard) */
+.generate-page .generate-inner.stixly-page-container,
+.generate-page .generate-inner {
+  max-width: 402px;
+  margin-left: auto;
+  margin-right: auto;
   width: 100%;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-md) var(--spacing-md) 0;
+  box-sizing: border-box;
 }
 
-/* Icon Wrapper */
-.generate-icon-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
+/* Figma: Logo/маскот — "Generation" 8px, #ee449f */
+.generate-logo-label {
+  font-family: var(--font-family-base);
+  font-size: 8px;
+  font-weight: 400;
+  line-height: 22px;
+  color: var(--color-primary);
+  text-align: center;
+  margin: 0 0 var(--spacing-sm) 0;
 }
 
-.generate-icon {
-  width: 64px;
-  height: 64px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.05);
-  }
-}
-
-/* Title */
-.generate-title {
+/* Header — Figma: "Generate a sticker with Stixly Generation", 16px center */
+.generate-header {
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--color-text);
+  text-align: center;
   margin-bottom: var(--spacing-md);
 }
 
-/* Cost Info */
-.generate-cost-info {
-  margin-bottom: var(--spacing-lg);
-}
-
-.generate-cost-value {
-  color: var(--color-primary);
-  font-weight: 700;
-}
-
-/* Form Container */
-.generate-form-container {
+/* Input block (Inpit) — #262626, 16px radius, 370px */
+.generate-form-block {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
-/* Input Wrapper */
 .generate-input-wrapper {
   position: relative;
+  width: 100%;
 }
 
 .generate-input {
   width: 100%;
-  min-height: 120px;
-  padding: var(--spacing-md);
+  min-height: 99px;
+  padding: var(--spacing-sm) var(--spacing-md);
   padding-bottom: var(--spacing-xl);
-  background-color: var(--color-surface-dark);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  border: none;
   border-radius: var(--border-radius-lg);
   color: var(--color-text);
-  font-size: var(--typography-body-font-size);
+  font-size: 12px;
   font-family: var(--font-family-base);
-  line-height: var(--typography-body-line-height);
+  line-height: 12px;
   resize: vertical;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
 }
 
 .generate-input:focus {
   outline: none;
-  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-overlay-primary);
-  background-color: var(--color-surface);
+}
+
+.generate-input--readonly {
+  cursor: default;
+  opacity: 0.9;
 }
 
 .generate-input::placeholder {
   color: var(--color-text-secondary);
-  opacity: 0.6;
 }
 
 .generate-char-counter-inline {
   position: absolute;
   bottom: var(--spacing-sm);
   right: var(--spacing-md);
-  opacity: 0.6;
-  font-family: monospace;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  opacity: 0.8;
 }
 
-/* Checkbox */
+/* Checkbox — Figma: "Delete background", 20×20, stroke #d1d1d6, radius 4 */
 .generate-checkbox-label {
   display: flex;
   align-items: center;
@@ -121,8 +103,39 @@
 .generate-checkbox {
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   cursor: pointer;
-  accent-color: var(--color-primary);
+  flex-shrink: 0;
+  border: 1px solid #d1d1d6;
+  border-radius: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  position: relative;
+}
+.generate-checkbox:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.generate-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--color-text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.generate-checkbox-label span {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--color-text);
 }
 
 .generate-checkbox:disabled {
@@ -130,49 +143,112 @@
   cursor: not-allowed;
 }
 
-/* Submit Button */
+/* Style preset row — Figma: horizontal, 70×70 previews, 16px radius */
+.generate-style-row {
+  margin-top: 0;
+}
+
+/* Button Generate — Figma: #ee449f, 16px radius, height 32px, Bold 16px */
 .generate-button-submit {
   width: 100%;
-  margin-top: var(--spacing-md);
-  font-size: var(--typography-body-large-font-size);
+  max-width: 192px;
+  margin: 0 auto;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 var(--spacing-md) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  line-height: 16px !important;
+  border-radius: var(--border-radius-lg) !important;
+  background-color: var(--color-primary) !important;
+  color: var(--color-text) !important;
+}
+
+/* Cost info — в Figma стоимость в кнопке "Generate 10 ART" */
+.generate-cost-info {
+  margin-bottom: var(--spacing-sm);
+}
+
+.generate-cost-value {
+  color: var(--color-primary);
   font-weight: 700;
 }
 
-/* Status Container (Loading) */
+/* Убираем большую иконку сверху по Figma (оставляем только контент) */
+.generate-icon-wrapper {
+  display: none;
+}
+
+.generate-title {
+  display: none;
+}
+
+/* ========== PROCESS (Please wait...) ========== */
 .generate-status-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-2xl) var(--spacing-md);
-  min-height: 300px;
+  padding: var(--spacing-lg) var(--spacing-md);
+  min-height: 80px;
 }
 
-/* Result Container (Success) */
+.generate-form-block .generate-status-container {
+  padding: var(--spacing-md) 0;
+  min-height: 0;
+}
+
+.generate-status-header {
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+/* Figma: CANCEL 128×32, #262626 */
+.generate-button-cancel {
+  margin-top: var(--spacing-md);
+  width: 128px;
+  max-width: 128px;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 var(--spacing-lg) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: var(--border-radius-lg) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+/* ========== RESULT ========== */
 .generate-result-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .generate-result-image-wrapper {
   width: 100%;
-  max-width: 400px;
+  max-width: 232px;
+  aspect-ratio: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--color-surface-dark);
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  overflow: hidden;
 }
 
 .generate-result-image {
   max-width: 100%;
-  height: auto;
-  border-radius: var(--border-radius-lg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--border-radius-md);
 }
 
 .generate-success-info {
@@ -180,72 +256,72 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
 }
 
 .generate-sticker-saved {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-overlay-light);
-  border-radius: var(--border-radius-md);
-  margin-top: var(--spacing-sm);
+  font-size: 12px;
+  color: var(--color-success);
 }
 
-/* Actions */
-.generate-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+/* Save button — Figma: #000000, 186×32, "Save in stickerset" */
+.generate-action-button.save {
   width: 100%;
-}
-
-.generate-action-button {
-  width: 100%;
+  max-width: 186px;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: var(--border-radius-lg) !important;
+  background-color: #000000 !important;
+  color: var(--color-text) !important;
+  border: none !important;
 }
 
 .generate-button-regenerate {
   width: 100%;
-  margin-top: var(--spacing-sm);
+  max-width: 201px;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: var(--border-radius-lg) !important;
+  background-color: var(--color-primary) !important;
+  color: var(--color-text) !important;
 }
 
-/* Error Container */
+.generate-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+/* ========== ERROR ========== */
 .generate-error-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-2xl) var(--spacing-md);
-  min-height: 300px;
+  min-height: 200px;
   gap: var(--spacing-md);
 }
 
 .generate-button-retry {
-  width: 100%;
-  max-width: 300px;
+  max-width: 201px;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: var(--border-radius-lg) !important;
 }
 
-/* Responsive Design */
-@media (min-width: 768px) {
-  .generate-actions {
-    flex-direction: row;
-  }
-
-  .generate-button-regenerate {
-    max-width: 400px;
-  }
-}
-
-/* Animation for state transitions */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.generate-card > * {
-  animation: fadeIn 0.3s ease-out;
+/* Hint (optional, not in Figma — kept for possible empty-state use) */
+.generate-hint {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-style: italic;
 }

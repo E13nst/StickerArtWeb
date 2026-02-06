@@ -151,6 +151,12 @@ export const EmojiEventsIcon: React.FC<IconProps> = ({ size = 24, color = 'curre
   </svg>
 );
 
+export const MenuIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} className={className} style={style}>
+    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+  </svg>
+);
+
 export const RestoreIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className, style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} className={className} style={style}>
     <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
@@ -172,5 +178,42 @@ export const AddIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor'
 export const CheckIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className, style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} className={className} style={style}>
     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+  </svg>
+);
+
+/* --- Navbar icons (Figma: stroke/fill, specific sizes) --- */
+
+export const NavHomeIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 19 20" fill="none" className={className} style={style}>
+    <path d="M2 8l7.5-6 7.5 6v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8z" stroke={color} strokeWidth="1.48" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M7 20V11h5v9" stroke={color} strokeWidth="1.48" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const NavGalleryIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className={className} style={style}>
+    <rect x="1" y="1" width="6" height="6" rx="1" stroke={color} strokeWidth="1.25"/>
+    <rect x="13" y="1" width="6" height="6" rx="1" stroke={color} strokeWidth="1.25"/>
+    <rect x="1" y="13" width="6" height="6" rx="1" stroke={color} strokeWidth="1.25"/>
+    <rect x="13" y="13" width="6" height="6" rx="1" stroke={color} strokeWidth="1.25"/>
+  </svg>
+);
+
+export const NavSwipeIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 18 20" fill={color} className={className} style={style}>
+    <path d="M9 2L2 11h4v7h6v-7h4L9 2z"/>
+  </svg>
+);
+
+export const NavGenerationIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className={className} style={{ ...style, transform: 'scaleX(-1)' }}>
+    <path d="M10 2l1.5 3 3.5.5-2.5 2.5.6 3.5L10 9.5l-3.1 1.5.6-3.5L5 5.5l3.5-.5L10 2z" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const NavAccountIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColor', className, style }) => (
+  <svg width={size} height={size} viewBox="0 0 15 20" fill="none" className={className} style={style}>
+    <circle cx="7.1" cy="5.5" r="3.5" stroke={color} strokeWidth="1.48"/>
+    <path d="M1 18.5c0-2.5 2.9-4.5 6.1-4.5s6.1 2 6.1 4.5" stroke={color} strokeWidth="1.48" strokeLinecap="round"/>
   </svg>
 );

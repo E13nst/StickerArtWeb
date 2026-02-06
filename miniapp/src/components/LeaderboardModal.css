@@ -1,0 +1,231 @@
+/* LeaderboardModal — Figma List */
+
+.leaderboard-modal__content {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: auto;
+  max-height: min(612px, 85vh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #262626;
+  border-radius: 16px 16px 0 0;
+  touch-action: pan-y;
+  z-index: var(--z-modal, 1000);
+  animation: leaderboardModalSlideUp 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes leaderboardModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Content — Figma: padding 40px 16px 0 */
+.leaderboard-modal__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 40px 16px 0;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Home Indicator / grab handle — Figma: 100px × 4px, top 10px */
+.leaderboard-modal__grab-handle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10px;
+  width: 100px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2.5px;
+  flex-shrink: 0;
+}
+
+/* Header — Figma: center, padding 0 0 32px, gap 10px */
+.leaderboard-modal__header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0 0 32px;
+  gap: 10px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.leaderboard-modal__title {
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 22px;
+  text-align: center;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* Кнопка закрытия — зафиксирована в правом верхнем углу модалки */
+.leaderboard-modal__close-btn {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.leaderboard-modal__close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Scroll area */
+.leaderboard-modal__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leaderboard-modal__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.leaderboard-modal__scroll {
+  scrollbar-width: none;
+}
+
+/* List — Figma: rows with border-bottom, no gap */
+.leaderboard-modal__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Row — Figma: flex row, padding 8px 0, gap 16px, height 56px, border-bottom */
+.leaderboard-modal__user-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 0;
+  gap: 16px;
+  min-height: 56px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  cursor: default;
+  box-sizing: border-box;
+}
+
+.leaderboard-modal__user-item--clickable {
+  cursor: pointer;
+}
+
+.leaderboard-modal__user-item--clickable:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Num — Figma: 20px width, 12px, 400, rgba(255,255,255,0.5) */
+.leaderboard-modal__user-item__place {
+  min-width: 20px;
+  width: 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+/* Avatar — Figma: 40×40; first place: drop-shadow #EE449F */
+.leaderboard-modal__user-item__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.leaderboard-modal__user-item--first .leaderboard-modal__user-item__avatar-wrap {
+  filter: drop-shadow(0 0 20.736px #ee449f);
+}
+
+/* Name — Figma: 16px, 400, 22px line-height, #FFFFFF */
+.leaderboard-modal__user-item__info {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: #ffffff;
+}
+
+/* Progress — Figma: flex-grow 1, justify-end, 16px, #67F56B */
+.leaderboard-modal__chip {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  text-align: right;
+  color: #67f56b;
+  background: none;
+  padding: 0;
+  height: auto;
+}
+
+/* Badge (1/2/3) — в Figma List нет, скрываем */
+.leaderboard-modal__badge {
+  display: none;
+}
+
+.leaderboard-modal__empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 16px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+}
+
+.leaderboard-modal__empty--cta {
+  padding: 24px 16px;
+}
+
+.leaderboard-modal__empty--cta .auth-required-cta {
+  flex: none;
+}

@@ -251,6 +251,8 @@ export interface LeaderboardResponse {
   last: boolean;
   hasNext: boolean;
   hasPrevious: boolean;
+  /** true, если бэкенд вернул 401 — нужна авторизация через бота */
+  authRequired?: boolean;
 }
 
 // Лидерборд авторов
@@ -274,6 +276,8 @@ export interface AuthorsLeaderboardResponse {
   last: boolean;
   hasNext: boolean;
   hasPrevious: boolean;
+  /** true, если бэкенд вернул 401 — нужна авторизация через бота */
+  authRequired?: boolean;
 }
 
 /**

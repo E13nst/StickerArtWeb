@@ -119,8 +119,20 @@
   --component-navbar-border-radius: 16px;
   --component-navbar-font-size: 8px;
   --component-navbar-active-color: var(--color-primary);
+
+  /* Taskbar (Figma: Navbar + Home Indicator area) + safe-area для кнопок Telegram */
+  --stixly-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --stixly-taskbar-height: calc(90.25px + var(--stixly-safe-area-bottom));
+  --stixly-home-indicator-height: 20px;
+  --stixly-home-indicator-pill-height: 5px;
+  --stixly-home-indicator-pill-width: 140px;
+  --stixly-home-indicator-pill-bottom: 8px;
+  --stixly-bottom-nav-height: var(--stixly-taskbar-height);
   
-  /* Header Panel */
+  /* Safe-area для верхней части (status bar, notch) */
+  --stixly-safe-area-top: var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px));
+
+  /* Header Panel — Figma: 172px высота, 108px верхний отступ под Telegram UI */
   --component-header-panel-background-color: rgba(0, 0, 0, 0.5);
   --component-header-panel-border-radius: 16px;
   --component-header-panel-height: 172px;

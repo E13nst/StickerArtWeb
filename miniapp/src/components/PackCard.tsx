@@ -2,8 +2,9 @@ import React, { useCallback, memo, useState, useEffect, useRef, useMemo } from '
 import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
-import { imageCache, videoBlobCache, imageLoader, LoadPriority } from '../utils/imageLoader';
+import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
+import './PackCard.css';
 
 interface Pack {
   id: string;
@@ -36,7 +37,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     triggerOnce: false, // Позволяет паузить видео при выходе из viewport
   });
 
-  const [isFirstStickerReady, setIsFirstStickerReady] = useState(false);
   const [currentStickerIndex, setCurrentStickerIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -54,27 +54,6 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       return pack.title || '';
     }
   }, [pack.title]);
-
-  // Ленивая загрузка первого стикера только когда карточка видна
-  useEffect(() => {
-    if (!inView || !activeSticker || isFirstStickerReady) return;
-
-    const priority = inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
-    
-    const loadPromise = activeSticker.isVideo
-      ? imageLoader.loadVideo(activeSticker.fileId, activeSticker.url, priority)
-      : activeSticker.isAnimated
-        ? imageLoader.loadAnimation(activeSticker.fileId, activeSticker.url, priority)
-        : imageLoader.loadImage(activeSticker.fileId, activeSticker.url, priority);
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), 5000);
-    });
-
-    Promise.race([loadPromise, timeoutPromise])
-      .then(() => setIsFirstStickerReady(true))
-      .catch(() => setIsFirstStickerReady(true)); // Показываем даже при ошибке
-  }, [inView, activeSticker, isFirstStickerReady]);
 
   // Упрощенная ротация стикеров только для видимых карточек
   useEffect(() => {
@@ -131,47 +110,13 @@ const PackCardComponent: React.FC<PackCardProps> = ({
     <div
       ref={ref}
       data-testid="pack-card"
-      className="pack-card"
+      className={`pack-card ${isDimmed ? 'pack-card--dimmed' : ''}`}
       onClick={handleClick}
-      style={{
-        width: '100%',
-        aspectRatio: '1 / 1.618',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        position: 'relative',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        border: '1px solid var(--tg-theme-border-color)',
-        boxShadow: '0 2px 8px var(--tg-theme-shadow-color)',
-        touchAction: 'manipulation',
-        opacity: isDimmed ? 0.5 : 1,
-        filter: isDimmed ? 'grayscale(0.7)' : 'none',
-        willChange: inView ? 'transform' : 'auto',
-      }}
+      style={{ willChange: inView ? 'transform' : 'auto' }}
     >
-      {/* Контент стикера */}
-      <div style={{ 
-        width: '100%', 
-        height: '100%', 
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {!isFirstStickerReady ? (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '48px',
-              color: 'var(--tg-theme-hint-color)',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            }}
-          >
-            {activeSticker?.emoji || '🎨'}
-          </div>
-        ) : activeSticker ? (
+      {/* Контент стикера — показываем сразу, как на Dashboard (AnimatedSticker/img грузят сами) */}
+      <div className="pack-card__content">
+        {activeSticker ? (
           <>
             {activeSticker.isAnimated ? (
               <AnimatedSticker
@@ -231,27 +176,15 @@ const PackCardComponent: React.FC<PackCardProps> = ({
               </div>
             )}
           </>
-        ) : null}
+        ) : (
+          <div className="pack-card__placeholder">
+            {activeSticker?.emoji || '🎨'}
+          </div>
+        )}
       </div>
 
       {/* Заголовок */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'linear-gradient(transparent, var(--tg-theme-overlay-color))',
-          color: 'white',
-          padding: '12px 8px 8px',
-          fontSize: '13px',
-          fontWeight: '500',
-          textAlign: 'center',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}
-      >
+      <div className="pack-card__title-overlay">
         {formattedTitle}
       </div>
 
@@ -264,20 +197,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 
       {/* Бейдж статуса */}
       {isDimmed && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '8px',
-            right: '8px',
-            backgroundColor: 'rgba(244, 67, 54, 0.9)',
-            color: 'white',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            zIndex: 10
-          }}
-        >
+        <div className="pack-card__badge-status">
           {pack.isDeleted ? '❌ Удален' : '🚫 Заблокирован'}
         </div>
       )}

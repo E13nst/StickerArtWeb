@@ -1,10 +1,45 @@
 import React, { useState, useCallback } from 'react';
-;
-import { CloseIcon } from '@/components/ui/Icons';;
+import { CloseIcon } from '@/components/ui/Icons';
 import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { useStickerStore } from '@/store/useStickerStore';
 import { useProfileStore } from '@/store/useProfileStore';
+
+/** Кнопка-иконка без MUI: принимает sx-подобный объект, отображает только простые CSS-свойства. */
+function IconButton({
+  children,
+  onClick,
+  disabled,
+  sx = {},
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  sx?: Record<string, unknown>;
+}) {
+  const style: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    border: 'none',
+    padding: 0,
+    background: 'transparent',
+    width: (sx.width as number) ?? 36,
+    height: (sx.height as number) ?? 36,
+    fontSize: (sx.fontSize as string) ?? '18px',
+    borderRadius: (sx.borderRadius as string) ?? 'var(--tg-radius-s)',
+    backgroundColor: sx.backgroundColor as string,
+    color: sx.color as string,
+    border: (sx.border as string) ?? 'none',
+    transition: (sx.transition as string) ?? 'transform 150ms ease, background-color 150ms ease',
+  };
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} style={style}>
+      {children}
+    </button>
+  );
+}
 
 interface StickerSetActionsProps {
   stickerSet: StickerSetResponse;
@@ -257,7 +292,7 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
         }}
       >
         {shouldShowDelete && (
-          <Tooltip title={getActionConfig('DELETE')?.tooltip}>
+          <span title={getActionConfig('DELETE')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('DELETE')}
               sx={{
@@ -273,11 +308,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             >
               ❌
             </IconButton>
-          </Tooltip>
+          </span>
         )}
 
         {shouldShowBlock && (
-          <Tooltip title={getActionConfig('BLOCK')?.tooltip}>
+          <span title={getActionConfig('BLOCK')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('BLOCK')}
               sx={{
@@ -293,11 +328,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             >
               🚫
             </IconButton>
-          </Tooltip>
+          </span>
         )}
 
         {shouldShowUnblock && (
-          <Tooltip title={getActionConfig('UNBLOCK')?.tooltip}>
+          <span title={getActionConfig('UNBLOCK')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('UNBLOCK')}
               sx={{
@@ -313,11 +348,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             >
               🔄
             </IconButton>
-          </Tooltip>
+          </span>
         )}
 
         {shouldShowPublish && (
-          <Tooltip title={getActionConfig('PUBLISH')?.tooltip}>
+          <span title={getActionConfig('PUBLISH')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('PUBLISH')}
               sx={{
@@ -333,11 +368,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             >
               👁️
             </IconButton>
-          </Tooltip>
+          </span>
         )}
 
         {shouldShowUnpublish && (
-          <Tooltip title={getActionConfig('UNPUBLISH')?.tooltip}>
+          <span title={getActionConfig('UNPUBLISH')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('UNPUBLISH')}
               sx={{
@@ -353,7 +388,7 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
             >
               🙈
             </IconButton>
-          </Tooltip>
+          </span>
         )}
       </div>
 

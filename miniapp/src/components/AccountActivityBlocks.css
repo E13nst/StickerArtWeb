@@ -1,0 +1,235 @@
+/* Account Activity Blocks — Figma ACCOUNT */
+
+/* Quest Stixly Mini Card — 177×176px */
+.quest-stixly-card {
+  width: 177px;
+  height: 176px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.quest-stixly-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quest-stixly-card__title {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 22px;
+  text-align: left;
+}
+
+.quest-stixly-card__description {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  color: #fff;
+  line-height: 22px;
+  text-align: left;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.quest-stixly-card__button {
+  align-self: center;
+  padding: 0 12px;
+  height: 25px;
+  background: #EE449F;
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.quest-stixly-card__button:hover {
+  opacity: 0.9;
+}
+
+/* Activity Block — Daily / Global */
+.activity-block {
+  width: 100%;
+  max-width: 370px;
+  margin: 0 auto 16px;
+  padding: 16px;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+.activity-block--daily {
+  background: rgba(238, 68, 159, 0.2);
+}
+
+.activity-block--global {
+  background: rgba(57, 209, 227, 0.2);
+}
+
+.activity-block__title {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin: 0 0 16px;
+  line-height: 22px;
+}
+
+.activity-block__progress-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 15px;
+  margin-bottom: 16px;
+}
+
+.activity-block__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.activity-block__dot--filled {
+  background: #EE449F;
+}
+
+.activity-block__dot:nth-child(1),
+.activity-block__dot:nth-child(5),
+.activity-block__dot:nth-child(9),
+.activity-block__dot:nth-child(14) {
+  width: 6px;
+  height: 6px;
+}
+
+.activity-block__tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Activity Task Item */
+.activity-task {
+  width: 100%;
+}
+
+.activity-task__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.activity-task__title {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 22px;
+}
+
+.activity-task__reward {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  color: #EE449F;
+  line-height: 22px;
+}
+
+.activity-task__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-task__progress-wrap {
+  flex: 1;
+  min-width: 120px;
+  max-width: 240px;
+  height: 5px;
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.activity-task__progress-bg {
+  position: absolute;
+  inset: 0;
+  background: #8a8a8a;
+  border-radius: 6px;
+}
+
+.activity-task__progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #EE449F;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.activity-task__count {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: #EE449F;
+  min-width: 24px;
+}
+
+.activity-task__badge {
+  padding: 0 8px;
+  height: 25px;
+  border-radius: 16px;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.activity-task__badge--calm {
+  background: #262626;
+  color: #8a8a8a;
+}
+
+.activity-task__badge--calm.activity-task__badge--complete {
+  background: #EE449F;
+  color: #fff;
+}
+
+.activity-task__badge--go-up {
+  background: #262626;
+  color: #8a8a8a;
+}
+
+.activity-task__badge--active {
+  background: #EE449F;
+  color: #fff;
+}
+
+/* Mini blocks grid */
+.account-quests-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 177px);
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 16px;
+}

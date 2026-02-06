@@ -21,23 +21,36 @@ interface Pack {
 interface OptimizedGalleryProps {
   packs: Pack[];
   onPackClick?: (packId: string) => void;
+  getLikesCount?: (packId: string) => number;
+  onLikeClick?: (packId: string) => void;
   hasNextPage?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   scrollElement?: HTMLElement | null;
+  /** Figma ACCOUNT: карточки 177×213px */
+  variant?: 'default' | 'account' | 'gallery';
 }
 
 // Константы для отступов
 const GAP = 8; // Отступ между карточками
 const HORIZONTAL_PADDING = 8; // Боковые отступы
+/** Content_gallery Figma: 16px gap, 0 — боковые отступы в контейнере */
+const GAP_GALLERY = 16;
+const HORIZONTAL_PADDING_GALLERY = 0;
+
+const CARD_WIDTH_ACCOUNT = 177;
+const CARD_HEIGHT_ACCOUNT = 213;
 
 export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
   packs,
   onPackClick,
+  getLikesCount,
+  onLikeClick,
   hasNextPage = false,
   isLoadingMore = false,
   onLoadMore,
-  scrollElement
+  scrollElement,
+  variant = 'default'
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -72,17 +85,22 @@ export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
     return result;
   }, [packs, columnCount]);
 
+  const isAccountVariant = variant === 'account' || variant === 'gallery';
+  const isGalleryVariant = variant === 'gallery';
+  const gap = isGalleryVariant ? GAP_GALLERY : GAP;
+  const horizontalPadding = isGalleryVariant ? HORIZONTAL_PADDING_GALLERY : HORIZONTAL_PADDING;
+
   // Вычисляем примерную высоту карточки
   const estimateRowHeight = useCallback(() => {
+    if (isAccountVariant) {
+      return CARD_HEIGHT_ACCOUNT + gap;
+    }
     if (typeof window === 'undefined') return 200;
     const width = window.innerWidth;
-    // Ширина одной карточки = (ширина экрана - боковые отступы - gap между карточками) / количество колонок
-    const cardWidth = (width - HORIZONTAL_PADDING * 2 - GAP * (columnCount - 1)) / columnCount;
-    // Высота карточки по aspect ratio (1 / 1.618 означает высота = ширина * 1.618)
+    const cardWidth = (width - horizontalPadding * 2 - gap * (columnCount - 1)) / columnCount;
     const cardHeight = cardWidth * 1.618;
-    // Высота строки = высота карточки + постоянный gap между строками
-    return cardHeight + GAP;
-  }, [columnCount]);
+    return cardHeight + gap;
+  }, [columnCount, variant, isAccountVariant, gap, horizontalPadding]);
 
   // Виртуализация строк
   const rowVirtualizer = useVirtualizer({
@@ -127,6 +145,13 @@ export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
     <div
       ref={parentRef}
       data-testid="gallery-container"
+      className={
+        isGalleryVariant
+          ? 'optimized-gallery optimized-gallery--account optimized-gallery--gallery'
+          : isAccountVariant
+            ? 'optimized-gallery optimized-gallery--account'
+            : 'optimized-gallery'
+      }
       style={{
         width: '100%',
         height: scrollElement ? 'auto' : '100vh',
@@ -156,8 +181,8 @@ export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
                 left: 0,
                 width: '100%',
                 // Минимальная высота на основе оценки, но карточки могут её увеличить
-                minHeight: `${virtualRow.size - GAP}px`,
-                paddingBottom: `${GAP}px`, // Постоянный gap между строками через padding
+                minHeight: `${virtualRow.size - gap}px`,
+                paddingBottom: `${gap}px`, // Постоянный gap между строками через padding
                 transform: `translateY(${virtualRow.start}px)`,
                 boxSizing: 'border-box',
               }}
@@ -165,10 +190,13 @@ export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
-                  gap: `${GAP}px`, // Gap для горизонтальных отступов между карточками в строке
-                  padding: `0 ${HORIZONTAL_PADDING}px`,
+                  gridTemplateColumns: isAccountVariant
+                    ? `repeat(2, ${CARD_WIDTH_ACCOUNT}px)`
+                    : `repeat(${columnCount}, 1fr)`,
+                  gap: `${gap}px`,
+                  padding: `0 ${horizontalPadding}px`,
                   alignContent: 'start',
+                  justifyContent: isAccountVariant ? 'center' : undefined,
                 }}
               >
                 {row.map((pack) => (

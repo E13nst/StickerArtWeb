@@ -4,7 +4,6 @@ import { LeaderboardAuthor } from '@/types/sticker';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { AuthorsLeaderboardModal } from './AuthorsLeaderboardModal';
-import { Text } from '@/components/ui/Text';
 import './TopAuthors.css';
 
 interface TopAuthorsProps {
@@ -13,10 +12,16 @@ interface TopAuthorsProps {
 
 interface AuthorItemProps {
   author: LeaderboardAuthor;
-  index: number;
+  place: 1 | 2 | 3; /* 1 = центр (крупный), 2 = слева, 3 = справа */
 }
 
-const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
+const BADGE_COLORS: Record<number, string> = {
+  1: '#FFC424',
+  2: '#919191',
+  3: '#DB7F13',
+};
+
+const AuthorItem: React.FC<AuthorItemProps> = ({ author, place }) => {
   const navigate = useNavigate();
   const { avatarBlobUrl } = useUserAvatar(author.authorId);
   const firstName = author.firstName || '';
@@ -30,12 +35,11 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
   };
 
   return (
-    <div 
+    <div
       onClick={handleClick}
-      className={`top-author-item ${index === 0 ? 'top-author-item--first' : ''}`}
+      className={`top-author-item top-author-item--place-${place}`}
       style={{ cursor: 'pointer' }}
     >
-      {/* Аватар */}
       <div className="top-author-avatar-container">
         <div className="top-author-avatar" style={{ backgroundColor: avatarBgColor }}>
           {avatarBlobUrl ? (
@@ -44,34 +48,12 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, index }) => {
             <span className="top-author-avatar-initials">{initials}</span>
           )}
         </div>
-        {/* Бейдж места */}
-        {index < 3 && (
-          <div 
-            className="top-author-badge"
-            style={{
-              backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'
-            }}
-          >
-            {index + 1}
-          </div>
-        )}
+        <div className="top-author-badge" style={{ backgroundColor: BADGE_COLORS[place] }}>
+          {place}
+        </div>
       </div>
-
-      {/* Информация об авторе */}
-      <div className="top-author-info">
-        <Text 
-          variant="bodySmall" 
-          weight={index === 0 ? 'semibold' : 'regular'}
-          className={`top-author-name ${index === 0 ? 'top-author-name--first' : ''}`}
-        >
-          {displayName}
-        </Text>
-      </div>
-
-      {/* Количество публичных стикерсетов */}
-      <span className={`top-author-count ${index === 0 ? 'top-author-count--first' : ''}`}>
-        {author.publicCount}
-      </span>
+      <span className="top-author-name">{displayName}</span>
+      <span className="top-author-count">{author.publicCount} Created</span>
     </div>
   );
 };
@@ -87,25 +69,24 @@ export const TopAuthors: React.FC<TopAuthorsProps> = ({ authors }) => {
     setIsModalOpen(false);
   };
 
+  /* Порядок по Figma: слева 2-е место, по центру 1-е, справа 3-е */
+  const topThree: Array<{ author: LeaderboardAuthor; place: 1 | 2 | 3 }> = [
+    ...(authors[1] ? [{ author: authors[1], place: 2 as const }] : []),
+    ...(authors[0] ? [{ author: authors[0], place: 1 as const }] : []),
+    ...(authors[2] ? [{ author: authors[2], place: 3 as const }] : []),
+  ];
+
   return (
     <>
       <div className="top-authors-card card-base">
-        <Text variant="caption" color="hint" className="top-authors-title">
-          Топ авторов стикерсетов
-        </Text>
-        
+        <h2 className="top-authors-title">Топ авторов</h2>
         <div className="top-authors-list">
-          {authors.map((author, index) => (
-            <AuthorItem key={author.authorId} author={author} index={index} />
+          {topThree.map(({ author, place }) => (
+            <AuthorItem key={author.authorId} author={author} place={place} />
           ))}
         </div>
-        
-        {/* Ссылка "Полный список" */}
         <div className="top-authors-footer">
-          <button
-            onClick={handleOpenModal}
-            className="top-authors-link"
-          >
+          <button type="button" onClick={handleOpenModal} className="top-authors-link">
             Полный список
           </button>
         </div>

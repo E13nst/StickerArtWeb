@@ -1,0 +1,345 @@
+/* CompactControlsBar - панель поиска и фильтров (дизайн-система) */
+
+.compact-controls-bar {
+  position: relative;
+  left: auto;
+  right: auto;
+  width: 100%;
+  max-width: none;
+  z-index: var(--z-ui-controls, 200);
+  background-color: transparent;
+  padding: 0;
+}
+
+.compact-controls-bar--fixed {
+  position: fixed;
+  left: 50%;
+  width: 100%;
+  max-width: 600px;
+  transform: translateX(-50%);
+  top: var(--compact-controls-bar-top, var(--stixly-header-height, 0px));
+}
+
+.compact-controls-bar-inner {
+  padding: 0 var(--spacing-sm);
+}
+
+/* Search + filter — пилюля по Figma: #262626, тень, 30px высота, gap 16px */
+.compact-controls-bar__row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px 0 4px;
+  height: 30px;
+  min-height: 30px;
+  background: #262626;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 30px;
+  box-sizing: border-box;
+}
+
+/* Frame 50 — поле поиска: тёмный полупрозрачный фон, рамка #8A8A8A */
+.compact-controls-bar__search-slot {
+  flex: none;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.compact-controls-bar__search-slot .search-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 18px;
+  gap: 10px;
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #8A8A8A;
+  border-radius: 32px;
+  box-shadow: none;
+}
+
+.compact-controls-bar__search-slot .search-bar:focus-within {
+  box-shadow: none;
+  border-color: #8A8A8A;
+}
+
+/* Плейсхолдер и текст — Manrope 12px, #8A8A8A (Figma Search) */
+.compact-controls-bar__search-slot .search-bar__input,
+.compact-controls-bar__search-slot .search-bar__input::placeholder {
+  color: #8A8A8A;
+  font-family: 'Manrope', var(--font-family-base);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  background: none !important;
+  border: none !important;
+}
+
+.compact-controls-bar__search-slot .search-bar__input {
+  padding: 0;
+}
+
+/* В Figma внутри поля только плейсхолдер "Search", иконку лупы скрываем */
+.compact-controls-bar__search-slot .search-bar__search {
+  display: none;
+}
+
+.compact-controls-bar__search-slot .search-bar__icon-button.search-bar__clear {
+  color: #8A8A8A;
+}
+
+/* Frame 51 — Date + иконки: 55px, высота 20px, цвет #8A8A8A */
+.compact-controls-bar__date-slot {
+  flex: none;
+  flex-grow: 0;
+  width: 55px;
+  min-width: 55px;
+  height: 20px;
+}
+
+.compact-controls-bar__date-slot > div {
+  width: 100%;
+  height: 100%;
+}
+
+.compact-controls-bar__date-slot button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  gap: 4px;
+  height: 20px;
+  min-height: 20px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #8A8A8A !important;
+  font-family: 'Manrope', var(--font-family-base);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+}
+
+.compact-controls-bar__date-slot button:hover:not(:disabled) {
+  background: transparent !important;
+  color: #8A8A8A !important;
+  opacity: 0.9;
+}
+
+.compact-controls-bar__date-slot button svg {
+  color: #8A8A8A;
+}
+
+.compact-controls-bar__row--with-extra {
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Кнопка фильтра — иконка на панели, без своего фона (Figma: Vector на #262626) */
+.compact-controls-bar__btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  background: transparent;
+  color: #8A8A8A;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Manrope', var(--font-family-base);
+  transition: opacity 0.2s ease;
+  outline: none;
+  border: none;
+  box-shadow: none;
+  user-select: none;
+}
+
+.compact-controls-bar__btn:hover {
+  background: transparent;
+  opacity: 0.9;
+}
+
+.compact-controls-bar__btn--active {
+  background: transparent;
+  color: #8A8A8A;
+  opacity: 1;
+}
+
+.compact-controls-bar__btn svg {
+  width: 20px;
+  height: 19px;
+  color: #8A8A8A;
+}
+
+.compact-controls-bar__btn-add {
+  flex: 1 1 auto;
+  padding: 0 0.75rem;
+  gap: 0.42rem;
+}
+
+.compact-controls-bar__add-plus {
+  font-size: var(--typography-body-small-font-size);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  font-weight: 400;
+}
+
+.compact-controls-bar__add-badge {
+  font-size: 0.6875rem;
+  opacity: 0.88;
+  background: var(--color-surface);
+  padding: 2px 5px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--compact-controls-bar-border);
+}
+
+/* Окно фильтров */
+.compact-controls-bar__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-overlay, 400);
+  background-color: transparent;
+  pointer-events: auto;
+}
+
+.compact-controls-bar__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0.618rem;
+  margin-top: var(--spacing-sm);
+  z-index: var(--z-dropdown, 300);
+  max-width: 200px;
+  animation: compact-controls-bar-fadeSlideIn 0.2s ease;
+}
+
+.compact-controls-bar__dropdown-panel {
+  background: var(--color-surface);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.compact-controls-bar__dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.compact-controls-bar__dropdown-title {
+  font-size: var(--typography-body-small-font-size);
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.9;
+  font-family: var(--font-family-base);
+}
+
+.compact-controls-bar__dropdown-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.compact-controls-bar__btn-reset {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0;
+  opacity: 0.6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.2s;
+}
+
+.compact-controls-bar__btn-reset:hover {
+  opacity: 1;
+}
+
+.compact-controls-bar__btn-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text);
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s, background 0.2s;
+  border-radius: var(--border-radius-sm);
+}
+
+.compact-controls-bar__btn-close:hover {
+  opacity: 1;
+  background: var(--color-overlay-light);
+}
+
+/* Search+filter по Figma всегда в тёмной панели #262626; переменные оставлены для dropdown и др. */
+:root {
+  --compact-controls-bar-glass: rgba(0, 0, 0, 0.35);
+  --compact-controls-bar-glass-hover: rgba(0, 0, 0, 0.45);
+  --compact-controls-bar-border: #8A8A8A;
+  --compact-controls-bar-shadow: rgba(0, 0, 0, 0.2);
+}
+
+@keyframes compact-controls-bar-fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Панель фильтров в портале: та же структура, что у SortDropdown (sort-dropdown__panel > sort-dropdown__inner) */
+.compact-controls-bar__filters-inner {
+  align-items: stretch;
+  gap: 0;
+}
+
+.compact-controls-bar__filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 8px;
+}
+
+.compact-controls-bar__filters-header .sort-dropdown__title {
+  font-size: 32px;
+  margin: 0;
+}
+
+.compact-controls-bar__filters-content {
+  padding: 0 24px 16px;
+}
+
+.compact-controls-bar__filters-sort {
+  padding: 0 24px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 16px;
+}

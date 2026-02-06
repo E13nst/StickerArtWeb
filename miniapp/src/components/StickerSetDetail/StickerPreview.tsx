@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-;
 import { AnimatedSticker } from '../AnimatedSticker';
 import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache } from '@/utils/imageLoader';
 import { getStickerImageUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
@@ -160,7 +159,16 @@ const renderStickerMedia = (
           borderRadius: '8px'
         }}
       >
-        <CircularProgress size={40} />
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            border: '3px solid rgba(255,255,255,0.2)',
+            borderTopColor: 'var(--tg-theme-button-color, #2481cc)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
       </div>
     );
   }

@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import StixlyTopHeader from '@/components/StixlyTopHeader';
+import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useTelegram } from '@/hooks/useTelegram';
-import { useHeaderColor } from '@/hooks/useHeaderColor';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 
 interface Props {
@@ -13,28 +12,17 @@ interface Props {
 
 export default function MainLayout({ children }: Props) {
   const location = useLocation();
-  const isProfilePage = location.pathname.startsWith('/profile');
-  const isAuthorPage = location.pathname.startsWith('/author');
-  const isDashboardPage = location.pathname === '/' || location.pathname.startsWith('/dashboard');
-  const isSwipePage = location.pathname.startsWith('/nft-soon');
-  const { updateHeaderColor, isReady } = useTelegram();
-  const [currentSlideBg, setCurrentSlideBg] = useState<string | undefined>();
+  const pathname = location.pathname;
+  const isSwipePage = pathname.startsWith('/nft-soon');
+  const hideHeaderPanel = pathname === '/profile' || pathname.startsWith('/author/');
+  const { isReady } = useTelegram();
   const mainScrollRef = useRef<HTMLDivElement>(null);
-  const isHeaderVisible = !isProfilePage && !isAuthorPage;
-  
-  // Используем хук для определения цвета header
-  // onColorChange уже вызывает updateHeaderColor, поэтому не нужно дублировать в useEffect
-  const headerColor = useHeaderColor({
-    currentSlideBg,
-    onColorChange: updateHeaderColor || undefined
-  });
 
-  // Сброс scroll позиции при навигации между страницами с header
   useEffect(() => {
-    if (mainScrollRef.current && isHeaderVisible) {
+    if (mainScrollRef.current) {
       mainScrollRef.current.scrollTop = 0;
     }
-  }, [location.pathname, isHeaderVisible]);
+  }, [location.pathname]);
   
   // Не рендерим layout до стабильного viewport
   if (!isReady) {
@@ -59,34 +47,26 @@ export default function MainLayout({ children }: Props) {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        overflow: isSwipePage ? 'hidden' : 'visible',
-        // Гарантируем, что header не обрезается этим контейнером
         overflowX: 'hidden',
-        overflowY: 'visible'
+        overflowY: isSwipePage ? 'hidden' : 'visible',
       }}
     >
-      {isHeaderVisible && (
-        <StixlyTopHeader
-          onSlideChange={setCurrentSlideBg}
-          fixedSlideId={isDashboardPage ? 2 : undefined}
-        />
-      )}
+      {!hideHeaderPanel && <HeaderPanel />}
       <ScrollProvider scrollElement={mainScrollRef.current}>
         <div
           ref={mainScrollRef}
-          className="stixly-main-scroll"
+          className={`stixly-main-scroll${pathname === '/profile' ? ' stixly-main-scroll--account' : ''}`}
           style={{
+            position: 'relative',
             flex: '1 1 auto',
             height: isSwipePage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
             overflowY: isSwipePage ? 'hidden' : 'auto',
             overflowX: 'hidden',
-            paddingBottom: isSwipePage
-              ? 0
-              : 'calc(100vh * 0.062 + 100vh * 0.024 + 24px)', // высота навигации + отступ снизу + дополнительное пространство
+            paddingBottom: isSwipePage ? 0 : 'var(--stixly-taskbar-height, 90.25px)', // Taskbar: Navbar + Home Indicator (Figma)
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {children}
+          <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
         </div>
       </ScrollProvider>
       <BottomNav />

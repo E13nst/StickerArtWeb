@@ -331,6 +331,16 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       return typeof valid === 'number' ? valid : null;
     };
 
+    const mergeProfileWithPhoto = (
+      profile: UserInfo,
+      photo: { profilePhotoFileId?: string; profilePhotos?: any } | null
+    ): UserInfo => {
+      if (photo?.profilePhotoFileId || photo?.profilePhotos) {
+        return { ...profile, profilePhotoFileId: photo.profilePhotoFileId, profilePhotos: photo.profilePhotos };
+      }
+      return profile;
+    };
+
     try {
       const me = await apiClient.getMyProfile();
 
@@ -338,11 +348,15 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         const fallbackId = resolveCandidateId();
         if (fallbackId !== null) {
           try {
-            const profile = await apiClient.getProfile(fallbackId);
+            const [profile, photo] = await Promise.all([
+              apiClient.getProfile(fallbackId),
+              apiClient.getUserPhoto(fallbackId).catch(() => null),
+            ]);
+            const userInfoWithPhoto = mergeProfileWithPhoto(profile, photo);
             set({
-              userInfo: profile,
-              currentUserId: profile.telegramId ?? profile.id ?? fallbackId,
-              currentUserRole: profile.role ?? currentUserRole ?? null,
+              userInfo: userInfoWithPhoto,
+              currentUserId: userInfoWithPhoto.telegramId ?? userInfoWithPhoto.id ?? fallbackId,
+              currentUserRole: userInfoWithPhoto.role ?? currentUserRole ?? null,
             });
           } catch (profileError) {
             console.warn('Не удалось загрузить профиль пользователя (fallback):', profileError);
@@ -364,14 +378,26 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
         if (needsFullProfile && typeof me.userId === 'number') {
           try {
-            const profile = await apiClient.getProfile(me.userId);
+            const [profile, photo] = await Promise.all([
+              apiClient.getProfile(me.userId),
+              apiClient.getUserPhoto(me.userId).catch(() => null),
+            ]);
+            const userInfoWithPhoto = mergeProfileWithPhoto(profile, photo);
             set({
-              userInfo: profile,
-              currentUserId: profile.telegramId ?? profile.id ?? nextUserId,
-              currentUserRole: profile.role ?? nextRole ?? null,
+              userInfo: userInfoWithPhoto,
+              currentUserId: userInfoWithPhoto.telegramId ?? userInfoWithPhoto.id ?? nextUserId,
+              currentUserRole: userInfoWithPhoto.role ?? nextRole ?? null,
             });
           } catch (profileError) {
             console.warn('Не удалось загрузить полный профиль пользователя:', profileError);
+          }
+        } else if (typeof me.userId === 'number') {
+          try {
+            const photo = await apiClient.getUserPhoto(me.id).catch(() => null);
+            const userInfoWithPhoto = mergeProfileWithPhoto(me, photo);
+            set({ userInfo: userInfoWithPhoto });
+          } catch {
+            set({ userInfo: me });
           }
         }
       }
@@ -384,11 +410,15 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       const fallbackId = resolveCandidateId(fallbackUserId);
       if (fallbackId !== null) {
         try {
-          const profile = await apiClient.getProfile(fallbackId);
+          const [profile, photo] = await Promise.all([
+            apiClient.getProfile(fallbackId),
+            apiClient.getUserPhoto(fallbackId).catch(() => null),
+          ]);
+          const userInfoWithPhoto = mergeProfileWithPhoto(profile, photo);
           set({
-            userInfo: profile,
-            currentUserId: profile.telegramId ?? profile.id ?? fallbackId,
-            currentUserRole: profile.role ?? currentUserRole ?? null,
+            userInfo: userInfoWithPhoto,
+            currentUserId: userInfoWithPhoto.telegramId ?? userInfoWithPhoto.id ?? fallbackId,
+            currentUserRole: userInfoWithPhoto.role ?? currentUserRole ?? null,
           });
         } catch (profileError) {
           console.warn('Не удалось загрузить профиль пользователя после ошибки:', profileError);

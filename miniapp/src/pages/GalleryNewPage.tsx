@@ -21,9 +21,14 @@ import { Category, CategoryFilter } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
+
+const cn = (...classes: (string | boolean | undefined | null)[]): string => {
+  return classes.filter(Boolean).join(' ');
+};
 
 export const GalleryNewPage: React.FC = () => {
-  const { tg, user, initData } = useTelegram();
+  const { tg, user, initData, isInTelegramApp } = useTelegram();
   const scrollElement = useScrollElement();
   const {
     isLoading,
@@ -256,7 +261,8 @@ export const GalleryNewPage: React.FC = () => {
   const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
 
   return (
-    <>
+    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
+      <OtherAccountBackground />
       {/* Fixed top panel */}
       <div
         sx={{
@@ -436,7 +442,7 @@ export const GalleryNewPage: React.FC = () => {
           fetchStickerSets(0);
         }}
       />
-    </>
+    </div>
   );
 };
 

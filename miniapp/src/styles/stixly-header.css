@@ -6,9 +6,9 @@
   --stixly-header-height: 140px; /* Default header height, will be updated dynamically */
 }
 
-/* The gallery/page base body color (fallback when header not visible) */
+/* Единый фон #191818 (fallback когда контент ещё не отрисован) */
 html, body {
-  background-color: #0E0F1A;
+  background-color: #191818;
 }
 
 /* StixlyTopHeader - Fixed positioning with safe area support */
@@ -96,13 +96,18 @@ header.stixlytopheader > .stixly-top-header > * {
   }
 }
 
-/* Main scroll container */
+/* Main scroll container — единый фон #191818 на всех страницах, SVG поверх (если задан) */
 .stixly-main-scroll {
   flex: 1 1 auto;
   height: calc(100vh - var(--stixly-bottom-nav-height, 0px));
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  background-color: #191818;
+  background-image: var(--other-account-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Conditional padding-top only when header is visible */

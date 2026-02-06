@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { SearchBar } from './SearchBar';
 import { CategoryFilter, Category } from './CategoryFilter';
-import { StickerTypeDropdown } from './StickerTypeDropdown';
-import { DateFilterDropdown } from './DateFilterDropdown';
 import { SortDropdown } from './SortDropdown';
 import { StickerSetTypeFilter, StickerSetType } from './StickerSetTypeFilter';
+import './CompactControlsBar.css';
+import './SortDropdown.css';
 
 interface CompactControlsBarProps {
   // Search
@@ -37,8 +38,8 @@ interface CompactControlsBarProps {
   selectedDate: string | null;
   onDateChange: (dateId: string) => void;
   
-  // Add button
-  onAddClick: () => void;
+  /** Кнопка «Добавить» не входит в блок Search + filter по Figma; оставлено для совместимости, можно рендерить отдельно на странице */
+  onAddClick?: () => void;
   
   // Apply filters callback
   onApplyFilters?: () => void;
@@ -48,13 +49,6 @@ interface CompactControlsBarProps {
 }
 
 // SVG Icons
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8"></circle>
-    <path d="m21 21-4.35-4.35"></path>
-  </svg>
-);
-
 const TuneIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="4" y1="21" x2="4" y2="14"></line>
@@ -99,80 +93,20 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   variant = 'fixed',
 }) => {
   const { tg } = useTelegram();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
   
-  // States for expansion
-  const [searchExpanded, setSearchExpanded] = useState(false);
+  // State for filters expansion (search always visible in row per Figma Search + filter)
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   
   // Ref for filters dropdown to handle clicks outside
   const filtersMenuRef = useRef<HTMLDivElement>(null);
-  // Ref for filters button to exclude it from outside click handler
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Glass effect colors - используем цвета из Telegram theme
-  const themeParams = tg?.themeParams;
-  
-  // Используем CSS переменные Telegram для лучшей совместимости с темой
-  const textColorResolved = isLight 
-    ? 'var(--tg-theme-text-color, #0D1B2A)'
-    : 'var(--tg-theme-button-text-color, #ffffff)';
-  
-  // Glass effect с учетом темы
-  const glassBase = isLight 
-    ? 'rgba(164, 206, 255, 0.28)' 
-    : 'rgba(88, 138, 255, 0.20)';
-  const glassSolid = isLight 
-    ? 'rgba(164, 206, 255, 0.42)' 
-    : 'rgba(78, 132, 255, 0.20)';
-  const glassHover = isLight 
-    ? 'rgba(148, 198, 255, 0.38)' 
-    : 'rgba(98, 150, 255, 0.34)';
-  const borderColor = isLight 
-    ? 'rgba(170, 210, 255, 0.52)' 
-    : 'rgba(118, 168, 255, 0.24)';
-  
-  // Background color с учетом темы Telegram
-  const bgColorBase = themeParams?.secondary_bg_color 
-    ? themeParams.secondary_bg_color 
-    : (isLight ? '#f8f9fa' : '#131415');
-  
-  // Конвертируем hex в rgba с прозрачностью для glass effect
-  const hexToRgb = (hex: string): string => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (result) {
-      return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
-    }
-    return isLight ? '248, 251, 255' : '18, 22, 29';
-  };
-  
-  const bgColor = `rgba(${hexToRgb(bgColorBase)}, 0.95)`;
-
-  // Toggle search expansion
-  const handleSearchToggle = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred('light');
-    setSearchExpanded(prev => !prev);
-    if (filtersExpanded) {
-      setFiltersExpanded(false);
-    }
-  }, [tg, filtersExpanded]);
 
   // Toggle filters expansion
   const handleFiltersToggle = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
     tg?.HapticFeedback?.impactOccurred('light');
     setFiltersExpanded(prev => !prev);
-    if (searchExpanded) {
-      setSearchExpanded(false);
-    }
-  }, [tg, searchExpanded]);
-
-  // Handle add button click
-  const handleAddClick = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred('light');
-    onAddClick();
-  }, [tg, onAddClick]);
+  }, [tg]);
 
   // Handle reset filters
   const handleResetFilters = useCallback(() => {
@@ -201,18 +135,15 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     setFiltersExpanded(false);
   }, [tg, onApplyFilters]);
 
-  // Close filters menu when clicking outside
+  // Close filters menu when clicking outside (panel рендерится в portal в body)
   useEffect(() => {
     if (!filtersExpanded) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (
-        filtersButtonRef.current?.contains(target) ||
-        filtersMenuRef.current?.contains(target)
-      ) {
-        return;
-      }
+      const el = target as Element;
+      if (filtersButtonRef.current?.contains(target) || filtersMenuRef.current?.contains(target)) return;
+      if (el.closest?.('[data-sort-dropdown-panel]')) return;
       setFiltersExpanded(false);
     };
 
@@ -226,395 +157,103 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     };
   }, [filtersExpanded]);
 
-  // Base button styles
-  const iconButtonStyle: React.CSSProperties = {
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0 0.65rem',
-    borderRadius: '0.75rem',
-    background: glassBase,
-    backgroundColor: glassSolid,
-    color: textColorResolved,
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    outline: 'none',
-    border: `1px solid ${borderColor}`,
-    boxShadow: isLight 
-      ? '0 4px 12px rgba(30, 72, 185, 0.10)' 
-      : '0 4px 12px rgba(28, 48, 108, 0.20)',
-    height: '2.2rem',
-    minWidth: '2.2rem',
-    userSelect: 'none',
-    opacity: 0.85,
-    backdropFilter: 'blur(12px) saturate(150%)',
-    WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-  };
-
-  const addButtonStyle: React.CSSProperties = {
-    ...iconButtonStyle,
-    flex: '1 1 auto',
-    padding: '0 0.75rem',
-    gap: '0.42rem',
-  };
-
   const isFixed = variant === 'fixed';
+  const rowHasExtra = filtersExpanded;
   
   return (
     <div
-      className="compact-controls-bar"
-      style={{
-        position: isFixed ? 'fixed' : 'relative',
-        top: isFixed ? 'var(--stixly-header-height, 0px)' : 'auto',
-        left: isFixed ? '50%' : 'auto',
-        right: isFixed ? 'auto' : 'auto',
-        width: isFixed ? '100%' : 'auto',
-        maxWidth: isFixed ? '600px' : 'none',
-        transform: isFixed ? 'translateX(-50%)' : 'none',
-        zIndex: 'var(--z-ui-controls, 200)',
-        backgroundColor: 'transparent',
-        padding: 0,
-      }}
+      className={`compact-controls-bar ${isFixed ? 'compact-controls-bar--fixed' : ''}`}
     >
       <div className="compact-controls-bar-inner">
-      {/* Main controls row */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          marginBottom: searchExpanded || filtersExpanded ? '0.5rem' : 0,
-        }}
-      >
-        {/* Filters button */}
-        <button
-          ref={filtersButtonRef}
-          onClick={handleFiltersToggle}
-          aria-label={filtersExpanded ? "Скрыть фильтры" : "Показать фильтры"}
-          style={{
-            ...iconButtonStyle,
-            background: filtersExpanded ? glassHover : glassBase,
-            backgroundColor: filtersExpanded ? glassHover : glassSolid,
-            transform: filtersExpanded ? 'scale(0.98)' : 'scale(1)',
-            opacity: filtersExpanded ? 1 : 0.85,
-          }}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, {
-              background: glassHover,
-              backgroundColor: glassHover,
-              transform: 'scale(0.98)',
-              opacity: '1',
-            });
-          }}
-          onMouseLeave={(e) => {
-            Object.assign(e.currentTarget.style, {
-              background: filtersExpanded ? glassHover : glassBase,
-              backgroundColor: filtersExpanded ? glassHover : glassSolid,
-              transform: filtersExpanded ? 'scale(0.98)' : 'scale(1)',
-              opacity: filtersExpanded ? '1' : '0.85',
-            });
-          }}
-        >
-          <TuneIcon />
-        </button>
-
-        {/* Add button (hidden when search is expanded) */}
-        {!searchExpanded && (
-          <button
-            onClick={handleAddClick}
-            aria-label="Добавить стикер"
-            style={addButtonStyle}
-            onMouseEnter={(e) => {
-              Object.assign(e.currentTarget.style, {
-                background: glassHover,
-                backgroundColor: glassHover,
-                transform: 'scale(0.98)',
-                opacity: '1',
-              });
-            }}
-            onMouseLeave={(e) => {
-              Object.assign(e.currentTarget.style, {
-                background: glassBase,
-                backgroundColor: glassSolid,
-                transform: 'scale(1)',
-                opacity: '0.85',
-              });
-            }}
-          >
-            <span style={{ fontSize: '0.875rem', lineHeight: '1', display: 'flex', alignItems: 'center', fontWeight: 400 }}>+</span>
-            <span>Добавить</span>
-            <span style={{ 
-              fontSize: '0.6875rem', 
-              opacity: isLight ? 0.82 : 0.88, 
-              backgroundColor: glassSolid, 
-              padding: '2px 5px', 
-              borderRadius: '5px',
-              border: `1px solid ${borderColor}` 
-            }}>
-              +10 ART
-            </span>
-          </button>
-        )}
-
-        {/* Search button/bar */}
-        {searchExpanded ? (
-          <div style={{ flex: '1 1 auto' }}>
+        {/* Row: Search (input) | Date (sort) | Filter — по макету Figma "Search + filter" */}
+        <div className={`compact-controls-bar__row ${rowHasExtra ? 'compact-controls-bar__row--with-extra' : ''}`}>
+          <div className="compact-controls-bar__search-slot">
             <SearchBar
               value={searchValue}
               onChange={onSearchChange}
               onSearch={onSearch}
-              placeholder="Поиск стикеров..."
+              placeholder="Search"
               disabled={searchDisabled}
               compact={true}
             />
           </div>
-        ) : (
-          <button
-            onClick={handleSearchToggle}
-            aria-label="Поиск"
-            style={iconButtonStyle}
-            onMouseEnter={(e) => {
-              Object.assign(e.currentTarget.style, {
-                background: glassHover,
-                backgroundColor: glassHover,
-                transform: 'scale(0.98)',
-                opacity: '1',
-              });
-            }}
-            onMouseLeave={(e) => {
-              Object.assign(e.currentTarget.style, {
-                background: glassBase,
-                backgroundColor: glassSolid,
-                transform: 'scale(1)',
-                opacity: '0.85',
-              });
-            }}
-          >
-            <SearchIcon />
-          </button>
-        )}
 
-        {/* Close search button (when expanded) */}
-        {searchExpanded && (
-          <button
-            onClick={handleSearchToggle}
-            aria-label="Закрыть поиск"
-            style={iconButtonStyle}
-            onMouseEnter={(e) => {
-              Object.assign(e.currentTarget.style, {
-                background: glassHover,
-                backgroundColor: glassHover,
-                transform: 'scale(0.98)',
-                opacity: '1',
-              });
-            }}
-            onMouseLeave={(e) => {
-              Object.assign(e.currentTarget.style, {
-                background: glassBase,
-                backgroundColor: glassSolid,
-                transform: 'scale(1)',
-                opacity: '0.85',
-              });
-            }}
-          >
-            <CloseIcon />
-          </button>
-        )}
-      </div>
-
-      {/* Categories row (when search is expanded) */}
-      {searchExpanded && categories.length > 0 && (
-        <div
-          style={{
-            animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
-        >
-          <CategoryFilter
-            categories={categories}
-            selectedCategories={selectedCategories}
-            onCategoryToggle={onCategoryToggle}
-            disabled={categoriesDisabled}
-            compact={true}
-          />
-        </div>
-      )}
-
-      {/* Filters dropdown menu (when filters are expanded) - Overlay */}
-      {filtersExpanded && (
-        <>
-          {/* Backdrop для закрытия по клику мимо - невидимый */}
-          <div
-            onClick={handleFiltersToggle}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 'var(--z-overlay, 400)',
-              backgroundColor: 'transparent',
-              pointerEvents: 'auto',
-            }}
-          />
-          {/* Окно фильтров */}
-          <div
-            ref={filtersMenuRef}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: '0.618rem',
-              right: 'auto',
-              marginTop: '0.5rem',
-              zIndex: 'var(--z-dropdown, 300)',
-              animation: 'fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              maxWidth: '200px',
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: bgColor,
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                borderRadius: '0.75rem',
-                border: `1px solid ${borderColor}`,
-                boxShadow: isLight 
-                  ? '0 8px 32px rgba(30, 72, 185, 0.15)' 
-                  : '0 8px 32px rgba(0, 0, 0, 0.4)',
-                padding: '0.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.4rem',
-              }}
-            >
-            {/* Filter section title */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingBottom: '0.35rem',
-                borderBottom: `1px solid ${borderColor}`,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: 600, 
-                  color: textColorResolved,
-                  opacity: 0.9 
-                }}>
-                  Фильтры
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {/* Reset button */}
-                <button
-                  onClick={handleResetFilters}
-                  aria-label="Сбросить фильтры"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: textColorResolved,
-                    fontSize: '0.65rem',
-                    fontWeight: 500,
-                    padding: 0,
-                    opacity: 0.6,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '2px',
-                    transition: 'opacity 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0.6';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                >
-                  Сброс
-                </button>
-                {/* Close button */}
-                <button
-                  onClick={handleFiltersToggle}
-                  aria-label="Закрыть фильтры"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: textColorResolved,
-                    padding: '0.25rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: 0.7,
-                    transition: 'opacity 0.2s',
-                    borderRadius: '0.25rem',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    e.currentTarget.style.backgroundColor = isLight 
-                      ? 'rgba(0, 0, 0, 0.05)' 
-                      : 'rgba(255, 255, 255, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0.7';
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-            </div>
-            
-            {/* StickerSet Type Filter (USER/OFFICIAL) */}
-            <div>
-              <StickerSetTypeFilter
-                selectedTypes={selectedStickerSetTypes}
-                onTypeToggle={onStickerSetTypeToggle}
-                disabled={false}
-              />
-            </div>
-            
-            {/* Sort Dropdown */}
-            <div>
-              <SortDropdown
-                sortByLikes={sortByLikes}
-                onToggle={onSortToggle}
-                disabled={sortDisabled}
-              />
-            </div>
+          <div className="compact-controls-bar__date-slot">
+            <SortDropdown
+              sortByLikes={sortByLikes}
+              onToggle={onSortToggle}
+              disabled={sortDisabled}
+              triggerLabel="Date"
+            />
           </div>
-        </div>
-        </>
-      )}
 
-      {/* Animation styles */}
-      <style>{`
-        @keyframes fadeSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-      `}</style>
+          <button
+            ref={filtersButtonRef}
+            onClick={handleFiltersToggle}
+            aria-label={filtersExpanded ? 'Скрыть фильтры' : 'Показать фильтры'}
+            className={`compact-controls-bar__btn ${filtersExpanded ? 'compact-controls-bar__btn--active' : ''}`}
+          >
+            <TuneIcon />
+          </button>
+        </div>
+
+        {filtersExpanded &&
+          createPortal(
+            <>
+              <div
+                className="sort-dropdown__backdrop"
+                onClick={handleFiltersToggle}
+                aria-hidden
+              />
+              <div
+                ref={filtersMenuRef}
+                data-sort-dropdown-panel
+                className="sort-dropdown__panel"
+                role="dialog"
+                aria-label="Фильтры"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="sort-dropdown__inner compact-controls-bar__filters-inner">
+                  <div className="compact-controls-bar__dropdown-header compact-controls-bar__filters-header">
+                    <span className="sort-dropdown__title">Фильтры</span>
+                    <div className="compact-controls-bar__dropdown-actions">
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        aria-label="Сбросить фильтры"
+                        className="compact-controls-bar__btn-reset"
+                      >
+                        Сброс
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleFiltersToggle}
+                        aria-label="Закрыть фильтры"
+                        className="compact-controls-bar__btn-close"
+                      >
+                        <CloseIcon />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="compact-controls-bar__filters-content">
+                    <StickerSetTypeFilter
+                      selectedTypes={selectedStickerSetTypes}
+                      onTypeToggle={onStickerSetTypeToggle}
+                      disabled={false}
+                    />
+                  </div>
+                  <div className="compact-controls-bar__filters-sort">
+                    <SortDropdown
+                      sortByLikes={sortByLikes}
+                      onToggle={onSortToggle}
+                      disabled={sortDisabled}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>,
+            document.body
+          )}
       </div>
     </div>
   );

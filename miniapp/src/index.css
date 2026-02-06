@@ -5,6 +5,9 @@
 /* Telegram Mini App Styles */
 @import '@telegram-apps/telegram-ui/dist/styles.css';
 
+/* Layout: скролл, header, единый фон #191818 */
+@import './styles/stixly-header.css';
+
 /* Анимация для спиннера */
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -61,6 +64,9 @@
   --tg-theme-warning-color: #ff9800;
   --tg-theme-error-color: #f44336;
   --tg-theme-error-color-rgb: 244, 67, 54;
+
+  /* Header height (Header Panel) — для отступа панелей контролов */
+  --stixly-header-height: var(--component-header-panel-height, 80px);
 
   /* Z-index layering system for the MiniApp */
   --z-base: 1;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonAddress } from '@tonconnect/ui-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useWallet } from '@/hooks/useWallet';
@@ -14,8 +14,6 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 
 // Компоненты
-import StixlyTopHeader from '@/components/StixlyTopHeader';
-import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
@@ -28,10 +26,11 @@ import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { CompactControlsBar } from '@/components/CompactControlsBar';
-import { StickerSetsTabs } from '@/components/StickerSetsTabs';
+import { QuestStixlyCard, DailyActivityBlock, GlobalActivityBlock } from '@/components/AccountActivityBlocks';
 import { Category } from '@/components/CategoryFilter';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import '@/styles/common.css';
 import '@/styles/MyProfilePage.css';
 
@@ -138,11 +137,6 @@ export const MyProfilePage: React.FC = () => {
   }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [walletMenuAnchor, setWalletMenuAnchor] = useState<null | HTMLElement>(null);
-  // Фильтр "Сеты": опубликованные (мои) vs понравившиеся
-  // Используем индекс таба: 0 = 'published', 1 = 'liked'
-  const [setsFilterTab, setSetsFilterTab] = useState<number>(0);
-  const setsFilter = setsFilterTab === 0 ? 'published' : 'liked';
-  
   // Категории для фильтрации (не используются на странице профиля, но требуются для CompactControlsBar)
   const [categories] = useState<Category[]>([]);
   const [likedStickerSets, setLikedStickerSets] = useState<any[]>([]);
@@ -154,7 +148,10 @@ export const MyProfilePage: React.FC = () => {
   const [likedCurrentPage, setLikedCurrentPage] = useState(0);
   const [likedTotalPages, setLikedTotalPages] = useState(1);
   const [isLikedLoadingMore, setIsLikedLoadingMore] = useState(false);
-  const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: стикерсеты, 1: баланс, 2: поделиться
+  const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: Create, 1: Likes, 2: Upload (Figma ACCOUNT)
+  // Верхний уровень: Stickers (0) — head-account-tabs-wrap; Art-points (1) — account-menu-content / account-quests-grid
+  const [mainTab, setMainTab] = useState(0); // 0: Stickers, 1: Art-points
+  const isLikesTab = activeProfileTab === 1;
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
@@ -627,7 +624,7 @@ export const MyProfilePage: React.FC = () => {
   };
 
   const handleViewStickerSet = (packId: string) => {
-    const source = setsFilter === 'liked' ? likedStickerSets : userStickerSets;
+    const source = isLikesTab ? likedStickerSets : userStickerSets;
     const stickerSet = source.find(s => s.id.toString() === packId);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
@@ -639,8 +636,8 @@ export const MyProfilePage: React.FC = () => {
     setIsModalOpen(false);
     setSelectedStickerSet(null);
     
-    // Локально обновляем список "понравившиеся" если активен этот фильтр (без запроса к серверу)
-    if (setsFilter === 'liked' && isLikedListLoaded) {
+    // Локально обновляем список "понравившиеся" если активна вкладка Likes (без запроса к серверу)
+    if (isLikesTab && isLikedListLoaded) {
       updateLikedListLocally();
     }
     
@@ -793,21 +790,21 @@ export const MyProfilePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
   
-  // Загружаем с сервера только при первом открытии вкладки "Понравившиеся"
+  // Загружаем с сервера при первом открытии вкладки "Likes"
   useEffect(() => {
-    if (setsFilterTab === 1 && setsFilter === 'liked' && !isLikedListLoaded && !isStickerSetsLoading && !isLikedLoadingMore) {
+    if (activeProfileTab === 1 && !isLikedListLoaded && !isStickerSetsLoading && !isLikedLoadingMore) {
       loadLikedStickerSets(0, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setsFilterTab, setsFilter, isLikedListLoaded, isStickerSetsLoading, isLikedLoadingMore]);
+  }, [activeProfileTab, isLikedListLoaded, isStickerSetsLoading, isLikedLoadingMore]);
   
-  // Локально обновляем список при изменении лайков (без запроса к серверу)
+  // Локально обновляем список при изменении лайков (вкладка Likes)
   useEffect(() => {
-    if (setsFilterTab === 1 && setsFilter === 'liked' && isLikedListLoaded) {
+    if (activeProfileTab === 1 && isLikedListLoaded) {
       updateLikedListLocally();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [likedIdsHash, setsFilterTab, setsFilter, isLikedListLoaded]);
+  }, [likedIdsHash, activeProfileTab, isLikedListLoaded]);
 
 
   const handleCreateSticker = () => {
@@ -931,7 +928,7 @@ export const MyProfilePage: React.FC = () => {
     isUserLoading,
     isStickerSetsLoading,
     isLoadingMorePublished,
-    setsFilter,
+    activeProfileTab: activeProfileTab,
     // Пагинация "Мои"
     publishedPagination: {
       currentPage,
@@ -990,37 +987,13 @@ export const MyProfilePage: React.FC = () => {
 
 
   return (
-    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
-      {/* Профильный header */}
-      <StixlyTopHeader
-        profileMode={{
-          enabled: true,
-          backgroundColor: isPremium 
-            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' 
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          pattern: isPremium ? 'waves' : 'dots',
-          content: isUserLoading ? (
-            <LoadingSpinner message="Загрузка профиля..." />
-          ) : userError ? (
-            <div className="profile-header-content-with-padding">
-              <ErrorDisplay 
-                error={userError} 
-                onRetry={() => loadMyProfile(true)}
-              />
-            </div>
-          ) : userInfo ? (
-            <div className="profile-header-content">
-              {/* Аватар с overlap - наполовину на header */}
-              <div className={cn('profile-header-avatar-wrapper', 'my-profile-avatar-wrapper')}>
-                <FloatingAvatar userInfo={userInfoWithAvatar || userInfo} size="large" overlap={0} />
-              </div>
-            </div>
-          ) : null
-        }}
-      />
-
-      {/* Карточка с достижениями под аватаром */}
-      <StixlyPageContainer className="page-container-no-margin-top">
+    <div className={cn('page-container', 'account-page', isInTelegramApp && 'telegram-app')}>
+      <OtherAccountBackground />
+      {/* Head account (Figma): шапка профиля без Header Panel */}
+      <div
+        className={cn('head-account', isInTelegramApp && 'head-account--telegram')}
+        data-figma-block="Head account"
+      >
         {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
         {!isUserLoading && userError && !userInfo && (
           <div className="error-box">
@@ -1032,123 +1005,102 @@ export const MyProfilePage: React.FC = () => {
         )}
         
         {userInfo && (
-          <div className={cn('card-base', 'card-base-no-padding-top')}>
-            <div className="card-content-with-avatar">
-              {/* Никнейм - отдельно, в одну строчку */}
-              <div className="my-profile-username-container">
-                <Text 
-                  variant="h2" 
-                  weight="bold"
-                  className="my-profile-username"
-                >
-                  {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
+          <div className="head-account__card">
+            {/* Аватар 80×80 внутри карточки (Figma ACCOUNT) */}
+            <div className="head-account__avatar">
+              {userInfoWithAvatar?.avatarUrl ? (
+                <img src={userInfoWithAvatar.avatarUrl} alt="" />
+              ) : (
+                <Text variant="h2" weight="bold" style={{ color: '#fff' }}>
+                  {(userInfo?.username || user?.username || '?').slice(0, 1).toUpperCase()}
                 </Text>
+              )}
+            </div>
+            {/* Имя пользователя */}
+            <Text variant="h2" weight="bold" className="head-account__name" as="div">
+              {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
+            </Text>
+            {/* Статистика: 2 колонки (Наборов / ART) */}
+            <div className="head-account__info">
+              <div className="head-account__stat">
+                <span className="head-account__stat-value">{userStickerSets.length}</span>
+                <span className="head-account__stat-label">sticker packs</span>
               </div>
-              
-              {/* Статистика - на второй строчке */}
-              <div className="flex-row-space-around">
-                <div className="stat-box">
-                  <Text 
-                    variant="h2" 
-                    weight="bold"
-                    className="stat-value"
-                  >
-                    {userStickerSets.length}
-                  </Text>
-                  <Text 
-                    variant="bodySmall"
-                    className="stat-label"
-                  >
-                    Наборов
-                  </Text>
-                </div>
-                
-                <div className="stat-box">
-                  <Text 
-                    variant="h2" 
-                    weight="bold"
-                    className={cn('stat-value', 'art')}
-                  >
-                    {userInfo.artBalance || 0}
-                  </Text>
-                  <Text 
-                    variant="bodySmall"
-                    className="stat-label"
-                  >
-                    ART
-                  </Text>
-                </div>
-              </div>
-              
-              {/* TON Connect: подключение кошелька */}
-              <div className="flex-column-center my-profile-wallet-container">
-                {/* Кнопка подключения кошелька (если не подключен) */}
-                {!wallet ? (
-                  <TonConnectButton />
-                ) : (
-                  <div className="wallet-menu-wrapper">
-                    {/* Кнопка с адресом кошелька */}
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={(event) => {
-                        if (tg?.HapticFeedback) {
-                          tg.HapticFeedback.impactOccurred('light');
-                        }
-                        setWalletMenuAnchor(event.currentTarget);
-                      }}
-                      className="button-rounded-sm my-profile-wallet-button"
-                      disabled={walletLoading}
-                    >
-                      {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
-                    </Button>
-                    
-                    {/* Выпадающее меню */}
-                    {Boolean(walletMenuAnchor) && (
-                      <div className="wallet-menu" role="menu">
-                        <button
-                          className="wallet-menu-item"
-                          onClick={async () => {
-                            setWalletMenuAnchor(null);
-                            console.debug('[MyProfilePage] Нажата опция "Отключить кошелёк"');
-                            if (tg?.HapticFeedback) {
-                              tg.HapticFeedback.impactOccurred('light');
-                            }
-                            try {
-                              await unlinkWallet(tonConnectUI);
-                              console.debug('[MyProfilePage] Кошелёк успешно отвязан');
-                            } catch (err) {
-                              console.error('[MyProfilePage] Ошибка отключения кошелька', err);
-                            }
-                          }}
-                          disabled={walletLoading}
-                          type="button"
-                        >
-                          {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Состояние загрузки */}
-                {walletLoading && !wallet && (
-                  <Text 
-                    variant="caption"
-                    className="my-profile-wallet-loading"
-                  >
-                    Загрузка...
-                  </Text>
-                )}
-                
-                {/* Отображение ошибок */}
-                {walletError && (
-                  <div className="my-profile-wallet-error" role="alert">
-                    <Text variant="bodySmall" color="default">{walletError}</Text>
-                  </div>
-                )}
+              <div className="head-account__stat">
+                <span className="head-account__stat-value">{userInfo.artBalance || 0}</span>
+                <span className="head-account__stat-label">Artpoints</span>
               </div>
             </div>
+            {/* Кошелёк: кнопка "Connect wallet" (Figma) или адрес */}
+            <div className="head-account__wallet">
+              {!wallet ? (
+                <button
+                  type="button"
+                  className="head-account__connect-wallet-btn"
+                  onClick={() => {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    tonConnectUI?.openModal?.();
+                  }}
+                  disabled={walletLoading}
+                >
+                  Connect wallet
+                </button>
+              ) : (
+                <div className="wallet-menu-wrapper" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={(event) => {
+                      if (tg?.HapticFeedback) {
+                        tg.HapticFeedback.impactOccurred('light');
+                      }
+                      setWalletMenuAnchor(event.currentTarget);
+                    }}
+                    className="my-profile-wallet-button"
+                    disabled={walletLoading}
+                    style={{
+                      background: 'transparent',
+                      borderColor: 'rgba(255,255,255,0.5)',
+                      color: '#fff',
+                      width: '100%',
+                      maxWidth: '370px'
+                    }}
+                  >
+                    {wallet.walletAddress.slice(0, 6)}...{wallet.walletAddress.slice(-4)}
+                  </Button>
+                  {Boolean(walletMenuAnchor) && (
+                    <div className="wallet-menu" role="menu">
+                      <button
+                        className="wallet-menu-item"
+                        onClick={async () => {
+                          setWalletMenuAnchor(null);
+                          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                          try {
+                            await unlinkWallet(tonConnectUI);
+                          } catch (err) {
+                            console.error('[MyProfilePage] Ошибка отключения кошелька', err);
+                          }
+                        }}
+                        disabled={walletLoading}
+                        type="button"
+                      >
+                        {walletLoading ? 'Отключение...' : 'Отключить кошелёк'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {walletLoading && !wallet && (
+              <Text variant="caption" className="my-profile-wallet-loading">
+                Загрузка...
+              </Text>
+            )}
+            {walletError && (
+              <div className="my-profile-wallet-error" role="alert">
+                <Text variant="bodySmall" color="default">{walletError}</Text>
+              </div>
+            )}
           </div>
         )}
 
@@ -1158,36 +1110,57 @@ export const MyProfilePage: React.FC = () => {
             <Text variant="body" color="default">{userError}</Text>
           </div>
         )}
+      </div>
 
-        {/* Вкладки профиля */}
-        {userInfo && (
+      {/* Вкладки Stickers | Art-points — между head-account и head-account-tabs-wrap */}
+      {userInfo && (
+        <div className="account-main-tabs-wrap">
+          <div role="tablist" className="account-main-tabs" aria-label="Stickers or Art-points">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === 0}
+              id="account-main-tab-stickers"
+              aria-controls="account-main-panel-stickers"
+              onClick={() => setMainTab(0)}
+              className={cn('account-main-tabs__tab', mainTab === 0 && 'account-main-tabs__tab--active')}
+            >
+              Stickers
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === 1}
+              id="account-main-tab-artpoints"
+              aria-controls="account-main-panel-artpoints"
+              onClick={() => setMainTab(1)}
+              className={cn('account-main-tabs__tab', mainTab === 1 && 'account-main-tabs__tab--active')}
+            >
+              Art-points
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stickers: head-account-tabs-wrap (Create/Likes/Upload) + контент галерей */}
+      {userInfo && mainTab === 0 && (
+        <div className="head-account-tabs-wrap">
           <ProfileTabs
+            variant="account"
             activeTab={activeProfileTab}
             onChange={setActiveProfileTab}
             isInTelegramApp={isInTelegramApp}
           />
-        )}
-      </StixlyPageContainer>
+        </div>
+      )}
 
-      {/* Прокручиваемый контент */}
+      {/* Прокручиваемый контент: при Stickers — галереи; при Art-points — account-menu-content (quests) */}
       <StixlyPageContainer className="page-container-no-padding-top">
+        {mainTab === 0 ? (
         <>
-            {/* Контент вкладок - прокручиваемый */}
+            {/* Tab 0: Create — стикеры, которые можно создать и загрузить (без quests сверху) */}
             <TabPanel value={activeProfileTab} index={0}>
-              {/* Табы для переключения между Загруженные и Понравившиеся */}
-              <div 
-                ref={tabsContainerRef}
-                className="my-profile-tabs-container"
-              >
-                <StickerSetsTabs
-                  activeTab={setsFilterTab}
-                  onChange={setSetsFilterTab}
-                  disabled={isStickerSetsLoading}
-                />
-              </div>
-              
-              {/* CompactControlsBar - над карточками стикерсетов */}
-              {setsFilterTab === 0 && (
+              <div ref={tabsContainerRef} className="my-profile-tabs-container">
                 <CompactControlsBar
                   variant="static"
                   searchValue={searchTerm}
@@ -1200,7 +1173,7 @@ export const MyProfilePage: React.FC = () => {
                   categoriesDisabled={true}
                   sortByLikes={sortByLikes}
                   onSortToggle={handleSortToggle}
-                  sortDisabled={isStickerSetsLoading || !!searchTerm || setsFilterTab === 1}
+                  sortDisabled={isStickerSetsLoading || !!searchTerm}
                   selectedStickerTypes={[]}
                   onStickerTypeToggle={() => {}}
                   selectedStickerSetTypes={[]}
@@ -1209,152 +1182,189 @@ export const MyProfilePage: React.FC = () => {
                   onDateChange={() => {}}
                   onAddClick={() => setIsUploadModalOpen(true)}
                 />
-              )}
-              
-              {/* Контент стикерсетов */}
+              </div>
               {isStickerSetsLoading ? (
                 <LoadingSpinner message="Загрузка стикерсетов..." />
               ) : stickerSetsError && isInTelegramApp ? (
-                <ErrorDisplay 
-                  error={stickerSetsError} 
-                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)} 
+                <ErrorDisplay
+                  error={stickerSetsError}
+                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)}
                 />
-              ) : (setsFilter === 'liked' ? likedStickerSets.length === 0 : filteredStickerSets.length === 0) ? (
-                setsFilter === 'liked' ? (
-                  <EmptyState
-                    title="❤️ Понравившихся пока нет"
-                    message="Лайкните понравившиеся наборы в галерее, и они появятся здесь"
-                  />
-                ) : (
-                  <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
-                    <Text variant="h3" className="my-profile-empty-state-title">
-                      📁 У вас пока нет стикерсетов
-                    </Text>
-                    <Text variant="bodySmall" className="my-profile-empty-state-message">
-                      {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
-                    </Text>
-                    <div className="my-profile-empty-state-button-container">
-                      <Button 
-                        variant="primary"
-                        size="large"
-                        onClick={() => {
-                          if (tg?.HapticFeedback) {
-                            tg.HapticFeedback.impactOccurred('light');
-                          }
-                          handleCreateSticker();
-                        }} 
-                        className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
-                      >
-                        <span className="button-icon">+</span>
-                        Добавьте стикерпак
-                        <span className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}>
-                          +10 ART
-                        </span>
-                      </Button>
-                    </div>
+              ) : filteredStickerSets.length === 0 ? (
+                <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
+                  <Text variant="h3" className="my-profile-empty-state-title">
+                    📁 У вас пока нет стикерсетов
+                  </Text>
+                  <Text variant="bodySmall" className="my-profile-empty-state-message">
+                    {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
+                  </Text>
+                  <div className="my-profile-empty-state-button-container">
+                    <Button
+                      variant="primary"
+                      size="large"
+                      onClick={() => {
+                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                        handleCreateSticker();
+                      }}
+                      className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
+                    >
+                      <span className="button-icon">+</span>
+                      Добавьте стикерпак
+                      <span className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}>
+                        +10 ART
+                      </span>
+                    </Button>
                   </div>
-                )
+                </div>
               ) : (
                 <div className="fade-in">
                   <OptimizedGallery
-                    packs={adaptStickerSetsToGalleryPacks(setsFilter === 'liked' ? likedStickerSets : filteredStickerSets)}
+                    variant="account"
+                    packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
-                    hasNextPage={
-                      setsFilter === 'liked' 
-                        ? likedCurrentPage < likedTotalPages - 1 
-                        : !searchTerm && currentPage < totalPages - 1
-                    }
-                    isLoadingMore={setsFilter === 'liked' ? isLikedLoadingMore : isLoadingMorePublished}
-                    onLoadMore={setsFilter === 'liked' ? handleLoadMoreLiked : handleLoadMorePublished}
+                    hasNextPage={!searchTerm && currentPage < totalPages - 1}
+                    isLoadingMore={isLoadingMorePublished}
+                    onLoadMore={handleLoadMorePublished}
                     scrollElement={scrollElement}
                   />
                 </div>
               )}
+            </TabPanel>
 
-              {/* Кнопка "Показать ещё" убрана, так как OptimizedGallery использует infinite scroll */}
-              {false && filteredStickerSets.length > 0 && (currentPage < totalPages - 1) && (
-                <div className="my-profile-load-more-container">
-                  <Button
-                    variant="outline"
-                    onClick={() => currentUserId && loadUserStickerSets(currentUserId, undefined, currentPage + 1, true)}
-                  >
-                    Показать ещё
-                  </Button>
+            {/* Tab 1: Likes — понравившиеся стикерсеты */}
+            <TabPanel value={activeProfileTab} index={1}>
+              {isStickerSetsLoading ? (
+                <LoadingSpinner message="Загрузка..." />
+              ) : likedStickerSets.length === 0 ? (
+                <EmptyState
+                  title="❤️ Likes"
+                  message="Like sticker packs in the gallery and they will appear here"
+                />
+              ) : (
+                <div className="fade-in">
+                  <OptimizedGallery
+                    variant="account"
+                    packs={adaptStickerSetsToGalleryPacks(likedStickerSets)}
+                    onPackClick={handleViewStickerSet}
+                    hasNextPage={likedCurrentPage < likedTotalPages - 1}
+                    isLoadingMore={isLikedLoadingMore}
+                    onLoadMore={handleLoadMoreLiked}
+                    scrollElement={scrollElement}
+                  />
                 </div>
               )}
             </TabPanel>
 
-            <TabPanel value={activeProfileTab} index={1}>
-              {/* Баланс ART */}
-              <div className="card-base my-profile-balance-card">
-                <div className="card-content-base">
-                  <div className="my-profile-balance-header">
-                    <svg 
-                      width="40" 
-                      height="40" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      style={{ color: 'var(--tg-theme-button-color)' }}
-                    >
-                      <path 
-                        d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" 
-                        fill="currentColor"
-                      />
-                    </svg>
-                    <div>
-                      <Text variant="h3" weight="bold" className="my-profile-balance-title">
-                        Баланс ART
-                      </Text>
-                      <Text variant="bodySmall" className="my-profile-balance-subtitle">
-                        Ваши стикер-токены
-                      </Text>
-                    </div>
-                  </div>
-                  
-                  <div className="my-profile-balance-value-container">
-                    <span className="my-profile-balance-chip">
-                      {userInfo?.artBalance || 0} ART
-                    </span>
-                  </div>
-
-                  <Text variant="bodySmall" className="my-profile-balance-description">
-                    Создавайте стикеры и зарабатывайте ART токены!
-                  </Text>
-                </div>
+            {/* Tab 2: Upload — загруженные пользователем стикерсеты */}
+            <TabPanel value={activeProfileTab} index={2}>
+              <div ref={tabsContainerRef} className="my-profile-tabs-container">
+                <CompactControlsBar
+                  variant="static"
+                  searchValue={searchTerm}
+                  onSearchChange={handleSearchChange}
+                  onSearch={handleSearch}
+                  searchDisabled={isStickerSetsLoading}
+                  categories={categories}
+                  selectedCategories={[]}
+                  onCategoryToggle={() => {}}
+                  categoriesDisabled={true}
+                  sortByLikes={sortByLikes}
+                  onSortToggle={handleSortToggle}
+                  sortDisabled={isStickerSetsLoading || !!searchTerm}
+                  selectedStickerTypes={[]}
+                  onStickerTypeToggle={() => {}}
+                  selectedStickerSetTypes={[]}
+                  onStickerSetTypeToggle={() => {}}
+                  selectedDate={null}
+                  onDateChange={() => {}}
+                  onAddClick={() => setIsUploadModalOpen(true)}
+                />
               </div>
-
-              {/* Кнопка создания стикерпака */}
+              {isStickerSetsLoading ? (
+                <LoadingSpinner message="Загрузка стикерсетов..." />
+              ) : stickerSetsError && isInTelegramApp ? (
+                <ErrorDisplay
+                  error={stickerSetsError}
+                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)}
+                />
+              ) : filteredStickerSets.length === 0 ? (
+                <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
+                  <Text variant="h3" className="my-profile-empty-state-title">
+                    📁 У вас пока нет загруженных стикерсетов
+                  </Text>
+                  <Text variant="bodySmall" className="my-profile-empty-state-message">
+                    {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикерпак'}
+                  </Text>
+                  <div className="my-profile-empty-state-button-container">
+                    <Button
+                      variant="primary"
+                      size="large"
+                      onClick={() => {
+                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                        handleCreateSticker();
+                      }}
+                      className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
+                    >
+                      <span className="button-icon">+</span>
+                      Добавьте стикерпак
+                      <span className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}>
+                        +10 ART
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="fade-in">
+                  <OptimizedGallery
+                    variant="account"
+                    packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
+                    onPackClick={handleViewStickerSet}
+                    hasNextPage={!searchTerm && currentPage < totalPages - 1}
+                    isLoadingMore={isLoadingMorePublished}
+                    onLoadMore={handleLoadMorePublished}
+                    scrollElement={scrollElement}
+                  />
+                </div>
+              )}
               <AddStickerPackButton
                 variant="profile"
                 onClick={() => setIsUploadModalOpen(true)}
               />
             </TabPanel>
-
-            <TabPanel value={activeProfileTab} index={2}>
-              {/* Достижения профиля */}
-              <div className="achievements-container">
-                <Text variant="h3" className="achievements-title">
-                  Достижения
-                </Text>
-
-                <div className="achievements-list">
-                  <div className="achievement-badge">
-                    Сеты: {userStickerSets.length}
-                  </div>
-                  <div className="achievement-badge">
-                    Стикеры: {userStickerSets.reduce((s, set) => s + (set.stickerCount || 0), 0)}
-                  </div>
-                  <div className="achievement-badge">
-                    ART: {userInfo?.artBalance || 0}
-                  </div>
-                </div>
-
-                <Text variant="bodySmall" className="achievements-description">
-                  Скоро появятся уровни, streak и редкие ачивки.
-                </Text>
-              </div>
-            </TabPanel>
         </>
+        ) : mainTab === 1 ? (
+          /* Art-points: account-menu-content, конкретно account-quests-grid */
+          <div className="account-menu-content" id="account-main-panel-artpoints" role="tabpanel" aria-labelledby="account-main-tab-artpoints">
+            <div className="account-quests-grid">
+              <QuestStixlyCard
+                title="Quest Stixly"
+                description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris sed venenatis nibh."
+                onStart={() => {}}
+              />
+              <QuestStixlyCard
+                title="Quest Stixly 2"
+                description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris sed venenatis nibh."
+                onStart={() => {}}
+              />
+            </div>
+            <DailyActivityBlock
+              tasks={[
+                { id: '1', title: 'Visit Project', progress: 1, total: 1, status: 'calm' },
+                { id: '2', title: 'Upgrade 10 ...', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
+                { id: '3', title: 'Share two Stickers', progress: 2, total: 2, status: 'calm' },
+                { id: '4', title: 'Visit Project', progress: 1, total: 1, status: 'calm' },
+              ]}
+            />
+            <GlobalActivityBlock
+              tasks={[
+                { id: 'g1', title: 'Connect TON', progress: 1, total: 1, reward: '1,000 ART', status: 'calm' },
+                { id: 'g2', title: 'Invite friends', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
+                { id: 'g3', title: 'Donate authors', progress: 1, total: 1, reward: '100 ART', status: 'calm' },
+                { id: 'g4', title: 'Like 10 stickers', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
+              ]}
+            />
+          </div>
+        ) : null}
       </StixlyPageContainer>
 
       {/* Нижняя навигация */}

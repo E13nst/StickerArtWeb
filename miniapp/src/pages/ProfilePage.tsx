@@ -11,7 +11,6 @@ import { StickerSetResponse } from '@/types/sticker';
 import { Text } from '@/components/ui/Text';
 
 // Компоненты
-import StixlyTopHeader from '@/components/StixlyTopHeader';
 import { FloatingAvatar } from '@/components/FloatingAvatar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
@@ -443,28 +442,8 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
-      {/* Профильный header */}
-      <StixlyTopHeader
-        profileMode={{
-          enabled: true,
-          backgroundColor: isPremium 
-            ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' 
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          pattern: isPremium ? 'waves' : 'dots',
-          content: isUserLoading ? (
-            <LoadingSpinner message="Загрузка профиля..." />
-          ) : userInfo ? (
-            <div className="profile-header-content">
-              {/* Аватар с overlap - наполовину на header */}
-              <div className="profile-header-avatar-wrapper">
-                <FloatingAvatar userInfo={userInfo} size="large" overlap={0} />
-              </div>
-            </div>
-          ) : null
-        }}
-      />
-
-      {/* Карточка профиля под аватаром */}
+      <OtherAccountBackground />
+      {/* Карточка профиля под header (Header Panel в MainLayout) */}
       <StixlyPageContainer className="page-container-no-margin-top">
         {isUserLoading ? (
           <LoadingSpinner message="Загрузка профиля..." />
@@ -538,13 +517,15 @@ export const ProfilePage: React.FC = () => {
           </div>
         )}
 
-        {/* Вкладки профиля */}
+        {/* Вкладки профиля (вне карточки, стили как Create/Likes/Upload) */}
         {userInfo && (
-          <ProfileTabs
-            activeTab={activeProfileTab}
-            onChange={setActiveProfileTab}
-            isInTelegramApp={isInTelegramApp}
-          />
+          <div className="profile-page-tabs-wrap">
+            <ProfileTabs
+              activeTab={activeProfileTab}
+              onChange={setActiveProfileTab}
+              isInTelegramApp={isInTelegramApp}
+            />
+          </div>
         )}
       </StixlyPageContainer>
 

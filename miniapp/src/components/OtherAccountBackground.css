@@ -1,0 +1,18 @@
+/* Other account background (Figma #Other account background)
+   Задать SVG/картинку: --other-account-bg-image в CSS страницы или :root.
+   Пример: --other-account-bg-image: url('/assets/other-account-bg.svg');
+   или data URL из Figma: Export → Copy as SVG, затем вставить в url("data:image/svg+xml,...") */
+
+.other-account-background {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  min-height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  background-image: var(--other-account-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}

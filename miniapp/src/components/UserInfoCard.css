@@ -1,0 +1,140 @@
+/* UserInfoCard */
+
+.user-info-card {
+  margin-bottom: 1.5rem;
+  border-radius: 16px;
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+  border: 1px solid var(--tg-theme-border-color);
+  box-shadow: 0 2px 8px var(--tg-theme-shadow-color, rgba(0, 0, 0, 0.1));
+  transition: box-shadow 0.2s ease;
+}
+
+.user-info-card:hover {
+  box-shadow: 0 4px 16px var(--tg-theme-shadow-color, rgba(0, 0, 0, 0.15));
+}
+
+.user-info-card__content {
+  padding: 1rem 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__content {
+    padding: 0.75rem 1rem;
+  }
+}
+
+.user-info-card__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+.user-info-card__avatar {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__avatar {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+  }
+}
+
+.user-info-card__avatar--placeholder {
+  background-color: var(--tg-theme-hint-color);
+}
+
+.user-info-card__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-info-card__avatar-initials {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__avatar-initials {
+    font-size: 0.618rem;
+  }
+}
+
+.user-info-card__main {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__main {
+    text-align: center;
+  }
+}
+
+.user-info-card__name {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__name {
+    font-size: 1rem;
+  }
+}
+
+.user-info-card__role {
+  font-size: 0.75rem;
+  height: 24px;
+  color: var(--tg-theme-button-color);
+  border-color: var(--tg-theme-button-color);
+  background-color: transparent;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__role {
+    font-size: 0.7rem;
+    height: 20px;
+  }
+}
+
+.user-info-card__footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tg-theme-border-color);
+}
+
+.user-info-card__telegram-id {
+  font-size: 0.75rem;
+  text-align: center;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .user-info-card__telegram-id {
+    font-size: 0.7rem;
+  }
+}

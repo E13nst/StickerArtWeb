@@ -1,0 +1,93 @@
+/* PackCard — визуальный стиль StickerCard (design tokens), логика отображения без изменений */
+
+.pack-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1.618;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  touch-action: manipulation;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px var(--color-overlay-dark);
+}
+
+.pack-card:hover {
+  transform: scale(1.02);
+}
+
+.pack-card:focus,
+.pack-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pack-card--dimmed {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.pack-card__content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.pack-card__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+}
+
+.pack-card__title-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, var(--color-overlay-dark));
+  color: #ffffff;
+  padding: var(--spacing-md) var(--spacing-sm) var(--spacing-sm);
+  font-size: var(--typography-body-small-font-size);
+  font-weight: 500;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-family-base);
+}
+
+.pack-card-animated-sticker,
+.pack-card-image,
+.pack-card-video {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--border-radius-md);
+}
+
+.pack-card-video {
+  background-color: transparent;
+}
+
+.pack-card__badge-status {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background-color: var(--color-error);
+  color: white;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 10;
+}

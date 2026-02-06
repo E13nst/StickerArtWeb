@@ -10,12 +10,11 @@ import { TopUsers } from '@/components/TopUsers';
 import { TopAuthors } from '@/components/TopAuthors';
 import { PackCard } from '@/components/PackCard';
 import { StickerPackModal } from '@/components/StickerPackModal';
-import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
 import { StickerSetResponse, LeaderboardUser, LeaderboardAuthor } from '@/types/sticker';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import '@/styles/common.css';
 import '@/styles/DashboardPage.css';
 
@@ -63,11 +62,78 @@ export const DashboardPage: React.FC = () => {
     user: [],
     all: []
   });
-  const pyramidPacks = useMemo(() => adaptStickerSetsToGalleryPacks(topStickerSets), [topStickerSets]);
-  const row1Pack = pyramidPacks[0];
-  const row2Packs = pyramidPacks.slice(1, 3);
-  const scrollPacks = pyramidPacks.slice(3, MAX_TOP_STICKERS);
-  const hasAdditionalTopPacks = scrollPacks.length > 0;
+  const officialPacks = useMemo(
+    () => adaptStickerSetsToGalleryPacks(topStickersByCategory.official ?? []).slice(0, 3),
+    [topStickersByCategory.official]
+  );
+  const userPacks = useMemo(
+    () => adaptStickerSetsToGalleryPacks(topStickersByCategory.user ?? []).slice(0, 3),
+    [topStickersByCategory.user]
+  );
+
+  const [carouselUserIndex, setCarouselUserIndex] = useState(0);
+  const [carouselOfficialIndex, setCarouselOfficialIndex] = useState(0);
+  const [userTrackNoTransition, setUserTrackNoTransition] = useState(false);
+  const [officialTrackNoTransition, setOfficialTrackNoTransition] = useState(false);
+
+  const CAROUSEL_TRANSITION_MS = 450;
+
+  useEffect(() => {
+    if (userPacks.length <= 1) return;
+    const totalSlides = userPacks.length + 1;
+    const scheduleNext = () => {
+      const delay = 3000 + Math.random() * 1500;
+      return setTimeout(() => {
+        setCarouselUserIndex((i) => (i < userPacks.length ? i + 1 : 0));
+        timeoutRef = scheduleNext();
+      }, delay);
+    };
+    let timeoutRef = scheduleNext();
+    return () => clearTimeout(timeoutRef);
+  }, [userPacks.length]);
+
+  useEffect(() => {
+    if (officialPacks.length <= 1) return;
+    const scheduleNext = () => {
+      const delay = 3000 + Math.random() * 1500;
+      return setTimeout(() => {
+        setCarouselOfficialIndex((i) => (i < officialPacks.length ? i + 1 : 0));
+        timeoutRef = scheduleNext();
+      }, delay);
+    };
+    let timeoutRef = scheduleNext();
+    return () => clearTimeout(timeoutRef);
+  }, [officialPacks.length]);
+
+  useEffect(() => {
+    if (userPacks.length <= 1) return;
+    if (carouselUserIndex !== userPacks.length) return;
+    const t = setTimeout(() => {
+      setUserTrackNoTransition(true);
+      setCarouselUserIndex(0);
+      const raf = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setUserTrackNoTransition(false);
+        });
+      });
+    }, CAROUSEL_TRANSITION_MS);
+    return () => clearTimeout(t);
+  }, [carouselUserIndex, userPacks.length]);
+
+  useEffect(() => {
+    if (officialPacks.length <= 1) return;
+    if (carouselOfficialIndex !== officialPacks.length) return;
+    const t = setTimeout(() => {
+      setOfficialTrackNoTransition(true);
+      setCarouselOfficialIndex(0);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setOfficialTrackNoTransition(false);
+        });
+      });
+    }, CAROUSEL_TRANSITION_MS);
+    return () => clearTimeout(t);
+  }, [carouselOfficialIndex, officialPacks.length]);
 
   const toggleCategory = useCallback(() => {
     setActiveCategoryKey((prev) => (prev === 'official' ? 'user' : 'official'));
@@ -78,7 +144,9 @@ export const DashboardPage: React.FC = () => {
   }, [navigate]);
 
   const handlePackClick = (packId: string) => {
-    const stickerSet = topStickerSets.find(s => s.id.toString() === packId);
+    const fromOfficial = topStickersByCategory.official?.find(s => s.id.toString() === packId);
+    const fromUser = topStickersByCategory.user?.find(s => s.id.toString() === packId);
+    const stickerSet = fromOfficial ?? fromUser;
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsModalOpen(true);
@@ -219,10 +287,26 @@ export const DashboardPage: React.FC = () => {
           totalStickersCount
         });
 
-        // ART earned total - общий заработок ART на платформе
-        // TODO: Заменить на реальный API endpoint для получения общей статистики ART
-        // Пока используем заглушку для демонстрации
-        const artEarnedTotal = 1234.5; // Заглушка: будет заменено на реальные данные из API
+        // ART — из API /statistics (art.earned.total, art.total, art.balance; art.earned.daily, art.daily)
+        let artEarnedTotal = 0;
+        let artEarnedTrend = '+0';
+        try {
+          const statisticsResponse = await apiClient.getStatistics();
+          const res = statisticsResponse as Record<string, unknown> | undefined;
+          const art = res?.art as Record<string, unknown> | undefined;
+          const artEarned = art?.earned as Record<string, unknown> | undefined;
+          const toNum = (v: unknown): number | null => {
+            if (typeof v === 'number' && Number.isFinite(v)) return v;
+            if (typeof v === 'string') { const n = Number(v); return Number.isFinite(n) ? n : null; }
+            return null;
+          };
+          const total = toNum(artEarned?.total) ?? toNum(art?.total) ?? toNum(art?.balance);
+          const daily = toNum(artEarned?.daily) ?? toNum(art?.daily);
+          if (total !== null) artEarnedTotal = total;
+          if (daily !== null && daily > 0) artEarnedTrend = `+${daily % 1 === 0 ? daily : daily.toFixed(1)}`;
+        } catch (e) {
+          console.warn('⚠️ Не удалось загрузить статистику ART с /api/statistics:', e);
+        }
 
         // Расчет трендов за день/сегодня
         // Для стикерпаков: предполагаем рост ~2% в день
@@ -232,9 +316,6 @@ export const DashboardPage: React.FC = () => {
         // Для лайков за сегодня: предполагаем ~5% от общего количества
         const likesToday = Math.floor(totalLikesOnPlatform * 0.05);
         const likesTodayTrend = likesToday > 0 ? `+${likesToday}` : '+0';
-        
-        // Для ART: предполагаем рост ~10% от текущего баланса
-        const artTrend = artEarnedTotal > 0 ? `+${(artEarnedTotal * 0.1).toFixed(1)}` : '+0';
 
         setStats({
           totalStickerPacks: totalStickerPacksInBase,
@@ -242,7 +323,7 @@ export const DashboardPage: React.FC = () => {
           totalLikes: totalLikesOnPlatform,
           likesTodayTrend,
           artEarnedTotal,
-          artEarnedTrend: artTrend
+          artEarnedTrend
         });
 
         const getStickerLikes = (stickerSet: StickerSetResponse): number =>
@@ -266,6 +347,7 @@ export const DashboardPage: React.FC = () => {
         };
 
         setTopStickersByCategory(stickersByCategoryMap);
+        setTopStickerSets([...(officialTopSets || []), ...(userTopSets || [])]);
 
         // Получаем топ-5 пользователей из лидерборда
         try {
@@ -307,122 +389,188 @@ export const DashboardPage: React.FC = () => {
     }
   }, [activeCategoryKey, categoryFilterOptions]);
 
-  useEffect(() => {
-    const nextTopStickers = topStickersByCategory[activeCategoryKey] ?? topStickersByCategory.all ?? [];
-    setTopStickerSets(nextTopStickers);
-  }, [activeCategoryKey, topStickersByCategory]);
-
   return (
-    <div className="page-container-full-height">
-      {/* Header Panel */}
-      <HeaderPanel />
-
-      <StixlyPageContainer className="page-container-padding-y dashboard-container">
+    <div className={cn('page-container', 'account-page', 'page-container-full-height', isInTelegramApp && 'telegram-app')}>
+      <OtherAccountBackground />
+      <StixlyPageContainer className="dashboard-container">
         {isLoading ? (
           <LoadingSpinner message="Загрузка статистики..." />
         ) : stats ? (
           <>
-            {/* Statistics Section */}
+            {/* Statistics Section — Figma Our Statistics */}
+            <div className="dashboard-stats-section-wrap">
             <div className="dashboard-stats-section">
-              <Text variant="h2" weight="bold" align="center" className="dashboard-stats-title">
-                Our Statistics
-              </Text>
+              <h2 className="dashboard-stats-title">Our Statistics</h2>
               <div className="dashboard-stats-content">
                 <div className="dashboard-stat-item">
-                  <Text variant="body" color="default" className="dashboard-stat-label">
-                    Likes
-                  </Text>
-                  <div className="dashboard-stat-value-container">
-                    <Text variant="body" weight="bold" className="dashboard-stat-value">
-                      {stats.totalLikes}
-                    </Text>
-                    <Text variant="caption" color="secondary" className="dashboard-stat-trend">
-                      {stats.likesTodayTrend}
-                    </Text>
+                  <span className="dashboard-stat-label">Likes</span>
+                  <div className="dashboard-stat-value-row">
+                    <span className="dashboard-stat-value">{stats.totalLikes}</span>
+                    <span className="dashboard-stat-trend">{stats.likesTodayTrend}</span>
                   </div>
                 </div>
                 <div className="dashboard-stat-item">
-                  <Text variant="body" color="default" className="dashboard-stat-label">
-                    Сreations
-                  </Text>
-                  <div className="dashboard-stat-value-container">
-                    <Text variant="body" weight="bold" className="dashboard-stat-value">
-                      {stats.totalStickerPacks}
-                    </Text>
-                    <Text variant="caption" color="secondary" className="dashboard-stat-trend">
-                      {stats.stickerPacksTrend}
-                    </Text>
+                  <span className="dashboard-stat-label">Сreations</span>
+                  <div className="dashboard-stat-value-row">
+                    <span className="dashboard-stat-value">{stats.totalStickerPacks}</span>
+                    <span className="dashboard-stat-trend">{stats.stickerPacksTrend}</span>
                   </div>
                 </div>
                 <div className="dashboard-stat-item">
-                  <Text variant="body" color="default" className="dashboard-stat-label">
-                    Artpoints
-                  </Text>
-                  <div className="dashboard-stat-value-container">
-                    <Text variant="body" weight="bold" className="dashboard-stat-value">
+                  <span className="dashboard-stat-label">Artpoints</span>
+                  <div className="dashboard-stat-value-row">
+                    <span className="dashboard-stat-value">
                       {stats.artEarnedTotal.toLocaleString('en-US', {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 1,
                       })}
-                    </Text>
-                    <Text variant="caption" color="secondary" className="dashboard-stat-trend">
-                      {stats.artEarnedTrend}
-                    </Text>
+                    </span>
+                    <span className="dashboard-stat-trend">{stats.artEarnedTrend}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            {/* Top Stickers: Card Custom + Card Official — одна pack card, слайд-карусель */}
+            <div className="dashboard-category-section">
+              <div className="dashboard-category-cards-row">
+                <div className="dashboard-card dashboard-card-custom">
+                  <h2 className="dashboard-card-title">Top custom Stickers</h2>
+                  <div className="dashboard-card-carousel">
+                    <div
+                      className={cn('dashboard-card-carousel-track', userTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
+                      style={{
+                        transform: (() => {
+                          const total = userPacks.length <= 1 ? userPacks.length : userPacks.length + 1;
+                          const pct = total ? (100 / total) * carouselUserIndex : 0;
+                          return `translateX(-${pct}%)`;
+                        })(),
+                        width: (() => {
+                          const total = userPacks.length <= 1 ? userPacks.length : userPacks.length + 1;
+                          return `${total * 100}%`;
+                        })(),
+                      }}
+                    >
+                      {userPacks.map((pack) => (
+                        <div
+                          key={pack.id}
+                          className="dashboard-card-carousel-slide"
+                          style={{
+                            width: (() => {
+                              const total = userPacks.length <= 1 ? userPacks.length : userPacks.length + 1;
+                              return total ? `${100 / total}%` : '100%';
+                            })(),
+                          }}
+                        >
+                          <PackCard pack={pack} onClick={handlePackClick} />
+                        </div>
+                      ))}
+                      {userPacks.length > 1 && userPacks[0] && (
+                        <div
+                          className="dashboard-card-carousel-slide"
+                          style={{ width: `${100 / (userPacks.length + 1)}%` }}
+                          aria-hidden
+                        >
+                          <PackCard pack={userPacks[0]} onClick={handlePackClick} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="dashboard-card dashboard-card-official">
+                  <h2 className="dashboard-card-title">Top official Stickers</h2>
+                  <div className="dashboard-card-carousel">
+                    <div
+                      className={cn('dashboard-card-carousel-track', officialTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
+                      style={{
+                        transform: (() => {
+                          const total = officialPacks.length <= 1 ? officialPacks.length : officialPacks.length + 1;
+                          const pct = total ? (100 / total) * carouselOfficialIndex : 0;
+                          return `translateX(-${pct}%)`;
+                        })(),
+                        width: (() => {
+                          const total = officialPacks.length <= 1 ? officialPacks.length : officialPacks.length + 1;
+                          return `${total * 100}%`;
+                        })(),
+                      }}
+                    >
+                      {officialPacks.map((pack) => (
+                        <div
+                          key={pack.id}
+                          className="dashboard-card-carousel-slide"
+                          style={{
+                            width: (() => {
+                              const total = officialPacks.length <= 1 ? officialPacks.length : officialPacks.length + 1;
+                              return total ? `${100 / total}%` : '100%';
+                            })(),
+                          }}
+                        >
+                          <PackCard pack={pack} onClick={handlePackClick} />
+                        </div>
+                      ))}
+                      {officialPacks.length > 1 && officialPacks[0] && (
+                        <div
+                          className="dashboard-card-carousel-slide"
+                          style={{ width: `${100 / (officialPacks.length + 1)}%` }}
+                          aria-hidden
+                        >
+                          <PackCard pack={officialPacks[0]} onClick={handlePackClick} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Top Stickers Category Section */}
-            <div className="dashboard-category-section">
-              <div className="flex-center dashboard-category-button-container">
-                <Button
-                  onClick={toggleCategory}
-                  variant="primary"
-                  size="medium"
-                  className="dashboard-category-button"
-                >
-                  {activeCategoryKey === 'official' ? 'Официальные' : 'Пользовательские'}
-                </Button>
-              </div>
-
-              {topStickerSets.length > 0 && (
-                <div className="dashboard-pyramid-container">
-                  <div className="dashboard-pyramid-trophy" aria-hidden="true">
-                    🏆
-                  </div>
-                  <div className="dashboard-pyramid-content">
-                    {row2Packs[0] && (
-                      <div className="dashboard-pyramid-pack-left">
-                        <PackCard pack={row2Packs[0]} onClick={handlePackClick} />
-                      </div>
-                    )}
-
-                    {row1Pack && (
-                      <div className="dashboard-pyramid-pack-center">
-                        <PackCard pack={row1Pack} onClick={handlePackClick} />
-                      </div>
-                    )}
-
-                    {row2Packs[1] && (
-                      <div className="dashboard-pyramid-pack-right">
-                        <PackCard pack={row2Packs[1]} onClick={handlePackClick} />
-                      </div>
-                    )}
-                  </div>
-                  {hasAdditionalTopPacks && (
-                    <div className="flex-center dashboard-view-all-button-container">
-                      <button
-                        onClick={handleViewFullTop}
-                        type="button"
-                        className="dashboard-view-all-button"
-                      >
-                        все стикеры
-                      </button>
+            {/* Daily activity — Figma */}
+            <div className="dashboard-daily-activity-section">
+            <div className="dashboard-daily-activity">
+              <h2 className="dashboard-daily-activity-title">Daily activity</h2>
+              <div className="dashboard-daily-activity-carousel">
+                <div className="dashboard-daily-activity-pool">
+                  <div className="dashboard-daily-activity-task">
+                    <div className="dashboard-daily-activity-task__ico" aria-hidden>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="dashboard-daily-activity-task__ico-svg">
+                        <path d="M14 10H6M10 14l-4-4 4-4" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </div>
-                  )}
+                    <div className="dashboard-daily-activity-task__info">
+                      <span className="dashboard-daily-activity-task__title">Swipe 50 cards</span>
+                      <span className="dashboard-daily-activity-task__reward">1,000 ART</span>
+                    </div>
+                    <button type="button" className="dashboard-daily-activity-task__btn">
+                      Start
+                    </button>
+                  </div>
+                  <div className="dashboard-daily-activity-task">
+                    <div className="dashboard-daily-activity-task__ico" aria-hidden>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="dashboard-daily-activity-task__ico-svg">
+                        <rect x="2" y="2" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
+                        <rect x="12" y="2" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
+                        <rect x="2" y="12" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
+                        <rect x="12" y="12" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
+                      </svg>
+                    </div>
+                    <div className="dashboard-daily-activity-task__info">
+                      <span className="dashboard-daily-activity-task__title">Create 5 stickers</span>
+                      <span className="dashboard-daily-activity-task__reward">100 ART</span>
+                    </div>
+                    <button type="button" className="dashboard-daily-activity-task__btn dashboard-daily-activity-task__btn--calm">
+                      Calm
+                    </button>
+                  </div>
                 </div>
-              )}
+              </div>
+              <button
+                type="button"
+                className="dashboard-daily-activity-check-all"
+                onClick={() => navigate('/profile?tab=artpoints')}
+              >
+                CHECK ALL ACTIVITY
+              </button>
+            </div>
             </div>
 
             {/* Quick Actions */}
@@ -454,7 +602,7 @@ export const DashboardPage: React.FC = () => {
                 <div className={cn('card-base', 'dashboard-top-users-card')}>
                   <div className="dashboard-top-users-card-content">
                     <Text variant="bodySmall" color="hint" className="dashboard-top-users-title">
-                      Топ пользователей по добавленным стикерам
+                      Топ пользователей
                     </Text>
                     <Text variant="bodySmall" color="hint" className="dashboard-top-users-text">
                       Загрузка...

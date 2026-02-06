@@ -4,7 +4,6 @@ import '../styles/common.css';
 import '../styles/SwipePage.css';
 import { useSwipeStickerFeed } from '@/hooks/useSwipeStickerFeed';
 import { SwipeCardStack } from '@/components/ui/SwipeCardStack';
-import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -128,7 +127,6 @@ export const SwipePage: React.FC = () => {
   if (isLimitReached && limitInfo) {
     return (
       <div className="swipe-page">
-        <HeaderPanel />
         <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">⛔</div>
           <Text variant="h2" weight="bold" align="center">
@@ -148,7 +146,6 @@ export const SwipePage: React.FC = () => {
   if (isLoading && stickerSets.length === 0) {
     return (
       <div className="swipe-page">
-        <HeaderPanel />
         <div className="swipe-page__loading">
           <LoadingSpinner />
           <Text variant="body" color="secondary">
@@ -162,7 +159,6 @@ export const SwipePage: React.FC = () => {
   if (error && stickerSets.length === 0) {
     return (
       <div className="swipe-page">
-        <HeaderPanel />
         <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">⚠️</div>
           <Text variant="h2" weight="bold" align="center">
@@ -182,7 +178,6 @@ export const SwipePage: React.FC = () => {
   if (emptyMessage && currentIndex >= stickerSets.length) {
     return (
       <div className="swipe-page">
-        <HeaderPanel />
         <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">🎉</div>
           <Text variant="h2" weight="bold" align="center">
@@ -199,7 +194,6 @@ export const SwipePage: React.FC = () => {
   if (!hasMore && currentIndex >= stickerSets.length) {
     return (
       <div className="swipe-page">
-        <HeaderPanel />
         <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">🎉</div>
           <Text variant="h2" weight="bold" align="center">
@@ -218,9 +212,6 @@ export const SwipePage: React.FC = () => {
 
   return (
     <div className="swipe-page">
-      {/* Header Panel */}
-      <HeaderPanel />
-
       {/* Swipe Stats */}
       {swipeStats && (
         <div className="swipe-page__stats">

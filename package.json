@@ -30,7 +30,8 @@
     "rebuild": "powershell -ExecutionPolicy Bypass -File scripts/simple-rebuild.ps1",
     "check": "powershell -ExecutionPolicy Bypass -File scripts/simple-check.ps1",
     "quick-test": "powershell -ExecutionPolicy Bypass -File scripts/simple-check.ps1",
-    "benchmark:analyze": "node scripts/analyze-benchmark.cjs"
+    "benchmark:analyze": "node scripts/analyze-benchmark.cjs",
+    "figma:ws": "bun run scripts/figma-websocket-server.ts"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.12",

@@ -1,13 +1,20 @@
 /* Common Styles for All Pages */
 
+/* Фон страниц (OtherAccountBackground): SVG задаётся глобально */
+:root {
+  --other-account-bg-image: url('/assets/other-account-bg.svg');
+}
+
 /* ============================================
    Базовые стили страниц
    ============================================ */
 
+/* Единый фон #191818 на всех страницах */
 .page-container {
+  position: relative;
   width: 100%;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: #191818 !important;
   color: var(--color-text);
   overflow-x: hidden;
   overflow-y: visible;
@@ -23,9 +30,14 @@
 
 .page-container-full-height {
   min-height: 100%;
-  background-color: var(--color-background);
+  background-color: #191818 !important;
   color: var(--color-text);
   padding-bottom: 0;
+}
+
+/* Единый фон для внутреннего контейнера на всех страницах */
+.page-container .stixly-page-container {
+  background-color: #191818 !important;
 }
 
 /* ============================================
@@ -41,6 +53,14 @@
 .error-container {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.error-container__cta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh;
+  padding: var(--spacing-xl);
 }
 
 .error-alert {

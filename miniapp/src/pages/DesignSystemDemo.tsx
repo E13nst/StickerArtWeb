@@ -66,6 +66,7 @@ export const DesignSystemDemo: React.FC = () => {
 
   return (
     <div className="page-container" data-theme={theme}>
+      <OtherAccountBackground />
       <div style={{ padding: 'var(--spacing-md)' }}>
         {/* Header */}
         <div className="flex-row-center" style={{ justifyContent: 'space-between', marginBottom: 'var(--spacing-xl)' }}>

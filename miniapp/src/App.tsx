@@ -46,43 +46,33 @@ const App: React.FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    // ✅ FIX: Установка заголовков через setAuthHeaders (дополнительный механизм)
-    // ОСНОВНОЙ механизм - interceptor в client.ts, который использует getInitData() на каждый запрос
-    // Это гарантирует работу даже если useEffect не сработал или сработал поздно
-    // При inline query initData содержит user + query_id (без chat) - это нормально
-    
-    const currentInitData = initData || '';
-    
-    // Логирование для диагностики
+    // Устанавливаем заголовки только когда есть непустой initData.
+    // Иначе не перезаписываем defaults — интерцептор в client.ts возьмёт initData из getInitData() (Telegram.WebApp, URL, sessionStorage) на каждый запрос.
+    const currentInitData = (initData || '').trim();
+    if (!currentInitData) {
+      return;
+    }
+
+    apiClient.setAuthHeaders(currentInitData, user?.language_code);
+
     if (import.meta.env.DEV) {
       const hasQueryId = currentInitData.includes('query_id=');
       const hasChat = currentInitData.includes('chat=') || currentInitData.includes('chat_type=');
       const hasUser = currentInitData.includes('user=');
-      const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : 
-                      hasChat ? 'CHAT' : 
-                      currentInitData ? 'UNKNOWN' : 'EMPTY';
-      
+      const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
       console.log('🔐 App.tsx: Установка заголовков авторизации:', {
         context,
         hasQueryId,
         hasChat,
         hasUser,
         initDataLength: currentInitData.length,
-        isEmpty: !currentInitData,
         hasUserObject: Boolean(user),
         language: user?.language_code
       });
-      
-      // Специальное предупреждение для inline query контекста
       if (hasQueryId && !hasChat && hasUser) {
         console.log('✅ Inline query контекст подтвержден: initData содержит user + query_id без chat');
-      } else if (!currentInitData) {
-        console.warn('⚠️ initData пустая - возможно, приложение открыто вне Telegram');
       }
     }
-
-    // Устанавливаем заголовки ВСЕГДА, независимо от содержимого
-    apiClient.setAuthHeaders(currentInitData, user?.language_code);
   }, [initData, user?.language_code]);
 
   useEffect(() => {
@@ -126,7 +116,7 @@ const App: React.FC = () => {
 
   return (
     <TonConnectUIProvider manifestUrl={manifestUrl}>
-      <Router basename="/miniapp">
+      <Router basename="/miniapp" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MainLayout>
           <Suspense fallback={
             <div style={{ 

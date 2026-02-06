@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-;
-import StixlyTopHeader from '../components/StixlyTopHeader';
 import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
@@ -18,6 +16,9 @@ import { getAvatarUrl } from '../utils/avatarUtils';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { getUserFullName } from '../utils/userUtils';
+import { Card, CardContent } from '../components/ui/Card';
+import { Text } from '../components/ui/Text';
+import { OtherAccountBackground } from '../components/OtherAccountBackground';
 import '../styles/common.css';
 import '../styles/AuthorPage.css';
 
@@ -443,61 +444,51 @@ export const AuthorPage: React.FC = () => {
 
   return (
     <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
-      <StixlyTopHeader
-        profileMode={{
-          enabled: true,
-          backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          pattern: 'dots',
-          content: avatarUserInfo ? (
-            <div className="profile-header-content">
-              <div className="profile-header-avatar-wrapper">
-                <FloatingAvatar userInfo={avatarUserInfo} size="large" overlap={0} />
-              </div>
-            </div>
-          ) : null
-        }}
-      />
-
-      <StixlyPageContainer className="page-container-no-margin-top">
+      <OtherAccountBackground />
+      {/* OTHER ACCOUNT (Figma): шапка профиля автора */}
+      <div
+        className={cn('other-account', isInTelegramApp && 'other-account--telegram')}
+        data-figma-block="OTHER ACCOUNT"
+      >
         {profileError && (
-          <Alert severity="error" className="error-alert-inline">
-            {profileError}
-          </Alert>
+          <div className="error-alert-inline" role="alert">
+            <Text variant="body" color="default">{profileError}</Text>
+          </div>
         )}
 
         {(isProfileLoading || (isSetsLoading && stickerSets.length === 0)) ? (
           <LoadingSpinner message="Загрузка..." />
         ) : profile ? (
-          <Card className={cn('card-base', 'card-base-no-padding-top')}>
+          <Card className={cn('other-account__card', 'card-base', 'card-base-no-padding-top')}>
             <CardContent className="card-content-with-avatar">
-              <div className={cn('text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
+              <div className={cn('other-account__name', 'text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
                 {displayName && (
-                  <Typography variant="h6" className="typography-bold">
+                  <Text variant="h4" weight="bold" className="typography-bold">
                     {displayName}
-                  </Typography>
+                  </Text>
                 )}
               </div>
 
               <div className="flex-row-space-around">
                 <div className="stat-box">
-                  <Typography variant="h5" fontWeight="bold" className="stat-value">
+                  <Text variant="h3" weight="bold" className="stat-value">
                     {packCount}
-                  </Typography>
-                  <Typography variant="body2" className="stat-label">
+                  </Text>
+                  <Text variant="bodySmall" className="stat-label">
                     Наборов
-                  </Typography>
+                  </Text>
                 </div>
               </div>
             </CardContent>
           </Card>
         ) : null}
-      </StixlyPageContainer>
+      </div>
 
       <StixlyPageContainer>
         {setsError && !isSetsLoading && !isLoadingMore && (
-          <Alert severity="error" className="error-alert-inline">
-            {setsError}
-          </Alert>
+          <div className="error-alert-inline" role="alert">
+            <Text variant="body" color="default">{setsError}</Text>
+          </div>
         )}
 
         {/* SearchBar и SortButton всегда видны */}

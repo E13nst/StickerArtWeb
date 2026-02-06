@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navbar } from '@/components/ui/Navbar';
+import './BottomNav.css';
 
 interface BottomNavProps {
   activeTab?: number;
@@ -44,5 +45,12 @@ export const BottomNav: React.FC<BottomNavProps> = () => {
     return null;
   }
 
-  return <Navbar />;
+  return (
+    <>
+      <Navbar />
+      <div className="home-indicator-area" aria-hidden="true">
+        <div className="home-indicator" />
+      </div>
+    </>
+  );
 };

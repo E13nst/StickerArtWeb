@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
-;
-import { CloseIcon } from '@/components/ui/Icons';;
-import { EditIcon } from '@/components/ui/Icons';;
+import { CloseIcon } from '@/components/ui/Icons';
+import { EditIcon } from '@/components/ui/Icons';
+import { Text } from '@/components/ui/Text';
 import { StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
@@ -19,6 +19,7 @@ import { useStickerNavigation } from '@/hooks/useStickerNavigation';
 import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetActionsBar, StickerSetDetailEdit } from './StickerSetDetail/index';
 import { StickerSetEditOperations } from '@/types/sticker';
 import { DonateModal } from './DonateModal';
+import './StickerSetDetail.css';
 
 type VisibilityState = 'public' | 'private';
 
@@ -776,15 +777,13 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         justifyContent: 'center',
         padding: 'var(--tg-spacing-4)'
       }}>
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            fontSize: 'var(--tg-font-size-l)',
-            color: 'var(--tg-theme-hint-color)'
-          }}
+        <Text 
+          variant="h3"
+          color="secondary"
+          align="center"
         >
           Загрузка стикерсета...
-        </Typography>
+        </Text>
       </div>
     );
   }
@@ -801,25 +800,32 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         gap: 'var(--tg-spacing-4)',
         padding: 'var(--tg-spacing-4)'
       }}>
-        <Typography 
-          variant="h6" 
-          color="error"
-          sx={{ fontSize: 'var(--tg-font-size-l)' }}
+        <Text 
+          variant="h3"
+          style={{ color: 'var(--color-error)' }}
+          align="center"
         >
           {error}
-        </Typography>
-        <IconButton 
-          onClick={onBack} 
-          sx={{ 
-            backgroundColor: 'primary.main', 
-            color: 'var(--tg-theme-button-text-color)',
-            borderRadius: 'var(--tg-radius-m)',
+        </Text>
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Назад"
+          style={{
             width: 48,
-            height: 48
+            height: 48,
+            borderRadius: 'var(--tg-radius-m)',
+            backgroundColor: 'var(--tg-theme-button-color)',
+            color: 'var(--tg-theme-button-text-color)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <CloseIcon />
-        </IconButton>
+          <CloseIcon size={24} />
+        </button>
       </div>
     );
   }
@@ -1002,93 +1008,23 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     );
   }
 
-  // View-режим (обычный режим просмотра)
+  // View-режим (обычный режим просмотра) — стили по Figma #Card
   return (
-    <div 
+    <div
       ref={modalContentRef}
       data-modal-content
       onClick={handleOutsidePreviewClick}
-      sx={{ 
-      position: isModal ? 'fixed' : 'relative',
-      top: isModal ? 'auto' : 'auto',
-      left: isModal ? 0 : 'auto',
-      right: isModal ? 0 : 'auto',
-      bottom: isModal ? 0 : 'auto',
-      width: '100%',
-      height: isModal ? 'auto' : '100vh',
-      maxHeight: isModal ? '100vh' : 'none', // Перекрывает весь экран, включая навигацию
-      minHeight: isModal ? 'auto' : 'none',
-      overflow: 'hidden', 
-      overflowY: 'hidden',
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'flex-start',
-      gap: '5px',
-      padding: '8px',
-      paddingTop: '5px',
-      backgroundColor: isModal ? 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.75)' : 'transparent',
-      backdropFilter: isModal ? 'blur(15px)' : 'none',
-      WebkitBackdropFilter: isModal ? 'blur(15px)' : 'none',
-      borderTopLeftRadius: isModal ? '24px' : 0,
-      borderTopRightRadius: isModal ? '24px' : 0,
-      touchAction: 'pan-y',
-      zIndex: isModal ? 'var(--z-modal, 1000)' : 'auto', // Modal content: same layer as modal backdrop
-      animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-      '@keyframes modalSlideUpFromBottom': {
-        '0%': {
-          opacity: 0,
-          transform: 'translateY(100%)',
-        },
-        '100%': {
-          opacity: 1,
-          transform: 'translateY(0)',
-        },
-      },
-      '@keyframes modalContentSlideIn': {
-        '0%': {
-          opacity: 0,
-          transform: 'scale(0.95) translateY(20px)',
-        },
-        '100%': {
-          opacity: 1,
-          transform: 'scale(1) translateY(0)',
-        },
-      },
-    }}>
-      {/* Grab handle для свайпа */}
-      {isModal && (
-        <div
-          sx={{
-            width: '34px',
-            height: '3px',
-            backgroundColor: 'var(--tg-theme-hint-color)',
-            opacity: 0.4,
-            borderRadius: '2px',
-            marginTop: '3px',
-            marginBottom: '3px',
-            flexShrink: 0,
-          }}
-        />
-      )}
-      
-      {/* Название и автор вверху */}
-      <div sx={{ 
-        width: '92vw',
-        maxWidth: '450px',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '5px',
-        paddingTop: '8px',
-        marginBottom: '13px'
-      }}>
-        <Typography
-          variant="h5"
-          sx={{
-            textAlign: 'center',
-            fontWeight: 700,
-            color: 'var(--tg-theme-text-color) !important',
+      className={`sticker-set-detail-card ${isModal ? 'sticker-set-detail-card--modal' : ''}`}
+      style={!isModal ? { height: '100vh', minHeight: '100vh' } : undefined}
+    >
+      {isModal && <div className="sticker-set-detail-card__handle" />}
+
+      <div className="sticker-set-detail-card__header">
+        <Text
+          variant="h2"
+          weight="bold"
+          align="center"
+          style={{
             fontSize: '21px',
             lineHeight: '1.2',
             display: '-webkit-box',
@@ -1100,123 +1036,90 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           }}
         >
           {displayTitle}
-        </Typography>
+        </Text>
         {infoVariant === 'default' && authorUsername && stickerSet.authorId && (
-          <Typography
-            variant="body2"
-            component={Link}
+          <Link
             to={`/author/${stickerSet.authorId}`}
             onClick={(e) => e.stopPropagation()}
-            sx={{
+            style={{
               textAlign: 'center',
               textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: '13px',
-              color: 'var(--tg-theme-link-color)',
+              display: 'block',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              '&:hover': {
-                opacity: 0.8
-              }
             }}
           >
-            {authorUsername}
-          </Typography>
+            <Text
+              variant="bodySmall"
+              weight="semibold"
+              align="center"
+              style={{
+                color: 'var(--tg-theme-link-color)',
+                fontSize: '13px',
+              }}
+            >
+              {authorUsername}
+            </Text>
+          </Link>
         )}
       </div>
-      {/* Основной блок: превью слева, кнопки справа */}
       {stickerCount > 0 && (
-        <div sx={{ 
-          width: '92vw',
-          maxWidth: '450px',
-          margin: '0 auto',
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start', 
-          gap: '13px'
-        }}>
-          {/* Левая часть: большое превью */}
-          <StickerPreview
-            sticker={stickers[activeIndex]}
-            stickerCount={stickerCount}
-            isMainLoaded={isMainLoaded}
-            onLoad={() => setIsMainLoaded(true)}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchCancel}
-            onClick={(event) => {
-              if (stickerCount <= 1) return;
-              const rect = event.currentTarget.getBoundingClientRect();
-              const clickX = event.clientX - rect.left;
-              if (clickX < rect.width / 2) {
-                goToPrevSticker();
-              } else {
-                goToNextSticker();
-              }
-            }}
-            touchHandled={touchHandledRef}
-            previewRef={previewRef}
-          />
-          
-          {/* Правая часть: вертикальный столбец кнопок на всю высоту превью */}
-          <StickerSetActionsBar
-            liked={liked}
-            likes={likes}
-            likeAnim={likeAnim}
-            onLikeClick={handleLikeClick}
-            onShareClick={handleShareClick}
-            starsInfoAnchor={starsInfoAnchor}
-            onStarsInfoOpen={(anchor) => setStarsInfoAnchor(anchor)}
-            onStarsInfoClose={() => setStarsInfoAnchor(null)}
-          />
+        <div className="sticker-set-detail-card__main">
+          <div className="sticker-set-detail-card__preview-wrap">
+            <StickerPreview
+              sticker={stickers[activeIndex]}
+              stickerCount={stickerCount}
+              isMainLoaded={isMainLoaded}
+              onLoad={() => setIsMainLoaded(true)}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchCancel}
+              onClick={(event) => {
+                if (stickerCount <= 1) return;
+                const rect = event.currentTarget.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                if (clickX < rect.width / 2) {
+                  goToPrevSticker();
+                } else {
+                  goToNextSticker();
+                }
+              }}
+              touchHandled={touchHandledRef}
+              previewRef={previewRef}
+            />
+            <div className="sticker-set-detail-card__actions-overlay" onClick={(e) => e.stopPropagation()}>
+              <StickerSetActionsBar
+                liked={liked}
+                likes={likes}
+                likeAnim={likeAnim}
+                onLikeClick={handleLikeClick}
+                onShareClick={handleShareClick}
+                starsInfoAnchor={starsInfoAnchor}
+                onStarsInfoOpen={(anchor) => setStarsInfoAnchor(anchor)}
+                onStarsInfoClose={() => setStarsInfoAnchor(null)}
+              />
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Нижняя горизонтальная лента */}
-      <div sx={{ 
-        width: '92vw',
-        maxWidth: '450px',
-        margin: '0 auto',
-        display: 'flex',
-        alignItems: 'flex-start'
-      }}>
+      <div className="sticker-set-detail-card__strip">
         <div
           ref={scrollerRef}
+          className="sticker-set-detail-card__strip-inner"
           onClick={(e) => e.stopPropagation()}
-          sx={{
-            width: '100%',
-            display: 'flex',
-            gap: '5px',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            scrollBehavior: 'smooth',
-            paddingX: '5px',
-            paddingY: '5px',
-            maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-            WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            '&::-webkit-scrollbar': { display: 'none' }
-          }}
         >
           {stickers.length === 0 ? (
-            <div sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              width: '100%',
-              height: 72,
-              color: 'text.secondary',
-              padding: '5px'
-            }}>
-              <Typography 
-                variant="body2"
-                sx={{ fontSize: 'var(--tg-font-size-s)' }}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 72, padding: 5 }}>
+              <Text 
+                variant="bodySmall"
+                align="center"
+                color="secondary"
               >
                 Нет стикеров для отображения
-              </Typography>
+              </Text>
             </div>
           ) : (
             stickers.map((s, idx) => {
@@ -1234,293 +1137,71 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         </div>
       </div>
 
-      {/* Информация о наборе: полупрозрачная карточка как превью стикеров */}
-      <div 
-        className="sticker-detail-info-card"
-        onClick={(e) => e.stopPropagation()}
-        sx={{ 
-          width: '92vw',
-          maxWidth: '450px',
-          margin: '0 auto',
-          zIndex: 9999, // Очень высокий z-index
-          position: 'relative'
-        }}
-      >
-          {/* Только категории и кнопки управления */}
-          <div
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '5px',
-              flexWrap: 'nowrap',
-              width: '100%',
-              padding: '8px',
-              // На очень маленьких экранах уменьшаем отступы
-              '@media (max-width: 400px)': {
-                padding: '6px',
-                gap: '4px'
-              },
-              '@media (max-width: 350px)': {
-                padding: '4px',
-                gap: '3px'
-              }
-            }}
-          >
-            <div
-              sx={{
-                flexGrow: 1,
-                flexShrink: 1,
-                minWidth: 0, // Важно для корректной работы flexbox
-                display: 'flex',
-                gap: '5px',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                padding: '5px 2px',
-                scrollbarWidth: 'none',
-                '&::-webkit-scrollbar': { display: 'none' },
-                maskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
-                WebkitMaskImage: 'linear-gradient(90deg, transparent, black 8%, black 92%, transparent)',
-                alignItems: 'center', // Выравнивание по центру для адаптивности
-                // На маленьких экранах уменьшаем отступы
-                '@media (max-width: 400px)': {
-                  gap: '4px',
-                  padding: '4px 2px'
-                }
-              }}
-            >
-              {displayedCategories.length > 0 ? (
-                displayedCategories.map((category) => (
-                  <div
-                    key={category.id}
-                    sx={{
-                      flexShrink: 0,
-                      padding: '6px 12px',
-                      borderRadius: '13px',
-                      backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.15)',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      color: 'var(--tg-theme-text-color) !important',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      border: '1px solid rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.25)',
-                      textShadow: '0 1px 3px var(--tg-theme-shadow-color)',
-                      maxWidth: '140px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      transition: 'all 150ms ease',
-                      '&:hover': {
-                        backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.2)',
-                        border: '1px solid rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.35)',
-                        transform: 'scale(1.02)'
-                      },
-                      // Адаптивность для маленьких экранов
-                      '@media (max-width: 400px)': {
-                        padding: '5px 10px',
-                        fontSize: '12px',
-                        maxWidth: '110px',
-                        borderRadius: '10px'
-                      },
-                      // Для очень маленьких экранов
-                      '@media (max-width: 350px)': {
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        maxWidth: '90px',
-                        borderRadius: '8px'
-                      }
-                    }}
-                  >
-                    {category.name}
-                  </div>
-                ))
-              ) : (
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: 'var(--tg-theme-hint-color)', 
-                    fontWeight: 500,
-                    '@media (max-width: 400px)': {
-                      fontSize: '12px'
-                    }
-                  }}
-                >
-                  Категории не назначены
-                </Typography>
-              )}
-            </div>
-            <div
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                flexShrink: 0,
-                '@media (max-width: 400px)': {
-                  gap: '4px'
-                }
-              }}
-            >
+      <div className="sticker-set-detail-card__footer sticker-detail-info-card" onClick={(e) => e.stopPropagation()}>
+        <div className="sticker-set-detail-card__footer-inner">
+          <div className="sticker-set-detail-card__categories">
+            {displayedCategories.length > 0 ? (
+              displayedCategories.map((category) => (
+                <div key={category.id} className="sticker-set-detail-card__category-chip">
+                  {category.name}
+                </div>
+              ))
+            ) : (
+              <Text
+                variant="bodySmall"
+                color="secondary"
+                weight="medium"
+                style={{ fontSize: window.innerWidth <= 400 ? '12px' : undefined }}
+              >
+                Категории не назначены
+              </Text>
+            )}
+          </div>
+          <div className="sticker-set-detail-card__footer-actions">
               {/* Кнопка "Изменить" (только для автора, только в режиме view) */}
               {isAuthor && mode === 'view' && (
-                <IconButton
-                  onClick={() => {
-                    if (isAuthor) {
-                      setMode('edit');
-                    }
-                  }}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    minWidth: 28,
-                    minHeight: 28,
-                    backgroundColor: 'transparent',
-                    color: 'var(--tg-theme-link-color)',
-                    padding: '4px',
-                    transition: 'all 150ms ease',
-                    flexShrink: 0,
-                    '&:hover': {
-                      backgroundColor: 'rgba(var(--tg-theme-link-color-rgb, 36, 129, 204), 0.1)',
-                      color: 'var(--tg-theme-link-color)'
-                    },
-                    '&:active': {
-                      backgroundColor: 'rgba(var(--tg-theme-link-color-rgb, 36, 129, 204), 0.15)'
-                    },
-                    '@media (max-width: 400px)': {
-                      width: 28,
-                      height: 28,
-                      '& svg': {
-                        fontSize: '16px'
-                      }
-                    },
-                    '@media (max-width: 350px)': {
-                      width: 24,
-                      height: 24,
-                      '& svg': {
-                        fontSize: '14px'
-                      }
-                    }
-                  }}
+                <button
+                  type="button"
+                  onClick={() => isAuthor && setMode('edit')}
                   title="Изменить стикерсет"
+                  className="sticker-set-detail-card__icon-btn sticker-set-detail-card__icon-btn--edit"
                 >
-                  <EditIcon sx={{ fontSize: '18px' }} />
-                </IconButton>
+                  <EditIcon size={18} />
+                </button>
               )}
-              {/* Кнопка редактирования категорий */}
               {canEditCategories && (
-                <IconButton
+                <button
+                  type="button"
                   onClick={handleOpenCategoriesDialog}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    minWidth: 28, // Минимальный размер для кликабельности
-                    minHeight: 28,
-                    backgroundColor: 'transparent',
-                    color: 'var(--tg-theme-hint-color)',
-                    padding: '4px',
-                    transition: 'all 150ms ease',
-                    flexShrink: 0, // Не сжимается
-                    '&:hover': {
-                      backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.1)',
-                      color: 'var(--tg-theme-text-color)'
-                    },
-                    '&:active': {
-                      backgroundColor: 'rgba(var(--tg-theme-text-color-rgb, 255, 255, 255), 0.15)'
-                    },
-                    // Адаптивность для маленьких экранов
-                    '@media (max-width: 400px)': {
-                      width: 28,
-                      height: 28,
-                      '& svg': {
-                        fontSize: '16px'
-                      }
-                    },
-                    '@media (max-width: 350px)': {
-                      width: 24,
-                      height: 24,
-                      '& svg': {
-                        fontSize: '14px'
-                      }
-                    }
-                  }}
                   title="Изменить категории"
+                  className="sticker-set-detail-card__icon-btn sticker-set-detail-card__icon-btn--categories"
                 >
-                  <EditIcon sx={{ fontSize: '18px' }} />
-                </IconButton>
+                  <EditIcon size={18} />
+                </button>
               )}
             </div>
           </div>
-          {/* Минималистичная горизонтальная черта под категориями */}
-          <div
-            sx={{
-              width: '100%',
-              height: '1px',
-              backgroundColor: 'var(--tg-theme-border-color)',
-              marginTop: '8px',
-              marginBottom: '8px'
-            }}
-          />
+          <div className="sticker-set-detail-card__divider" />
           {isStickerSetBlocked && (
-            <Alert
-              severity="error"
-              variant="outlined"
-              sx={{
-                mt: 2,
-                mx: '8px',
-                color: 'var(--tg-theme-text-color)',
-                borderColor: 'var(--tg-theme-error-color)',
-                backgroundColor: 'rgba(var(--tg-theme-error-color-rgb, 244, 67, 54), 0.12)'
-              }}
-            >
+            <div className="sticker-set-detail-card__alert">
               Набор заблокирован {currentBlockReason ? `— ${currentBlockReason}` : 'без указания причины'}.
-            </Alert>
-          )}
-
-          {/* Кнопка доната */}
-          {effectiveStickerSet.availableActions?.includes('DONATE') && (
-            <div
-              sx={{
-                mt: 2,
-                mx: '8px',
-                display: 'flex',
-                justifyContent: 'center'
-              }}
-            >
-              <Button
-                variant="contained"
-                onClick={() => setIsDonateModalOpen(true)}
-                sx={{
-                  borderRadius: '12px',
-                  px: 3,
-                  py: 1.5,
-                  backgroundColor: 'rgba(255, 215, 0, 0.2)',
-                  color: '#FFD700',
-                  border: '1px solid rgba(255, 215, 0, 0.4)',
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 215, 0, 0.3)',
-                    borderColor: 'rgba(255, 215, 0, 0.6)'
-                  }
-                }}
-              >
-                Поддержать автора
-              </Button>
             </div>
           )}
 
-          {/* Кнопки действий внизу модального окна */}
+          {effectiveStickerSet.availableActions?.includes('DONATE') && (
+            <div className="sticker-set-detail-card__donate-wrap">
+              <button
+                type="button"
+                className="sticker-set-detail-card__donate-btn"
+                onClick={() => setIsDonateModalOpen(true)}
+              >
+                Поддержать автора
+              </button>
+            </div>
+          )}
+
           {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
-            <div
-              sx={{
-                mt: 2,
-                px: '8px',
-                pb: '8px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 2
-              }}
-            >
+            <div className="sticker-set-detail-card__actions-wrap">
               <StickerSetActions
                 stickerSet={effectiveStickerSet}
                 availableActions={effectiveStickerSet.availableActions}

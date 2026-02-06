@@ -1,62 +1,108 @@
+/* Navbar — Figma spec */
+
 .navbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: var(--component-navbar-height, 50px);
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--component-navbar-border-radius, 16px) var(--component-navbar-border-radius, 16px) 0 0;
+  /* Auto layout — gap уменьшен, чтобы все 5 вкладок помещались в 370px */
   display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 0;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 8px;
+  gap: 4px;
+
+  /* Position: над областью Home Indicator (Taskbar 90.25px = Navbar 50px + область индикатора ~40px) */
+  position: fixed;
+  bottom: calc(var(--stixly-taskbar-height, 90.25px) - var(--component-navbar-height, 50px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 370px;
+  height: 50px;
+  box-sizing: border-box;
+
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+
   z-index: var(--z-header, 100);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* Tab (Home / Gallery / Swipe / Generation / Account) */
 .navbar__tab {
+  /* Auto layout — гибкая ширина, чтобы все вкладки помещались */
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  padding: 0 2px;
   gap: 4px;
-  flex: 1;
-  height: 100%;
+
+  margin: 0;
+  min-width: 0;
+  height: 30px;
+  flex: 1 1 0;
+
   text-decoration: none;
-  color: var(--color-text, #ffffff);
-  transition: color 0.2s ease;
+  color: #ffffff;
   cursor: pointer;
   border: none;
   background: transparent;
+  transition: color 0.2s ease;
 }
 
 .navbar__tab--active {
-  color: var(--color-primary, #ee449f);
-}
-
-.navbar__icon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.navbar__label {
-  font-family: var(--font-family-base, 'Manrope', sans-serif);
-  font-size: var(--component-navbar-font-size, 8px);
-  font-weight: 400;
-  font-style: normal;
-  line-height: 22px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-/* Hover effect */
-.navbar__tab:hover {
-  opacity: 0.8;
+  color: #ee449f;
+  filter: drop-shadow(0 0 7.6px #ee449f);
 }
 
 .navbar__tab--active .navbar__icon,
 .navbar__tab--active .navbar__label {
-  color: var(--color-primary, #ee449f);
+  color: #ee449f;
+}
+
+.navbar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+.navbar__icon svg {
+  display: block;
+}
+
+/* Ico_Home 19×20, Ico_Gallery 20×20, Ico_Swipe 18×20, Ico_Generation 20×20, Ico_Account 14.21×20 — в контейнере 20×20 */
+.navbar__label {
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+
+  min-width: 0;
+  max-width: 100%;
+  height: 6px;
+  min-height: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-family: 'Manrope', var(--font-family-base, sans-serif);
+  font-style: normal;
+  font-weight: 400;
+  font-size: 8px;
+  line-height: 22px;
+  color: inherit;
+}
+
+.navbar__tab:hover {
+  opacity: 0.9;
 }

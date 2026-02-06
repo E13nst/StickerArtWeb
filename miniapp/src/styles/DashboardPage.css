@@ -1,67 +1,141 @@
-/* DashboardPage Styles */
+/* DashboardPage Styles — Content_home (Figma) */
 
 @import './common.css';
 
 /* ============================================
-   Базовые стили страницы
+   Content_home — контейнер по Figma
+   width: 402px, left: calc(50% - 402px/2), top: 172px
+   padding: 16px по краям, gap: 16px между секциями
    ============================================ */
 
-/* Использует .page-container-full-height из common.css */
-
-/* Использует .page-container-padding-y из common.css */
-/* .dashboard-container - использует классы из common.css */
+/* Контейнер Content_home — переопределяет telegram-mode */
+.stixly-page-container.dashboard-container,
+.dashboard-container {
+  max-width: 402px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
 
 /* ============================================
-   Стили секции статистики
+   Our Statistics — Figma (370×104px), стили как у карточек дашборда
    ============================================ */
 
 .dashboard-stats-section {
-  background: rgba(169, 70, 181, 0.1);
-  border-radius: var(--border-radius-lg);
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px 16px 16px;
+  gap: 16px;
+  width: 100%;
+  max-width: 370px;
+  min-height: 104px;
+  box-sizing: border-box;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
 }
 
 .dashboard-stats-title {
-  margin-bottom: 1.5rem;
-  color: var(--color-text);
+  width: 100%;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  flex: none;
+  order: 0;
+  margin: 0;
 }
 
 .dashboard-stats-content {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
-  gap: 1rem;
+  align-items: stretch;
+  padding: 0;
+  gap: 10px;
+  width: 100%;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  box-sizing: border-box;
 }
 
 .dashboard-stat-item {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   align-items: center;
-  gap: 0.5rem;
+  padding: 0;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+  flex: 1;
 }
 
 .dashboard-stat-label {
-  font-size: 1rem;
-  color: var(--color-text);
-  text-align: center;
-}
-
-.dashboard-stat-value-container {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  flex: none;
+  order: 0;
+}
+
+.dashboard-stat-value-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: baseline;
+  padding: 0;
+  gap: 6px;
+  flex: none;
+  order: 1;
 }
 
 .dashboard-stat-value {
-  font-size: 1rem;
-  color: var(--color-text);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  flex: none;
 }
 
 .dashboard-stat-trend {
-  font-size: 0.75rem;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  text-align: center;
   color: #67f56b;
-  font-weight: 300;
+  flex: none;
+}
+
+/* Обёртка секции статистики — центрирует блок 370px */
+.dashboard-stats-section-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 /* ============================================
@@ -69,229 +143,167 @@
    ============================================ */
 
 .dashboard-category-section {
-  margin-top: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-/* Использует .flex-center из common.css */
-.dashboard-category-button-container {
+  display: flex;
+  justify-content: center;
   width: 100%;
-  margin-bottom: 1rem;
 }
 
-@media (min-width: 600px) {
-  .dashboard-category-button-container {
-    margin-bottom: 1.5rem;
-  }
-}
-
-@media (min-width: 900px) {
-  .dashboard-category-button-container {
-    margin-bottom: 2rem;
-  }
-}
-
-/* Использует новый Button компонент */
-.dashboard-category-button {
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  position: relative;
-  z-index: 10;
-}
-
-/* ============================================
-   Стили пирамиды стикерсетов
-   ============================================ */
-
-.dashboard-pyramid-container {
-  position: relative;
+/* Card Custom + Card Official — ряд 370px по ширине как Our Statistics */
+.dashboard-category-cards-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
   width: 100%;
-  margin-top: 1rem;
+  max-width: 370px;
 }
 
-@media (min-width: 600px) {
-  .dashboard-pyramid-container {
-    margin-top: 1.5rem;
-  }
+/* Card Custom / Card Official — Figma: 177×249px, padding 16px 8px, gap 16px */
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 8px;
+  gap: 16px;
+  width: 177px;
+  height: 249px;
+  border-radius: 16px;
+  box-sizing: border-box;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
-@media (min-width: 900px) {
-  .dashboard-pyramid-container {
-    margin-top: 2rem;
-  }
+.dashboard-card-custom {
+  background: rgba(169, 70, 181, 0.2);
 }
 
-.dashboard-pyramid-trophy {
-  position: absolute;
-  inset: 0;
+.dashboard-card-official {
+  background: rgba(238, 68, 159, 0.2);
+}
+
+/* Top custom Stickers / Top official Stickers — Figma: 158×12px, Manrope 700 16px */
+.dashboard-card-title {
+  width: 158px;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40vw;
-  opacity: 0.23;
-  pointer-events: none;
-  z-index: 0;
-  transform: translateY(-6%);
+  text-align: center;
+  color: #ffffff;
+  flex: none;
+  order: 0;
+  margin: 0;
 }
 
-@media (min-width: 600px) {
-  .dashboard-pyramid-trophy {
-    font-size: 30vw;
-  }
+/* Preview — Figma: 161×189px, gap 16px внутри слайда */
+.dashboard-card-carousel {
+  width: 161px;
+  height: 189px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border-radius: 16px;
 }
 
-@media (min-width: 900px) {
-  .dashboard-pyramid-trophy {
-    font-size: 18vw;
-  }
-}
-
-.dashboard-pyramid-content {
-  position: relative;
-  width: 100%;
-  max-width: 380px;
-  margin-left: auto;
-  margin-right: auto;
-  height: clamp(240px, 72vw, 320px);
+.dashboard-card-carousel-track {
   display: flex;
-  align-items: flex-end;
+  flex-direction: row;
+  height: 100%;
+  transition: transform 0.45s ease-in-out;
+}
+
+.dashboard-card-carousel-track--no-transition {
+  transition: none;
+}
+
+.dashboard-card-carousel-slide {
+  flex: 0 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding-bottom: 1.125rem;
-  z-index: 1;
 }
 
-@media (min-width: 600px) {
-  .dashboard-pyramid-content {
-    max-width: 540px;
-    height: clamp(280px, 52vw, 360px);
-    padding-bottom: 1.5rem;
-  }
+/* В карусели дашборда стиль карточки (фон, рамка, тень) не показываем — только контент и лайк */
+.dashboard-card-carousel .pack-card,
+.dashboard-card-carousel-slide .pack-card {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
-@media (min-width: 900px) {
-  .dashboard-pyramid-content {
-    max-width: 680px;
-  }
+.dashboard-card-carousel .pack-card__placeholder,
+.dashboard-card-carousel-slide .pack-card__placeholder {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
-.dashboard-pyramid-pack-left {
-  position: absolute;
-  bottom: 12%;
-  left: 18%;
-  transform: translateX(-50%);
-  width: clamp(138px, 38vw, 200px);
-  filter: drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32));
-  z-index: 1;
+/* Слайд карусели — Figma: 161×189px, колонка, название ближе к контенту */
+.dashboard-card-carousel .pack-card,
+.dashboard-card-carousel-slide .pack-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 161px !important;
+  height: 189px !important;
+  padding: 0;
+  gap: 6px;
+  aspect-ratio: auto !important;
+  max-width: 161px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-@media (min-width: 600px) {
-  .dashboard-pyramid-pack-left {
-    left: 20%;
-    width: clamp(160px, 30vw, 240px);
-  }
+.dashboard-card-carousel .pack-card:hover,
+.dashboard-card-carousel-slide .pack-card:hover {
+  transform: none;
 }
 
-@media (min-width: 900px) {
-  .dashboard-pyramid-pack-left {
-    bottom: 10%;
-    left: 26%;
-  }
+/* Photo/like — Figma: 161×161px, border-radius 16px */
+.dashboard-card-carousel .pack-card__content,
+.dashboard-card-carousel-slide .pack-card__content {
+  width: 161px !important;
+  height: 161px !important;
+  flex: none;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.dashboard-pyramid-pack-left .pack-card {
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 1 / 1.618;
-  transform: scale(0.94);
-  transform-origin: center bottom;
-}
-
-@media (min-width: 600px) {
-  .dashboard-pyramid-pack-left .pack-card {
-    transform: scale(0.98);
-  }
-}
-
-.dashboard-pyramid-pack-center {
-  position: absolute;
-  bottom: -6%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: clamp(170px, 48vw, 220px);
-  z-index: 2;
-}
-
-@media (min-width: 600px) {
-  .dashboard-pyramid-pack-center {
-    bottom: -8%;
-    width: clamp(195px, 32vw, 260px);
-  }
-}
-
-@media (min-width: 900px) {
-  .dashboard-pyramid-pack-center {
-    bottom: -10%;
-  }
-}
-
-.dashboard-pyramid-pack-center .pack-card {
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 1 / 1.618;
-  box-shadow: 0 28px 52px rgba(8, 14, 30, 0.38);
-}
-
-.dashboard-pyramid-pack-right {
-  position: absolute;
-  bottom: 12%;
-  right: 18%;
-  transform: translateX(50%);
-  width: clamp(138px, 38vw, 200px);
-  filter: drop-shadow(0 20px 36px rgba(8, 14, 30, 0.32));
-  z-index: 1;
-}
-
-@media (min-width: 600px) {
-  .dashboard-pyramid-pack-right {
-    right: 20%;
-    width: clamp(160px, 30vw, 240px);
-  }
-}
-
-@media (min-width: 900px) {
-  .dashboard-pyramid-pack-right {
-    bottom: 10%;
-    right: 26%;
-  }
-}
-
-.dashboard-pyramid-pack-right .pack-card {
-  width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 1 / 1.618;
-  transform: scale(0.94);
-  transform-origin: center bottom;
-}
-
-@media (min-width: 600px) {
-  .dashboard-pyramid-pack-right .pack-card {
-    transform: scale(0.98);
-  }
-}
-
-/* Использует .flex-center из common.css */
-.dashboard-view-all-button-container {
+.dashboard-card-carousel .pack-card-image,
+.dashboard-card-carousel .pack-card-animated-sticker,
+.dashboard-card-carousel .pack-card-video {
   width: 100%;
-  margin-top: 0.875rem;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
 }
 
-@media (min-width: 600px) {
-  .dashboard-view-all-button-container {
-    margin-top: 1rem;
-  }
+/* Название стикерсета ниже контента — ближе к блоку фото, Manrope 700, 16px */
+.dashboard-card-carousel .pack-card__title-overlay,
+.dashboard-card-carousel-slide .pack-card__title-overlay {
+  position: static !important;
+  flex: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  color: #ffffff;
+  text-align: center;
+  padding: 0 4px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-view-all-button {
@@ -321,8 +333,6 @@
 
 .dashboard-quick-actions-container {
   position: relative;
-  margin-top: 0.75rem;
-  margin-bottom: 1.5rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
   overflow: visible;
@@ -386,28 +396,280 @@
 }
 
 /* ============================================
+   Daily activity (Figma)
+   ============================================ */
+
+/* Daily activity — по Figma: 370×234px */
+.dashboard-daily-activity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 24px;
+  width: 370px;
+  max-width: 100%;
+  height: 234px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+}
+
+.dashboard-daily-activity-title {
+  width: 338px;
+  max-width: 100%;
+  height: 14px;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.dashboard-daily-activity-carousel {
+  width: 338px;
+  max-width: 100%;
+  height: 96px;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+  overflow: hidden;
+}
+
+.dashboard-daily-activity-pool {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  gap: 24px;
+  width: 338px;
+  height: 96px;
+}
+
+.dashboard-daily-activity-task {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  gap: 8px;
+  width: 338px;
+  height: 36px;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.dashboard-daily-activity-task:nth-child(2) {
+  order: 1;
+}
+
+.dashboard-daily-activity-task__ico {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  flex-grow: 0;
+  background: #262626;
+  border-radius: 36px;
+}
+
+.dashboard-daily-activity-task__ico-svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.dashboard-daily-activity-task__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+  gap: 10px;
+  width: 232px;
+  height: 31px;
+  flex: none;
+  order: 1;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.dashboard-daily-activity-task__title {
+  width: 232px;
+  height: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  flex: none;
+  align-self: stretch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-daily-activity-task__reward {
+  width: auto;
+  height: 9px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #ee449f;
+  flex: none;
+}
+
+.dashboard-daily-activity-task__btn {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px;
+  width: 54px;
+  height: 25px;
+  flex: none;
+  order: 2;
+  flex-grow: 0;
+  background: #262626;
+  border: none;
+  border-radius: 16px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 22px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dashboard-daily-activity-task__btn:hover {
+  background: #333;
+}
+
+.dashboard-daily-activity-task__btn--calm {
+  background: #ee449f;
+}
+
+.dashboard-daily-activity-task__btn--calm:hover {
+  background: #d93d8f;
+}
+
+/* Button_activity — order 2 по Figma */
+.dashboard-daily-activity-check-all {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  width: 338px;
+  max-width: 100%;
+  height: 44px;
+  flex: none;
+  order: 2;
+  align-self: stretch;
+  flex-grow: 0;
+  background: #ee449f;
+  box-shadow: 1px 4px 8.1px rgba(0, 0, 0, 0.25);
+  border: none;
+  border-radius: 10px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 22px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dashboard-daily-activity-check-all:hover {
+  background: #d93d8f;
+}
+
+/* Центрирование Daily activity */
+.dashboard-daily-activity-section {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ============================================
    Стили карточек
    ============================================ */
 
-/* Использует .card-base из common.css */
+/* Карточки Top Users — те же стили и высота, что у .top-authors-card (Топ авторов) */
 .dashboard-top-users-card {
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+  width: 100%;
+  max-width: 370px;
+  min-height: 228px;
+  box-sizing: border-box;
+  border-radius: var(--border-radius-lg);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .dashboard-top-users-card-content {
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  gap: 16px;
+  width: 100%;
+  min-height: 124px;
+  text-align: center;
+  flex: none;
+  align-self: stretch;
 }
 
 .dashboard-top-users-title {
-  color: var(--tg-theme-hint-color);
-  font-size: 0.75rem;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
+  width: 100%;
+  font-family: var(--font-family-base);
+  font-size: 24px;
+  font-weight: var(--typography-h2-font-weight);
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  margin: 0;
+  flex: none;
+  order: 0;
 }
 
 .dashboard-top-users-text {
-  color: var(--tg-theme-hint-color);
-  font-size: 0.75rem;
+  font-family: var(--font-family-base);
+  font-size: var(--typography-body-small-font-size);
+  font-weight: var(--typography-body-font-weight);
+  line-height: var(--typography-body-small-line-height);
+  color: var(--color-text-secondary);
+  flex: none;
+  order: 1;
 }
 
 /* ============================================
@@ -421,37 +683,78 @@
    ============================================ */
 
 .dashboard-top-users-section {
-  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .dashboard-top-authors-section {
-  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
+/* Плейсхолдер Топ авторов — те же стили, что у .top-authors-card */
 .dashboard-top-authors-card {
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 16px;
+  gap: 16px;
+  width: 100%;
+  max-width: 370px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  height: auto;
 }
 
 .dashboard-top-authors-card-content {
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  gap: 16px;
+  width: 100%;
+  min-height: 124px;
+  text-align: center;
+  flex: none;
+  align-self: stretch;
 }
 
 .dashboard-top-authors-title {
-  margin-bottom: 0.75rem;
+  width: 100%;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  margin: 0;
+  flex: none;
+  order: 0;
+}
+
+.dashboard-top-authors-text {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 22px;
+  color: rgba(255, 255, 255, 0.5);
+  flex: none;
+  order: 1;
 }
 
 /* ============================================
-   Нижний отступ
+   Нижний отступ (под taskbar)
    ============================================ */
-
 .dashboard-bottom-spacing {
-  height: 140px;
+  height: var(--stixly-taskbar-height, 90.25px);
+  min-height: 90px;
   flex-shrink: 0;
 }
-
-@media (min-width: 600px) {
-  .dashboard-bottom-spacing {
-    height: 160px;
-  }
-}
-

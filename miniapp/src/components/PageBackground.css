@@ -1,0 +1,60 @@
+/* PageBackground — фон по Figma (Background + 4 Rectangle)
+   Задать картинку: в :root или на странице --page-bg-image: url('path/to/image.png'); */
+
+.page-background {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  min-height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Background — размытый слой (градиент по умолчанию, опционально картинка через --page-bg-image) */
+.page-background__blur {
+  position: absolute;
+  width: 402px;
+  height: 1600px;
+  left: 0;
+  top: 151px;
+  filter: blur(22.3px);
+  background-image: var(--page-bg-image, none),
+    linear-gradient(180deg, rgba(238, 68, 159, 0.12) 0%, rgba(0, 0, 0, 0.05) 50%, rgba(0, 0, 0, 0.2) 100%);
+  background-size: 402px 400px, 100% 100%;
+  background-repeat: repeat-y, no-repeat;
+  background-position: center top, 0 0;
+}
+
+/* Rectangle 1 */
+.page-background__rect {
+  position: absolute;
+  width: 402px;
+  height: 400px;
+  left: calc(50% - 402px / 2);
+  top: 151px;
+  background-image: var(--page-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25));
+}
+
+/* Rectangle 2 — отражение по горизонтали */
+.page-background__rect:nth-child(3) {
+  top: 548px;
+  transform: matrix(-1, 0, 0, 1, 0, 0);
+}
+
+/* Rectangle 3 — поворот 90° */
+.page-background__rect:nth-child(4) {
+  left: calc(50% - 402px / 2 + 1px);
+  top: 947px;
+  transform: rotate(90deg);
+}
+
+/* Rectangle 4 — поворот -90° */
+.page-background__rect:nth-child(5) {
+  left: calc(50% - 402px / 2 + 1px);
+  top: 1349px;
+  transform: rotate(-90deg);
+}
