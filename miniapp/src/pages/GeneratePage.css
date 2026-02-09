@@ -58,33 +58,13 @@
   width: 100%;
 }
 
-/* Figma error state: block 370×96 with red message inside (same look as input) */
+/* Input error state */
 .generate-input-wrapper--error .generate-input {
-  min-height: 96px;
-  padding: 8px;
+  box-shadow: 0 0 0 1px var(--color-error), 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
-.generate-error-message-block {
-  width: 100%;
-  min-height: 96px;
-  padding: 8px;
-  box-sizing: border-box;
-  background-color: var(--color-surface);
-  border-radius: 16px;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
-  display: flex;
-  align-items: center;
-}
-
-/* Error message inside form — Figma: 12px #FF4B4B */
-.generate-error-message {
-  font-family: var(--font-family-base);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 100%;
-  color: #FF4B4B;
-  margin: 0;
-  padding: 0;
+.generate-input--error {
+  background-color: rgba(255, 75, 75, 0.08);
 }
 
 .generate-input {
@@ -202,6 +182,16 @@
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
+.generate-button-clear {
+  width: 100%;
+  max-width: 201px;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: 16px !important;
+}
+
 /* Cost info — в Figma стоимость в кнопке "Generate 10 ART" */
 .generate-cost-info {
   margin-bottom: var(--spacing-sm);
@@ -271,6 +261,40 @@
   width: 100%;
 }
 
+.generate-success-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.generate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  align-items: center;
+  width: 100%;
+}
+
+.generate-action-button.share {
+  width: 100%;
+}
+
+.generate-new-request {
+  width: 100%;
+  padding-top: var(--spacing-sm);
+}
+
+.generate-section-title {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+}
+
 /* Figma Result: 232×232, #262626, 16px radius, shadow */
 .generate-result-image-wrapper {
   width: 232px;
@@ -329,8 +353,9 @@
   font-size: 16px !important;
   font-weight: 700 !important;
   border-radius: 16px !important;
-  background-color: var(--color-primary) !important;
+  background-color: var(--color-surface) !important;
   color: var(--color-text) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
@@ -349,6 +374,49 @@
   align-items: center;
   gap: 16px;
   width: 100%;
+}
+
+.generate-error-banner {
+  width: 100%;
+  background-color: rgba(255, 75, 75, 0.12);
+  border: 1px solid rgba(255, 75, 75, 0.4);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.generate-error-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--spacing-sm);
+  color: var(--color-error);
+  font-size: 12px;
+}
+
+.generate-error-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FF4B4B;
+  background-color: rgba(255, 75, 75, 0.18);
+  flex-shrink: 0;
+}
+
+.generate-error-text {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #FF4B4B;
 }
 
 .generate-button-retry {

@@ -75,11 +75,25 @@ export const SwipePage: FC = () => {
     console.log('All cards swiped!');
   }, []);
 
+  const handleDownload = useCallback((stickerSet: StickerSetResponse, fallbackUrl?: string) => {
+    const targetUrl = stickerSet.url ?? fallbackUrl;
+    if (!targetUrl) {
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Ссылка недоступна');
+      }
+      return;
+    }
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  }, []);
+
   // Рендер карточки для SwipeCardStack
   const renderCard = useCallback((card: any, index: number) => {
     const stickerSet = card as StickerSetResponse;
     const previewSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
     const imageUrl = previewSticker ? getStickerImageUrl(previewSticker.file_id) : '';
+    const stopPropagation = (event: React.SyntheticEvent) => {
+      event.stopPropagation();
+    };
 
     return (
       <div className="swipe-card">
@@ -104,7 +118,17 @@ export const SwipePage: FC = () => {
         </div>
 
         <div className="swipe-card__footer">
-          <Button variant="primary" size="large" className="swipe-card__button">
+          <Button
+            variant="primary"
+            size="large"
+            className="swipe-card__button"
+            onClick={(event) => {
+              stopPropagation(event);
+              handleDownload(stickerSet, imageUrl);
+            }}
+            onPointerDown={stopPropagation}
+            onTouchStart={stopPropagation}
+          >
             Download
           </Button>
           

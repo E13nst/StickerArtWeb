@@ -9,13 +9,15 @@ import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
 type PageState = 'idle' | 'generating' | 'success' | 'error';
+type ErrorKind = 'prompt' | 'upload' | 'general';
 
 const STATUS_MESSAGES: Record<GenerationStatus, string> = {
-  PROCESSING_PROMPT: '🤖 Улучшаем промпт...',
+  PROCESSING_PROMPT: 'Улучшаем описание...',
   PENDING: 'Ожидание...',
-  GENERATING: '🎨 Генерируем изображение...',
-  REMOVING_BACKGROUND: '✂️ Удаляем фон...',
+  GENERATING: 'Генерируем изображение...',
+  REMOVING_BACKGROUND: 'Удаляем фон...',
   COMPLETED: 'Готово!',
   FAILED: 'Ошибка генерации',
   TIMEOUT: 'Превышено время ожидания'
@@ -31,7 +33,7 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
 
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
-  const { isInTelegramApp } = useTelegram();
+  const { isInTelegramApp, tg } = useTelegram();
   
   // Inline-режим параметры из URL
   const [, setInlineQueryId] = useState<string | null>(null);
@@ -49,11 +51,12 @@ export const GeneratePage: FC = () => {
   const [, setTaskId] = useState<string | null>(null);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [imageId, setImageId] = useState<string | null>(null);
-  const [, setFileId] = useState<string | null>(null);
+  const [fileId, setFileId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [, setIsSendingToChat] = useState(false);
   
   // Тарифы
@@ -231,13 +234,24 @@ export const GeneratePage: FC = () => {
 
   // Обработка отправки формы
   const handleGenerate = async () => {
-    if (!prompt.trim() || prompt.length < MIN_PROMPT_LENGTH || prompt.length > MAX_PROMPT_LENGTH) {
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH) {
+      setErrorMessage('Введите описание стикера');
+      setErrorKind('prompt');
+      setPageState('error');
+      return;
+    }
+    if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
+      setErrorMessage(`Слишком длинное описание (макс. ${MAX_PROMPT_LENGTH} символов)`);
+      setErrorKind('prompt');
+      setPageState('error');
       return;
     }
 
     setPageState('generating');
     setCurrentStatus('PROCESSING_PROMPT');
     setErrorMessage(null);
+    setErrorKind(null);
     setResultImageUrl(null);
     setImageId(null);
     setStickerSaved(false);
@@ -245,7 +259,7 @@ export const GeneratePage: FC = () => {
 
     try {
       const response = await apiClient.generateSticker({
-        prompt: prompt.trim(),
+        prompt: trimmedPrompt,
         stylePresetId: selectedStylePresetId,
         removeBackground: removeBackground
       });
@@ -257,12 +271,19 @@ export const GeneratePage: FC = () => {
       
       if (error.message === 'INSUFFICIENT_BALANCE') {
         message = 'Недостаточно ART-баллов';
+        setErrorKind('general');
       } else if (error.message === 'INVALID_PROMPT') {
-        message = 'Неверный промпт';
+        message = 'Неверное описание';
+        setErrorKind('prompt');
       } else if (error.message === 'UNAUTHORIZED') {
         message = 'Требуется авторизация';
+        setErrorKind('general');
+      } else if (typeof error.message === 'string' && error.message.toLowerCase().includes('upload')) {
+        message = 'Не удалось загрузить файл';
+        setErrorKind('upload');
       } else if (error.message) {
         message = error.message;
+        setErrorKind('general');
       }
       
       setErrorMessage(message);
@@ -287,6 +308,7 @@ export const GeneratePage: FC = () => {
     setIsSaving(false);
     setSaveError(null);
     setErrorMessage(null);
+    setErrorKind(null);
     setIsSendingToChat(false);
     // Не очищаем prompt чтобы пользователь мог повторить с тем же текстом
     // Не очищаем inlineQueryId и userId - они нужны для повторной отправки
@@ -338,15 +360,57 @@ export const GeneratePage: FC = () => {
     }
   };
 
+  const handleShareSticker = () => {
+    if (!fileId) {
+      setSaveError('Невозможно поделиться: сначала сохраните стикер');
+      return;
+    }
+
+    const query = buildSwitchInlineQuery(fileId);
+    const fallbackUrl = buildFallbackShareUrl(fileId);
+
+    if (tg?.switchInlineQuery) {
+      // Если открыт из чата, Telegram откроет inline в этом чате
+      if (tg.initDataUnsafe?.chat) {
+        tg.switchInlineQuery(query);
+        return;
+      }
+      // Иначе открываем выбор чата
+      tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
+      return;
+    }
+
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(fallbackUrl);
+      return;
+    }
+
+    window.open(fallbackUrl, '_blank');
+  };
+
   // Валидация формы
   const isFormValid = prompt.trim().length >= MIN_PROMPT_LENGTH && prompt.trim().length <= MAX_PROMPT_LENGTH;
-  const isDisabled = pageState === 'generating' || !isFormValid;
+  const isGenerating = pageState === 'generating';
+  const isDisabled = isGenerating || !isFormValid;
+
+  const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
+  const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
+  const shouldShowGeneralError = errorMessage && errorKind !== 'prompt';
+
+  const handlePromptChange = (value: string) => {
+    setPrompt(value);
+    if (pageState === 'error' && errorKind === 'prompt') {
+      setErrorMessage(null);
+      setErrorKind(null);
+      setPageState('idle');
+    }
+  };
 
   // Рендер состояния генерации (Figma: "Please wait..." + форма readonly + CANCEL)
   const renderGeneratingState = () => (
     <>
-      <p className="generate-logo-label">Generation</p>
-      <p className="generate-status-header">Please wait...</p>
+      <p className="generate-logo-label">Генерация</p>
+      <p className="generate-status-header">Пожалуйста, подождите...</p>
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
           <textarea
@@ -362,7 +426,7 @@ export const GeneratePage: FC = () => {
         </div>
         <label className="generate-checkbox-label">
           <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
-          <span>Delete background</span>
+          <span>Удалить фон</span>
         </label>
         <div className="generate-style-row">
           <StylePresetStrip
@@ -373,9 +437,9 @@ export const GeneratePage: FC = () => {
           />
         </div>
         <div className="generate-status-container">
-          <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Please wait...'} />
+          <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Идет генерация...'} />
           <Button variant="secondary" size="medium" onClick={handleReset} className="generate-button-cancel">
-            CANCEL
+            Отменить
           </Button>
         </div>
       </div>
@@ -385,71 +449,123 @@ export const GeneratePage: FC = () => {
   // Рендер результата (Figma: image → Save → форма readonly → GENERATE 10 ART)
   const renderSuccessState = () => (
     <div className="generate-result-container">
-      <p className="generate-logo-label">Generation</p>
-      {resultImageUrl && (
-        <div className="generate-result-image-wrapper">
-          <img
-            src={resultImageUrl}
-            alt="Generated sticker"
-            className="generate-result-image"
-          />
-        </div>
-      )}
+      <p className="generate-logo-label">Генерация</p>
 
-      {stickerSaved ? (
-        <span className="generate-sticker-saved">Saved in stickerset</span>
-      ) : saveError ? (
-        <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
-          {saveError}
-        </Text>
-      ) : null}
+      <div className="generate-success-section">
+        <p className="generate-section-title">Последний результат</p>
+        {resultImageUrl && (
+          <div className="generate-result-image-wrapper">
+            <img
+              src={resultImageUrl}
+              alt="Сгенерированный стикер"
+              className="generate-result-image"
+            />
+          </div>
+        )}
 
-      {imageId && !stickerSaved && (
-        <Button
-          variant="secondary"
-          size="medium"
-          onClick={handleSaveToStickerSet}
-          disabled={isSaving}
-          loading={isSaving}
-          className="generate-action-button save"
-        >
-          {isSaving ? 'Saving...' : 'Save in stickerset'}
-        </Button>
-      )}
+        {stickerSaved ? (
+          <span className="generate-sticker-saved">Сохранено в набор</span>
+        ) : saveError ? (
+          <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
+            {saveError}
+          </Text>
+        ) : null}
 
-      <div className="generate-form-block generate-form-block--readonly">
-        <div className="generate-input-wrapper">
-          <textarea
-            className="generate-input generate-input--readonly"
-            rows={3}
-            readOnly
-            value={prompt}
-            maxLength={MAX_PROMPT_LENGTH}
-          />
-          <span className="generate-char-counter-inline">
-            {prompt.length}/{MAX_PROMPT_LENGTH}
-          </span>
+        <div className="generate-actions">
+          {imageId && !stickerSaved && (
+            <Button
+              variant="secondary"
+              size="medium"
+              onClick={handleSaveToStickerSet}
+              disabled={isSaving}
+              loading={isSaving}
+              className="generate-action-button save"
+            >
+              {isSaving ? 'Сохранение...' : 'Сохранить в набор'}
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            size="medium"
+            onClick={handleShareSticker}
+            disabled={!fileId}
+            className="generate-action-button share"
+          >
+            Поделиться
+          </Button>
+          {!fileId && (
+            <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }} align="center">
+              Сначала сохраните стикер, чтобы поделиться
+            </Text>
+          )}
         </div>
-        <label className="generate-checkbox-label">
-          <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
-          <span>Delete background</span>
-        </label>
-        <div className="generate-style-row">
-          <StylePresetStrip
-            presets={stylePresets}
-            selectedPresetId={selectedStylePresetId}
-            onPresetChange={() => {}}
-            disabled
-          />
+      </div>
+
+      <div className="generate-success-section generate-new-request">
+        <p className="generate-section-title">Новый запрос</p>
+        <div className="generate-form-block">
+          <div className={cn('generate-input-wrapper', shouldShowPromptError && 'generate-input-wrapper--error')}>
+            <textarea
+              className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
+              rows={4}
+              placeholder="Опишите стикер, например: собака летит на ракете"
+              value={prompt}
+              onChange={(e) => handlePromptChange(e.target.value)}
+              maxLength={MAX_PROMPT_LENGTH}
+              disabled={isGenerating}
+            />
+            <span className="generate-char-counter-inline">
+              {prompt.length}/{MAX_PROMPT_LENGTH}
+            </span>
+            {shouldShowPromptError && (
+              <div className="generate-error-inline">
+                <span className="generate-error-icon">!</span>
+                <span className="generate-error-text">{errorMessage}</span>
+              </div>
+            )}
+          </div>
+
+          <label className="generate-checkbox-label">
+            <input
+              type="checkbox"
+              checked={removeBackground}
+              onChange={(e) => setRemoveBackground(e.target.checked)}
+              disabled={isGenerating}
+              className="generate-checkbox"
+            />
+            <span>Удалить фон</span>
+          </label>
+
+          <div className="generate-style-row">
+            <StylePresetStrip
+              presets={stylePresets}
+              selectedPresetId={selectedStylePresetId}
+              onPresetChange={setSelectedStylePresetId}
+              disabled={isGenerating}
+            />
+          </div>
+
+          <Button
+            variant="secondary"
+            size="medium"
+            onClick={handleGenerate}
+            disabled={isDisabled}
+            loading={isGenerating}
+            className="generate-button-regenerate"
+          >
+            {generateLabel}
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={handleGenerateAnother}
+            disabled={isGenerating}
+            className="generate-button-clear"
+          >
+            Очистить параметры
+          </Button>
         </div>
-        <Button
-          variant="primary"
-          size="medium"
-          onClick={handleGenerateAnother}
-          className="generate-button-regenerate"
-        >
-          {generateCost != null ? `GENERATE ${generateCost} ART` : 'GENERATE 10 ART'}
-        </Button>
       </div>
     </div>
   );
@@ -457,15 +573,33 @@ export const GeneratePage: FC = () => {
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      <p className="generate-logo-label">Generation</p>
-      <p className="generate-header">Generate a sticker with Stixly Generation</p>
+      <p className="generate-logo-label">Генерация</p>
+      <p className="generate-header">Создайте стикер с помощью Stixly Generation</p>
+      {shouldShowGeneralError && (
+        <div className="generate-error-banner">
+          <span className="generate-error-icon">!</span>
+          <span className="generate-error-text">{errorMessage}</span>
+        </div>
+      )}
       <div className="generate-form-block">
-        <div className={cn('generate-input-wrapper', 'generate-input-wrapper--error')}>
-          <div className="generate-error-message-block">
-            <p className="generate-error-message">
-              {errorMessage || 'Please insert prompt / oops, uploading failed'}
-            </p>
-          </div>
+        <div className={cn('generate-input-wrapper', shouldShowPromptError && 'generate-input-wrapper--error')}>
+          <textarea
+            className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
+            rows={4}
+            placeholder="Опишите стикер, например: собака летит на ракете"
+            value={prompt}
+            onChange={(e) => handlePromptChange(e.target.value)}
+            maxLength={MAX_PROMPT_LENGTH}
+          />
+          <span className="generate-char-counter-inline">
+            {prompt.length}/{MAX_PROMPT_LENGTH}
+          </span>
+          {shouldShowPromptError && (
+            <div className="generate-error-inline">
+              <span className="generate-error-icon">!</span>
+              <span className="generate-error-text">{errorMessage}</span>
+            </div>
+          )}
         </div>
         <label className="generate-checkbox-label">
           <input
@@ -474,7 +608,7 @@ export const GeneratePage: FC = () => {
             onChange={(e) => setRemoveBackground(e.target.checked)}
             className="generate-checkbox"
           />
-          <span>Delete background</span>
+          <span>Удалить фон</span>
         </label>
         <div className="generate-style-row">
           <StylePresetStrip
@@ -491,7 +625,7 @@ export const GeneratePage: FC = () => {
           disabled={!isFormValid}
           className="generate-button-submit generate-button-retry"
         >
-          {generateCost != null ? `GENERATE ${generateCost} ART` : 'GENERATE 10 ART'}
+          {generateLabel}
         </Button>
       </div>
     </div>
@@ -500,17 +634,17 @@ export const GeneratePage: FC = () => {
   // Рендер формы (Figma: Logo → Header → Inpit → Delete background → Style preview → Button)
   const renderIdleState = () => (
     <>
-      <p className="generate-logo-label">Generation</p>
-      <p className="generate-header">Generate a sticker with Stixly Generation</p>
+      <p className="generate-logo-label">Генерация</p>
+      <p className="generate-header">Создайте стикер с помощью Stixly Generation</p>
 
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
           <textarea
             className="generate-input"
             rows={4}
-            placeholder="Describe in detail the sticker you want to draw, for example: a dog is flying on a rocket"
+            placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
           />
           <span className="generate-char-counter-inline">
@@ -523,10 +657,10 @@ export const GeneratePage: FC = () => {
             type="checkbox"
             checked={removeBackground}
             onChange={(e) => setRemoveBackground(e.target.checked)}
-            disabled={pageState === 'generating'}
+            disabled={isGenerating}
             className="generate-checkbox"
           />
-          <span>Delete background</span>
+          <span>Удалить фон</span>
         </label>
 
         <div className="generate-style-row">
@@ -534,7 +668,7 @@ export const GeneratePage: FC = () => {
             presets={stylePresets}
             selectedPresetId={selectedStylePresetId}
             onPresetChange={setSelectedStylePresetId}
-            disabled={pageState === 'generating'}
+            disabled={isGenerating}
           />
         </div>
 
@@ -543,14 +677,10 @@ export const GeneratePage: FC = () => {
           size="medium"
           onClick={handleGenerate}
           disabled={isDisabled}
-          loading={pageState === 'generating'}
+          loading={isGenerating}
           className="generate-button-submit"
         >
-          {pageState === 'generating'
-            ? 'Please wait...'
-            : generateCost != null
-              ? `Generate ${generateCost} ART`
-              : 'Generate 10 ART'}
+          {isGenerating ? 'Идет генерация...' : generateLabel}
         </Button>
       </div>
     </>

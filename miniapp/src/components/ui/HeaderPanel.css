@@ -9,14 +9,14 @@
   /* Поверх скроллящегося контента — иначе полупрозрачность и backdrop-filter не видны */
   position: relative;
   z-index: var(--z-header, 100);
-  /* Figma: 108px top — резерв под кнопки/status bar Telegram UI */
-  padding: calc(108px + var(--stixly-safe-area-top)) var(--spacing-sm) var(--spacing-md);
+  /* Резерв только под Telegram UI (safe area) */
+  padding: var(--stixly-safe-area-top) var(--spacing-sm) 0;
   background: var(--component-header-panel-background-color, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 0 0 var(--component-header-panel-border-radius) var(--component-header-panel-border-radius);
   box-sizing: border-box;
-  min-height: var(--component-header-panel-height);
+  min-height: 0;
 }
 
 /* Центрированный контейнер контента (ограниченная ширина на больших экранах) */
@@ -34,7 +34,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-sm);
+  gap: 10px;
+  max-width: 370px;
+  padding: var(--spacing-sm);
+  box-sizing: border-box;
 }
 
 /* Avatar */
@@ -60,28 +63,25 @@
 /* Balance section */
 .header-panel__balance {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 10px;
   height: 48px;
-  padding: 0 var(--spacing-md);
+  padding: 8px;
   background: var(--component-header-panel-balance-background-color);
-  border-radius: var(--component-header-panel-balance-border-radius);
-  flex: 1;
-  min-width: 0;
-  max-width: 220px;
+  border-radius: 16px;
+  box-sizing: border-box;
+  width: 140px;
+  flex: none;
 }
 
 .header-panel__balance-text {
-  flex: 1;
-  min-width: 0;
   color: var(--color-text);
   font-size: var(--typography-h3-font-size);
   font-weight: var(--typography-h3-font-weight);
   font-family: var(--font-family-base);
   line-height: var(--typography-h3-line-height);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Plus button */
@@ -91,6 +91,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
   background: var(--color-text);
   border: none;
   border-radius: var(--border-radius-sm);
@@ -115,9 +117,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 10px;
+  box-sizing: border-box;
   background: var(--component-header-panel-wallet-background-color);
   border: none;
-  border-radius: var(--component-header-panel-wallet-border-radius);
+  border-radius: 16px;
   color: var(--color-text);
   cursor: pointer;
   transition: opacity 0.2s ease;

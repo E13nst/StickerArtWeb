@@ -3,7 +3,7 @@ import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { useTelegram } from '@/hooks/useTelegram';
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerSetResponse } from '@/types/sticker';
-import { LoadPriority } from '@/utils/imageLoader';
+import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 import { getStickerImageUrl } from '@/utils/stickerUtils';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
 
@@ -33,6 +33,7 @@ export const SwipeCard: FC<SwipeCardProps> = ({
   const { tg } = useTelegram();
   const cardRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [activeStickerIndex, setActiveStickerIndex] = useState(0);
   const tapStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -251,6 +252,15 @@ export const SwipeCard: FC<SwipeCardProps> = ({
     }
   }, [isTopCard, stickerSet.id]);
 
+  useEffect(() => {
+    if (!videoRef.current || !isVideo) return;
+    if (isTopCard) {
+      videoRef.current.play().catch(() => {});
+    } else {
+      videoRef.current.pause();
+    }
+  }, [isTopCard, isVideo]);
+
   return (
     <motion.div
       ref={cardRef}
@@ -289,23 +299,65 @@ export const SwipeCard: FC<SwipeCardProps> = ({
         style={{ position: 'relative' }}
       >
         {currentSticker ? (
-          isAnimated || isVideo ? (
-            <AnimatedSticker
-              fileId={currentSticker.file_id}
-              imageUrl={getStickerImageUrl(currentSticker.file_id)}
-              emoji={currentSticker.emoji || '🎨'}
-              className="swipe-card__sticker"
-              priority={isTopCard ? LoadPriority.TIER_1_VIEWPORT : priority}
-              hidePlaceholder={false}
-            />
-          ) : (
-            <img
-              src={getStickerImageUrl(currentSticker.file_id)}
-              alt={currentSticker.emoji || stickerSet.title}
-              className="swipe-card__sticker"
-              loading={isTopCard ? 'eager' : 'lazy'}
-            />
-          )
+          <>
+            {isAnimated ? (
+              <AnimatedSticker
+                fileId={currentSticker.file_id}
+                imageUrl={getStickerImageUrl(currentSticker.file_id)}
+                emoji={currentSticker.emoji || '🎨'}
+                className="pack-card-animated-sticker"
+                priority={isTopCard ? LoadPriority.TIER_1_VIEWPORT : priority}
+                hidePlaceholder={false}
+              />
+            ) : isVideo ? (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  src={videoBlobCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
+                  className="pack-card-video"
+                  autoPlay={isTopCard}
+                  loop
+                  muted
+                  playsInline
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src={imageCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
+                  alt={currentSticker.emoji || stickerSet.title}
+                  className="pack-card-image"
+                  loading={isTopCard ? 'eager' : 'lazy'}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+            )}
+          </>
         ) : (
           <div className="swipe-card__placeholder">
             <span className="swipe-card__placeholder-emoji">🎨</span>

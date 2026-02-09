@@ -1,4 +1,4 @@
-import { useMemo, FC } from 'react';
+import { useMemo, useEffect, useRef, FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -13,6 +13,7 @@ export const HeaderPanel: FC = () => {
   const { user } = useTelegram();
   const { userInfo, currentUserId } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
+  const headerRef = useRef<HTMLElement>(null);
 
   const avatarUrl = useMemo(() => {
     if (!user) return undefined;
@@ -21,6 +22,23 @@ export const HeaderPanel: FC = () => {
     if (!userInfo) return undefined;
     return userInfo.avatarUrl ?? getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 96);
   }, [user, user?.photo_url, avatarBlobUrl, userInfo]);
+
+  useEffect(() => {
+    if (!user) return;
+    const updateHeaderHeight = () => {
+      if (!headerRef.current) return;
+      const height = headerRef.current.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--stixly-header-height', `${height}px`);
+    };
+
+    const rafId = requestAnimationFrame(updateHeaderHeight);
+    window.addEventListener('resize', updateHeaderHeight);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updateHeaderHeight);
+    };
+  }, [user]);
 
   if (!user) return null;
 
@@ -48,7 +66,7 @@ export const HeaderPanel: FC = () => {
   };
 
   return (
-    <header className="header-panel" role="banner">
+    <header ref={headerRef} className="header-panel" role="banner">
       <div className="header-panel__inner">
         <div className="header-panel__content">
           {/* Аватар: фото или плейсхолдер с инициалами */}

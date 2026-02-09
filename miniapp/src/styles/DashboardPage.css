@@ -160,6 +160,17 @@
   max-width: 370px;
 }
 
+@media (max-width: 400px) {
+  .dashboard-category-cards-row {
+    max-width: 100%;
+    gap: 12px;
+  }
+
+  .dashboard-card {
+    width: calc(50% - 6px);
+  }
+}
+
 /* Card Custom / Card Official — Figma: 177×249px, padding 16px 8px, gap 16px */
 .dashboard-card {
   display: flex;

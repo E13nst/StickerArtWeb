@@ -14,7 +14,7 @@
 
 /* CompactControlsBar ниже HeaderPanel, Content_gallery: 402px, 16px по краям */
 .gallery-page .compact-controls-bar--fixed {
-  --compact-controls-bar-top: var(--component-header-panel-height, 172px);
+  --compact-controls-bar-top: calc(var(--stixly-header-height, 0px) + var(--spacing-sm));
   max-width: 402px;
 }
 
@@ -30,6 +30,7 @@
   margin-right: auto;
   padding-left: 16px;
   padding-right: 16px;
+  padding-top: calc(30px + var(--spacing-sm));
   box-sizing: border-box;
 }
 
