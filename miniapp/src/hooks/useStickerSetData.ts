@@ -114,8 +114,11 @@ export const useStickerSetData = ({
 
           if (!mounted || abortController.signal.aborted) return;
           
+          // ✅ FIX: Запускаем предзагрузку в фоне, не блокируя UI
           if (preloadStickers) {
-            await preloadStickers(stickersList);
+            preloadStickers(stickersList).catch(() => {
+              // Игнорируем ошибки предзагрузки - не критично
+            });
           }
         }
       } catch (err) {

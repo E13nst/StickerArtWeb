@@ -194,6 +194,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     const isLargeStickerSet = stickers.length > 50;
     
     if (isLargeStickerSet) {
+      // Для больших сетов: загружаем только первые 3
       const stickersToPreload = stickers.slice(0, 3);
       if (stickersToPreload.length === 0) return;
       
@@ -213,11 +214,12 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       
       await Promise.allSettled(batchPromises);
     } else {
-      const stickersToPreload = stickers.slice(0, 10);
+      // ✅ FIX: Для небольших сетов - загружаем только 5 первых стикеров (вместо 10)
+      // Убираем задержки между батчами для более быстрой загрузки
+      const stickersToPreload = stickers.slice(0, 5);
       if (stickersToPreload.length === 0) return;
       
-      const batchSize = 2;
-      const batchInterval = 300;
+      const batchSize = 3; // Увеличили с 2 до 3 для более быстрой загрузки
       
       for (let i = 0; i < stickersToPreload.length; i += batchSize) {
         const batch = stickersToPreload.slice(i, i + batchSize);
@@ -236,10 +238,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         });
         
         await Promise.allSettled(batchPromises);
-        
-        if (i + batchSize < stickersToPreload.length) {
-          await new Promise(resolve => setTimeout(resolve, batchInterval));
-        }
+        // ✅ FIX: Убрали задержки между батчами - загружаем максимально быстро
       }
     }
   }, [isModal]);
