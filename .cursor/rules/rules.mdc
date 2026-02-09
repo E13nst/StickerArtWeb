@@ -222,6 +222,7 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 ### Git Workflow
 - **Main branch**: `main`
 - **Commit messages**: понятные, конкретные (см. историю)
+- **Trailer**: не добавлять в коммиты `Co-authored-by` и любые другие trailer'ы
 - **НЕ коммитим**: тесты, репорты, билды, node_modules, `dist/`, `assets/`, `test-results/`, `playwright-report/`
 - **Моковые данные**: полностью удалены из кода; при отсутствии авторизации показывается `ErrorDisplay` с сообщением об ошибке
 
