@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useHapticFeedback } from './useHapticFeedback';
 
 export type TransitionType = 'slide' | 'fade' | 'scale' | 'flip' | 'push' | 'cover';
