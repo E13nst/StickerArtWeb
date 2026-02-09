@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { imageLoader, LoadPriority } from '../utils/imageLoader';
+import { LoadPriority } from '../utils/imageLoader';
 
 interface ZoneLoadingOptions {
   containerRef: React.RefObject<HTMLElement>;
@@ -15,35 +15,6 @@ export const useZoneLoading = ({
   const [currentZone, setCurrentZone] = useState<'visible' | 'preload' | 'background'>('visible');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const zoneElementsRef = useRef<Map<string, HTMLElement>>(new Map());
-
-  // Создание зон для отслеживания
-  const createZones = useCallback(() => {
-    if (!containerRef.current) return;
-
-    const container = containerRef.current;
-    const containerRect = container.getBoundingClientRect();
-    
-    // Создаем зоны
-    const zones = {
-      visible: {
-        top: containerRect.top,
-        bottom: containerRect.bottom,
-        margin: 0
-      },
-      preload: {
-        top: containerRect.top - 800, // 800px выше видимой зоны
-        bottom: containerRect.bottom + 800, // 800px ниже видимой зоны
-        margin: 800
-      },
-      background: {
-        top: containerRect.top - 1600, // 1600px выше видимой зоны
-        bottom: containerRect.bottom + 1600, // 1600px ниже видимой зоны
-        margin: 1600
-      }
-    };
-
-    return zones;
-  }, [containerRef]);
 
   // Определение зоны для элемента
   const getElementZone = useCallback((element: HTMLElement) => {
@@ -73,10 +44,10 @@ export const useZoneLoading = ({
     
     switch (zone) {
       case 'visible':
-        priority = LoadPriority.TIER_1_FIRST_6_PACKS;
+        priority = LoadPriority.TIER_1_VIEWPORT;
         break;
       case 'preload':
-        priority = LoadPriority.TIER_2_FIRST_IMAGE;
+        priority = LoadPriority.TIER_2_NEAR_VIEWPORT;
         break;
       case 'background':
         priority = LoadPriority.TIER_4_BACKGROUND;

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, FC, ChangeEvent } from 'react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -20,9 +20,8 @@ const MIN_AMOUNT_NANO = 1_000_000n;
 const MAX_AMOUNT_NANO = 1_000_000_000_000n;
 const PRESET_AMOUNTS = [1, 5, 10];
 const DONATE_ACCENT_COLOR = '#FFD700';
-const DONATE_ACCENT_COLOR_DARK = '#FFC107';
 
-export const DonateModal: React.FC<DonateModalProps> = ({
+export const DonateModal: FC<DonateModalProps> = ({
   open,
   onClose,
   stickerSetId,
@@ -35,7 +34,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [prepareData, setPrepareData] = useState<DonationPrepareResponse | null>(null);
+  const [_prepareData, setPrepareData] = useState<DonationPrepareResponse | null>(null);
 
   const resetAndClose = useCallback(() => {
     setAmount('');
@@ -65,7 +64,7 @@ export const DonateModal: React.FC<DonateModalProps> = ({
     setError(null);
   }, []);
 
-  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAmountChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);

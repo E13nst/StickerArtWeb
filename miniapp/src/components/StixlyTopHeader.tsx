@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "../api/client";
 import { FavoriteIcon, CollectionsIcon } from '@/components/ui/Icons';
@@ -14,7 +14,7 @@ interface ProfileModeConfig {
   enabled: true;
   backgroundColor: string;
   pattern: ProfilePattern;
-  content?: React.ReactNode;
+  content?: ReactNode;
 }
 
 export interface StixlyTopHeaderProps {
@@ -207,8 +207,6 @@ export default function StixlyTopHeader({
   const isProfileMode = profileMode?.enabled === true;
   const activeProfileMode = isProfileMode ? (profileMode as ProfileModeConfig) : undefined;
   const isStaticSlide = !isProfileMode && typeof fixedSlideId === 'number';
-  const isDashboardMode = !isProfileMode && fixedSlideId === 2;
-  
   // Проверяем, нужна ли статистика (если есть слайд с id=2)
   const needsStats = !isProfileMode && slides.some(s => s.id === 2);
 
@@ -503,7 +501,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <FavoriteIcon sx={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff) !important" }} />
+                    <FavoriteIcon style={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff)" }} />
                     <span>{formattedTotalLikes}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedLikesDailyChange})</span>
                   </div>
@@ -520,7 +518,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <CollectionsIcon sx={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff) !important" }} />
+                    <CollectionsIcon style={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff)" }} />
                     <span>{formattedTotalPacks}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedDailyChange})</span>
                   </div>
@@ -585,10 +583,6 @@ export default function StixlyTopHeader({
       </div>
     </div>
   );
-
-  const currentBgColor = activeProfileMode
-    ? activeProfileMode.backgroundColor
-    : current.bg;
 
   // Helper function to get viewport height (with fallback)
   const getViewportHeight = (): number => {

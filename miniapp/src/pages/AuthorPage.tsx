@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 import { useParams } from 'react-router-dom';
-import { FloatingAvatar } from '../components/FloatingAvatar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { OptimizedGallery } from '../components/OptimizedGallery';
@@ -12,7 +11,6 @@ import { StickerSetResponse, ProfileResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { SearchBar } from '../components/SearchBar';
 import { SortButton } from '../components/SortButton';
-import { getAvatarUrl } from '../utils/avatarUtils';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { getUserFullName } from '../utils/userUtils';
@@ -71,7 +69,7 @@ const fetchAuthorPhoto = async (authorId: number) => {
   }
 };
 
-export const AuthorPage: React.FC = () => {
+export const AuthorPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const scrollElement = useScrollElement();
   const authorId = id ? Number(id) : null;
@@ -94,7 +92,7 @@ export const AuthorPage: React.FC = () => {
 
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(null);
+  const [, setAuthorAvatarUrl] = useState<string | null>(null);
   
   const effectiveInitData = useMemo(() => initData || window.Telegram?.WebApp?.initData || '', [initData]);
 
@@ -338,23 +336,6 @@ export const AuthorPage: React.FC = () => {
       }
     };
   }, [profile?.profilePhotoFileId, profile?.profilePhotos, profile?.userId, effectiveInitData, user?.language_code]);
-
-  const avatarUserInfo = useMemo<UserInfo | null>(() => {
-    if (!profile) {
-      return null;
-    }
-    const base = mapProfileToUserInfo(profile);
-    // Используем загруженный blob URL, или getAvatarUrl с profilePhotos, или undefined
-    const userId = base.id || base.telegramId;
-    const avatarUrl = authorAvatarUrl ?? 
-                      (userId && (base.profilePhotoFileId || base.profilePhotos)
-                        ? getAvatarUrl(userId, base.profilePhotoFileId, base.profilePhotos, 160)
-                        : undefined);
-    return {
-      ...base,
-      avatarUrl
-    };
-  }, [profile, authorAvatarUrl]);
 
   const displayName = useMemo(() => {
     if (!profile) {

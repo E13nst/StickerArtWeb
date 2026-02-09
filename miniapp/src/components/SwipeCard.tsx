@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
+import { useRef, useState, useCallback, useMemo, useEffect, CSSProperties, FC } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { useTelegram } from '@/hooks/useTelegram';
 import { AnimatedSticker } from './AnimatedSticker';
@@ -13,7 +13,7 @@ interface SwipeCardProps {
   onSwipeRight: () => void; // Свайп вверх = лайк
   onTap?: () => void;       // Опциональный тап по центру (для обратной совместимости)
   isTopCard: boolean;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   priority?: LoadPriority;
 }
 
@@ -21,7 +21,7 @@ const SWIPE_THRESHOLD = 150; // px для завершения вертикал�
 const ROTATION_FACTOR = 10; // градусов на 100px вертикального смещения
 const TAP_ZONE_WIDTH = 0.3; // 30% ширины для зон тапа (левый/правый край)
 
-export const SwipeCard: React.FC<SwipeCardProps> = ({
+export const SwipeCard: FC<SwipeCardProps> = ({
   stickerSet,
   onSwipeLeft,
   onSwipeRight,
@@ -80,12 +80,13 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   });
 
   // Box shadow с эффектом "сжигания" для дизлайка (вниз)
-  const boxShadow = useTransform(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const boxShadow = (useTransform as any)(
     [glowIntensity, glowColor, y],
-    ([intensity, color, yValue]) => {
-      const i = intensity as number;
-      const c = color as string;
-      const y = yValue as number;
+    ([intensity, color, yValue]: [number, string, number]) => {
+      const i = intensity;
+      const c = color;
+      const y = yValue;
       
       if (y > 0) {
         // Дизлайк вниз: красное свечение + чёрная внутренняя тень (эффект сжигания)
@@ -185,7 +186,6 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     if (deltaX < 10 && deltaY < 10 && deltaTime < 300 && stickers.length > 1) {
       const rect = previewRef.current.getBoundingClientRect();
       const tapX = e.clientX - rect.left;
-      const tapY = e.clientY - rect.top;
       const relativeX = tapX / rect.width;
 
       // Определяем зону тапа

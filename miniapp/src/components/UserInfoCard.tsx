@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { PersonIcon } from '@/components/ui/Icons';
 import { Text } from '@/components/ui/Text';
 import { Chip } from '@/components/ui/Chip';
@@ -13,10 +13,9 @@ interface UserInfoCardProps {
   onShareProfile?: () => void;
 }
 
-export const UserInfoCard: React.FC<UserInfoCardProps> = ({
+export const UserInfoCard: FC<UserInfoCardProps> = ({
   userInfo,
-  isLoading = false,
-  onShareProfile
+  isLoading = false
 }) => {
   const [avatarError, setAvatarError] = useState(false);
 
@@ -44,7 +43,7 @@ export const UserInfoCard: React.FC<UserInfoCardProps> = ({
   const displayName = getUserFullName(userInfo);
   const telegramId = getUserTelegramId(userInfo);
 
-  const userId = userInfo.id || userInfo.telegramId;
+    const userId = userInfo.id || userInfo.telegramId;
   const avatarUrl = getAvatarUrl(userId, userInfo.profilePhotoFileId, userInfo.profilePhotos) || userInfo.avatarUrl;
   const initials = getInitials(firstName, lastName);
   const avatarBgColor = getAvatarColor(firstName);

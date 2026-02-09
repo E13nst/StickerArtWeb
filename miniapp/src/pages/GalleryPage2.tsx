@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, FC } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { useLikesStore } from '../store/useLikesStore';
-import { useProfileStore } from '../store/useProfileStore';
 import { useAuth } from '../hooks/useAuth';
 import { apiClient } from '../api/client';
 import { StickerSetResponse } from '../types/sticker';
@@ -19,7 +18,6 @@ import { CompactControlsBar } from '../components/CompactControlsBar';
 import { StickerSetType } from '../components/StickerSetTypeFilter';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
-import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import './GalleryPage2.css';
 
@@ -27,8 +25,8 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
-export const GalleryPage2: React.FC = () => {
-  const { tg, user, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
+export const GalleryPage2: FC = () => {
+  const { tg, initData, isReady, isInTelegramApp, isMockMode } = useTelegram();
   const scrollElement = useScrollElement();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -49,8 +47,6 @@ export const GalleryPage2: React.FC = () => {
   const initializeLikes = useLikesStore(state => state.initializeLikes);
   const getLikesCount = useLikesStore(state => state.getLikesCount);
   const toggleLike = useLikesStore(state => state.toggleLike);
-  const { userInfo, setUserInfo } = useProfileStore();
-
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -90,8 +86,6 @@ export const GalleryPage2: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlInitData = urlParams.get('initData');
     const storedInitData = localStorage.getItem('telegram_init_data');
-    const extensionInitData = apiClient.checkExtensionHeaders();
-    
     if (urlInitData) {
       setManualInitData(decodeURIComponent(urlInitData));
       localStorage.setItem('telegram_init_data', decodeURIComponent(urlInitData));

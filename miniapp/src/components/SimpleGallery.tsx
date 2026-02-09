@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, memo, ReactNode, FC } from 'react';
 import { PackCard } from './PackCard';
 import { VirtualizedGallery } from './VirtualizedGallery';
 import { useSmartCache } from '../hooks/useSmartCache';
@@ -40,9 +40,9 @@ interface SimpleGalleryProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   // Кнопка добавления как первый элемент сетки
-  addButtonElement?: React.ReactNode;
+  addButtonElement?: ReactNode;
   // Верхние элементы управления (поиск, фильтр)
-  controlsElement?: React.ReactNode;
+  controlsElement?: ReactNode;
   // Спиннер во время обновления данных без скрытия панели
   isRefreshing?: boolean;
   // Использовать скролл страницы вместо собственного скролла галереи
@@ -50,17 +50,16 @@ interface SimpleGalleryProps {
   // Режим скролла: 'inner' - внутренний скролл галереи, 'page' - скролл всей страницы
   scrollMode?: 'inner' | 'page';
   // Пустое состояние (отображается внутри галереи когда packs пустой)
-  emptyState?: React.ReactNode;
+  emptyState?: ReactNode;
   // Внешний scroll-элемент для использования вместо window (для единого scroll-контейнера)
   externalScrollElement?: HTMLElement | null;
   // Нужен ли отступ сверху для fixed CompactControlsBar (только для GalleryPage)
   needsControlsBarOffset?: boolean;
 }
 
-const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
+const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
   packs,
   onPackClick,
-  enablePreloading = true,
   batchSize = 20,
   hasNextPage = false,
   isLoadingMore = false,
@@ -80,7 +79,7 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   const scrollElement = isPageScroll ? (externalScrollElement || null) : null;
   const [visibleCount, setVisibleCount] = useState(batchSize);
   const [showSkeleton, setShowSkeleton] = useState(false);
-  const [likeAnimations, setLikeAnimations] = useState<Map<string, boolean>>(new Map());
+  const [likeAnimations] = useState<Map<string, boolean>>(new Map());
   const [hideControls, setHideControls] = useState(false);
   
   // Случайные амплитуды для колонок (8-16px)
@@ -91,7 +90,6 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
   
   // Умное кэширование
   const { 
-    get: getCachedData, 
     set: setCachedData, 
     preloadNextPage, 
     getStats,
@@ -375,20 +373,6 @@ const SimpleGalleryComponent: React.FC<SimpleGalleryProps> = ({
       onPackClick(packId);
     }
   }, [onPackClick]);
-
-  // Обработчик анимации лайка
-  const handleLikeAnimation = useCallback((packId: string) => {
-    setLikeAnimations(prev => new Map(prev.set(packId, true)));
-    
-    // Сброс анимации через 600ms
-    setTimeout(() => {
-      setLikeAnimations(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(packId);
-        return newMap;
-      });
-    }, 600);
-  }, []);
 
   // Если нужно использовать виртуализацию
   const renderOverlay = controlsElement || addButtonElement ? (

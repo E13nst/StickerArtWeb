@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 export interface Category {
@@ -15,7 +15,7 @@ interface CategoryFilterProps {
   compact?: boolean;
 }
 
-export const CategoryFilter: React.FC<CategoryFilterProps> = ({
+export const CategoryFilter: FC<CategoryFilterProps> = ({
   categories,
   selectedCategories,
   onCategoryToggle,
@@ -31,7 +31,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   const glassHover = isLight ? 'rgba(148, 198, 255, 0.42)' : 'rgba(98, 150, 255, 0.38)';
   const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
   const accentShadow = isLight ? '0 6px 18px rgba(30, 72, 185, 0.14)' : '0 6px 18px rgba(28, 48, 108, 0.28)';
-  const accentShadowHover = isLight ? '0 10px 26px rgba(30, 72, 185, 0.18)' : '0 10px 26px rgba(28, 48, 108, 0.34)';
   
   // Compact mode adjustments
   const padding = compact ? '0.35rem 0.7rem' : '0.45rem 0.9rem';
@@ -83,24 +82,6 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         const hoverSolid = hoverBackground;
         const hoverShadow = accentShadow;
 
-        const applyHoverStyles = (element: HTMLDivElement) => {
-          Object.assign(element.style, {
-            background: glassHover,
-            backgroundColor: glassHover,
-            transform: 'scale(0.98)',
-            boxShadow: accentShadowHover,
-          });
-        };
-
-        const applyBaseStyles = (element: HTMLDivElement) => {
-          Object.assign(element.style, {
-            background: baseBackground,
-            backgroundColor: baseSolid,
-            transform: baseTransform,
-            boxShadow: baseShadow,
-          });
-        };
-        
         return (
           <div
             key={category.id}

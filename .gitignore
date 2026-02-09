@@ -35,4 +35,5 @@ playwright-report-prod/
 # Temp
 .cache/
 *.local
+*.bak*
 

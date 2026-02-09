@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useStickerStore } from '@/store/useStickerStore';
@@ -38,15 +38,14 @@ type CategoryFilterOption = {
   title?: string;
 };
 
-export const DashboardPage: React.FC = () => {
+export const DashboardPage: FC = () => {
   const MAX_TOP_STICKERS = 10;
   const navigate = useNavigate();
-  const { isInTelegramApp, user } = useTelegram();
+  const { isInTelegramApp } = useTelegram();
   const { totalElements, stickerSets } = useStickerStore();
   const { likes } = useLikesStore();
-  const { userInfo, userStickerSets } = useProfileStore();
+  const { userInfo } = useProfileStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [topStickerSets, setTopStickerSets] = useState<StickerSetResponse[]>([]);
   const [topAuthors, setTopAuthors] = useState<LeaderboardUser[]>([]);
   const [topAuthorsList, setTopAuthorsList] = useState<LeaderboardAuthor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +79,6 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (userPacks.length <= 1) return;
-    const totalSlides = userPacks.length + 1;
     const scheduleNext = () => {
       const delay = 3000 + Math.random() * 1500;
       return setTimeout(() => {
@@ -111,7 +109,7 @@ export const DashboardPage: React.FC = () => {
     const t = setTimeout(() => {
       setUserTrackNoTransition(true);
       setCarouselUserIndex(0);
-      const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setUserTrackNoTransition(false);
         });
@@ -135,14 +133,6 @@ export const DashboardPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [carouselOfficialIndex, officialPacks.length]);
 
-  const toggleCategory = useCallback(() => {
-    setActiveCategoryKey((prev) => (prev === 'official' ? 'user' : 'official'));
-  }, []);
-
-  const handleViewFullTop = useCallback(() => {
-    navigate('/gallery?sort=likes');
-  }, [navigate]);
-
   const handlePackClick = (packId: string) => {
     const fromOfficial = topStickersByCategory.official?.find(s => s.id.toString() === packId);
     const fromUser = topStickersByCategory.user?.find(s => s.id.toString() === packId);
@@ -155,10 +145,6 @@ export const DashboardPage: React.FC = () => {
 
   const handleStickerSetUpdated = useCallback((updated: StickerSetResponse) => {
     setSelectedStickerSet(updated);
-
-    setTopStickerSets((prev) =>
-      prev.map((set) => (set.id === updated.id ? { ...set, ...updated } : set))
-    );
 
     setTopStickersByCategory((prev) => {
       const next: typeof prev = {};
@@ -174,34 +160,6 @@ export const DashboardPage: React.FC = () => {
     { label: 'Earn ART' },
     { label: 'NFT 2.0' },
   ];
-
-  const isOfficialStickerSet = useCallback((stickerSet: StickerSetResponse): boolean => {
-    const rawFlag = (stickerSet as any)?.isOfficial ?? (stickerSet as any)?.official ?? (stickerSet as any)?.officialStatus;
-
-    if (typeof rawFlag === 'boolean') {
-      return rawFlag;
-    }
-
-    if (typeof rawFlag === 'string') {
-      const normalized = rawFlag.toLowerCase();
-      if (['official', 'true', 'yes', '1'].includes(normalized)) {
-        return true;
-      }
-      if (['user', 'false', 'no', '0'].includes(normalized)) {
-        return false;
-      }
-    }
-
-    if (typeof rawFlag === 'number') {
-      return rawFlag === 1;
-    }
-
-    if (typeof stickerSet.userId === 'number') {
-      return false;
-    }
-
-    return true;
-  }, []);
 
   // Подсчет статистики с трендами
   useEffect(() => {
@@ -347,7 +305,6 @@ export const DashboardPage: React.FC = () => {
         };
 
         setTopStickersByCategory(stickersByCategoryMap);
-        setTopStickerSets([...(officialTopSets || []), ...(userTopSets || [])]);
 
         // Получаем топ-5 пользователей из лидерборда
         try {

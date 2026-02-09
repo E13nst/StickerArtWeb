@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, FC } from 'react';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerSetDetail } from './StickerSetDetail';
 import { ModalBackdrop } from './ModalBackdrop';
@@ -15,7 +15,7 @@ interface StickerPackModalProps {
   onStickerSetUpdated?: (updated: StickerSetResponse) => void;
 }
 
-export const StickerPackModal: React.FC<StickerPackModalProps> = ({
+export const StickerPackModal: FC<StickerPackModalProps> = ({
   open,
   stickerSet,
   onClose,
@@ -61,7 +61,7 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
           const rect = video.getBoundingClientRect();
           const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
           if (isVisible) {
-            video.play().catch(() => {});
+            (video as HTMLVideoElement).play().catch(() => {});
           }
           video.removeAttribute('data-was-playing');
         });
@@ -97,7 +97,7 @@ export const StickerPackModal: React.FC<StickerPackModalProps> = ({
             imageCache.delete(thumbId);
           }
         });
-        clearStickerBlobsExcept(preserveIds);
+        clearStickerBlobsExcept();
         cleanupTimeoutRef.current = null;
       }, 5000);
     }

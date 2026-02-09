@@ -135,7 +135,7 @@ export function useNonFlashingVideoSrc({
 
   // Обработка ошибок
   const onError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget;
+    void e;
     const currentSrc = currentSrcRef.current;
 
     if (isDev) {

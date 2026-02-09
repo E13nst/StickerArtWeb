@@ -108,7 +108,7 @@ export const useStickerSetData = ({
           const stickersList = fullData.telegramStickerSetInfo?.stickers || [];
           stickersList.forEach((sticker) => {
             if (sticker?.file_id) {
-              markAsGallerySticker(sticker.file_id);
+              markAsGallerySticker();
             }
           });
 

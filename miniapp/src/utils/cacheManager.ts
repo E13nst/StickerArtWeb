@@ -74,8 +74,9 @@ class CacheManager {
       try {
         // Удаляем старые версии кеша
         const cacheNames = await caches.keys();
+        const validCacheNames = Object.values(CACHE_NAMES) as string[];
         const oldCaches = cacheNames.filter(name => 
-          name.startsWith('stickers-') && !Object.values(CACHE_NAMES).includes(name)
+          name.startsWith('stickers-') && !validCacheNames.includes(name)
         );
         
         await Promise.all(oldCaches.map(name => caches.delete(name)));
@@ -303,7 +304,6 @@ class CacheManager {
           
           // Revoke все video blob URLs перед удалением
           if (type === 'video') {
-            const cache = await caches.open(cacheName);
             // ✅ FIX: Не отзываем blob URLs при очистке Cache API
             // Компоненты могут все еще использовать их, и они обработают ошибку через onError
             // Blob URLs будут автоматически собраны сборщиком мусора
@@ -417,13 +417,15 @@ class CacheManager {
     const maxItems = MAX_CACHE_ITEMS[`${type}s` as 'images' | 'animations' | 'videos'];
     if (map.size > maxItems) {
       const firstKey = map.keys().next().value;
-      if (type === 'video') {
+      if (type === 'video' && firstKey) {
         const url = map.get(firstKey);
         if (url?.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       }
-      map.delete(firstKey);
+      if (firstKey) {
+        map.delete(firstKey);
+      }
     }
   }
 

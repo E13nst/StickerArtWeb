@@ -23,7 +23,6 @@ export function verifyAndFixHeaderPositioning(): void {
     const computedStyle = window.getComputedStyle(header);
     const position = computedStyle.position;
     const paddingTop = computedStyle.paddingTop;
-    const top = computedStyle.top;
     
     let needsFix = false;
     

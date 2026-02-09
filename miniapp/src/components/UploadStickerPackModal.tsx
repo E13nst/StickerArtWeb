@@ -1,9 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
-;
-import { CloseIcon } from '@/components/ui/Icons';;
+import { useEffect, useMemo, useState, FC, FormEvent, KeyboardEvent } from 'react';
+import { CloseIcon } from '@/components/ui/Icons';
+import { Text } from '@/components/ui/Text';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
+import { Spinner } from '@/components/ui/Spinner';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { Chip } from '@/components/ui/Chip';
+import { IconButton } from '@/components/ui/IconButton';
 import { ModalBackdrop } from './ModalBackdrop';
 import { apiClient } from '@/api/client';
-import { getStickerImageUrl, getStickerThumbnailUrl } from '@/utils/stickerUtils';
+import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
 import { imageLoader, getCachedStickerUrl, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
@@ -32,11 +39,10 @@ const normalizeStickerSetName = (raw: string): string => {
 };
 
 // Компонент для видео стикера с использованием useNonFlashingVideoSrc
-const PreviewStickerVideo: React.FC<{
-  fileId: string;
+const PreviewStickerVideo: FC<{
   thumbFileId: string;
   fallbackUrl: string;
-}> = ({ fileId, thumbFileId, fallbackUrl }) => {
+}> = ({ thumbFileId, fallbackUrl }) => {
   const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
     fileId: thumbFileId,
     preferredSrc: videoBlobCache.get(thumbFileId),
@@ -99,7 +105,7 @@ const extractErrorMessages = (error: any, defaultMessage: string): string[] => {
     .filter(Boolean);
 };
 
-export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
+export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
   open,
   onClose,
   onComplete
@@ -168,7 +174,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
     onClose();
   };
 
-  const handleSubmitLink = async (event: React.FormEvent) => {
+  const handleSubmitLink = async (event: FormEvent) => {
     event.preventDefault();
 
     if (!link.trim()) {
@@ -438,20 +444,11 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   const renderLinkStep = () => (
     <form onSubmit={handleSubmitLink}>
-      <Typography
-        variant="h6"
-        sx={{
-          fontWeight: 600,
-          marginBottom: '20px',
-          color: 'var(--tg-theme-text-color, #000000)',
-          textAlign: 'center'
-        }}
-      >
+      <Text variant="h4" weight="bold" style={{ fontWeight: 600, marginBottom: '20px', color: 'var(--tg-theme-text-color, #000000)', textAlign: 'center' }}>
         Добавьте стикеры в Stixly
-      </Typography>
+      </Text>
 
-      <TextField
-        fullWidth
+      <Input
         label="Ссылка или имя стикерсета"
         placeholder="Вставьте ссылку"
         value={link}
@@ -460,50 +457,19 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
           setLinkError(null);
         }}
         disabled={isSubmittingLink}
-        sx={{
-          marginBottom: '16px',
-          '& .MuiOutlinedInput-root': {
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-            color: 'var(--tg-theme-text-color, #000000)',
-            '& fieldset': {
-              borderColor: 'var(--tg-theme-border-color, #e0e0e0)'
-            },
-            '&:hover fieldset': {
-              borderColor: 'var(--tg-theme-button-color, #2481cc)'
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: 'var(--tg-theme-button-color, #2481cc)'
-            }
-          },
-          '& .MuiInputLabel-root': {
-            color: 'var(--tg-theme-hint-color, #999999)'
-          },
-          '& .MuiInputLabel-root.Mui-focused': {
-            color: 'var(--tg-theme-button-color, #2481cc)'
-          }
-        }}
+        style={{ marginBottom: '16px' }}
       />
 
       {linkError && (
-        <Alert
-          severity="error"
-          sx={{
-            marginBottom: '16px',
-            backgroundColor: 'rgba(211, 47, 47, 0.1)',
-            color: 'var(--tg-theme-text-color, #000000)',
-            '& .MuiAlert-icon': {
-              color: '#d32f2f'
-            }
-          }}
-        >
-          <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        <Alert severity="error" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px'}}>
             <span>{linkError}</span>
             {linkErrorDetails.length > 0 && (
-              <div component="ul" sx={{ pl: 3, m: 0 }}>
+              <ul style={{ paddingLeft: '24px', margin: 0 }}>
                 {linkErrorDetails.map((msg, index) => (
                   <li key={index}>{msg}</li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </Alert>
@@ -511,32 +477,13 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
       <Button
         type="submit"
-        fullWidth
-        variant="contained"
+        variant="primary"
         disabled={isSubmittingLink || !link.trim()}
-        sx={{
-          py: 1.5,
-          borderRadius: '12px',
-          backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
-          color: 'var(--tg-theme-button-text-color, #ffffff)',
-          fontSize: '16px',
-          fontWeight: 600,
-          textTransform: 'none',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-          '&:hover': {
-            backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
-            opacity: 0.9,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
-          },
-          '&:disabled': {
-            backgroundColor: 'var(--tg-theme-hint-color, #999999)',
-            opacity: 0.5
-          }
-        }}
+        style={{ width: '100%', padding: '12px 0', borderRadius: '12px', fontSize: '16px', fontWeight: 600 }}
       >
         {isSubmittingLink ? (
-          <div sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <CircularProgress size={16} sx={{ color: 'var(--tg-theme-button-text-color, #ffffff)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+            <Spinner size={20} />
             <span>Добавляем</span>
           </div>
         ) : (
@@ -549,33 +496,33 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
   const renderPreviewStrip = () => {
     if (isPreviewLoading) {
       return (
-        <div sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} sx={{ color: 'var(--tg-theme-hint-color)' }} />
-          <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+          <Spinner size={32} />
+          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
             Загружаем данные из Telegram…
-          </Typography>
+          </Text>
         </div>
       );
     }
 
     if (previewStickers.length === 0) {
       return (
-        <div sx={{ py: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+        <div style={{ padding: '32px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
             Telegram не передал превью. Попробуйте обновить позже.
-          </Typography>
+          </Text>
         </div>
       );
     }
 
     return (
-      <div sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
         <div
-          sx={{
+          style={{
             width: '100%',
-            maxWidth: 420,
+            maxWidth: '420px',
             display: 'flex',
-            gap: 1.5,
+            gap: '12px',
             overflowX: 'auto',
             overflowY: 'hidden',
             padding: '12px 10px',
@@ -586,9 +533,9 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
             maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            '&::-webkit-scrollbar': { display: 'none' }
+            msOverflowStyle: 'none'
           }}
+          className="hide-scrollbar"
         >
           {previewStickers.map((sticker, index) => {
             const isActive = index === activePreviewIndex;
@@ -597,7 +544,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
             const handleSelect = () => setActivePreviewIndex(index);
 
-            const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+            const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 setActivePreviewIndex(index);
@@ -611,10 +558,10 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                 tabIndex={0}
                 onClick={handleSelect}
                 onKeyDown={handleKeyDown}
-                sx={{
+                style={{
                   flex: '0 0 auto',
-                  width: 96,
-                  height: 96,
+                  width: '96px',
+                  height: '96px',
                   borderRadius: '16px',
                   border: isActive ? '2px solid var(--tg-theme-button-color, #2481cc)' : '1px solid var(--tg-theme-border-color, rgba(0,0,0,0.12))',
                   backgroundColor: 'rgba(0,0,0,0.35)',
@@ -632,7 +579,6 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
               >
                 {sticker.is_video ? (
                   <PreviewStickerVideo
-                    fileId={sticker.file_id}
                     thumbFileId={thumbFileId}
                     fallbackUrl={thumbUrl}
                   />
@@ -653,85 +599,64 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
 
   const renderCategoriesStep = () => (
     <>
-      <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', mb: 3 }}>
+      <Text variant="h4" weight="bold" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '24px'}}>
         Добавьте категории
-      </Typography>
+      </Text>
 
-      <div
-        sx={{
-          borderRadius: '16px',
-          border: '1px solid var(--tg-theme-border-color)',
-          backgroundColor: 'var(--tg-theme-bg-color)',
-          mb: 2,
-          overflow: 'hidden'
-        }}
-      >
-        <div sx={{ display: 'flex', flexDirection: 'column', p: 2, gap: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
+      <div style={{ borderRadius: '16px', border: '1px solid var(--tg-theme-border-color)', backgroundColor: 'var(--tg-theme-bg-color)', marginBottom: '16px', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', padding: 16, gap: '12px'}}>
+          <Text variant="h4" weight="bold" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
             {displayTitle}
-          </Typography>
+          </Text>
           {displayName ? (
-            <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)', wordBreak: 'break-word' }}>
+            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', wordBreak: 'break-word' }}>
               @{displayName}
-            </Typography>
+            </Text>
           ) : null}
-          <Tooltip
-            title={createdStickerSet ? '' : 'Превью появится после загрузки данных из Telegram'}
-            disableHoverListener={Boolean(createdStickerSet)}
-          >
-            <span>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setIsPreviewModalOpen(true)}
-                disabled={!createdStickerSet}
-                sx={{
-                  alignSelf: 'flex-start',
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.8125rem',
-                  px: 1.5,
-                  py: 0.75
-                }}
-              >
-                Предпросмотр набора
-              </Button>
-            </span>
+          <Tooltip title={createdStickerSet ? '' : 'Превью появится после загрузки данных из Telegram'}>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={() => setIsPreviewModalOpen(true)}
+              disabled={!createdStickerSet}
+              style={{ alignSelf: 'flex-start', borderRadius: '10px', fontWeight: 600, fontSize: '0.8125rem', padding: '6px 12px' }}
+            >
+              Предпросмотр набора
+            </Button>
           </Tooltip>
           {renderPreviewStrip()}
         </div>
       </div>
 
-      <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+        <Text variant="body" weight="bold" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
           Выберите категории для стикерсета:
-        </Typography>
+        </Text>
         {!suggestionLoading && aiSuggestedKeys.size > 0 && (
-          <Typography variant="caption" sx={{ color: 'var(--tg-theme-link-color, #2481cc)', fontSize: '0.75rem', fontWeight: 500 }}>
+          <Text variant="caption" style={{ color: 'var(--tg-theme-link-color, #2481cc)', fontSize: '0.75rem', fontWeight: 500 }}>
             ✨ {aiSuggestedKeys.size} от AI
-          </Typography>
+          </Text>
         )}
       </div>
 
       {suggestionLoading && (
-        <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <CircularProgress size={16} />
-          <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+          <Spinner size={20} />
+          <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)' }}>
             AI подбирает лучшие категории...
-          </Typography>
+          </Text>
         </div>
       )}
 
       {suggestionError && (
-        <Alert severity="info" sx={{ mb: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Alert severity="info" style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
           <span>{suggestionError}</span>
           <Button
-            variant="outlined"
+            variant="secondary"
             size="small"
             onClick={handleRetrySuggestions}
             disabled={suggestionLoading}
-            sx={{ alignSelf: 'flex-start' }}
+            style={{ alignSelf: 'flex-start' }}
           >
             Попробовать снова
           </Button>
@@ -739,51 +664,38 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       )}
 
       {categoriesLoading ? (
-        <div sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <CircularProgress size={16} />
-          <Typography variant="caption" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px'}}>
+          <Spinner size={20} />
+          <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)' }}>
             Загрузка категорий...
-          </Typography>
+          </Text>
         </div>
       ) : categoriesError ? (
-        <Alert severity="error" sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Alert severity="error" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
           <span>{categoriesError}</span>
           {categoriesErrorDetails.length > 0 && (
-            <div component="ul" sx={{ pl: 3, m: 0 }}>
+            <ul style={{ paddingLeft: '24px', margin: 0 }}>
               {categoriesErrorDetails.map((msg, index) => (
                 <li key={index}>{msg}</li>
               ))}
-            </div>
+            </ul>
           )}
           <Button
-            variant="outlined"
+            variant="secondary"
             size="small"
             onClick={() => handleApplyCategories()}
             disabled={isApplyingCategories}
-            sx={{ alignSelf: 'flex-start' }}
+            style={{ alignSelf: 'flex-start' }}
           >
             Повторить попытку
           </Button>
         </Alert>
       ) : (
-        <div
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 1,
-            maxHeight: '220px',
-            overflowY: 'auto',
-            pb: 1,
-            pr: 0.5,
-            borderRadius: '12px',
-            border: '1px solid var(--tg-theme-border-color)',
-            padding: '12px'
-          }}
-        >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingBottom: '8px', paddingRight: '4px', borderRadius: '12px', border: '1px solid var(--tg-theme-border-color)', padding: '12px' }}>
           {categories.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'var(--tg-theme-hint-color)' }}>
+            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
               Категории не найдены. Попробуйте позже или обновите страницу.
-            </Typography>
+            </Text>
           ) : (
             categories.map((category) => {
               const isSelected = selectedCategories.includes(category.key);
@@ -793,32 +705,21 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                   key={category.key}
                   label={isAiSuggested ? `✨ ${category.name}` : category.name}
                   onClick={() => handleCategoryToggle(category.key)}
-                  color={isSelected ? 'primary' : 'default'}
                   variant={isSelected ? 'filled' : 'outlined'}
-                  sx={{
+                  style={{
                     cursor: 'pointer',
                     fontWeight: isSelected ? 600 : 400,
                     transition: 'transform 0.15s ease',
                     transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-                    '&:hover': {
-                      transform: 'scale(1.05)'
-                    },
-                    ...(isAiSuggested && {
+                    ...(isAiSuggested && !isSelected ? {
                       fontWeight: 600,
                       boxShadow: '0 0 0 1px var(--tg-theme-link-color, #2481cc)',
-                      ...(!isSelected && {
-                        borderColor: 'var(--tg-theme-link-color, #2481cc)',
-                        borderWidth: 2,
-                        borderStyle: 'solid',
-                        backgroundColor: 'rgba(36, 129, 204, 0.08)',
-                        color: 'var(--tg-theme-link-color, #2481cc)',
-                        '&:hover': {
-                          backgroundColor: 'rgba(36, 129, 204, 0.15)',
-                          borderColor: 'var(--tg-theme-link-color, #2481cc)',
-                          transform: 'scale(1.05)'
-                        }
-                      })
-                    })
+                      borderColor: 'var(--tg-theme-link-color, #2481cc)',
+                      borderWidth: 2,
+                      borderStyle: 'solid',
+                      backgroundColor: 'rgba(36, 129, 204, 0.08)',
+                      color: 'var(--tg-theme-link-color, #2481cc)'
+                    } : {})
                   }}
                 />
               );
@@ -828,40 +729,20 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       )}
 
       {step === 'categories' && selectedCategories.length === 0 && categories.length > 0 && (
-        <Typography
-          variant="caption"
-          sx={{
-            color: 'var(--tg-theme-hint-color)',
-            fontSize: '0.75rem',
-            textAlign: 'center',
-            mt: 1,
-            mb: -1,
-            opacity: 0.8
-          }}
-        >
+        <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.75rem', textAlign: 'center', marginTop: '8px', marginBottom: -8, opacity: 0.8 }}>
           Выберите хотя бы одну категорию
-        </Typography>
+        </Text>
       )}
 
       <Button
-        fullWidth
-        variant="contained"
+        variant="primary"
         onClick={handleApplyCategories}
         disabled={isApplyingCategories || selectedCategories.length === 0}
-        sx={{
-          mt: 3,
-          py: 1.5,
-          borderRadius: '12px',
-          backgroundColor: 'var(--tg-theme-button-color)',
-          color: 'var(--tg-theme-button-text-color)',
-          fontSize: '16px',
-          fontWeight: 600,
-          textTransform: 'none'
-        }}
+        style={{ width: '100%', marginTop: '24px', padding: '12px 0', borderRadius: '12px', fontSize: '16px', fontWeight: 600 }}
       >
         {isApplyingCategories ? (
-          <div sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <CircularProgress size={16} sx={{ color: 'var(--tg-theme-button-text-color)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+            <Spinner size={20} />
             <span>Сохраняем...</span>
           </div>
         ) : (
@@ -876,7 +757,7 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
       {open && !isCreatedPackModalOpen && (
         <ModalBackdrop open={open} onClose={handleClose}>
           <div
-            sx={{
+            style={{
               width: '90%',
               maxWidth: '440px',
               maxHeight: 'calc(100vh - 32px)',
@@ -884,41 +765,21 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
               WebkitOverflowScrolling: 'touch',
               backgroundColor: 'var(--tg-theme-secondary-bg-color, #ffffff)',
               borderRadius: '16px',
-              padding: { xs: '20px 18px', sm: '24px' },
+              padding: '24px',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 2,
-              animation: open ? 'modalSlideIn 0.3s ease-out' : 'modalSlideOut 0.2s ease-in',
-              '@keyframes modalSlideIn': {
-                '0%': {
-                  opacity: 0,
-                  transform: 'translateY(-20px) scale(0.95)'
-                },
-                '100%': {
-                  opacity: 1,
-                  transform: 'translateY(0) scale(1)'
-                }
-              },
-              '@keyframes modalSlideOut': {
-                '0%': {
-                  opacity: 1,
-                  transform: 'translateY(0) scale(1)'
-                },
-                '100%': {
-                  opacity: 0,
-                  transform: 'translateY(-20px) scale(0.95)'
-                }
-              }
+              gap: '16px',
+              animation: open ? 'modalSlideIn 0.3s ease-out' : 'modalSlideOut 0.2s ease-in'
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div sx={{ position: 'relative', width: '100%' }}>
+            <div style={{ position: 'relative', width: '100%' }}>
               <IconButton
                 aria-label="close"
                 onClick={handleClose}
                 disabled={isSubmittingLink || isApplyingCategories || (step === 'categories' && selectedCategories.length === 0)}
-                sx={{
+                style={{
                   position: 'absolute',
                   top: -8,
                   right: -8,
@@ -926,13 +787,10 @@ export const UploadStickerPackModal: React.FC<UploadStickerPackModalProps> = ({
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   color: 'white',
                   borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-                  '&:disabled': { opacity: 0.5 }
-                }}
+                  width: '32px',
+                  height: '32px'}}
               >
-                <CloseIcon fontSize="small" />
+                <CloseIcon size={18} />
               </IconButton>
               {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
             </div>

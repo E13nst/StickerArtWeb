@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo, FC, KeyboardEvent } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import './SearchBar.css';
 
@@ -26,7 +26,7 @@ const ClearIcon = () => (
   </svg>
 );
 
-const SearchBarComponent: React.FC<SearchBarProps> = ({
+const SearchBarComponent: FC<SearchBarProps> = ({
   value,
   onChange,
   onSearch,
@@ -42,14 +42,13 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({
   const textColor = isLight ? 'rgba(13,27,42,0.64)' : 'var(--tg-theme-hint-color, rgba(255,255,255,0.64))';
   const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
   const glassSolid = isLight ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.32)' : 'rgba(88, 138, 255, 0.24)';
 
   const handleClear = () => {
     onChange('');
     onSearch?.('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && onSearch) {
       onSearch(value);
     }
@@ -104,4 +103,4 @@ const SearchBarComponent: React.FC<SearchBarProps> = ({
   );
 };
 
-export const SearchBar = React.memo(SearchBarComponent);
+export const SearchBar = memo(SearchBarComponent);

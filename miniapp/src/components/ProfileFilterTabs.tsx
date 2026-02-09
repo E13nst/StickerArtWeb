@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface ProfileFilterTabsProps {
@@ -7,7 +7,7 @@ interface ProfileFilterTabsProps {
   disabled?: boolean;
 }
 
-export const ProfileFilterTabs: React.FC<ProfileFilterTabsProps> = ({
+export const ProfileFilterTabs: FC<ProfileFilterTabsProps> = ({
   activeFilter,
   onFilterChange,
   disabled = false
@@ -21,7 +21,6 @@ export const ProfileFilterTabs: React.FC<ProfileFilterTabsProps> = ({
   const glassHover = isLight ? 'rgba(148, 198, 255, 0.42)' : 'rgba(98, 150, 255, 0.38)';
   const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
   const accentShadow = isLight ? '0 6px 18px rgba(30, 72, 185, 0.14)' : '0 6px 18px rgba(28, 48, 108, 0.28)';
-  const accentShadowHover = isLight ? '0 10px 26px rgba(30, 72, 185, 0.18)' : '0 10px 26px rgba(28, 48, 108, 0.34)';
 
   const filters = [
     { id: 'published' as const, label: 'Загруженные' },

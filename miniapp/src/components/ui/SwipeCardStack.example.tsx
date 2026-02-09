@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { SwipeCardStack, SwipeCard } from './SwipeCardStack';
 import './SwipeCardStack.example.css';
 
@@ -10,7 +10,7 @@ interface ExampleCardData extends SwipeCard {
   imageUrl?: string;
 }
 
-export const SwipeCardStackExample: React.FC = () => {
+export const SwipeCardStackExample: FC = () => {
   // Sample card data
   const sampleCards: ExampleCardData[] = [
     {

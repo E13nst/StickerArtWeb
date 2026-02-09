@@ -1,5 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
-;
+import { useState, useCallback, useMemo, ReactNode } from 'react';
 import { SearchBar } from '@/components/SearchBar';
 import { SortButton } from '@/components/SortButton';
 
@@ -37,7 +36,7 @@ export interface StickerFeedConfig {
 
 export interface StickerFeedControls {
   // Элемент управления для отображения над галереей (поиск, фильтры)
-  controlsElement: React.ReactNode;
+  controlsElement: ReactNode;
   
   // Состояния
   searchTerm: string;
@@ -64,7 +63,6 @@ export const useStickerFeed = (config: StickerFeedConfig): StickerFeedControls =
     totalPages,
     isLoading,
     isLoadingMore = false,
-    onLoadMore,
     onSearch,
     onSortChange,
     initialSortByLikes = false,
@@ -116,9 +114,9 @@ export const useStickerFeed = (config: StickerFeedConfig): StickerFeedControls =
     }
 
     return (
-      <div sx={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', mt: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.618rem', width: '100%', marginTop: '0.75rem' }}>
         {!disableSearch && (
-          <div sx={{ flex: 1 }}>
+          <div style={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}

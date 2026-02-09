@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, ReactNode, FC } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { Toast } from './Toast';
 import './SwipeCardStack.css';
@@ -13,12 +13,12 @@ export interface SwipeCardStackProps {
   onSwipeLeft: (card: SwipeCard) => void;
   onSwipeRight: (card: SwipeCard) => void;
   onEnd: () => void;
-  renderCard: (card: SwipeCard, index: number) => React.ReactNode;
+  renderCard: (card: SwipeCard, index: number) => ReactNode;
   maxVisibleCards?: number;
   swipeThreshold?: number;
 }
 
-export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
+export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   cards,
   onSwipeLeft,
   onSwipeRight,
@@ -56,6 +56,7 @@ export const SwipeCardStack: React.FC<SwipeCardStackProps> = ({
 
   const handleDragEnd = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      void event;
       const swipeDistance = info.offset.y;
       const swipeVelocity = info.velocity.y;
 

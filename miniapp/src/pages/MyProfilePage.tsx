@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonAddress } from '@tonconnect/ui-react';
@@ -22,7 +22,6 @@ import { OptimizedGallery } from '@/components/OptimizedGallery';
 import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
-import { isUserPremium } from '@/utils/userUtils';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { CompactControlsBar } from '@/components/CompactControlsBar';
@@ -39,7 +38,7 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
-export const MyProfilePage: React.FC = () => {
+export const MyProfilePage: FC = () => {
   const navigate = useNavigate();
   const { tg, user, initData, isInTelegramApp } = useTelegram();
   const scrollElement = useScrollElement();
@@ -108,14 +107,10 @@ export const MyProfilePage: React.FC = () => {
     setUserStickerSets,
     addUserStickerSets,
     setPagination,
-    setError,
     setUserError,
     setStickerSetsError,
-    getCachedProfile,
     setCachedProfile,
-    isCacheValid,
     clearCache,
-    reset
   } = useProfileStore();
   // ✅ FIX: Используем selector для предотвращения пересоздания функции на каждом рендере
   const initializeLikes = useLikesStore(state => state.initializeLikes);
@@ -257,8 +252,6 @@ export const MyProfilePage: React.FC = () => {
   // ✅ REFACTORED: Загрузка своего профиля через /api/profiles/me с кэшированием
   const loadMyProfile = async (forceReload: boolean = false) => {
     console.log('🔄 loadMyProfile вызван', { forceReload });
-    // Для кэширования используем специальный ключ 'me' вместо telegramId
-    const cacheKey = 'me';
     
     // Проверяем кэш (по ключу 'me')
     if (!forceReload) {
@@ -648,14 +641,6 @@ export const MyProfilePage: React.FC = () => {
   };
   
 
-  const handleShareStickerSet = (name: string, _title: string) => {
-    if (tg) {
-      tg.openTelegramLink(`https://t.me/addstickers/${name}`);
-    } else {
-      window.open(`https://t.me/addstickers/${name}`, '_blank');
-    }
-  };
-
   // Загрузка понравившихся с сервера с поддержкой пагинации
   const loadLikedStickerSets = useCallback(async (page: number = 0, append: boolean = false) => {
     console.log('🔍 loadLikedStickerSets вызван', { page, append });
@@ -811,22 +796,6 @@ export const MyProfilePage: React.FC = () => {
     setIsUploadModalOpen(true);
   };
 
-  const handleShareProfile = () => {
-    const profileUrl = `${window.location.origin}/profile/${userInfo?.id}`;
-    if (tg) {
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(profileUrl)}&text=${encodeURIComponent(`Мой профиль в Sticker Gallery`)}`);
-    } else {
-      navigator.share?.({
-        title: 'Мой профиль в Sticker Gallery',
-        url: profileUrl
-      }).catch(() => {
-        // Fallback для браузеров без поддержки Web Share API
-        navigator.clipboard.writeText(profileUrl);
-        alert('Ссылка на профиль скопирована в буфер обмена');
-      });
-    }
-  };
-
   // Обработка поиска
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
@@ -962,9 +931,6 @@ export const MyProfilePage: React.FC = () => {
       </div>
     );
   }
-
-  // Проверка premium статуса
-  const isPremium = userInfo ? isUserPremium(userInfo) : false;
 
   // Обновляем userInfo с blob URL для аватара
   const userInfoWithAvatar = useMemo(() => {

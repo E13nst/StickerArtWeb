@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo, FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -9,7 +9,7 @@ import './HeaderPanel.css';
  * HeaderPanel — шапка с аватаром текущего пользователя, балансом ART и кнопками.
  * Аватар: photo_url из Telegram → blob из API (useUserAvatar) → userInfo → инициалы.
  */
-export const HeaderPanel: React.FC = () => {
+export const HeaderPanel: FC = () => {
   const { user } = useTelegram();
   const { userInfo, currentUserId } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
@@ -71,7 +71,11 @@ export const HeaderPanel: React.FC = () => {
             <span className="header-panel__balance-text">
               {formattedBalance} ART
             </span>
-            <button className="header-panel__plus-button" aria-label="Пополнить баланс">
+            <button
+              className="header-panel__plus-button"
+              aria-label="Пополнить баланс"
+              onClick={handlePlusClick}
+            >
               <svg
                 width="16"
                 height="16"
@@ -90,7 +94,11 @@ export const HeaderPanel: React.FC = () => {
           </div>
 
           {/* Wallet button */}
-          <button className="header-panel__wallet" aria-label="TON Connect">
+          <button
+            className="header-panel__wallet"
+            aria-label="TON Connect"
+            onClick={handleWalletClick}
+          >
             <svg
               width="24"
               height="24"

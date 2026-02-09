@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { FC, useState } from 'react';
 import { UploadModal } from './UploadModal';
 import { Button } from './Button';
 
@@ -9,7 +9,7 @@ import { Button } from './Button';
  * для загрузки файлов
  */
 
-export const UploadModalExample: React.FC = () => {
+export const UploadModalExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleUpload = (files: File[]) => {
@@ -35,7 +35,7 @@ export const UploadModalExample: React.FC = () => {
 /**
  * UploadModal with Custom Settings
  */
-export const UploadModalCustomExample: React.FC = () => {
+export const UploadModalCustomExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleUpload = (files: File[]) => {
@@ -64,7 +64,7 @@ export const UploadModalCustomExample: React.FC = () => {
 /**
  * UploadModal Single File
  */
-export const UploadModalSingleFileExample: React.FC = () => {
+export const UploadModalSingleFileExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleUpload = (files: File[]) => {
@@ -93,7 +93,7 @@ export const UploadModalSingleFileExample: React.FC = () => {
 /**
  * UploadModal with Different File Types
  */
-export const UploadModalDifferentTypesExample: React.FC = () => {
+export const UploadModalDifferentTypesExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleUpload = (files: File[]) => {

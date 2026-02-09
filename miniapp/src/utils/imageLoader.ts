@@ -810,7 +810,7 @@ class ImageLoader {
           }
           // Пробуем загрузить как JSON, если не WebP
           try {
-            const testData = await response.clone().json();
+            await response.clone().json();
             // Если успешно распарсили как JSON, продолжаем
           } catch {
             throw new Error(`Unexpected content-type: ${contentType}`);
@@ -1184,7 +1184,7 @@ export const prefetchSticker = async (
 /**
  * @deprecated Больше не нужна - no-op
  */
-export const markAsGallerySticker = (fileId: string): void => {
+export const markAsGallerySticker = (): void => {
   // No-op для обратной совместимости
 };
 
@@ -1200,7 +1200,7 @@ export const clearNonGalleryAnimations = (): void => {
 /**
  * @deprecated Используйте imageLoader.clear() напрямую  
  */
-export const clearStickerBlobsExcept = (preserveIds: Set<string>): void => {
+export const clearStickerBlobsExcept = (): void => {
   if (isDev) {
     console.warn('clearStickerBlobsExcept is deprecated. Use imageLoader.clear() if needed.');
   }

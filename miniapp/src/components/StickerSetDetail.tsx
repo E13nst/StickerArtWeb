@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, memo, useMemo, FC, MouseEvent } from 'react';
 import { CloseIcon } from '@/components/ui/Icons';
 import { EditIcon } from '@/components/ui/Icons';
 import { Text } from '@/components/ui/Text';
-import { StickerSetResponse, CategoryResponse } from '@/types/sticker';
+import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
 import { StickerThumbnail } from './StickerThumbnail';
@@ -21,68 +21,6 @@ import { StickerSetEditOperations } from '@/types/sticker';
 import { DonateModal } from './DonateModal';
 import './StickerSetDetail.css';
 
-type VisibilityState = 'public' | 'private';
-
-const deriveVisibilityState = (data?: StickerSetResponse | null): VisibilityState => {
-  if (!data) return 'public';
-  const visibility = (data as any)?.visibility ?? (data as any)?.status ?? (data as any)?.publishedStatus;
-  const isPrivate = (data as any)?.isPrivate;
-  const isPublished = (data as any)?.isPublished;
-
-  if (typeof isPrivate === 'boolean') {
-    return isPrivate ? 'private' : 'public';
-  }
-
-  if (typeof isPublished === 'boolean') {
-    return isPublished ? 'public' : 'private';
-  }
-
-  if (typeof visibility === 'string') {
-    const normalized = visibility.toLowerCase();
-    if (['private', 'hidden', 'invisible'].includes(normalized)) {
-      return 'private';
-    }
-    if (['public', 'visible', 'published'].includes(normalized)) {
-      return 'public';
-    }
-  }
-
-  return 'public';
-};
-
-const applyVisibilityToStickerSet = (data: StickerSetResponse, visibility: VisibilityState): StickerSetResponse => ({
-  ...data,
-  isPublished: visibility === 'public',
-  isPrivate: visibility === 'private',
-  visibility: visibility === 'public' ? 'PUBLIC' : 'PRIVATE'
-});
-
-const EyePublishedIcon: React.FC<SvgIconProps> = (props) => (
-  <SvgIcon {...props} viewBox="0 0 16 16">
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M0 8L3.07945 4.30466C4.29638 2.84434 6.09909 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8L12.9206 11.6953C11.7036 13.1557 9.90091 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8ZM8 11C9.65685 11 11 9.65685 11 8C11 6.34315 9.65685 5 8 5C6.34315 5 5 6.34315 5 8C5 9.65685 6.34315 11 8 11Z"
-      fill="currentColor"
-    />
-  </SvgIcon>
-);
-
-const EyeUnpublishedIcon: React.FC<SvgIconProps> = (props) => (
-  <SvgIcon {...props} viewBox="0 0 16 16">
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M16 16H13L10.8368 13.3376C9.96488 13.7682 8.99592 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8L3.07945 4.30466C3.14989 4.22013 3.22229 4.13767 3.29656 4.05731L0 0H3L16 16ZM5.35254 6.58774C5.12755 7.00862 5 7.48941 5 8C5 9.65685 6.34315 11 8 11C8.29178 11 8.57383 10.9583 8.84053 10.8807L5.35254 6.58774Z"
-      fill="currentColor"
-    />
-    <path
-      d="M16 8L14.2278 10.1266L7.63351 2.01048C7.75518 2.00351 7.87739 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8Z"
-      fill="currentColor"
-    />
-  </SvgIcon>
-);
-
 // Компонент для ленивой загрузки миниатюр
 interface LazyThumbnailProps {
   sticker: any;
@@ -91,7 +29,7 @@ interface LazyThumbnailProps {
   onClick: (idx: number) => void;
 }
 
-const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
+const LazyThumbnail: FC<LazyThumbnailProps> = memo(({
   sticker,
   index,
   activeIndex,
@@ -104,7 +42,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
       data-thumbnail-index={index}
       data-active={isActive}
       onClick={() => onClick(index)}
-      sx={{
+      style={{
         flex: '0 0 auto',
         width: 72,
         height: 72,
@@ -112,7 +50,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
         minHeight: 72,
         borderRadius: 'var(--tg-radius-m)',
         border: '1px solid',
-        borderColor: isActive ? 'primary.main' : 'var(--tg-theme-border-color)',
+        borderColor: isActive ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-border-color)',
         backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 0, 0, 0), 0.6)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
@@ -121,7 +59,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
         justifyContent: 'center',
         cursor: 'pointer',
         transition: 'transform 120ms ease, border-color 120ms ease, background-color 200ms ease',
-        '&:active': { transform: 'scale(0.98)' },
+        // '&:active': { transform: 'scale(0.98)' },
         position: 'relative'
       }}
     >
@@ -132,7 +70,7 @@ const LazyThumbnail: React.FC<LazyThumbnailProps> = memo(({
             size={72}
           />
           {sticker.emoji && (
-            <div sx={{
+            <div style={{
               position: 'absolute',
               bottom: '3px',
               left: '3px',
@@ -162,10 +100,9 @@ interface StickerSetDetailProps {
   onStickerSetUpdated?: (updated: StickerSetResponse) => void;
 }
 
-export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
+export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   stickerSet,
   onBack,
-  onShare,
   onLike,
   isInTelegramApp: _isInTelegramApp = false,
   isModal = false,
@@ -258,8 +195,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const stickerCount = stickers.length;
   const {
     activeIndex,
-    setActiveIndex,
-    currentStickerLoading,
     setCurrentStickerLoading,
     isMainLoaded,
     setIsMainLoaded,
@@ -294,12 +229,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     isBlocked: effectiveStickerSet.isBlocked
   });
   
-  const [draftVisibility, setDraftVisibility] = useState<VisibilityState>(() =>
-    deriveVisibilityState(fullStickerSet ?? stickerSet)
-  );
-  const [isVisibilityUpdating, setIsVisibilityUpdating] = useState(false);
-  const [visibilityInfoAnchor, setVisibilityInfoAnchor] = useState<HTMLElement | null>(null);
-  const visibilityInfoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStickerSetBlocked = Boolean(effectiveStickerSet?.isBlocked);
   const currentBlockReason = effectiveStickerSet?.blockReason;
   const displayedCategories = useMemo(() => {
@@ -307,7 +236,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   }, [effectiveStickerSet?.categories, stickerSet.categories]);
   const currentCategoryKeys = useMemo(() => {
     return displayedCategories
-      .map((category) => category?.key)
+      .map((category: any) => category?.key)
       .filter((key): key is string => Boolean(key));
   }, [displayedCategories]);
   const displayTitle = useMemo(() => {
@@ -332,7 +261,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   const normalizedRole = (viewerRole ?? '').toUpperCase();
   const isAdmin = normalizedRole.includes('ADMIN');
   const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
-  const canToggleVisibility = (isAuthor || isAdmin) && Boolean(stickerSet.id);
   
   // Редактирование категорий доступно, если:
   // 1. Явно разрешено через enableCategoryEditing (например, на странице "Мои стикеры"), И
@@ -354,30 +282,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     availableActions: effectiveStickerSet.availableActions
   });
 
-  useEffect(() => {
-    setDraftVisibility(deriveVisibilityState(fullStickerSet ?? stickerSet));
-  }, [
-    fullStickerSet?.id,
-    fullStickerSet?.isPublished,
-    fullStickerSet?.isPrivate,
-    fullStickerSet?.visibility,
-    fullStickerSet?.updatedAt,
-    stickerSet.id,
-    stickerSet.isPublished,
-    stickerSet.isPrivate,
-    stickerSet.visibility,
-    stickerSet.updatedAt
-  ]);
-
-  useEffect(() => {
-    return () => {
-      if (visibilityInfoTimeoutRef.current) {
-        clearTimeout(visibilityInfoTimeoutRef.current);
-        visibilityInfoTimeoutRef.current = null;
-      }
-    };
-  }, []);
-
   // Используем глобальный store для лайков с селекторами для автоматического обновления
   const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
     state.likes[stickerSet.id.toString()] || { 
@@ -387,8 +291,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     }
   );
   const toggleLike = useLikesStore((state) => state.toggleLike);
-  const setLike = useLikesStore((state) => state.setLike);
-  const getLikeState = useLikesStore((state) => state.getLikeState);
   useEffect(() => {
     let isMounted = true;
 
@@ -454,9 +356,9 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     setCurrentStickerLoading(true);
     
     // 🔍 ДИАГНОСТИКА: Логируем данные стикера для отладки
-    const isAnimated = currentSticker.is_animated || currentSticker.isAnimated;
-    const isVideo = currentSticker.is_video || currentSticker.isVideo;
-    console.log(`🔍 [StickerSetDetail] Стикер ${activeIndex}: file_id=${currentSticker.file_id.slice(-8)}, is_animated=${currentSticker.is_animated}, isAnimated=${currentSticker.isAnimated}, is_video=${currentSticker.is_video}, isVideo=${currentSticker.isVideo}`);
+    const isAnimated = currentSticker.is_animated || (currentSticker as any).isAnimated;
+    const isVideo = currentSticker.is_video || (currentSticker as any).isVideo;
+    console.log(`🔍 [StickerSetDetail] Стикер ${activeIndex}: file_id=${currentSticker.file_id.slice(-8)}, is_animated=${currentSticker.is_animated}, isAnimated=${(currentSticker as any).isAnimated}, is_video=${currentSticker.is_video}, isVideo=${(currentSticker as any).isVideo}`);
     
     const loadPromise = isAnimated
       ? imageLoader.loadAnimation(currentSticker.file_id, imageUrl, LoadPriority.TIER_0_MODAL)
@@ -481,8 +383,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         const nextCachedUrl = getCachedStickerUrl(nextSticker.file_id);
         if (!nextCachedUrl) {
           prefetchSticker(nextSticker.file_id, getStickerImageUrl(nextSticker.file_id), {
-            isAnimated: Boolean(nextSticker.is_animated || nextSticker.isAnimated),
-            isVideo: Boolean(nextSticker.is_video || nextSticker.isVideo),
+            isAnimated: Boolean(nextSticker.is_animated || (nextSticker as any).isAnimated),
+            isVideo: Boolean(nextSticker.is_video || (nextSticker as any).isVideo),
             markForGallery: true,
             priority: LoadPriority.TIER_2_NEAR_VIEWPORT // Более низкий приоритет для prefetch
           }).catch(() => {});
@@ -498,8 +400,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
         const prevCachedUrl = getCachedStickerUrl(prevSticker.file_id);
         if (!prevCachedUrl) {
           prefetchSticker(prevSticker.file_id, getStickerImageUrl(prevSticker.file_id), {
-            isAnimated: Boolean(prevSticker.is_animated || prevSticker.isAnimated),
-            isVideo: Boolean(prevSticker.is_video || prevSticker.isVideo),
+            isAnimated: Boolean(prevSticker.is_animated || (prevSticker as any).isAnimated),
+            isVideo: Boolean(prevSticker.is_video || (prevSticker as any).isVideo),
             markForGallery: true,
             priority: LoadPriority.TIER_3_ADDITIONAL // Низкий приоритет для обратной навигации
           }).catch(() => {});
@@ -513,8 +415,8 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     const currentSticker = stickers[activeIndex];
     if (
       currentSticker &&
-      !Boolean(currentSticker.is_animated || currentSticker.isAnimated) &&
-      !Boolean(currentSticker.is_video || currentSticker.isVideo) &&
+      !Boolean(currentSticker.is_animated || (currentSticker as any).isAnimated) &&
+      !Boolean(currentSticker.is_video || (currentSticker as any).isVideo) &&
       (imageCache.get(currentSticker.file_id) || getCachedStickerUrl(currentSticker.file_id))
     ) {
       setIsMainLoaded(true);
@@ -544,10 +446,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     updateStickerSet(updated);
     onCategoriesUpdated?.(updated);
   }, [updateStickerSet, onCategoriesUpdated]);
-
-  const handleOpenBlockDialog = useCallback(() => {
-    setIsBlockDialogOpen(true);
-  }, []);
 
   const handleCloseBlockDialog = useCallback(() => {
     setIsBlockDialogOpen(false);
@@ -626,88 +524,6 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       onStickerSetUpdated?.(mergedUpdate);
   }, [stickerSet.id, isModal, onBack, fullStickerSet, stickerSet, onStickerSetUpdated]);
 
-  const handleVisibilityInfoClose = useCallback(() => {
-    if (visibilityInfoTimeoutRef.current) {
-      window.clearTimeout(visibilityInfoTimeoutRef.current);
-      visibilityInfoTimeoutRef.current = null;
-    }
-    setVisibilityInfoAnchor(null);
-  }, []);
-
-  const handleVisibilityToggle = useCallback(
-    async (event: React.MouseEvent<HTMLElement>) => {
-      if (!canToggleVisibility || isVisibilityUpdating) {
-        return;
-      }
-
-      const anchor = event.currentTarget as HTMLElement;
-      const previousVisibility = draftVisibility;
-      const previousFull = fullStickerSet;
-      const next: VisibilityState = draftVisibility === 'public' ? 'private' : 'public';
-
-      setDraftVisibility(next);
-      updateStickerSet(
-        effectiveStickerSet ? applyVisibilityToStickerSet(effectiveStickerSet, next) : applyVisibilityToStickerSet(stickerSet, next)
-      );
-
-      if (visibilityInfoTimeoutRef.current) {
-        clearTimeout(visibilityInfoTimeoutRef.current);
-        visibilityInfoTimeoutRef.current = null;
-      }
-      setVisibilityInfoAnchor(null);
-
-      setIsVisibilityUpdating(true);
-      try {
-        const response =
-          next === 'public'
-            ? await apiClient.publishStickerSet(stickerSet.id)
-            : await apiClient.unpublishStickerSet(stickerSet.id);
-
-        const responseVisibility = deriveVisibilityState(response);
-        const finalVisibilityState = response ? responseVisibility : next;
-        const baseData = response
-          ? applyVisibilityToStickerSet(response, finalVisibilityState)
-          : applyVisibilityToStickerSet(previousFull ?? stickerSet, finalVisibilityState);
-        
-        // Сохраняем availableActions из ответа API
-        const finalData: StickerSetResponse = {
-          ...baseData,
-          availableActions: response?.availableActions
-        };
-
-        updateStickerSet(finalData);
-        setDraftVisibility(finalVisibilityState);
-
-        useStickerStore.getState().updateStickerSet(stickerSet.id, finalData);
-        useProfileStore.getState().updateUserStickerSet(stickerSet.id, finalData);
-
-        onStickerSetUpdated?.(finalData);
-
-        setVisibilityInfoAnchor(anchor);
-        visibilityInfoTimeoutRef.current = setTimeout(() => {
-          setVisibilityInfoAnchor(null);
-          visibilityInfoTimeoutRef.current = null;
-        }, 2800);
-      } catch (error: any) {
-        console.error('❌ Ошибка при обновлении приватности стикерсета:', error);
-        updateStickerSet(previousFull ?? stickerSet);
-        setDraftVisibility(previousVisibility);
-
-        const message =
-          error?.response?.data?.message ||
-          error?.message ||
-          'Не удалось обновить видимость стикерсета. Попробуйте позже.';
-
-        if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-          window.alert(message);
-        }
-      } finally {
-        setIsVisibilityUpdating(false);
-      }
-    },
-    [canToggleVisibility, draftVisibility, fullStickerSet, isVisibilityUpdating, stickerSet]
-  );
-
   useEffect(() => {
     if (!scrollerRef.current) return;
     const container = scrollerRef.current;
@@ -769,7 +585,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   // Индикатор загрузки показываем только если данных совсем нет
   if (loading && !fullStickerSet) {
     return (
-      <div sx={{ 
+      <div style={{ 
         height: isModal ? 'auto' : '100vh', 
         display: 'flex', 
         alignItems: 'center', 
@@ -790,7 +606,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
   // Показываем ошибку если не удалось загрузить
   if (error && !fullStickerSet) {
     return (
-      <div sx={{ 
+      <div style={{ 
         height: isModal ? 'auto' : '100vh', 
         display: 'flex', 
         flexDirection: 'column', 
@@ -829,7 +645,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
     );
   }
 
-  const handleOutsidePreviewClick = useCallback((event: React.MouseEvent) => {
+  const handleOutsidePreviewClick = useCallback((event: MouseEvent) => {
     if (!isModal) return;
     
     // Останавливаем всплытие события, чтобы оно не доходило до ModalBackdrop
@@ -890,10 +706,10 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleBackdropClick);
+    document.addEventListener('mousedown', handleBackdropClick as unknown as EventListener);
     
     return () => {
-      document.removeEventListener('mousedown', handleBackdropClick);
+      document.removeEventListener('mousedown', handleBackdropClick as unknown as EventListener);
     };
   }, [isModal, onBack, starsInfoAnchor]);
 
@@ -950,7 +766,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
       <div 
         ref={modalContentRef}
         data-modal-content
-        sx={{
+        style={{
           position: isModal ? 'fixed' : 'relative',
           top: isModal ? 'auto' : 'auto',
           left: isModal ? 0 : 'auto',
@@ -976,26 +792,17 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
           touchAction: 'pan-y',
           zIndex: isModal ? 'var(--z-modal, 1000)' : 'auto',
           animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          '@keyframes modalSlideUpFromBottom': {
-            '0%': {
-              opacity: 0,
-              transform: 'translateY(100%)',
-            },
-            '100%': {
-              opacity: 1,
-              transform: 'translateY(0)',
-            },
-          },
-          '@keyframes modalContentSlideIn': {
-            '0%': {
-              opacity: 0,
-              transform: 'scale(0.95) translateY(20px)',
-            },
-            '100%': {
-              opacity: 1,
-              transform: 'scale(1) translateY(0)',
-            },
-          },
+          // '@keyframes modalSlideUpFromBottom': {
+          //   '0%': {
+          //     opacity: 0,
+          //     transform: 'translateY(100%)',
+          //   },
+          //   '100%': {
+          //               //     opacity: 1,
+          //     transform: 'translateY(0)',
+          //   },
+          // },
+          // '@keyframes modalContentSlideIn': { ... },
         }}
       >
         <StickerSetDetailEdit
@@ -1149,7 +956,7 @@ export const StickerSetDetail: React.FC<StickerSetDetailProps> = ({
               <Text
                 variant="bodySmall"
                 color="secondary"
-                weight="medium"
+                weight="semibold"
                 style={{ fontSize: window.innerWidth <= 400 ? '12px' : undefined }}
               >
                 Категории не назначены

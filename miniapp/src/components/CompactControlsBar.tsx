@@ -1,8 +1,8 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo, FC, MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { SearchBar } from './SearchBar';
-import { CategoryFilter, Category } from './CategoryFilter';
+import { Category } from './CategoryFilter';
 import { SortDropdown } from './SortDropdown';
 import { StickerSetTypeFilter, StickerSetType } from './StickerSetTypeFilter';
 import './CompactControlsBar.css';
@@ -70,26 +70,25 @@ const CloseIcon = () => (
   </svg>
 );
 
-const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
+const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
   searchValue,
   onSearchChange,
   onSearch,
   searchDisabled = false,
-  categories,
-  selectedCategories,
-  onCategoryToggle,
-  categoriesDisabled = false,
+  categories: _categories,
+  selectedCategories: _selectedCategories,
+  onCategoryToggle: _onCategoryToggle,
+  categoriesDisabled: _categoriesDisabled = false,
   sortByLikes,
   onSortToggle,
   sortDisabled = false,
-  selectedStickerTypes,
-  onStickerTypeToggle,
+  selectedStickerTypes: _selectedStickerTypes,
+  onStickerTypeToggle: _onStickerTypeToggle,
   selectedStickerSetTypes,
   onStickerSetTypeToggle,
-  selectedDate,
-  onDateChange,
-  onAddClick,
-  onApplyFilters,
+  selectedDate: _selectedDate,
+  onDateChange: _onDateChange,
+  onAddClick: _onAddClick,
   variant = 'fixed',
 }) => {
   const { tg } = useTelegram();
@@ -102,7 +101,7 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
 
   // Toggle filters expansion
-  const handleFiltersToggle = useCallback((e?: React.MouseEvent) => {
+  const handleFiltersToggle = useCallback((e?: MouseEvent) => {
     e?.stopPropagation();
     tg?.HapticFeedback?.impactOccurred('light');
     setFiltersExpanded(prev => !prev);
@@ -128,18 +127,11 @@ const CompactControlsBarComponent: React.FC<CompactControlsBarProps> = ({
     setFiltersExpanded(false);
   }, [tg, sortByLikes, onSortToggle, selectedStickerSetTypes, onStickerSetTypeToggle]);
 
-  // Handle apply filters
-  const handleApplyFilters = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred('medium');
-    onApplyFilters?.();
-    setFiltersExpanded(false);
-  }, [tg, onApplyFilters]);
-
   // Close filters menu when clicking outside (panel рендерится в portal в body)
   useEffect(() => {
     if (!filtersExpanded) return;
 
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: Event) => {
       const target = event.target as Node;
       const el = target as Element;
       if (filtersButtonRef.current?.contains(target) || filtersMenuRef.current?.contains(target)) return;
@@ -323,4 +315,4 @@ const arePropsEqual = (
   return true;
 };
 
-export const CompactControlsBar = React.memo(CompactControlsBarComponent, arePropsEqual);
+export const CompactControlsBar = memo(CompactControlsBarComponent, arePropsEqual);

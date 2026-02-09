@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { HeaderPanel } from './HeaderPanel';
 
 /**
@@ -9,7 +9,7 @@ import { HeaderPanel } from './HeaderPanel';
  * - useTelegram() для информации о пользователе и аватара
  * - useProfileStore() для баланса ART
  */
-export const HeaderPanelExample: React.FC = () => {
+export const HeaderPanelExample: FC = () => {
   return (
     <div style={{ 
       padding: '24px',

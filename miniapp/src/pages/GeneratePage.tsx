@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -9,14 +9,6 @@ import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { 
-  buildSwitchInlineQuery,
-  buildFallbackShareUrl, 
-  removeInvisibleChars,
-  isValidTelegramFileId,
-  getPlatformInfo
-} from '@/utils/stickerUtils';
-
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 
 const STATUS_MESSAGES: Record<GenerationStatus, string> = {
@@ -37,13 +29,13 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
-export const GeneratePage: React.FC = () => {
+export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
-  const { tg, isInTelegramApp } = useTelegram();
+  const { isInTelegramApp } = useTelegram();
   
   // Inline-режим параметры из URL
-  const [inlineQueryId, setInlineQueryId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [, setInlineQueryId] = useState<string | null>(null);
+  const [, setUserId] = useState<string | null>(null);
   
   // Состояние формы
   const [prompt, setPrompt] = useState('');
@@ -54,24 +46,24 @@ export const GeneratePage: React.FC = () => {
   // Состояние генерации
   const [pageState, setPageState] = useState<PageState>('idle');
   const [currentStatus, setCurrentStatus] = useState<GenerationStatus | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [, setTaskId] = useState<string | null>(null);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [imageId, setImageId] = useState<string | null>(null);
-  const [fileId, setFileId] = useState<string | null>(null);
+  const [, setFileId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSendingToChat, setIsSendingToChat] = useState(false);
+  const [, setIsSendingToChat] = useState(false);
   
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);
-  const [isLoadingTariffs, setIsLoadingTariffs] = useState(true);
+  const [, setIsLoadingTariffs] = useState(true);
   
   // Баланс пользователя
   const userInfo = useProfileStore((state) => state.userInfo);
   const setUserInfo = useProfileStore((state) => state.setUserInfo);
-  const [artBalance, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
+  const [, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
   
   // Polling ref
   const pollingIntervalRef = useRef<number | null>(null);
@@ -343,222 +335,6 @@ export const GeneratePage: React.FC = () => {
       setSaveError(message);
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  // Отправка результата обратно боту через sendData (для inline режима)
-  const handleSendToChat = async () => {
-    if (!inlineQueryId || !tg) {
-      console.warn('⚠️ Недостаточно данных для отправки:', { inlineQueryId, hasTg: !!tg });
-      setErrorMessage('Недостаточно данных для отправки стикера в чат');
-      return;
-    }
-
-    // Если нет imageId, не можем сохранить
-    if (!imageId) {
-      console.warn('⚠️ Нет imageId для сохранения');
-      setErrorMessage('Стикер еще не готов для отправки');
-      return;
-    }
-
-    setIsSendingToChat(true);
-    setErrorMessage(null);
-
-    try {
-      let stickerFileId = fileId;
-
-      // Если fileId еще нет, сначала сохраняем стикер
-      if (!stickerFileId) {
-        console.log('💾 Сохранение стикера перед отправкой...');
-        const saveResponse = await apiClient.saveImageToStickerSet({
-          imageUuid: imageId,
-          stickerSetName: null,
-          emoji: '🎨'
-        });
-
-        stickerFileId = saveResponse.stickerFileId;
-        if (!stickerFileId) {
-          throw new Error('Не получен stickerFileId из ответа сохранения');
-        }
-
-        // Обновляем локальное состояние
-        setFileId(stickerFileId);
-        setStickerSaved(true);
-        console.log('✅ Стикер сохранен, получен stickerFileId:', stickerFileId);
-      }
-
-      const dataToSend = {
-        file_id: stickerFileId,
-        inline_query_id: inlineQueryId
-      };
-
-      console.log('📤 Отправка данных боту через sendData:', dataToSend);
-      tg.sendData(JSON.stringify(dataToSend));
-      
-      // Опционально: закрыть MiniApp после отправки
-      // Можно раскомментировать, если нужно автоматически закрывать
-      // setTimeout(() => {
-      //   tg.close();
-      // }, 500);
-      
-      console.log('✅ Данные успешно отправлены боту');
-    } catch (error: any) {
-      console.error('❌ Ошибка отправки результата боту:', error);
-      let message = 'Не удалось отправить стикер в чат';
-      
-      if (error.message?.includes('полон') || error.message?.includes('120')) {
-        message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
-      } else if (error.message?.includes('не найдено') || error.message?.includes('404')) {
-        message = 'Изображение не найдено';
-      } else if (error.message) {
-        message = error.message;
-      }
-      
-      setErrorMessage(message);
-    } finally {
-      setIsSendingToChat(false);
-    }
-  };
-
-  // Отправить стикер в чат (открыть выбор чата с предзаполненным текстом)
-  // Стикер всегда сохраняется перед отправкой, чтобы гарантированно получить file_id
-  const handleShareSticker = async () => {
-    if (!tg) {
-      console.warn('⚠️ Telegram WebApp недоступен');
-      setErrorMessage('Telegram WebApp недоступен');
-      return;
-    }
-
-    // Проверяем, что есть либо fileId, либо imageId для сохранения
-    if (!fileId && !imageId) {
-      console.warn('⚠️ Нет данных для отправки стикера:', { fileId, imageId });
-      setErrorMessage('Стикер еще не готов для отправки');
-      return;
-    }
-
-    setIsSendingToChat(true);
-    setErrorMessage(null);
-
-    try {
-      let stickerFileId = fileId;
-
-      // ВАЖНО: Если fileId еще нет, обязательно сохраняем стикер в стикерсет для получения file_id
-      // Это необходимо для подстановки file_id в инлайн сообщение "@stixlybot [StickerFileId]"
-      if (!stickerFileId && imageId) {
-        console.log('💾 Сохранение стикера перед отправкой для получения file_id...');
-        const saveResponse = await apiClient.saveImageToStickerSet({
-          imageUuid: imageId,
-          stickerSetName: null,
-          emoji: '🎨'
-        });
-
-        stickerFileId = saveResponse.stickerFileId;
-        if (!stickerFileId) {
-          throw new Error('Не получен stickerFileId из ответа сохранения');
-        }
-
-        console.log('✅ Стикер сохранен, получен stickerFileId:', stickerFileId);
-
-        // Обновляем локальное состояние
-        setFileId(stickerFileId);
-        setStickerSaved(true);
-      }
-
-      // Финальная проверка: file_id должен быть обязательно
-      if (!stickerFileId) {
-        throw new Error('Не удалось получить stickerFileId. Стикер должен быть сохранен перед отправкой.');
-      }
-
-      // Валидация и очистка fileId
-      const cleanFileId = removeInvisibleChars(stickerFileId);
-      if (!isValidTelegramFileId(cleanFileId)) {
-        console.warn('⚠️ Нестандартный формат stickerFileId:', cleanFileId);
-        // Не блокируем отправку, но логируем для отладки
-      }
-
-      // Если есть inlineQueryId, отправляем стикер напрямую в чат через inline режим
-      if (inlineQueryId) {
-        const dataToSend = {
-          file_id: cleanFileId,
-          inline_query_id: inlineQueryId
-        };
-
-        console.log('📤 Отправка стикера в inline чат через sendData:', dataToSend);
-        tg.sendData(JSON.stringify(dataToSend));
-        console.log('✅ Стикер успешно отправлен в чат');
-        return;
-      }
-      
-      // ОСНОВНОЙ ПУТЬ: Используем switchInlineQuery если доступен
-      // ВАЖНО: switchInlineQuery автоматически добавляет "@bot" к query,
-      // поэтому передаем только fileId без "@bot"
-      // ВАЖНО: Второй параметр ['users','groups','channels'] обязателен для показа окна выбора чата!
-      // Без него Telegram вставляет в текущий чат (или в чат с ботом на Desktop)
-      const query = buildSwitchInlineQuery(cleanFileId);
-      
-      // Проверяем длину query (максимум 256 символов по документации)
-      if (query.length > 256) {
-        console.warn('⚠️ Query слишком длинный (>256 символов), используем fallback');
-      } else if (tg && typeof tg.switchInlineQuery === 'function') {
-        console.log('📤 Используем switchInlineQuery с выбором чата (только fileId, без @bot):', query);
-        try {
-          // ВАЖНО: Второй параметр ['users','groups','channels'] показывает окно выбора чата
-          tg.switchInlineQuery(query, ['users', 'groups', 'channels']);
-          return;
-        } catch (error) {
-          console.warn('⚠️ switchInlineQuery не сработал, используем fallback:', error);
-          // Продолжаем к fallback
-        }
-      }
-      
-      // FALLBACK: Если WebApp API недоступен, используем share URL
-      console.log('📤 Используем fallback share URL');
-      const shareUrl = buildFallbackShareUrl(cleanFileId, 'stixlybot');
-      
-      // Определяем платформу для выбора оптимального метода открытия
-      const platformInfo = getPlatformInfo(tg);
-      const isInTelegram = tg && tg.initData && tg.initData.trim() !== '';
-      
-      console.log('📱 Платформа:', platformInfo);
-      
-      // На Desktop всегда используем window.open для надежности
-      // openTelegramLink на Desktop может не открывать окно выбора чата корректно
-      if (platformInfo.isDesktop) {
-        console.log('🖥️ Desktop: используем window.open');
-        window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      
-      // На мобильных устройствах внутри Telegram используем openTelegramLink
-      if (isInTelegram && tg?.openTelegramLink) {
-        console.log('📱 Мобильное устройство в Telegram: используем openTelegramLink');
-        try {
-          tg.openTelegramLink(shareUrl);
-        } catch (error) {
-          console.warn('⚠️ openTelegramLink не сработал, используем window.open:', error);
-          window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        }
-        return;
-      }
-      
-      // Вне Telegram или если openTelegramLink недоступен - используем window.open
-      console.log('🌐 Вне Telegram или fallback: используем window.open');
-      window.open(shareUrl, '_blank', 'noopener,noreferrer');
-    } catch (error: any) {
-      console.error('❌ Ошибка при отправке стикера в чат:', error);
-      let message = 'Не удалось отправить стикер в чат';
-      
-      if (error.message?.includes('полон') || error.message?.includes('120')) {
-        message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
-      } else if (error.message?.includes('не найдено') || error.message?.includes('404')) {
-        message = 'Изображение не найдено';
-      } else if (error.message) {
-        message = error.message;
-      }
-      
-      setErrorMessage(message);
-    } finally {
-      setIsSendingToChat(false);
     }
   };
 

@@ -1,17 +1,17 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, FC } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore, UserInfo } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
-import { getUserFirstName, getUserFullName, isUserPremium } from '@/utils/userUtils';
+import { getUserFirstName, getUserFullName } from '@/utils/userUtils';
 import { StickerSetResponse } from '@/types/sticker';
 
 // UI Компоненты
 import { Text } from '@/components/ui/Text';
 
 // Компоненты
-import { FloatingAvatar } from '@/components/FloatingAvatar';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
@@ -31,10 +31,10 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
-export const ProfilePage: React.FC = () => {
+export const ProfilePage: FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { tg, user, isInTelegramApp, initData } = useTelegram();
+  const { tg, isInTelegramApp, initData } = useTelegram();
   const scrollElement = useScrollElement();
 
   const {
@@ -60,8 +60,7 @@ export const ProfilePage: React.FC = () => {
     setStickerSetsError,
     getCachedProfile,
     setCachedProfile,
-    isCacheValid,
-    reset
+    isCacheValid
   } = useProfileStore();
   // ✅ FIX: Используем selector для предотвращения пересоздания функции
   const initializeLikes = useLikesStore(state => state.initializeLikes);
@@ -154,7 +153,7 @@ export const ProfilePage: React.FC = () => {
         // Загружаем стикерсеты пользователя с пагинацией
         // При включенной сортировке по лайкам: сортировка по likesCount DESC (от самых лайкнутых)
         // При выключенной: сортировка по createdAt DESC (последние добавленные)
-        const sortField = sortByLikesParam ? 'likesCount' : 'createdAt';
+        const sortField = sortByLikesParam ? ('likesCount' as 'createdAt' | 'title' | 'name') : 'createdAt';
         response = await apiClient.getUserStickerSets(id, page, 20, sortField, 'DESC', true);
       }
       
@@ -315,20 +314,6 @@ export const ProfilePage: React.FC = () => {
     setSelectedStickerSet(null);
   };
 
-  const handleShareStickerSet = (name: string, _title: string) => {
-    if (tg) {
-      tg.openTelegramLink(`https://t.me/addstickers/${name}`);
-    } else {
-      window.open(`https://t.me/addstickers/${name}`, '_blank');
-    }
-  };
-
-  const handleLikeStickerSet = (id: number, title: string) => {
-    // TODO: Реализовать API для лайков
-    console.log(`Лайк стикерсета: ${title} (ID: ${id})`);
-    alert(`Лайк для "${title}" будет реализован в будущем!`);
-  };
-
   const handleCreateSticker = () => {
     if (tg) {
       tg.openTelegramLink('https://t.me/StickerGalleryBot');
@@ -393,7 +378,6 @@ export const ProfilePage: React.FC = () => {
 
   // Вычисляемые состояния загрузки (как в GalleryPage)
   const isInitialLoading = isStickerSetsLoading && userStickerSets.length === 0 && !stickerSetsError;
-  const isRefreshing = isStickerSetsLoading && userStickerSets.length > 0;
 
   // Обработка кнопки "Назад" в Telegram
   useEffect(() => {
@@ -436,9 +420,6 @@ export const ProfilePage: React.FC = () => {
       </div>
     );
   }
-
-  // Проверка premium статуса для оформления баннера
-  const isPremium = userInfo ? isUserPremium(userInfo) : false;
 
   return (
     <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>

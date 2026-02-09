@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { FC, useState } from 'react';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
 
@@ -9,7 +9,7 @@ import { Button } from './Button';
  * для отображения контента снизу экрана
  */
 
-export const BottomSheetExample: React.FC = () => {
+export const BottomSheetExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleOpen = () => setIsOpen(true);
@@ -55,7 +55,7 @@ export const BottomSheetExample: React.FC = () => {
 /**
  * BottomSheet with Custom Content
  */
-export const BottomSheetCustomContentExample: React.FC = () => {
+export const BottomSheetCustomContentExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -110,7 +110,7 @@ export const BottomSheetCustomContentExample: React.FC = () => {
 /**
  * BottomSheet without Title
  */
-export const BottomSheetNoTitleExample: React.FC = () => {
+export const BottomSheetNoTitleExample: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

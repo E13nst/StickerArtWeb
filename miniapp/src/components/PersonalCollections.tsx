@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, FC } from 'react';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 
 interface Collection {
@@ -20,9 +20,8 @@ interface PersonalCollectionsProps {
   recommendedPacks: any[];
 }
 
-export const PersonalCollections: React.FC<PersonalCollectionsProps> = ({
+export const PersonalCollections: FC<PersonalCollectionsProps> = ({
   onCollectionClick,
-  onPackClick,
   likedPacks,
   recentPacks,
   recommendedPacks
@@ -93,38 +92,6 @@ export const PersonalCollections: React.FC<PersonalCollectionsProps> = ({
     hapticSuccess();
   }, [newCollectionName, hapticSuccess]);
 
-  // Добавление пака в коллекцию
-  const addPackToCollection = useCallback((collectionId: string, pack: any) => {
-    setCustomCollections(prev => 
-      prev.map(collection => 
-        collection.id === collectionId
-          ? {
-              ...collection,
-              packs: [...collection.packs, pack],
-              description: `${collection.packs.length + 1} паков`
-            }
-          : collection
-      )
-    );
-    hapticClick();
-  }, [hapticClick]);
-
-  // Удаление пака из коллекции
-  const removePackFromCollection = useCallback((collectionId: string, packId: string) => {
-    setCustomCollections(prev => 
-      prev.map(collection => 
-        collection.id === collectionId
-          ? {
-              ...collection,
-              packs: collection.packs.filter(pack => pack.id !== packId),
-              description: `${collection.packs.length - 1} паков`
-            }
-          : collection
-      )
-    );
-    hapticClick();
-  }, [hapticClick]);
-
   // Удаление коллекции
   const deleteCollection = useCallback((collectionId: string) => {
     setCustomCollections(prev => prev.filter(collection => collection.id !== collectionId));
@@ -136,12 +103,6 @@ export const PersonalCollections: React.FC<PersonalCollectionsProps> = ({
     hapticClick();
     onCollectionClick(collection);
   }, [onCollectionClick, hapticClick]);
-
-  // Обработка клика по паку
-  const handlePackClick = useCallback((pack: any) => {
-    hapticClick();
-    onPackClick(pack);
-  }, [onPackClick, hapticClick]);
 
   const allCollections = [...collections, ...customCollections];
 
@@ -329,7 +290,7 @@ export const PersonalCollections: React.FC<PersonalCollectionsProps> = ({
                 gap: '4px',
                 marginBottom: '12px'
               }}>
-                {collection.packs.slice(0, 4).map((pack, index) => (
+                {collection.packs.slice(0, 4).map((pack) => (
                   <div
                     key={pack.id}
                     style={{

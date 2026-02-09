@@ -47,7 +47,7 @@ export const useStickerRotation = ({
   }, [stickersCount, currentIndex]);
 
   // Функция проверки готовности стикера (изображение + JSON если анимированный, blob если видео)
-  const isStickerReady = useCallback((fileId: string, url: string, isAnimated?: boolean, isVideo?: boolean): boolean => {
+  const isStickerReady = useCallback((fileId: string, _url: string, isAnimated?: boolean, isVideo?: boolean): boolean => {
     // Для видео-стикеров проверяем blob кеш
     if (isVideo) {
       return getCachedStickerUrl(fileId) !== undefined;
@@ -87,7 +87,7 @@ export const useStickerRotation = ({
         
         // Загружаем через prefetchSticker
         try {
-          markAsGallerySticker(fileId);
+          markAsGallerySticker();
           await prefetchSticker(fileId, url, {
             isVideo: true,
             markForGallery: true,

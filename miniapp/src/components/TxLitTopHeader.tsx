@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, FC, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-;
+import { Avatar } from '@/components/ui/Avatar';
 import { UserInfo } from '@/store/useProfileStore';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
 
 export interface Banner {
   id: number;
-  background: string; // CSS gradient или image URL
+  background: string;
   text?: string;
-  imageUrl?: string; // Опциональный URL изображения поверх градиента
+  imageUrl?: string;
 }
 
 interface TxLitTopHeaderProps {
@@ -18,7 +18,6 @@ interface TxLitTopHeaderProps {
   onBannerClick?: (banner: Banner) => void;
 }
 
-// Дефолтные баннеры
 const defaultBanners: Banner[] = [
   {
     id: 1,
@@ -37,7 +36,7 @@ const defaultBanners: Banner[] = [
   }
 ];
 
-export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
+export const TxLitTopHeader: FC<TxLitTopHeaderProps> = ({
   userInfo,
   banners,
   onBannerClick
@@ -46,11 +45,10 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Вычисление размеров по золотому сечению
   useEffect(() => {
     const updateDimensions = () => {
       const width = window.innerWidth;
-      const height = width * 0.618; // Золотое сечение
+      const height = width * 0.618;
       setDimensions({ width, height });
     };
 
@@ -59,15 +57,11 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Определяем баннеры: кастомные из userInfo или переданные, иначе дефолтные
-  const activeBanners = React.useMemo(() => {
-    // TODO: в будущем можно добавить userInfo.banners или userInfo.customBanners
-    // if (userInfo?.customBanners?.length) return userInfo.customBanners;
+  const activeBanners = useMemo(() => {
     if (banners && banners.length > 0) return banners;
     return defaultBanners;
   }, [userInfo, banners]);
 
-  // Автопрокрутка карусели
   useEffect(() => {
     if (activeBanners.length <= 1) return;
     
@@ -79,16 +73,13 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
   }, [activeBanners.length]);
 
   const current = activeBanners[index];
-
-  // Вычисляем размер аватара (0.382 от ширины)
   const avatarSize = dimensions.width * 0.382;
-  const avatarHeight = avatarSize;
 
   return (
     <div
       ref={containerRef}
       onClick={() => onBannerClick?.(current)}
-      sx={{
+      style={{
         position: 'relative',
         width: '100vw',
         height: dimensions.height || '0px',
@@ -99,7 +90,6 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
         transition: 'height 0.3s ease'
       }}
     >
-      {/* Карусель баннеров */}
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id}
@@ -114,17 +104,15 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '44px 16px 60px', // Отступ снизу для аватара
+            padding: '44px 16px 60px',
             textAlign: 'center'
           }}
         >
-          {/* Опциональное изображение поверх градиента */}
           {current.imageUrl && (
-            <div
-              component="img"
+            <img
               src={current.imageUrl}
               alt="Banner"
-              sx={{
+              style={{
                 position: 'absolute',
                 inset: 0,
                 width: '100%',
@@ -136,14 +124,12 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
             />
           )}
 
-          {/* Текст баннера */}
           {current.text && (
-            <div
-              component="p"
-              sx={{
+            <p
+              style={{
                 position: 'relative',
                 zIndex: 2,
-                fontSize: { xs: '14px', sm: '16px' },
+                fontSize: '16px',
                 fontWeight: 500,
                 color: 'rgba(255, 255, 255, 0.95)',
                 letterSpacing: '0.3px',
@@ -153,21 +139,20 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
               }}
             >
               {current.text}
-            </div>
+            </p>
           )}
         </motion.div>
       </AnimatePresence>
 
-      {/* Индикаторы слайдов */}
       {activeBanners.length > 1 && (
         <div
-          sx={{
+          style={{
             position: 'absolute',
-            bottom: 16,
+            bottom: '16px',
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
-            gap: 1,
+            gap: '8px',
             zIndex: 5
           }}
         >
@@ -178,24 +163,19 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
                 e.stopPropagation();
                 setIndex(i);
               }}
-              sx={{
-                width: 6,
-                height: 6,
+              style={{
+                width: '6px',
+                height: '6px',
                 borderRadius: '50%',
                 backgroundColor: i === index ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.4)',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                  transform: 'scale(1.2)'
-                }
+                transition: 'all 0.3s ease'
               }}
             />
           ))}
         </div>
       )}
 
-      {/* Аватар - абсолютное позиционирование снизу */}
       {userInfo && (
         <TxLitAvatarOverlay userInfo={userInfo} avatarSize={avatarSize} />
       )}
@@ -203,17 +183,16 @@ export const TxLitTopHeader: React.FC<TxLitTopHeaderProps> = ({
   );
 };
 
-// Внутренний компонент аватара для TxLitTopHeader
 interface TxLitAvatarOverlayProps {
   userInfo: UserInfo;
   avatarSize: number;
 }
 
-const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
+const TxLitAvatarOverlay: FC<TxLitAvatarOverlayProps> = ({
   userInfo,
   avatarSize
 }) => {
-  const [avatarError, setAvatarError] = useState(false);
+  const [avatarError] = useState(false);
 
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
@@ -226,7 +205,7 @@ const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
 
   return (
     <div
-      sx={{
+      style={{
         position: 'absolute',
         bottom: -(avatarHeight * 0.5),
         left: '50%',
@@ -239,19 +218,9 @@ const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
     >
       <Avatar
         src={!avatarError ? avatarUrl : undefined}
-        imgProps={{
-          onError: () => setAvatarError(true),
-          loading: 'lazy'
-        }}
-        sx={{
-          width: '100%',
-          height: '100%',
-          maxWidth: avatarSize,
-          maxHeight: avatarSize,
-          minWidth: '120px',
-          minHeight: '120px',
-          border: '4px solid',
-          borderColor: 'var(--tg-theme-bg-color, #ffffff)',
+        size={Math.max(120, avatarSize)}
+        style={{
+          border: '4px solid var(--tg-theme-bg-color, #ffffff)',
           backgroundColor: avatarBgColor,
           fontSize: avatarSize > 0 ? `${avatarSize * 0.15}px` : '2rem',
           fontWeight: 'bold',
@@ -264,4 +233,3 @@ const TxLitAvatarOverlay: React.FC<TxLitAvatarOverlayProps> = ({
     </div>
   );
 };
-
