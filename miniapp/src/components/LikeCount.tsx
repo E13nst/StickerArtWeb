@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 
 interface LikeCountProps {
   packId: string;
@@ -8,7 +8,7 @@ interface LikeCountProps {
 }
 
 // SVG компонент для иконки лайка с обрезкой по контуру сердца
-const LikeIcon: React.FC<{ 
+const LikeIcon: FC<{ 
   color: string; 
   size: number; 
   isLiked: boolean; 
@@ -39,8 +39,8 @@ const LikeIcon: React.FC<{
   );
 };
 
-export const LikeCount: React.FC<LikeCountProps> = ({
-  packId,
+export const LikeCount: FC<LikeCountProps> = ({
+  packId: _packId,
   likesCount,
   isLiked = false,
   size = 'medium'

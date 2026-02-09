@@ -1,16 +1,16 @@
-import React from 'react';
+import { ReactNode, CSSProperties, FC } from 'react';
 import './Avatar.css';
 
 interface AvatarProps {
   src?: string;
   alt?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   size?: number;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   className?: string;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ 
+export const Avatar: FC<AvatarProps> = ({ 
   src, 
   alt = '', 
   children, 

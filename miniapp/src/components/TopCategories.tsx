@@ -1,5 +1,5 @@
-import React from 'react';
-;
+import { FC } from 'react';
+import { Text } from '@/components/ui/Text';
 
 interface Category {
   name: string;
@@ -11,34 +11,24 @@ interface TopCategoriesProps {
   categories: Category[];
 }
 
-export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
+export const TopCategories: FC<TopCategoriesProps> = ({ categories }) => {
   return (
-    <div sx={{ mt: 4 }}>
-      <Typography
-        variant="h6"
-        fontWeight="bold"
-        sx={{
-          color: 'var(--tg-theme-text-color)',
-          mb: 2,
-          fontSize: { xs: '1rem', sm: '1.25rem' }
-        }}
-      >
+    <div style={{ marginTop: 32 }}>
+      <Text variant="h4" weight="bold" style={{ color: 'var(--tg-theme-text-color)', marginBottom: 16, fontSize: '1.25rem' }}>
         ТОП-8 КАТЕГОРИЙ
-      </Typography>
+      </Text>
       <div
-        sx={{
+        style={{
           display: 'flex',
           overflowX: 'auto',
           overflowY: 'hidden',
           gap: 'calc(1rem * 0.382)',
           padding: 'calc(1rem * 0.382)',
           scrollbarWidth: 'none',
-          '&::-webkit-scrollbar': {
-            display: 'none',
-          },
           maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
           WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
         }}
+        className="top-categories-scroll"
       >
         {categories.map((category) => (
           <div
@@ -51,7 +41,7 @@ export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
                 e.preventDefault();
               }
             }}
-            sx={{
+            style={{
               flexShrink: 0,
               padding: '4px 8px',
               borderRadius: '13px',
@@ -68,10 +58,6 @@ export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
               justifyContent: 'center',
               outline: 'none',
               userSelect: 'none',
-              '&:hover': {
-                backgroundColor: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 50%, transparent)',
-                transform: 'translateY(-1px)',
-              },
             }}
           >
             {category.name} ({category.count})
@@ -81,4 +67,3 @@ export const TopCategories: React.FC<TopCategoriesProps> = ({ categories }) => {
     </div>
   );
 };
-

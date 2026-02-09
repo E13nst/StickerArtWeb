@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { BottomSheet } from './ui/BottomSheet';
 import { Text } from '@/components/ui/Text';
@@ -37,7 +37,7 @@ const DATE_RANGES = [
   { id: 'all', label: 'Все время' },
 ];
 
-export const FilterModal: React.FC<FilterModalProps> = ({
+export const FilterModal: FC<FilterModalProps> = ({
   open,
   onClose,
   onApply,

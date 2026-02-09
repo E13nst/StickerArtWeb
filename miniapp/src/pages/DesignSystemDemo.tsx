@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import '@/styles/common.css';
 import './DesignSystemDemo.css';
 
-export const DesignSystemDemo: React.FC = () => {
+export const DesignSystemDemo: FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   const toggleTheme = () => {

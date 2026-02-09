@@ -1,0 +1,583 @@
+{
+  "stats": {
+    "total_records": 4647,
+    "first_timestamp": "2026-02-09T08:40:22.542696866",
+    "last_timestamp": "2026-02-09T09:02:46.202658086",
+    "streams": {
+      "stderr": 552,
+      "stdout": 4095
+    },
+    "content_lengths": [
+      873,
+      873,
+      873,
+      873,
+      873,
+      873,
+      873,
+      873,
+      862,
+      862
+    ],
+    "duration_seconds": 1343.659962,
+    "duration_minutes": 22.3943327
+  },
+  "categories": {
+    "OTHER": 912,
+    "INFO": 408,
+    "DOCKER": 16,
+    "WARN": 104,
+    "NPM": 56,
+    "ERROR": 3151
+  },
+  "problems": {
+    "errors_count": 3151,
+    "errors_examples": [
+      [
+        "2026-02-09T08:40:43.85530578",
+        "miniapp/src/hooks/usePageTransitions.ts(182,7): error TS1005: '>' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855638986",
+        "miniapp/src/hooks/usePageTransitions.ts(182,10): error TS1005: ')' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855697442",
+        "miniapp/src/hooks/usePageTransitions.ts(183,18): error TS1136: Property assignment expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855729151",
+        "miniapp/src/hooks/usePageTransitions.ts(184,14): error TS1136: Property assignment expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855733315",
+        "miniapp/src/hooks/usePageTransitions.ts(186,12): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855774372",
+        "miniapp/src/hooks/usePageTransitions.ts(187,13): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855789027",
+        "miniapp/src/hooks/usePageTransitions.ts(188,14): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.855815877",
+        "miniapp/src/hooks/usePageTransitions.ts(189,15): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856019293",
+        "miniapp/src/hooks/usePageTransitions.ts(190,18): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856163658",
+        "miniapp/src/hooks/usePageTransitions.ts(191,16): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856175996",
+        "miniapp/src/hooks/usePageTransitions.ts(192,15): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856210868",
+        "miniapp/src/hooks/usePageTransitions.ts(193,19): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856235463",
+        "miniapp/src/hooks/usePageTransitions.ts(194,19): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856255622",
+        "miniapp/src/hooks/usePageTransitions.ts(195,27): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856299193",
+        "miniapp/src/hooks/usePageTransitions.ts(196,17): error TS1005: ';' expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856304064",
+        "miniapp/src/hooks/usePageTransitions.ts(197,8): error TS1128: Declaration or statement expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856306758",
+        "miniapp/src/hooks/usePageTransitions.ts(198,5): error TS1109: Expression expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856314701",
+        "miniapp/src/hooks/usePageTransitions.ts(200,6): error TS1161: Unterminated regular expression literal.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856338945",
+        "miniapp/src/hooks/usePageTransitions.ts(201,3): error TS1128: Declaration or statement expected.",
+        "ERROR"
+      ],
+      [
+        "2026-02-09T08:40:43.856541767",
+        "miniapp/src/hooks/usePageTransitions.ts(202,1): error TS1128: Declaration or statement expected.",
+        "ERROR"
+      ]
+    ],
+    "warnings_count": 104,
+    "warnings_examples": [
+      [
+        "2026-02-09T08:40:36.347318379",
+        "npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:36.853092364",
+        "npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:37.011243001",
+        "npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:37.40688317",
+        "npm warn deprecated @types/jszip@3.4.1: This is a stub types definition. jszip provides its own type definitions, so you do not need this installed.",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:37.664259173",
+        "npm warn deprecated @telegram-apps/types@2.0.3: This package is not supported anymore. Use @tma.js/types instead",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:37.977937117",
+        "npm warn deprecated @telegram-apps/transformers@2.2.6: This package is not supported anymore. Use @tma.js/transfomers instead",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:38.034644645",
+        "npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:38.079957164",
+        "npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:38.319483454",
+        "npm warn deprecated @telegram-apps/bridge@2.11.0: This package is not supported anymore. Use @tma.js/bridge instead",
+        "WARN"
+      ],
+      [
+        "2026-02-09T08:40:38.525544962",
+        "npm warn deprecated @telegram-apps/types@1.2.1: This package is not supported anymore. Use @tma.js/types instead",
+        "WARN"
+      ]
+    ],
+    "npm_errors": 0,
+    "deprecated": 104,
+    "file_errors": 0,
+    "timeouts": 0
+  },
+  "timeline": [
+    {
+      "timestamp": "2026-02-09T08:40:22.542696866",
+      "type": "git_clone",
+      "content": "Cloning into '/git'..."
+    },
+    {
+      "timestamp": "2026-02-09T08:40:23.663037816",
+      "type": "git_checkout",
+      "content": "HEAD is now at b031472 Merge branch 'new' of https://github.com/E13nst/StickerArtWeb.git"
+    },
+    {
+      "timestamp": "2026-02-09T08:40:24.923683435",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0000] Resolved base name node:18-alpine to builder "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:24.92374433",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0000] Retrieving image manifest node:18-alpine     "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:24.923750921",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0000] Retrieving image node:18-alpine from mapped registry harbor.amvera.ru "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:26.684914934",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0002] Retrieving image manifest node:18-alpine     "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:27.069742513",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0002] Retrieving image manifest nginx:alpine       "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:27.069768881",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0002] Retrieving image nginx:alpine from mapped registry harbor.amvera.ru "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:28.839583937",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0004] Retrieving image manifest nginx:alpine       "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:29.07176568",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0004] Retrieving image manifest node:18-alpine     "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:29.071771124",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0004] Retrieving image manifest node:18-alpine     "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:29.072116347",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0004] Building stage 'node:18-alpine' [idx: '0', base-idx: '-1'] "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:29.261425745",
+      "type": "npm_install_start",
+      "content": "\u001b[36mINFO\u001b[0m[0004] No cached layer found for cmd RUN npm ci --no-audit "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:29.305443825",
+      "type": "copying",
+      "content": "\u001b[36mINFO\u001b[0m[0004] Unpacking rootfs as cmd COPY package*.json ./ requires it. "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:34.210830434",
+      "type": "copying",
+      "content": "\u001b[36mINFO\u001b[0m[0009] COPY package*.json ./                        "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:34.214893385",
+      "type": "npm_install_start",
+      "content": "\u001b[36mINFO\u001b[0m[0009] RUN npm ci --no-audit                        "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:34.257163785",
+      "type": "npm_install_start",
+      "content": "\u001b[36mINFO\u001b[0m[0009] Args: [-c npm ci --no-audit]                 "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:34.257166964",
+      "type": "npm_install_start",
+      "content": "\u001b[36mINFO\u001b[0m[0009] Running: [/bin/sh -c npm ci --no-audit]      "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:40.241384391",
+      "type": "npm_install_start",
+      "content": "npm notice To update run: npm install -g npm@11.9.0"
+    },
+    {
+      "timestamp": "2026-02-09T08:40:40.595188585",
+      "type": "copying",
+      "content": "\u001b[36mINFO\u001b[0m[0015] COPY miniapp ./miniapp                       "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:40.657070205",
+      "type": "copying",
+      "content": "\u001b[36mINFO\u001b[0m[0015] COPY index.html vite.config.ts tsconfig.json tsconfig.node.json ./ "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:41.980131871",
+      "type": "completed",
+      "content": "\u001b[36mINFO\u001b[0m[0017] RUN echo \"=== STARTING BUILD ===\" &&     rm -rf dist &&     echo \"dist/ removed\" &&     npx tsc &&     echo \"TypeScript checked\" &&     npx vite build &&     echo \"Vite build compl"
+    },
+    {
+      "timestamp": "2026-02-09T08:40:42.268593597",
+      "type": "completed",
+      "content": "\u001b[36mINFO\u001b[0m[0017] Args: [-c echo \"=== STARTING BUILD ===\" &&     rm -rf dist &&     echo \"dist/ removed\" &&     npx tsc &&     echo \"TypeScript checked\" &&     npx vite build &&     echo \"Vite build"
+    },
+    {
+      "timestamp": "2026-02-09T08:40:42.268597007",
+      "type": "completed",
+      "content": "\u001b[36mINFO\u001b[0m[0017] Running: [/bin/sh -c echo \"=== STARTING BUILD ===\" &&     rm -rf dist &&     echo \"dist/ removed\" &&     npx tsc &&     echo \"TypeScript checked\" &&     npx vite build &&     echo "
+    },
+    {
+      "timestamp": "2026-02-09T08:40:43.884006952",
+      "type": "docker_stage",
+      "content": "error building image: error building stage: failed to execute command: waiting for process to exit: exit status 2"
+    },
+    {
+      "timestamp": "2026-02-09T08:40:57.289314899",
+      "type": "completed",
+      "content": "Container builder has completed with exit code: 2"
+    },
+    {
+      "timestamp": "2026-02-09T08:40:57.426765091",
+      "type": "completed",
+      "content": "Docker build watcher application completed"
+    },
+    {
+      "timestamp": "2026-02-09T08:44:25.748334912",
+      "type": "git_clone",
+      "content": "Cloning into '/git'..."
+    },
+    {
+      "timestamp": "2026-02-09T08:44:26.624538275",
+      "type": "git_checkout",
+      "content": "HEAD is now at b031472 Merge branch 'new' of https://github.com/E13nst/StickerArtWeb.git"
+    },
+    {
+      "timestamp": "2026-02-09T08:44:27.808584574",
+      "type": "docker_stage",
+      "content": "\u001b[36mINFO\u001b[0m[0000] Resolved base name node:18-alpine to builder "
+    }
+  ],
+  "time_gaps": [
+    {
+      "gap_seconds": 574.129029,
+      "before": {
+        "timestamp": "2026-02-09T08:52:30.115301993",
+        "content": "Docker build watcher application completed"
+      },
+      "after": {
+        "timestamp": "2026-02-09T09:02:04.244330756",
+        "content": "Cloning into '/git'..."
+      }
+    },
+    {
+      "gap_seconds": 574.129029,
+      "before": {
+        "timestamp": "2026-02-09T08:52:30.115301993",
+        "content": "Docker build watcher application completed"
+      },
+      "after": {
+        "timestamp": "2026-02-09T09:02:04.244330756",
+        "content": "Cloning into '/git'..."
+      }
+    },
+    {
+      "gap_seconds": 363.494075,
+      "before": {
+        "timestamp": "2026-02-09T08:44:52.342583533",
+        "content": "Docker build watcher application completed"
+      },
+      "after": {
+        "timestamp": "2026-02-09T08:50:55.836658733",
+        "content": "Cloning into '/git'..."
+      }
+    },
+    {
+      "gap_seconds": 363.494075,
+      "before": {
+        "timestamp": "2026-02-09T08:44:52.342583533",
+        "content": "Docker build watcher application completed"
+      },
+      "after": {
+        "timestamp": "2026-02-09T08:50:55.836658733",
+        "content": "Cloning into '/git'..."
+      }
+    },
+    {
+      "gap_seconds": 208.321569,
+      "before": {
+        "timestamp": "2026-02-09T08:40:57.426765091",
+        "content": "Docker build watcher application completed"
+      },
+      "after": {
+        "timestamp": "2026-02-09T08:44:25.748334912",
+        "content": "Cloning into '/git'..."
+      }
+    }
+  ],
+  "error_aggregated": [
+    {
+      "sample": "error building image: error building stage: failed to execute command: waiting for process to exit:",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:43.884006952",
+      "last_occurrence": "2026-02-09T09:02:38.854266433",
+      "example": "error building image: error building stage: failed to execute command: waiting for process to exit: exit status 2"
+    },
+    {
+      "sample": "miniapp/src/App.tsx(13,26): error TS6133: 'imageLoader' is declared but its value is never read.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.353760876",
+      "last_occurrence": "2026-02-09T09:02:38.813373424",
+      "example": "miniapp/src/App.tsx(13,26): error TS6133: 'imageLoader' is declared but its value is never read."
+    },
+    {
+      "sample": "miniapp/src/App.tsx(13,39): error TS6133: 'LoadPriority' is declared but its value is never read.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354189124",
+      "last_occurrence": "2026-02-09T09:02:38.81394498",
+      "example": "miniapp/src/App.tsx(13,39): error TS6133: 'LoadPriority' is declared but its value is never read."
+    },
+    {
+      "sample": "miniapp/src/api/client.ts(4,27): error TS6133: 'mockAuthResponse' is declared but its value is never",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354202473",
+      "last_occurrence": "2026-02-09T09:02:38.813954228",
+      "example": "miniapp/src/api/client.ts(4,27): error TS6133: 'mockAuthResponse' is declared but its value is never read."
+    },
+    {
+      "sample": "miniapp/src/components/AccountActivityBlocks.tsx(90,3): error TS6133: 'onTaskAction' is declared but",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354222764",
+      "last_occurrence": "2026-02-09T09:02:38.81400553",
+      "example": "miniapp/src/components/AccountActivityBlocks.tsx(90,3): error TS6133: 'onTaskAction' is declared but its value is never read."
+    },
+    {
+      "sample": "miniapp/src/components/AnimatedLikeButton.tsx(1,40): error TS6133: 'useEffect' is declared but its v",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354271796",
+      "last_occurrence": "2026-02-09T09:02:38.814036049",
+      "example": "miniapp/src/components/AnimatedLikeButton.tsx(1,40): error TS6133: 'useEffect' is declared but its value is never read."
+    },
+    {
+      "sample": "miniapp/src/components/AnimatedLikeButton.tsx(2,35): error TS2307: Cannot find module '../hooks/useH",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354287396",
+      "last_occurrence": "2026-02-09T09:02:38.814040706",
+      "example": "miniapp/src/components/AnimatedLikeButton.tsx(2,35): error TS2307: Cannot find module '../hooks/useHapticFeedback' or its corresponding type declarations."
+    },
+    {
+      "sample": "miniapp/src/components/AnimatedPackCard.tsx(13,3): error TS6133: 'isHighPriority' is declared but it",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354331396",
+      "last_occurrence": "2026-02-09T09:02:38.814072461",
+      "example": "miniapp/src/components/AnimatedPackCard.tsx(13,3): error TS6133: 'isHighPriority' is declared but its value is never read."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(18,8): error TS2304: Cannot find name 'Card'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354359755",
+      "last_occurrence": "2026-02-09T09:02:38.814106107",
+      "example": "miniapp/src/components/AuthStatus.tsx(18,8): error TS2304: Cannot find name 'Card'."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(19,10): error TS2304: Cannot find name 'CardContent'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354523296",
+      "last_occurrence": "2026-02-09T09:02:38.814633586",
+      "example": "miniapp/src/components/AuthStatus.tsx(19,10): error TS2304: Cannot find name 'CardContent'."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(20,12): error TS2304: Cannot find name 'Typography'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354591997",
+      "last_occurrence": "2026-02-09T09:02:38.81469333",
+      "example": "miniapp/src/components/AuthStatus.tsx(20,12): error TS2304: Cannot find name 'Typography'."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(26,13): error TS2304: Cannot find name 'Typography'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354614185",
+      "last_occurrence": "2026-02-09T09:02:38.814707725",
+      "example": "miniapp/src/components/AuthStatus.tsx(26,13): error TS2304: Cannot find name 'Typography'."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(27,11): error TS2304: Cannot find name 'CardContent'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.35467292",
+      "last_occurrence": "2026-02-09T09:02:38.814733434",
+      "example": "miniapp/src/components/AuthStatus.tsx(27,11): error TS2304: Cannot find name 'CardContent'."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(28,9): error TS2304: Cannot find name 'Card'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354682731",
+      "last_occurrence": "2026-02-09T09:02:38.814768813",
+      "example": "miniapp/src/components/AuthStatus.tsx(28,9): error TS2304: Cannot find name 'Card'."
+    },
+    {
+      "sample": "miniapp/src/components/AuthStatus.tsx(34,8): error TS2304: Cannot find name 'Card'.",
+      "count": 5,
+      "first_occurrence": "2026-02-09T08:51:27.354685771",
+      "last_occurrence": "2026-02-09T09:02:38.814788126",
+      "example": "miniapp/src/components/AuthStatus.tsx(34,8): error TS2304: Cannot find name 'Card'."
+    }
+  ],
+  "deprecated_aggregated": [
+    {
+      "sample": "npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:36.347318379",
+      "last_occurrence": "2026-02-09T09:02:25.160709158",
+      "example": "npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported"
+    },
+    {
+      "sample": "npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. C",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:36.853092364",
+      "last_occurrence": "2026-02-09T09:02:25.748000104",
+      "example": "npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful."
+    },
+    {
+      "sample": "npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:37.011243001",
+      "last_occurrence": "2026-02-09T09:02:25.794634311",
+      "example": "npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported"
+    },
+    {
+      "sample": "npm warn deprecated @types/jszip@3.4.1: This is a stub types definition. jszip provides its own type",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:37.40688317",
+      "last_occurrence": "2026-02-09T09:02:26.347115538",
+      "example": "npm warn deprecated @types/jszip@3.4.1: This is a stub types definition. jszip provides its own type definitions, so you do not need this installed."
+    },
+    {
+      "sample": "npm warn deprecated @telegram-apps/types@2.0.3: This package is not supported anymore. Use @tma.js/t",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:37.664259173",
+      "last_occurrence": "2026-02-09T09:02:26.770120174",
+      "example": "npm warn deprecated @telegram-apps/types@2.0.3: This package is not supported anymore. Use @tma.js/types instead"
+    },
+    {
+      "sample": "npm warn deprecated @telegram-apps/transformers@2.2.6: This package is not supported anymore. Use @t",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:37.977937117",
+      "last_occurrence": "2026-02-09T09:02:26.91384378",
+      "example": "npm warn deprecated @telegram-apps/transformers@2.2.6: This package is not supported anymore. Use @tma.js/transfomers instead"
+    },
+    {
+      "sample": "npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:38.034644645",
+      "last_occurrence": "2026-02-09T09:02:27.153356544",
+      "example": "npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead"
+    },
+    {
+      "sample": "npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:38.079957164",
+      "last_occurrence": "2026-02-09T09:02:26.975312917",
+      "example": "npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead"
+    },
+    {
+      "sample": "npm warn deprecated @telegram-apps/bridge@2.11.0: This package is not supported anymore. Use @tma.js",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:38.319483454",
+      "last_occurrence": "2026-02-09T09:02:27.217489116",
+      "example": "npm warn deprecated @telegram-apps/bridge@2.11.0: This package is not supported anymore. Use @tma.js/bridge instead"
+    },
+    {
+      "sample": "npm warn deprecated @telegram-apps/types@1.2.1: This package is not supported anymore. Use @tma.js/t",
+      "count": 8,
+      "first_occurrence": "2026-02-09T08:40:38.525544962",
+      "last_occurrence": "2026-02-09T09:02:27.875271023",
+      "example": "npm warn deprecated @telegram-apps/types@1.2.1: This package is not supported anymore. Use @tma.js/types instead"
+    }
+  ]
+}

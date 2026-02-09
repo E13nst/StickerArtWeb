@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
@@ -12,7 +12,7 @@ import { StickerSetResponse } from '@/types/sticker';
 
 const SHOW_HELLO_KEY = 'swipe-hello-shown';
 
-export const SwipePage: React.FC = () => {
+export const SwipePage: FC = () => {
   const [showHello, setShowHello] = useState(false);
   
   const {

@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import './Frame76Default.css';
 
 export interface Frame76TaskProgress {
@@ -16,7 +16,7 @@ interface Frame76DefaultProps {
  * Figma: #components → Frame 76 Default
  * Блок прогресса задач (2 колонки), который ранее рендерился внутри `DailyActivity`.
  */
-export const Frame76Default: React.FC<Frame76DefaultProps> = ({ tasks }) => {
+export const Frame76Default: FC<Frame76DefaultProps> = ({ tasks }) => {
   return (
     <div
       data-figma-component="Frame 76 Default"

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, FC, MouseEvent, TouchEvent } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { apiClient } from '../api/client';
@@ -80,9 +80,9 @@ function applyTheme(theme: typeof lightTheme, scheme: 'light' | 'dark') {
   } catch {}
 }
 
-export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
+export const DebugPanel: FC<DebugPanelProps> = ({ initData }) => {
   const { tg, isInTelegramApp, isMockMode } = useTelegram();
-  const { authStatus, authError, authLoading } = useStickerStore();
+  const { authStatus, authError } = useStickerStore();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -206,7 +206,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
   };
 
   // Обработка долгого нажатия (2 секунды)
-  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleTouchStart = (_e: TouchEvent | MouseEvent) => {
     isLongPressRef.current = false;
     themeToggleHandledRef.current = false;
     longPressTimerRef.current = setTimeout(() => {
@@ -252,23 +252,23 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
   };
 
   // Обработка мыши для десктопа
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.currentTarget.style.transform = 'scale(0.95)';
+  const handleMouseDown = (e: MouseEvent) => {
+    (e.currentTarget as HTMLElement).style.transform = 'scale(0.95)';
     handleTouchStart(e);
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    e.currentTarget.style.transform = 'scale(1.05)';
+  const handleMouseUp = (e: MouseEvent) => {
+    (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
     handleTouchEnd();
   };
 
-  const handleMouseLeave = (e: React.MouseEvent) => {
-    e.currentTarget.style.transform = 'scale(1)';
+  const handleMouseLeave = (e: MouseEvent) => {
+    (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
     handleTouchCancel();
   };
   
   // Обработка клика (для быстрого клика без долгого нажатия)
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: MouseEvent) => {
     // Если было долгое нажатие, не переключаем тему
     if (isLongPressRef.current) {
       e.preventDefault();
@@ -306,7 +306,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
         className="tg-debug-panel__toggle tg-debug-panel__toggle--compact"
         onClick={handleClick}
         onTouchStart={handleTouchStart}
-        onTouchEnd={(e) => handleTouchEnd(e)}
+        onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
@@ -413,7 +413,6 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
               <code>{JSON.stringify({
                 isInTelegramApp,
                 isMockMode,
-                authLoading,
                 timestamp: new Date().toISOString()
               }, null, 2)}</code>
             </div>
@@ -427,8 +426,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ initData }) => {
             <div className="tg-debug-panel__data">
               <code>{JSON.stringify({
                 authStatus,
-                authError,
-                authLoading
+                authError
               }, null, 2)}</code>
             </div>
           </div>

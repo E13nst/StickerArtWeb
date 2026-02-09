@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, FC } from 'react';
 import { useHapticFeedback } from './useHapticFeedback';
 
 interface PullToRefreshOptions {
@@ -83,7 +83,7 @@ export const usePullToRefresh = (options: PullToRefreshOptions) => {
   }, [enabled, state.isRefreshing, state.canRefresh, threshold, maxDistance, hapticClick]);
 
   // Обработка окончания касания
-  const handleTouchEnd = useCallback(async (e: TouchEvent) => {
+  const handleTouchEnd = useCallback(async (_e: TouchEvent) => {
     if (!enabled || !state.isPulling) return;
 
     if (state.canRefresh && !state.isRefreshing) {
@@ -158,7 +158,7 @@ interface PullToRefreshIndicatorProps {
   scale: number;
 }
 
-export const PullToRefreshIndicator: React.FC<PullToRefreshIndicatorProps> = ({
+export const PullToRefreshIndicator: FC<PullToRefreshIndicatorProps> = ({
   state,
   progress,
   rotation,

@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, ReactNode, FC, MouseEvent } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { clearNonGalleryAnimations } from '@/utils/imageLoader';
 import './ModalBackdrop.css';
 
 interface ModalBackdropProps {
   open: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
   onClose?: () => void;
 }
 
-export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, onClose }) => {
-  const { themeParams } = useTelegram();
+export const ModalBackdrop: FC<ModalBackdropProps> = ({ open, children, onClose }) => {
+  const { tg } = useTelegram();
   const [isVisible, setIsVisible] = useState(false);
 
   // Управление видимостью с задержкой для плавной анимации
@@ -50,7 +50,7 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
 
   // Определяем цвет затемнения в зависимости от темы
   const getBackdropColor = () => {
-    const isDark = themeParams?.colorScheme === 'dark';
+    const isDark = tg?.colorScheme === 'dark';
     
     if (isDark) {
       // Для темной темы - более светлое затемнение с меньшей непрозрачностью
@@ -61,7 +61,7 @@ export const ModalBackdrop: React.FC<ModalBackdropProps> = ({ open, children, on
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
+  const handleBackdropClick = (e: MouseEvent) => {
     // Клик по самому backdrop (области выше/ниже модалки) закрывает окно
     if (e.target === e.currentTarget && onClose) {
       onClose();

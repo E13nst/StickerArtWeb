@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { BottomNav } from '@/components/BottomNav';
@@ -7,7 +7,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function MainLayout({ children }: Props) {

@@ -1,13 +1,13 @@
-import React from 'react';
+import { CSSProperties, FC } from 'react';
 
 interface StickerProgressIndicatorProps {
   currentIndex: number;
   totalCount: number;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
-export const StickerProgressIndicator: React.FC<StickerProgressIndicatorProps> = ({
+export const StickerProgressIndicator: FC<StickerProgressIndicatorProps> = ({
   currentIndex,
   totalCount,
   className,

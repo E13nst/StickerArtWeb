@@ -3,7 +3,7 @@
  * Выделен из MyProfilePage для упрощения и переиспользования
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';

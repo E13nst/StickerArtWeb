@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, FC } from 'react';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 
 interface QuickAction {
@@ -18,7 +18,7 @@ interface QuickActionsProps {
   onToggle?: (expanded: boolean) => void;
 }
 
-export const QuickActions: React.FC<QuickActionsProps> = ({
+export const QuickActions: FC<QuickActionsProps> = ({
   actions,
   position = 'bottom-right',
   isExpanded: controlledExpanded,
@@ -106,7 +106,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             animation: 'slideIn 0.3s ease-out'
           }}
         >
-          {visibleActions.map((action, index) => (
+          {visibleActions.map((action) => (
             <button
               key={action.id}
               onClick={() => handleActionClick(action)}

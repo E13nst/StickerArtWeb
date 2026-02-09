@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface DateFilterProps {
@@ -15,7 +15,7 @@ const DATE_RANGES = [
   { id: 'all', label: 'Всё время' },
 ];
 
-export const DateFilter: React.FC<DateFilterProps> = ({
+export const DateFilter: FC<DateFilterProps> = ({
   selectedDate,
   onDateChange,
   disabled = false,

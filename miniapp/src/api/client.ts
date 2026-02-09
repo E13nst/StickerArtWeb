@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
-import { mockStickerSets, mockAuthResponse } from '../data/mockData';
+import { mockStickerSets } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { getInitData } from '../telegram/launchParams';

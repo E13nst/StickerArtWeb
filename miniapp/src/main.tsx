@@ -25,7 +25,7 @@ import ReactDOM from 'react-dom/client'
 
 // ✅ FIX: Импортируем захватчик initData ДО всего остального
 // Это гарантирует захват параметров из URL до инициализации роутера
-import { getInitData, smokeTestInitDataLocation } from './telegram/launchParams';
+import './telegram/launchParams';
 
 // Затем импортируем приложение
 import App from './App.tsx'

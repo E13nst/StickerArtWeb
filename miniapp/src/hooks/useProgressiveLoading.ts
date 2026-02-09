@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { imageLoader, LoadPriority } from '../utils/imageLoader';
 
-interface ProgressiveLoadingState {
+export interface ProgressiveLoadingState {
   loadedImages: string[];
   currentImageIndex: number;
   isLoading: boolean;
@@ -92,7 +92,7 @@ export const useProgressiveLoading = ({
         imageLoader.loadImage(
           poster.fileId,
           poster.url,
-          isHighPriority ? LoadPriority.TIER_1_FIRST_6_PACKS : LoadPriority.TIER_2_FIRST_IMAGE,
+          isHighPriority ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT,
           packId,
           index
         ).catch(err => {

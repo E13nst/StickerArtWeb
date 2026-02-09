@@ -1,16 +1,16 @@
-import React from 'react';
+import { ReactNode, CSSProperties, FC } from 'react';
 import './Chip.css';
 
 interface ChipProps {
-  label: React.ReactNode;
+  label: ReactNode;
   size?: 'small' | 'medium';
   variant?: 'filled' | 'outlined';
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   className?: string;
   onClick?: () => void;
 }
 
-export const Chip: React.FC<ChipProps> = ({ 
+export const Chip: FC<ChipProps> = ({ 
   label, 
   size = 'medium',
   variant = 'filled',

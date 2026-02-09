@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect, FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './Toast.css';
 
@@ -10,7 +10,7 @@ export interface ToastProps {
   duration?: number;
 }
 
-export const Toast: React.FC<ToastProps> = ({
+export const Toast: FC<ToastProps> = ({
   message,
   type,
   isVisible,

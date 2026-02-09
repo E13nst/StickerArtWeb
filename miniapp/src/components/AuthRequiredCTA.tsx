@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 
 export interface AuthRequiredCTAProps {
   description: string;
@@ -7,7 +7,7 @@ export interface AuthRequiredCTAProps {
   onRetry: () => void;
 }
 
-export const AuthRequiredCTA: React.FC<AuthRequiredCTAProps> = ({
+export const AuthRequiredCTA: FC<AuthRequiredCTAProps> = ({
   description,
   buttonText,
   icon,

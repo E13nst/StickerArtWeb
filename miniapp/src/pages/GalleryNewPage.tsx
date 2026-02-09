@@ -1,6 +1,5 @@
 import { AddIcon } from '@/components/ui/Icons';
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-;
+import { useEffect, useState, useCallback, useMemo, useRef, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { useStickerStore } from '../store/useStickerStore';
@@ -17,9 +16,8 @@ import { StickerPackModal } from '../components/StickerPackModal';
 import { SearchBar } from '../components/SearchBar';
 import { OptimizedGallery } from '../components/OptimizedGallery';
 import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
-import { Category, CategoryFilter } from '../components/CategoryFilter';
+import { Category } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
-import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 
@@ -27,7 +25,7 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
-export const GalleryNewPage: React.FC = () => {
+export const GalleryNewPage: FC = () => {
   const { tg, user, initData, isInTelegramApp } = useTelegram();
   const scrollElement = useScrollElement();
   const {
@@ -36,7 +34,6 @@ export const GalleryNewPage: React.FC = () => {
     error,
     currentPage,
     totalPages,
-    totalElements,
     setLoading,
     setStickerSets,
     addStickerSets,
@@ -99,9 +96,11 @@ export const GalleryNewPage: React.FC = () => {
 
     try {
       // Неблокирующая авторизация
-      checkAuth().catch(error => {
-        console.warn('⚠️ Фоновая авторизация не удалась, но продолжаем работу:', error);
-      });
+      if (initData) {
+        checkAuth(initData).catch(error => {
+          console.warn('⚠️ Фоновая авторизация не удалась, но продолжаем работу:', error);
+        });
+      }
 
       // Опции для API запроса
       const apiOptions = {
@@ -138,11 +137,11 @@ export const GalleryNewPage: React.FC = () => {
       }
       
       // Обновляем информацию о пагинации
-      setPagination({
-        currentPage: response.number ?? 0,
-        totalPages: response.totalPages ?? 0,
-        totalElements: response.totalElements ?? 0,
-      });
+      setPagination(
+        response.number ?? 0,
+        response.totalPages ?? 0,
+        response.totalElements ?? 0
+      );
     } catch (err: any) {
       console.error('Failed to fetch sticker sets:', err);
       setError(err.message || 'Failed to load sticker sets');
@@ -187,9 +186,9 @@ export const GalleryNewPage: React.FC = () => {
   // Initialize likes
   useEffect(() => {
     if (user?.id && stickerSets.length > 0) {
-      const stickerSetIds = stickerSets.map(set => set.id).filter(id => id != null);
-      if (stickerSetIds.length > 0) {
-        initializeLikes(stickerSetIds, user.id);
+      const stickerSetObjs = stickerSets.map(set => ({ id: set.id, likes: set.likesCount })).filter(obj => obj.id != null);
+      if (stickerSetObjs.length > 0) {
+        initializeLikes(stickerSetObjs);
       }
     }
   }, [user?.id, stickerSets, initializeLikes]);
@@ -197,7 +196,7 @@ export const GalleryNewPage: React.FC = () => {
   // Sync pending likes
   useEffect(() => {
     if (user?.id && initData) {
-      syncPendingLikes(user.id, initData);
+      syncPendingLikes();
     }
   }, [user?.id, initData, syncPendingLikes]);
 
@@ -228,7 +227,7 @@ export const GalleryNewPage: React.FC = () => {
   }, []);
 
   const handleViewStickerSet = useCallback((packId: string) => {
-    const stickerSet = stickerSets.find(set => set.id === packId);
+    const stickerSet = stickerSets.find(set => set.id.toString() === packId);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsDetailOpen(true);
@@ -265,7 +264,7 @@ export const GalleryNewPage: React.FC = () => {
       <OtherAccountBackground />
       {/* Fixed top panel */}
       <div
-        sx={{
+        style={{
           position: 'fixed',
           top: 0,
           left: '50%',
@@ -279,24 +278,24 @@ export const GalleryNewPage: React.FC = () => {
       >
         {/* Header Banner */}
         <div
-          sx={{
+          style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             padding: '1rem',
             color: 'white',
             textAlign: 'center',
           }}
         >
-          <div sx={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
             🎨 Галерея Стикеров
           </div>
-          <div sx={{ fontSize: '0.875rem', opacity: 0.9, mt: 0.5 }}>
+          <div style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '4px' }}>
             Найдите и добавьте стикеры в Telegram
           </div>
         </div>
 
         {/* Search and Add Button */}
         <div
-          sx={{
+          style={{
             display: 'flex',
             gap: '0.5rem',
             padding: '0.75rem',
@@ -304,7 +303,7 @@ export const GalleryNewPage: React.FC = () => {
             backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
           }}
         >
-          <div sx={{ flex: 1 }}>
+          <div style={{ flex: 1 }}>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}
@@ -343,7 +342,7 @@ export const GalleryNewPage: React.FC = () => {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            <AddIcon sx={{ fontSize: '1rem' }} />
+            <AddIcon style={{ fontSize: '1rem' }} />
             <span>Добавить</span>
           </button>
         </div>
@@ -351,14 +350,14 @@ export const GalleryNewPage: React.FC = () => {
         {/* Categories */}
         {categories.length > 0 && (
           <div
-            sx={{
+            style={{
               padding: '0 0.75rem 0.75rem',
               overflowX: 'auto',
               backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-              '&::-webkit-scrollbar': { height: 0 },
+              // '&::-webkit-scrollbar': { height: 0 },
             }}
           >
-            <div sx={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
               {categories.map((category) => (
                 <div
                   key={category.id}
@@ -366,7 +365,7 @@ export const GalleryNewPage: React.FC = () => {
                     tg?.HapticFeedback?.impactOccurred('light');
                     handleCategoryToggle(category.id);
                   }}
-                  sx={{
+                  style={{
                     padding: '0.4rem 0.8rem',
                     borderRadius: '1rem',
                     fontSize: '0.875rem',
@@ -381,9 +380,9 @@ export const GalleryNewPage: React.FC = () => {
                       ? 'var(--tg-theme-button-text-color, #ffffff)'
                       : 'var(--tg-theme-text-color, #000000)',
                     transition: 'all 0.2s ease',
-                    '&:hover': {
-                      opacity: 0.8,
-                    },
+                    // '&:hover': {
+                    //   opacity: 0.8,
+                    // },
                   }}
                 >
                   {category.label}
@@ -395,7 +394,7 @@ export const GalleryNewPage: React.FC = () => {
       </div>
 
       {/* Content with top padding */}
-      <div sx={{ paddingTop: '180px' }}>
+      <div style={{ paddingTop: '180px' }}>
         <StixlyPageContainer>
           {isInitialLoading ? (
             <LoadingSpinner message="Загрузка стикеров..." />
@@ -428,8 +427,8 @@ export const GalleryNewPage: React.FC = () => {
       {/* Modals */}
       {selectedStickerSet && (
         <StickerPackModal
-          pack={selectedStickerSet}
-          isOpen={isDetailOpen}
+          stickerSet={selectedStickerSet}
+          open={isDetailOpen}
           onClose={handleCloseDetail}
         />
       )}

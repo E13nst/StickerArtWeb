@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import './TelegramAuthButton.css';
@@ -8,7 +8,7 @@ interface TelegramAuthButtonProps {
   onAuthError: (error: string) => void;
 }
 
-export const TelegramAuthButton: React.FC<TelegramAuthButtonProps> = ({
+export const TelegramAuthButton: FC<TelegramAuthButtonProps> = ({
   onAuthSuccess,
   onAuthError
 }) => {

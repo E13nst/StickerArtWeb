@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
-;
+import { useState, useRef, useEffect, FC } from 'react';
 import { KeyboardArrowDownIcon, CheckIcon } from '@/components/ui/Icons';
 import { useTelegram } from '../hooks/useTelegram';
 import { StylePreset } from '../api/client';
@@ -11,7 +10,7 @@ interface StylePresetDropdownProps {
   disabled?: boolean;
 }
 
-export const StylePresetDropdown: React.FC<StylePresetDropdownProps> = ({
+export const StylePresetDropdown: FC<StylePresetDropdownProps> = ({
   presets,
   selectedPresetId,
   onPresetChange,
@@ -125,7 +124,7 @@ export const StylePresetDropdown: React.FC<StylePresetDropdownProps> = ({
       >
         <span style={{ flex: 1, textAlign: 'left' }}>{getSelectedLabel()}</span>
         <KeyboardArrowDownIcon 
-          sx={{ 
+          style={{ 
             fontSize: '1.2rem',
             transition: 'transform 0.3s',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -136,7 +135,7 @@ export const StylePresetDropdown: React.FC<StylePresetDropdownProps> = ({
       {/* Dropdown menu */}
       {isOpen && (
         <div
-          sx={{
+          style={{
             position: 'absolute',
             top: 'calc(100% + 0.5rem)',
             left: 0,
@@ -197,7 +196,7 @@ export const StylePresetDropdown: React.FC<StylePresetDropdownProps> = ({
                   </span>
                   {isSelected && (
                     <CheckIcon 
-                      sx={{ 
+                      style={{ 
                         fontSize: '1.2rem', 
                         color: 'var(--tg-theme-button-color, #3390ec)',
                       }} 

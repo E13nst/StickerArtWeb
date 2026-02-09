@@ -1,11 +1,11 @@
-import React from 'react';
+import { FC } from 'react';
 
 interface SkeletonCardProps {
   count?: number;
   className?: string;
 }
 
-export const SkeletonCard: React.FC<SkeletonCardProps> = ({ 
+export const SkeletonCard: FC<SkeletonCardProps> = ({ 
   count = 1,
   className = ""
 }) => {

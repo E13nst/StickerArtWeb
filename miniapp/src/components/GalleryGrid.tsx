@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, FC } from 'react';
 import { PackCard } from './PackCard';
 import { useScrollElement } from '../contexts/ScrollContext';
 
@@ -29,7 +29,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled;
 };
 
-export const GalleryGrid: React.FC<GalleryGridProps> = ({ packs, onPackClick }) => {
+export const GalleryGrid: FC<GalleryGridProps> = ({ packs, onPackClick }) => {
   const scrollElement = useScrollElement();
   const leftColumnRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
@@ -124,14 +124,14 @@ export const GalleryGrid: React.FC<GalleryGridProps> = ({ packs, onPackClick }) 
       `}</style>
       <div data-testid="gallery-grid" style={{ width: '100%', display: 'flex', gap: '6px', padding: '6px' }}>
         <div ref={leftColumnRef} className="gallery-column-float-1" style={{ ...columnStyle, transform: `translateY(${getScrollBoost('left')}px)`, transition: 'transform 0.3s ease-out' }}>
-          {leftColumnPacks.map((pack, i) => (
+          {leftColumnPacks.map((pack) => (
             <div key={pack.id} style={{ width: '100%' }}>
               <PackCard pack={pack} onClick={onPackClick} />
             </div>
           ))}
         </div>
         <div ref={rightColumnRef} className="gallery-column-float-2" style={{ ...columnStyle, transform: `translateY(${getScrollBoost('right')}px)`, transition: 'transform 0.3s ease-out' }}>
-          {rightColumnPacks.map((pack, i) => (
+          {rightColumnPacks.map((pack) => (
             <div key={pack.id} style={{ width: '100%' }}>
               <PackCard pack={pack} onClick={onPackClick} />
             </div>

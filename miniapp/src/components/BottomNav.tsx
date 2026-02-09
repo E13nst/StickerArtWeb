@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect, FC } from 'react';
 import { Navbar } from '@/components/ui/Navbar';
 import './BottomNav.css';
 
@@ -8,11 +8,11 @@ interface BottomNavProps {
   isInTelegramApp?: boolean;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = () => {
-  const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
+export const BottomNav: FC<BottomNavProps> = () => {
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   // Проверяем, открыто ли модальное окно
-  React.useEffect(() => {
+  useEffect(() => {
     const checkModalState = () => {
       const hasModalOpen = document.body.classList.contains('modal-open') || 
                           document.documentElement.classList.contains('modal-open');

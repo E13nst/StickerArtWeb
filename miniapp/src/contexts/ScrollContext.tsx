@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, FC } from 'react';
 
 interface ScrollContextValue {
   scrollElement: HTMLElement | null;
@@ -13,7 +13,7 @@ interface ScrollProviderProps {
   scrollElement: HTMLElement | null;
 }
 
-export const ScrollProvider: React.FC<ScrollProviderProps> = ({
+export const ScrollProvider: FC<ScrollProviderProps> = ({
   children,
   scrollElement,
 }) => {

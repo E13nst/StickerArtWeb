@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface StickerTypeDropdownProps {
@@ -49,7 +49,7 @@ const CheckIcon = () => (
   </svg>
 );
 
-export const StickerTypeDropdown: React.FC<StickerTypeDropdownProps> = ({
+export const StickerTypeDropdown: FC<StickerTypeDropdownProps> = ({
   selectedTypes,
   onTypeToggle,
   disabled = false,

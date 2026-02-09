@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, CSSProperties, FC } from 'react';
 import { CloseIcon } from '@/components/ui/Icons';
 import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
@@ -12,7 +12,7 @@ interface BlockDialogProps {
   stickerSet: StickerSetResponse;
 }
 
-export const BlockDialog: React.FC<BlockDialogProps> = ({
+export const BlockDialog: FC<BlockDialogProps> = ({
   open,
   onClose,
   stickerSetId,
@@ -60,7 +60,7 @@ export const BlockDialog: React.FC<BlockDialogProps> = ({
 
   if (!open) return null;
 
-  const backdropStyle: React.CSSProperties = {
+  const backdropStyle: CSSProperties = {
     position: 'fixed',
     inset: 0,
     zIndex: 1300,
@@ -68,7 +68,7 @@ export const BlockDialog: React.FC<BlockDialogProps> = ({
     WebkitBackdropFilter: 'blur(8px)',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   };
-  const paperStyle: React.CSSProperties = {
+  const paperStyle: CSSProperties = {
     position: 'fixed',
     left: '50%',
     top: '50%',
@@ -93,7 +93,7 @@ export const BlockDialog: React.FC<BlockDialogProps> = ({
         <div style={{ padding: '24px 24px 16px', color: 'white', fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }}>
           Заблокировать стикерсет
         </div>
-        <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {blockError && (
             <div style={{
               padding: 12,
@@ -128,7 +128,7 @@ export const BlockDialog: React.FC<BlockDialogProps> = ({
             }}
           />
         </div>
-        <div style={{ display: 'flex', gap: 13, justifyContent: 'center', padding: '0 24px 24px' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: '13px', justifyContent: 'center', padding: '0 24px 24px' }} onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={handleClose}

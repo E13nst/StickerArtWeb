@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface EmptyStateProps {
@@ -8,7 +8,7 @@ interface EmptyStateProps {
   onAction?: () => void;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
+export const EmptyState: FC<EmptyStateProps> = ({
   title,
   message,
   actionLabel,

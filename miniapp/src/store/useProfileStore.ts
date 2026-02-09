@@ -22,6 +22,8 @@ export interface TelegramUserInfo {
 // Тип для информации о пользователе
 export interface UserInfo {
   id: number;
+  /** Идентификатор пользователя (для API/кэша, обычно совпадает с id или telegramId) */
+  userId?: number;
   telegramId: number;
   username?: string;
   firstName?: string;
@@ -363,7 +365,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           }
         }
       } else {
-        const nextUserId = resolveCandidateId(me.userId);
+        const meId = me.userId ?? me.id;
+        const nextUserId = resolveCandidateId(meId);
         const nextRole = me.role ?? currentUserRole ?? null;
 
         set({
@@ -374,13 +377,13 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         const needsFullProfile =
           !userInfo ||
           typeof userInfo.id !== 'number' ||
-          (typeof me.userId === 'number' && userInfo.id !== me.userId);
+          (typeof meId === 'number' && userInfo.id !== meId);
 
-        if (needsFullProfile && typeof me.userId === 'number') {
+        if (needsFullProfile && typeof meId === 'number') {
           try {
             const [profile, photo] = await Promise.all([
-              apiClient.getProfile(me.userId),
-              apiClient.getUserPhoto(me.userId).catch(() => null),
+              apiClient.getProfile(meId),
+              apiClient.getUserPhoto(meId).catch(() => null),
             ]);
             const userInfoWithPhoto = mergeProfileWithPhoto(profile, photo);
             set({
@@ -391,7 +394,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           } catch (profileError) {
             console.warn('Не удалось загрузить полный профиль пользователя:', profileError);
           }
-        } else if (typeof me.userId === 'number') {
+        } else if (typeof meId === 'number') {
           try {
             const photo = await apiClient.getUserPhoto(me.id).catch(() => null);
             const userInfoWithPhoto = mergeProfileWithPhoto(me, photo);

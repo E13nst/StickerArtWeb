@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, FC, MouseEvent, TouchEvent } from 'react';
 import { AnimatedSticker } from '../AnimatedSticker';
 import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache } from '@/utils/imageLoader';
 import { getStickerImageUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
@@ -9,17 +9,17 @@ interface StickerPreviewProps {
   stickerCount: number;
   isMainLoaded: boolean;
   onLoad: () => void;
-  onTouchStart: (e: React.TouchEvent) => void;
-  onTouchMove: (e: React.TouchEvent) => void;
-  onTouchEnd: (e: React.TouchEvent) => void;
-  onTouchCancel: (e: React.TouchEvent) => void;
-  onClick: (e: React.MouseEvent) => void;
+  onTouchStart: (e: TouchEvent) => void;
+  onTouchMove: (e: TouchEvent) => void;
+  onTouchEnd: (e: TouchEvent) => void;
+  onTouchCancel: (e: TouchEvent) => void;
+  onClick: (e: MouseEvent) => void;
   touchHandled: React.MutableRefObject<boolean>;
   previewRef: React.RefObject<HTMLDivElement>;
 }
 
 // Компонент для видео стикера с использованием useNonFlashingVideoSrc
-const StickerPreviewVideo: React.FC<{
+const StickerPreviewVideo: FC<{
   sticker: any;
   width: string;
   height: string;
@@ -149,7 +149,7 @@ const renderStickerMedia = (
   if (!cachedUrl) {
     return (
       <div
-        sx={{
+        style={{
           width,
           height,
           display: 'flex',
@@ -201,7 +201,7 @@ const renderStickerMedia = (
   );
 };
 
-export const StickerPreview: React.FC<StickerPreviewProps> = ({
+export const StickerPreview: FC<StickerPreviewProps> = ({
   sticker,
   stickerCount,
   isMainLoaded,
@@ -219,7 +219,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
       ref={previewRef}
       key={sticker?.file_id || `preview-${sticker?.file_id}`}
       onClick={(e) => e.stopPropagation()}
-      sx={{
+      style={{
         position: 'relative',
         width: 'min(75vw, 42vh)',
         maxWidth: 377,
@@ -231,7 +231,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
       }}
     >
       <div
-        sx={{
+        style={{
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -255,7 +255,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
       >
         {!isMainLoaded && (
           <div
-            sx={{
+            style={{
               position: 'absolute',
               inset: 0,
               display: 'flex',
@@ -268,7 +268,7 @@ export const StickerPreview: React.FC<StickerPreviewProps> = ({
             }}
           >
             <div
-              sx={{
+              style={{
                 width: 48,
                 height: 48,
                 borderRadius: '50%',

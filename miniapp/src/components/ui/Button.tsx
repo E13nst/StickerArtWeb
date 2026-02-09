@@ -1,4 +1,4 @@
-import React from 'react';
+import { ReactNode, FC, MouseEvent } from 'react';
 import './Button.css';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -9,14 +9,14 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
+  icon?: ReactNode;
+  children: ReactNode;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export const Button: FC<ButtonProps> = ({
   variant = 'primary',
   size = 'medium',
   disabled = false,
@@ -30,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const isDisabled = disabled || loading;
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (isDisabled) {
       event.preventDefault();
       return;

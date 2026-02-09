@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, FC, KeyboardEvent } from 'react';
 import { useDebounce } from '../hooks/useDebounce';
 
 interface SearchSuggestion {
@@ -13,7 +13,7 @@ interface SearchWithSuggestionsProps {
   placeholder?: string;
 }
 
-export const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
+export const SearchWithSuggestions: FC<SearchWithSuggestionsProps> = ({
   onSearch,
   placeholder = "Поиск стикерпаков..."
 }) => {
@@ -67,7 +67,7 @@ export const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
   }, [onSearch]);
 
   // Клавиатурная навигация
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!showSuggestions) return;
 
     switch (e.key) {

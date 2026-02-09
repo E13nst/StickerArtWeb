@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, FC } from 'react';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 
 interface AnimatedLikeButtonProps {
@@ -9,7 +9,7 @@ interface AnimatedLikeButtonProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export const AnimatedLikeButton: React.FC<AnimatedLikeButtonProps> = ({
+export const AnimatedLikeButton: FC<AnimatedLikeButtonProps> = ({
   packId,
   initialLiked,
   initialLikesCount,

@@ -2,8 +2,8 @@
  * Image Optimization Utils
  * Поддержка WebP, srcset, responsive images
  */
+import { useState, useEffect, FC, ImgHTMLAttributes } from 'react';
 
-import React from 'react';
 
 export interface ImageOptions {
   width?: number;
@@ -87,9 +87,9 @@ export async function checkWebPSupport(): Promise<boolean> {
  * React Hook для использования оптимизированных изображений
  */
 export function useOptimizedImage(url: string, options: ImageOptions = {}) {
-  const [supportsWebP, setSupportsWebP] = React.useState(false);
+  const [supportsWebP, setSupportsWebP] = useState(false);
   
-  React.useEffect(() => {
+  useEffect(() => {
     checkWebPSupport().then(setSupportsWebP);
   }, []);
   
@@ -106,7 +106,7 @@ export function useOptimizedImage(url: string, options: ImageOptions = {}) {
 /**
  * Компонент OptimizedImage с автоматической поддержкой WebP
  */
-interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface OptimizedImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   fallbackSrc?: string;
   width?: number;
@@ -115,7 +115,7 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   loading?: 'lazy' | 'eager';
 }
 
-export const OptimizedImage: React.FC<OptimizedImageProps> = ({
+export const OptimizedImage: FC<OptimizedImageProps> = ({
   src,
   fallbackSrc,
   width,
@@ -125,10 +125,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   alt = '',
   ...props
 }) => {
-  const [error, setError] = React.useState(false);
-  const [supportsWebP, setSupportsWebP] = React.useState(false);
+  const [error, setError] = useState(false);
+  const [supportsWebP, setSupportsWebP] = useState(false);
   
-  React.useEffect(() => {
+  useEffect(() => {
     checkWebPSupport().then(setSupportsWebP);
   }, []);
   

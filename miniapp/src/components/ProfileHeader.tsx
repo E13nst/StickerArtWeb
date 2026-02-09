@@ -3,10 +3,11 @@
  * Мемоизирован для предотвращения лишних re-renders
  */
 
-import React, { memo } from 'react';
+import { memo, FC } from 'react';
 import { AccountBalanceWalletIcon } from '@/components/ui/Icons';
-;
-import { FloatingAvatar } from './FloatingAvatar';
+import { Text } from '@/components/ui/Text';
+import { Chip } from '@/components/ui/Chip';
+import { Avatar } from '@/components/ui/Avatar';
 import { isUserPremium } from '@/utils/userUtils';
 
 interface ProfileHeaderProps {
@@ -21,8 +22,7 @@ interface ProfileHeaderProps {
   isPremium?: boolean;
 }
 
-const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
-  userId,
+const ProfileHeaderComponent: FC<ProfileHeaderProps> = ({
   username,
   firstName,
   lastName,
@@ -36,88 +36,45 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
     ? `${firstName || ''} ${lastName || ''}`.trim() 
     : username || 'Unknown User';
   
-  const premium = isPremium ?? (role ? isUserPremium(role) : false);
+  const premium = isPremium ?? (role ? isUserPremium({ role } as any) : false);
 
   return (
-    <div
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 2,
-        padding: 3,
-        paddingTop: 2
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: 24, paddingTop: '16px'}}>
       {/* Аватар */}
-      <FloatingAvatar
-        userId={userId}
-        username={username}
-        photoUrl={avatarBlobUrl}
-        size={120}
-      />
+      {avatarBlobUrl && (
+        <Avatar src={avatarBlobUrl} size={120} />
+      )}
 
       {/* Имя пользователя */}
-      <div sx={{ textAlign: 'center' }}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 600,
-            color: 'var(--tg-theme-text-color)',
-            mb: 0.5
-          }}
-        >
+      <div style={{ textAlign: 'center' }}>
+        <Text variant="h3" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px'}}>
           {displayName}
           {premium && (
-            <span
-              style={{
-                marginLeft: '8px',
-                fontSize: '0.85em',
-                color: 'var(--tg-theme-link-color)'
-              }}
-            >
+            <span style={{ marginLeft: '8px', fontSize: '0.85em', color: 'var(--tg-theme-link-color)' }}>
               ⭐
             </span>
           )}
-        </Typography>
+        </Text>
         
         {username && (
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'var(--tg-theme-hint-color)',
-              fontSize: '0.9rem'
-            }}
-          >
+          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.9rem' }}>
             @{username}
-          </Typography>
+          </Text>
         )}
       </div>
 
       {/* Статистика */}
-      <div
-        sx={{
-          display: 'flex',
-          gap: 2,
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}
-      >
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
         {/* Баланс ART */}
         <Chip
-          icon={<AccountBalanceWalletIcon />}
-          label={`${artBalance.toLocaleString()} ART`}
+          label={
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px'}}>
+              <AccountBalanceWalletIcon size={16} />
+              {artBalance.toLocaleString()} ART
+            </span>
+          }
           size="medium"
-          sx={{
-            backgroundColor: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            padding: '4px 8px',
-            '& .MuiChip-icon': {
-              color: 'var(--tg-theme-button-text-color)'
-            }
-          }}
+          style={{ backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', fontWeight: 600, fontSize: '0.95rem', padding: '4px 8px' }}
         />
 
         {/* Количество стикерсетов */}
@@ -125,18 +82,13 @@ const ProfileHeaderComponent: React.FC<ProfileHeaderProps> = ({
           label={`${totalSets} ${totalSets === 1 ? 'set' : 'sets'}`}
           size="medium"
           variant="outlined"
-          sx={{
-            borderColor: 'var(--tg-theme-hint-color)',
-            color: 'var(--tg-theme-text-color)',
-            fontWeight: 500
-          }}
+          style={{ borderColor: 'var(--tg-theme-hint-color)', color: 'var(--tg-theme-text-color)', fontWeight: 500 }}
         />
       </div>
     </div>
   );
 };
 
-// Кастомная функция сравнения для оптимизации
 const arePropsEqual = (prev: ProfileHeaderProps, next: ProfileHeaderProps): boolean => {
   return (
     prev.userId === next.userId &&
@@ -152,4 +104,3 @@ const arePropsEqual = (prev: ProfileHeaderProps, next: ProfileHeaderProps): bool
 };
 
 export const ProfileHeader = memo(ProfileHeaderComponent, arePropsEqual);
-

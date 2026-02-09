@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { LeaderboardUser } from '@/types/sticker';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
@@ -20,7 +20,7 @@ const BADGE_COLORS: Record<number, string> = {
   3: '#DB7F13',
 };
 
-const UserItem: React.FC<UserItemProps> = ({ author, place }) => {
+const UserItem: FC<UserItemProps> = ({ author, place }) => {
   const { avatarBlobUrl } = useUserAvatar(author.userId);
   const firstName = author.firstName || '';
   const lastName = author.lastName || '';
@@ -48,7 +48,7 @@ const UserItem: React.FC<UserItemProps> = ({ author, place }) => {
   );
 };
 
-export const TopUsers: React.FC<TopUsersProps> = ({ authors }) => {
+export const TopUsers: FC<TopUsersProps> = ({ authors }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpenModal = () => {

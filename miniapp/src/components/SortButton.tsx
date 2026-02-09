@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback, memo, CSSProperties, FC, MouseEvent } from 'react';
 import { useGlassEffect } from '../hooks/useGlassEffect';
 import { useTelegram } from '../hooks/useTelegram';
 
@@ -8,7 +8,7 @@ interface SortButtonProps {
   disabled?: boolean;
 }
 
-const SortButtonComponent: React.FC<SortButtonProps> = ({
+const SortButtonComponent: FC<SortButtonProps> = ({
   sortByLikes,
   onToggle,
   disabled = false
@@ -35,7 +35,7 @@ const SortButtonComponent: React.FC<SortButtonProps> = ({
   const baseShadow = sortByLikes ? accentShadowHover : accentShadow;
   const baseTransform = sortByLikes ? 'scale(0.98)' : 'scale(1)';
 
-  const baseStyles: React.CSSProperties = {
+  const baseStyles: CSSProperties = {
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
@@ -78,12 +78,12 @@ const SortButtonComponent: React.FC<SortButtonProps> = ({
     });
   };
 
-  const handleMouseEnter = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseEnter = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     applyHoverStyles(event.currentTarget);
   };
 
-  const handleMouseLeave = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseLeave = (event: MouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     applyBaseStyles(event.currentTarget);
   };
@@ -119,4 +119,4 @@ const SortButtonComponent: React.FC<SortButtonProps> = ({
 };
 
 // Мемоизация для предотвращения ререндера при изменении других пропсов родителя
-export const SortButton = React.memo(SortButtonComponent);
+export const SortButton = memo(SortButtonComponent);

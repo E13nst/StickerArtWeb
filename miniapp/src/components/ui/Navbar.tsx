@@ -1,4 +1,4 @@
-import React from 'react';
+import { CSSProperties, FC } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   NavHomeIcon,
@@ -12,7 +12,7 @@ import './Navbar.css';
 interface NavItem {
   path: string;
   label: string;
-  Icon: React.FC<{ size?: number; color?: string; className?: string; style?: React.CSSProperties }>;
+  Icon: FC<{ size?: number; color?: string; className?: string; style?: CSSProperties }>;
 }
 
 const navItems: NavItem[] = [
@@ -23,7 +23,7 @@ const navItems: NavItem[] = [
   { path: '/profile', label: 'Account', Icon: NavAccountIcon },
 ];
 
-export const Navbar: React.FC = () => {
+export const Navbar: FC = () => {
   const location = useLocation();
 
   const isActive = (path: string): boolean => {

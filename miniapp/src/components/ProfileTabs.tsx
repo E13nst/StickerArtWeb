@@ -1,4 +1,4 @@
-import React from 'react';
+import { ReactNode, FC } from 'react';
 import { MenuIcon, CollectionsIcon, AccountBalanceWalletIcon } from '@/components/ui/Icons';
 import './ProfileTabs.css';
 
@@ -13,7 +13,7 @@ interface ProfileTabsProps {
 }
 
 interface TabPanelProps {
-  children?: React.ReactNode;
+  children?: ReactNode;
   index: number;
   value: number;
 }
@@ -52,7 +52,7 @@ const ACCOUNT_TABS = [
   { index: 2, Icon: CollectionsIcon, label: 'Upload' },
 ];
 
-export const ProfileTabs: React.FC<ProfileTabsProps> = ({
+export const ProfileTabs: FC<ProfileTabsProps> = ({
   activeTab,
   onChange,
   variant = 'profile'

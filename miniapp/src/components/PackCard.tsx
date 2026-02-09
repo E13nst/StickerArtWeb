@@ -1,4 +1,4 @@
-import React, { useCallback, memo, useState, useEffect, useRef, useMemo } from 'react';
+import { useCallback, memo, useState, useEffect, useRef, useMemo, FC } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
@@ -26,7 +26,7 @@ interface PackCardProps {
   onClick?: (packId: string) => void;
 }
 
-const PackCardComponent: React.FC<PackCardProps> = ({ 
+const PackCardComponent: FC<PackCardProps> = ({ 
   pack, 
   onClick
 }) => {
@@ -93,14 +93,14 @@ const PackCardComponent: React.FC<PackCardProps> = ({
 
   // Пауза видео при выходе из viewport
   useEffect(() => {
-    if (!videoRef.current || !activeSticker?.isVideo) return;
+    if (!videoRef.current || !(activeSticker?.isVideo ?? (activeSticker as any).is_video)) return;
 
     if (inView) {
       videoRef.current.play().catch(() => {});
     } else {
       videoRef.current.pause();
     }
-  }, [inView, activeSticker?.isVideo]);
+  }, [inView, activeSticker?.isVideo ?? (activeSticker as any).is_video]);
 
   const handleClick = useCallback(() => {
     onClick?.(pack.id);
@@ -118,7 +118,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
       <div className="pack-card__content">
         {activeSticker ? (
           <>
-            {activeSticker.isAnimated ? (
+            {(activeSticker.isAnimated ?? (activeSticker as any).is_animated) ? (
               <AnimatedSticker
                 fileId={activeSticker.fileId}
                 imageUrl={activeSticker.url}
@@ -127,7 +127,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
                 hidePlaceholder={true}
                 priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
               />
-            ) : activeSticker.isVideo ? (
+            ) : (activeSticker.isVideo ?? (activeSticker as any).is_video) ? (
               <div
                 style={{
                   width: '100%',
@@ -178,7 +178,7 @@ const PackCardComponent: React.FC<PackCardProps> = ({
           </>
         ) : (
           <div className="pack-card__placeholder">
-            {activeSticker?.emoji || '🎨'}
+            {(activeSticker as { emoji?: string })?.emoji || '🎨'}
           </div>
         )}
       </div>

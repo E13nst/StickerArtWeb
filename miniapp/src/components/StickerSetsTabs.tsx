@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import './StickerSetsTabs.css';
 
 interface StickerSetsTabsProps {
@@ -14,7 +14,7 @@ const TABS = [
   { index: 2, label: 'Upload' },
 ];
 
-export const StickerSetsTabs: React.FC<StickerSetsTabsProps> = ({
+export const StickerSetsTabs: FC<StickerSetsTabsProps> = ({
   activeTab,
   onChange,
   disabled = false

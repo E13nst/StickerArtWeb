@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface ErrorDisplayProps {
@@ -6,7 +6,7 @@ interface ErrorDisplayProps {
   onRetry?: () => void;
 }
 
-export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ 
+export const ErrorDisplay: FC<ErrorDisplayProps> = ({ 
   error, 
   onRetry 
 }) => {

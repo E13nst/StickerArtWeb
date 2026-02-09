@@ -1,5 +1,6 @@
-import React from 'react';
-;
+import { FC } from 'react';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 import { TelegramUser } from '@/types/telegram';
 
 interface UserInfoProps {
@@ -7,18 +8,14 @@ interface UserInfoProps {
   isLoading?: boolean;
 }
 
-export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) => {
+export const UserInfo: FC<UserInfoProps> = ({ user, isLoading = false }) => {
   if (isLoading) {
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card style={{ marginBottom: '1rem' }}>
         <CardContent>
-          <Typography 
-            variant="body2" 
-            textAlign="center"
-            sx={{ color: 'var(--tg-theme-hint-color)' }}
-          >
+          <Text variant="bodySmall" align="center" style={{ color: 'var(--tg-theme-hint-color)' }}>
             Загрузка информации о пользователе...
-          </Typography>
+          </Text>
         </CardContent>
       </Card>
     );
@@ -26,46 +23,30 @@ export const UserInfo: React.FC<UserInfoProps> = ({ user, isLoading = false }) =
 
   if (!user) {
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card style={{ marginBottom: '1rem' }}>
         <CardContent>
-          <Typography 
-            variant="body2" 
-            textAlign="center"
-            sx={{ color: 'var(--tg-theme-hint-color)' }}
-          >
+          <Text variant="bodySmall" align="center" style={{ color: 'var(--tg-theme-hint-color)' }}>
             Пользователь не определен
-          </Typography>
+          </Text>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card style={{ marginBottom: '1rem' }}>
       <CardContent>
-        <div textAlign="center">
-          <Typography 
-            variant="h6" 
-            component="p" 
-            gutterBottom
-            sx={{ color: 'var(--tg-theme-text-color)' }}
-          >
+        <div style={{ textAlign: 'center' }}>
+          <Text variant="h4" style={{ color: 'var(--tg-theme-text-color)', marginBottom: 8 }}>
             Привет, <strong>{user.first_name}{user.last_name ? ` ${user.last_name}` : ''}</strong>!
-          </Typography>
-          <Typography 
-            variant="body2" 
-            gutterBottom
-            sx={{ color: 'var(--tg-theme-hint-color)' }}
-          >
+          </Text>
+          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', marginBottom: 4 }}>
             ID: <strong>{user.id}</strong>
-          </Typography>
+          </Text>
           {user.username && (
-            <Typography 
-              variant="body2"
-              sx={{ color: 'var(--tg-theme-hint-color)' }}
-            >
+            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
               Username: <strong>@{user.username}</strong>
-            </Typography>
+            </Text>
           )}
         </div>
       </CardContent>

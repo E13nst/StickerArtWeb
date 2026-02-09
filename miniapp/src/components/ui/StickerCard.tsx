@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC, MouseEvent } from 'react';
 import { Text } from './Text';
 import './StickerCard.css';
 
@@ -6,12 +6,12 @@ export interface StickerCardProps {
   title: string;
   imageUrl: string;
   likes: number;
-  onLikeClick?: (e: React.MouseEvent) => void;
+  onLikeClick?: (e: MouseEvent) => void;
   onCardClick?: () => void;
   className?: string;
 }
 
-export const StickerCard: React.FC<StickerCardProps> = ({
+export const StickerCard: FC<StickerCardProps> = ({
   title,
   imageUrl,
   likes,
@@ -25,7 +25,7 @@ export const StickerCard: React.FC<StickerCardProps> = ({
     }
   };
 
-  const handleLikeClick = (e: React.MouseEvent) => {
+  const handleLikeClick = (e: MouseEvent) => {
     e.stopPropagation();
     if (onLikeClick) {
       onLikeClick(e);

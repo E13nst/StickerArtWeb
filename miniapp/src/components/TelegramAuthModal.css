@@ -1,0 +1,20 @@
+.telegram-auth-modal-content {
+  padding: 8px 0;
+}
+.telegram-auth-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  color: var(--tg-theme-text-color);
+  background: var(--tg-theme-secondary-bg-color);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.telegram-auth-textarea:focus {
+  outline: none;
+  border-color: var(--tg-theme-button-color);
+}

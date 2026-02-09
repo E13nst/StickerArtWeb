@@ -1,6 +1,11 @@
+import { useState, useEffect, FC, ChangeEvent } from 'react';
 import { TelegramIcon, DeveloperModeIcon } from '@/components/ui/Icons';
-import React, { useState, useEffect } from 'react';
-import { TelegramIcon, DeveloperModeIcon } from '@/components/ui/Icons';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
+import { Alert } from '@/components/ui/Alert';
+import { Divider } from '@/components/ui/Divider';
+import './TelegramAuthModal.css';
 
 interface TelegramAuthModalProps {
   open: boolean;
@@ -10,18 +15,16 @@ interface TelegramAuthModalProps {
   onSkipAuth: () => void;
 }
 
-// Глобальная функция для обработки авторизации от Telegram Login Widget
 declare global {
   interface Window {
-    handleTelegramAuth: (user: any) => void;
+    handleTelegramAuth: (user: unknown) => void;
   }
 }
 
-export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
+export const TelegramAuthModal: FC<TelegramAuthModalProps> = ({
   open,
   onClose,
   onAuthSuccess,
-  onAuthError: _onAuthError,
   onSkipAuth
 }) => {
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +33,6 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
   useEffect(() => {
     if (open) {
       setError(null);
-      // Загружаем сохраненный initData из localStorage
       const savedInitData = localStorage.getItem('telegram_init_data');
       if (savedInitData) {
         setInitData(savedInitData);
@@ -43,16 +45,12 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
       setError('Введите initData');
       return;
     }
-
-    // Сохраняем initData в localStorage
     localStorage.setItem('telegram_init_data', initData);
-    
     onAuthSuccess(initData);
     onClose();
   };
 
   const handleLoadTestData = () => {
-    // Тестовые данные для разработки
     const testInitData = 'query_id=test&user=%7B%22id%22%3A777000%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22username%22%3A%22testuser%22%2C%22language_code%22%3A%22ru%22%7D&auth_date=' + Math.floor(Date.now() / 1000) + '&hash=test_hash';
     setInitData(testInitData);
   };
@@ -62,122 +60,71 @@ export const TelegramAuthModal: React.FC<TelegramAuthModalProps> = ({
     localStorage.removeItem('telegram_init_data');
   };
 
-  const renderContent = () => {
-    return (
-      <div sx={{ p: 2 }}>
-        <div sx={{ textAlign: 'center', mb: 3 }}>
-          <TelegramIcon sx={{ fontSize: 48, color: 'var(--tg-theme-button-color)', mb: 2 }} />
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ color: 'var(--tg-theme-text-color)' }}
-          >
-            Авторизация через Telegram
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              mb: 2,
-              color: 'var(--tg-theme-hint-color)'
-            }}
-          >
-            Для доступа к полному функционалу откройте приложение через Telegram бота
-          </Typography>
-        </div>
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-
-        <Divider sx={{ my: 2 }}>
-          <Typography 
-            variant="caption"
-            sx={{ color: 'var(--tg-theme-hint-color)' }}
-          >
-            Режим разработки
-          </Typography>
-        </Divider>
-
-        <div sx={{ mb: 2 }}>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            label="initData для тестирования"
-            placeholder="Вставьте initData из Telegram Web App..."
-            value={initData}
-            onChange={(e) => setInitData(e.target.value)}
-            variant="outlined"
-            size="small"
-          />
-        </div>
-
-        <div sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<DeveloperModeIcon />}
-            onClick={handleLoadTestData}
-          >
-            Тестовые данные
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleClearData}
-          >
-            Очистить
-          </Button>
-        </div>
-
-        <div sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-          <Button
-            variant="contained"
-            onClick={handleManualAuth}
-            disabled={!initData.trim()}
-          >
-            Войти с initData
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={onSkipAuth}
-          >
-            Продолжить без авторизации
-          </Button>
-        </div>
+  const renderContent = () => (
+    <div className="telegram-auth-modal-content">
+      <div style={{ textAlign: 'center', marginBottom: '24px'}}>
+        <TelegramIcon size={48} color="var(--tg-theme-button-color)" style={{ marginBottom: '8px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
+        <Text variant="h4" style={{ color: 'var(--tg-theme-text-color)', marginBottom: '8px'}}>
+          Авторизация через Telegram
+        </Text>
+        <Text variant="bodySmall" style={{ marginBottom: '16px', color: 'var(--tg-theme-hint-color)' }}>
+          Для доступа к полному функционалу откройте приложение через Telegram бота
+        </Text>
       </div>
-    );
-  };
+
+      {error && (
+        <Alert severity="error" style={{ marginBottom: '16px'}}>
+          {error}
+        </Alert>
+      )}
+
+      <Divider style={{ margin: '16px 0' }} />
+      <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '8px'}}>
+        Режим разработки
+      </Text>
+      <Divider style={{ margin: '8px 0 16px' }} />
+
+      <div style={{ marginBottom: '16px'}}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
+          initData для тестирования
+        </label>
+        <textarea
+          className="telegram-auth-textarea"
+          rows={4}
+          placeholder="Вставьте initData из Telegram Web App..."
+          value={initData}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setInitData(e.target.value)}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <Button variant="primary" size="small" icon={<DeveloperModeIcon size={18} />} onClick={handleLoadTestData}>
+          Тестовые данные
+        </Button>
+        <Button variant="outline" size="small" onClick={handleClearData}>
+          Очистить
+        </Button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Button variant="primary" onClick={handleManualAuth} disabled={!initData.trim()}>
+          Войти с initData
+        </Button>
+        <Button variant="outline" onClick={onSkipAuth}>
+          Продолжить без авторизации
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="sm" 
-      fullWidth
-      sx={{
-        '& .MuiDialog-container': {
-          alignItems: 'center',
-          justifyContent: 'center'
-        }
-      }}
-      PaperProps={{
-        sx: {
-          position: 'relative'
-        }
-      }}
-    >
+    <Dialog open={open} onClose={onClose}>
       <DialogTitle>Авторизация</DialogTitle>
       <DialogContent>
         {renderContent()}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>
-          Отмена
-        </Button>
+        <Button onClick={onClose}>Отмена</Button>
       </DialogActions>
     </Dialog>
   );

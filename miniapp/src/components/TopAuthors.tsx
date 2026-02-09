@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LeaderboardAuthor } from '@/types/sticker';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -21,7 +21,7 @@ const BADGE_COLORS: Record<number, string> = {
   3: '#DB7F13',
 };
 
-const AuthorItem: React.FC<AuthorItemProps> = ({ author, place }) => {
+const AuthorItem: FC<AuthorItemProps> = ({ author, place }) => {
   const navigate = useNavigate();
   const { avatarBlobUrl } = useUserAvatar(author.authorId);
   const firstName = author.firstName || '';
@@ -58,7 +58,7 @@ const AuthorItem: React.FC<AuthorItemProps> = ({ author, place }) => {
   );
 };
 
-export const TopAuthors: React.FC<TopAuthorsProps> = ({ authors }) => {
+export const TopAuthors: FC<TopAuthorsProps> = ({ authors }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpenModal = () => {

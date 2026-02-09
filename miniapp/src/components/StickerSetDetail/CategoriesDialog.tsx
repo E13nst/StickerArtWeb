@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, CSSProperties, FC } from 'react';
 import { CloseIcon } from '@/components/ui/Icons';
 import { CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
@@ -14,7 +14,7 @@ interface CategoriesDialogProps {
   stickerSet: StickerSetResponse;
 }
 
-export const CategoriesDialog: React.FC<CategoriesDialogProps> = ({
+export const CategoriesDialog: FC<CategoriesDialogProps> = ({
   open,
   onClose,
   stickerSetId,
@@ -95,7 +95,7 @@ export const CategoriesDialog: React.FC<CategoriesDialogProps> = ({
 
   if (!open) return null;
 
-  const backdropStyle: React.CSSProperties = {
+  const backdropStyle: CSSProperties = {
     position: 'fixed',
     inset: 0,
     zIndex: 1300,
@@ -103,7 +103,7 @@ export const CategoriesDialog: React.FC<CategoriesDialogProps> = ({
     WebkitBackdropFilter: 'blur(8px)',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   };
-  const paperStyle: React.CSSProperties = {
+  const paperStyle: CSSProperties = {
     position: 'fixed',
     left: '50%',
     top: '50%',

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-;
+import { useEffect, FC } from 'react';
+import { Text } from '@/components/ui/Text';
 import { imageLoader, getCachedStickerUrl, LoadPriority } from '@/utils/imageLoader';
 
 interface Sticker {
@@ -17,149 +17,79 @@ interface TopStickersCarouselProps {
   onStickerClick?: (sticker: Sticker) => void;
 }
 
-export const TopStickersCarousel: React.FC<TopStickersCarouselProps> = ({
+export const TopStickersCarousel: FC<TopStickersCarouselProps> = ({
   stickers,
   onStickerClick
 }) => {
-  // Предзагружаем все стикеры через imageLoader
   useEffect(() => {
     stickers.forEach(sticker => {
       if (sticker.url && sticker.fileId) {
         imageLoader.loadImage(sticker.fileId, sticker.url, LoadPriority.TIER_3_ADDITIONAL)
-          .catch(() => {
-            // Игнорируем ошибки - покажем плейсхолдер
-          });
+          .catch(() => {});
       }
     });
   }, [stickers]);
 
   return (
-    <div sx={{ width: '100%' }}>
-      <Typography
-        variant="h6"
-        fontWeight="bold"
-        sx={{
-          color: 'var(--tg-theme-text-color)',
-          mb: 2,
-          fontSize: { xs: '1rem', sm: '1.25rem' }
-        }}
-      >
+    <div style={{ width: '100%' }}>
+      <Text variant="h4" weight="bold" style={{ color: 'var(--tg-theme-text-color)', marginBottom: '16px', fontSize: '1.25rem' }}>
         ТОП-5 СТИКЕРОВ
-      </Typography>
+      </Text>
       
       <div
-        sx={{
+        style={{
           display: 'flex',
-          gap: 2,
+          gap: '16px',
           overflowX: 'auto',
-          pb: 2,
+          paddingBottom: '16px',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'var(--tg-theme-hint-color) transparent',
-          '&::-webkit-scrollbar': {
-            height: '6px'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'var(--tg-theme-hint-color)',
-            borderRadius: '3px'
-          }
+          scrollbarColor: 'var(--tg-theme-hint-color) transparent'
         }}
+        className="top-stickers-scroll"
       >
         {stickers.map((sticker, index) => (
           <div
             key={sticker.id}
             onClick={() => onStickerClick?.(sticker)}
-            sx={{
+            style={{
               flex: '0 0 auto',
-              width: { xs: '100px', sm: '120px' },
+              width: '120px',
               textAlign: 'center',
               cursor: onStickerClick ? 'pointer' : 'default',
-              transition: 'transform 0.2s ease',
-              '&:hover': onStickerClick ? {
-                transform: 'translateY(-4px)'
-              } : {}
+              transition: 'transform 0.2s ease'
             }}
+            onMouseEnter={(e) => onStickerClick && (e.currentTarget.style.transform = 'translateY(-4px)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
-            <div
-              sx={{
-                width: '100%',
-                aspectRatio: '1 / 1',
-                borderRadius: 2,
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                border: '1px solid var(--tg-theme-border-color)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mb: 1,
-                overflow: 'hidden',
-                position: 'relative'
-              }}
-            >
+            <div style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: '8px', backgroundColor: 'var(--tg-theme-secondary-bg-color)', border: '1px solid var(--tg-theme-border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', overflow: 'hidden', position: 'relative' }}>
               {sticker.url && sticker.fileId ? (
                 <img
-                  src={getCachedStickerUrl(sticker.fileId) || sticker.url}  // ✅ Используем кеш если есть
+                  src={getCachedStickerUrl(sticker.fileId) || sticker.url}
                   alt={sticker.name}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : sticker.emoji ? (
-                <Typography sx={{ fontSize: '3rem' }}>{sticker.emoji}</Typography>
+                <span style={{ fontSize: '3rem' }}>{sticker.emoji}</span>
               ) : (
-                <Typography sx={{ fontSize: '1.5rem', color: 'var(--tg-theme-hint-color)' }}>
-                  🎨
-                </Typography>
+                <span style={{ fontSize: '1.5rem', color: 'var(--tg-theme-hint-color)' }}>🎨</span>
               )}
               
               {/* Бейдж места */}
-              <div
-                sx={{
-                  position: 'absolute',
-                  top: 4,
-                  left: 4,
-                  backgroundColor: 'var(--tg-theme-button-color)',
-                  color: 'var(--tg-theme-button-text-color)',
-                  borderRadius: '50%',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}
-              >
+              <div style={{ position: 'absolute', top: '4px', left: '4px', backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>
                 {index + 1}
               </div>
             </div>
             
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'var(--tg-theme-text-color)',
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                display: 'block',
-                mb: 0.5
-              }}
-            >
+            <Text variant="caption" style={{ color: 'var(--tg-theme-text-color)', fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '4px'}}>
               {sticker.name}
-            </Typography>
+            </Text>
             
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'var(--tg-theme-hint-color)',
-                fontSize: '0.7rem'
-              }}
-            >
+            <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.7rem' }}>
               {sticker.likes} ❤️
-            </Typography>
+            </Text>
           </div>
         ))}
       </div>
     </div>
   );
 };
-

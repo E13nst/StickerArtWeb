@@ -162,7 +162,7 @@ export function adaptStickerSetsToGalleryPacks(stickerSets: StickerSetResponse[]
       adapterCache.set(cacheKey, result);
       if (adapterCache.size > 100) {
         const firstKey = adapterCache.keys().next().value;
-        adapterCache.delete(firstKey);
+        if (firstKey !== undefined) adapterCache.delete(firstKey);
       }
     } else {
       adapterCache.delete(cacheKey);

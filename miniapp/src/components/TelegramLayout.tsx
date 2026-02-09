@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface TelegramLayoutProps {
@@ -8,7 +8,7 @@ interface TelegramLayoutProps {
   onBackClick?: () => void;
 }
 
-export const TelegramLayout: React.FC<TelegramLayoutProps> = ({
+export const TelegramLayout: FC<TelegramLayoutProps> = ({
   children,
   title,
   showBackButton = false,

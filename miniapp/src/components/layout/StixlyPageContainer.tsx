@@ -1,14 +1,14 @@
-import React from 'react';
+import { ReactNode, CSSProperties, FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import './StixlyPageContainer.css';
 
 interface StixlyPageContainerProps {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
-export const StixlyPageContainer: React.FC<StixlyPageContainerProps> = ({ 
+export const StixlyPageContainer: FC<StixlyPageContainerProps> = ({ 
   children, 
   className = '', 
   style,

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback, FC } from 'react';
 import { AnimatedPackCard } from './AnimatedPackCard';
 import { useScrollElement } from '../contexts/ScrollContext';
 
@@ -35,7 +35,7 @@ interface VirtualizedGalleryProps {
   scrollContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
-export const VirtualizedGallery: React.FC<VirtualizedGalleryProps> = ({
+export const VirtualizedGallery: FC<VirtualizedGalleryProps> = ({
   packs,
   onPackClick,
   itemHeight = 200,

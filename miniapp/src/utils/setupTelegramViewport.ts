@@ -36,7 +36,7 @@ function detectSDK(): 'official' | 'twa-dev' | null {
     // Проверяем наличие isAvailable() на методах как индикатор официального SDK
     const hasIsAvailable = 
       (typeof webApp.expand === "object" && typeof (webApp.expand as any).isAvailable === "function") ||
-      (typeof webApp.requestFullscreen === "object" && typeof (webApp.requestFullscreen as any).isAvailable === "function");
+      (typeof (webApp as any).requestFullscreen === "object" && typeof ((webApp as any).requestFullscreen as any).isAvailable === "function");
     
     if (hasIsAvailable) {
       return 'official';
@@ -72,8 +72,8 @@ async function isTMA(): Promise<boolean> {
  */
 function isRequestFullscreenAvailable(webApp: any): boolean {
   return Boolean(
-    (typeof webApp.requestFullscreen === "function") ||
-    (typeof window.Telegram?.WebApp?.requestFullscreen === "function")
+    (typeof (webApp as any).requestFullscreen === "function") ||
+    (typeof (window as any).Telegram?.WebApp?.requestFullscreen === "function")
   );
 }
 
@@ -159,7 +159,7 @@ async function requestFullscreenSafe(webApp: any): Promise<boolean> {
     }
 
     // Получаем метод requestFullscreen (может быть на webApp или window.Telegram.WebApp)
-    const requestFullscreenMethod = webApp.requestFullscreen || window.Telegram?.WebApp?.requestFullscreen;
+    const requestFullscreenMethod = (webApp as any).requestFullscreen || (window as any).Telegram?.WebApp?.requestFullscreen;
 
     if (!requestFullscreenMethod) {
       console.warn("[TMA Viewport] requestFullscreen() метод не найден");
@@ -319,7 +319,7 @@ export async function setupTelegramViewportSafe(): Promise<void> {
           // Для официального SDK проверяем isAvailable() если доступно
           if (sdkType === 'official') {
             try {
-              const requestFullscreenMethod = webApp.requestFullscreen || window.Telegram?.WebApp?.requestFullscreen;
+              const requestFullscreenMethod = (webApp as any).requestFullscreen || (window as any).Telegram?.WebApp?.requestFullscreen;
               if (requestFullscreenMethod && typeof requestFullscreenMethod.isAvailable === "function") {
                 const isAvailable = requestFullscreenMethod.isAvailable();
                 if (!isAvailable) {

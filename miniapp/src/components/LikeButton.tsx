@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, FC, MouseEvent } from 'react';
 
 interface LikeButtonProps {
   packId: string;
@@ -8,7 +8,7 @@ interface LikeButtonProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export const LikeButton: React.FC<LikeButtonProps> = ({
+export const LikeButton: FC<LikeButtonProps> = ({
   packId,
   initialLiked = false,
   initialLikesCount = 0,
@@ -25,7 +25,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
     setLikesCount(initialLikesCount);
   }, [initialLiked, initialLikesCount]);
 
-  const handleLike = useCallback((e: React.MouseEvent) => {
+  const handleLike = useCallback((e: MouseEvent) => {
     e.stopPropagation();
     
     const newLikedState = !isLiked;

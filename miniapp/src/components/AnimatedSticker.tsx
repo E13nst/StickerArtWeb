@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, FC } from 'react';
 import Lottie from 'lottie-react';
 import type { LottieRefCurrentProps } from 'lottie-react';
 import { animationCache, imageLoader, LoadPriority, getCachedAnimation } from '../utils/imageLoader';
@@ -13,7 +13,7 @@ interface AnimatedStickerProps {
   priority?: number; // Приоритет загрузки (по умолчанию TIER_1_VIEWPORT)
 }
 
-export const AnimatedSticker: React.FC<AnimatedStickerProps> = ({
+export const AnimatedSticker: FC<AnimatedStickerProps> = ({
   fileId,
   imageUrl,
   emoji,

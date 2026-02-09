@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, FC, MouseEvent } from 'react';
 import { CloseIcon } from '@/components/ui/Icons';
 import { ModalBackdrop } from './ModalBackdrop';
 import { LeaderboardUser } from '@/types/sticker';
@@ -20,7 +20,7 @@ interface LeaderboardUserItemProps {
   index: number;
 }
 
-const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }) => {
+const LeaderboardUserItem: FC<LeaderboardUserItemProps> = ({ user, index }) => {
   const { avatarBlobUrl } = useUserAvatar(user.userId);
   const firstName = user.firstName || '';
   const lastName = user.lastName || '';
@@ -59,7 +59,7 @@ const LeaderboardUserItem: React.FC<LeaderboardUserItemProps> = ({ user, index }
   );
 };
 
-export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClose }) => {
+export const LeaderboardModal: FC<LeaderboardModalProps> = ({ open, onClose }) => {
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +144,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onClos
     };
   }, [open, onClose]);
 
-  const handleOutsideClick = useCallback((event: React.MouseEvent) => {
+  const handleOutsideClick = useCallback((event: MouseEvent) => {
     const target = event.target as HTMLElement;
     if (modalContentRef.current && !modalContentRef.current.contains(target)) {
       onClose();

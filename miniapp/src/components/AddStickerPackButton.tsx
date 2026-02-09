@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, memo, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import './AddStickerPackButton.css';
 
@@ -7,7 +7,7 @@ interface AddStickerPackButtonProps {
   variant?: 'gallery' | 'profile';
 }
 
-const AddStickerPackButtonComponent: React.FC<AddStickerPackButtonProps> = ({ onClick, variant = 'gallery' }) => {
+const AddStickerPackButtonComponent: FC<AddStickerPackButtonProps> = ({ onClick, variant = 'gallery' }) => {
   const { tg } = useTelegram();
   const handleClick = () => { tg?.HapticFeedback?.impactOccurred('light'); onClick(); };
 
@@ -124,4 +124,4 @@ const AddStickerPackButtonComponent: React.FC<AddStickerPackButtonProps> = ({ on
   );
 };
 
-export const AddStickerPackButton = React.memo(AddStickerPackButtonComponent);
+export const AddStickerPackButton = memo(AddStickerPackButtonComponent);

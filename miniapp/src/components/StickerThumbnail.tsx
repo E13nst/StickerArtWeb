@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, FC } from 'react';
 import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
 import { imageLoader, getCachedStickerUrl, LoadPriority } from '@/utils/imageLoader';
 
@@ -10,7 +10,7 @@ interface StickerThumbnailProps {
   size?: number;
 }
 
-export const StickerThumbnail: React.FC<StickerThumbnailProps> = ({
+export const StickerThumbnail: FC<StickerThumbnailProps> = ({
   fileId,
   thumbFileId,
   emoji,

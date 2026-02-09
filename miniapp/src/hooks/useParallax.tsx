@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, ReactNode, CSSProperties, FC } from 'react';
 import { useScrollElement } from '../contexts/ScrollContext';
 
 interface ParallaxOptions {
@@ -212,12 +212,12 @@ interface ParallaxLayerProps {
   speed: number;
   direction?: 'up' | 'down' | 'left' | 'right';
   offset?: number;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 }
 
-export const ParallaxLayer: React.FC<ParallaxLayerProps> = ({
+export const ParallaxLayer: FC<ParallaxLayerProps> = ({
   speed,
   direction = 'up',
   offset = 0,

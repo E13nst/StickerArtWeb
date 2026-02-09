@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, ReactNode, FC, MouseEvent } from 'react';
 import './BottomSheet.css';
 
 export interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   showCloseButton?: boolean;
   className?: string;
 }
 
-export const BottomSheet: React.FC<BottomSheetProps> = ({
+export const BottomSheet: FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   title,
@@ -33,7 +33,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   // Handle overlay click
   const handleOverlayClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
+    (event: MouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
         onClose();
       }

@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { StylePreset } from '@/api/client';
 import './StylePresetStrip.css';
@@ -11,7 +11,7 @@ interface StylePresetStripProps {
 }
 
 /** Figma: horizontal row 70×70 preview + 12px label, 16px radius, #262626 */
-export const StylePresetStrip: React.FC<StylePresetStripProps> = ({
+export const StylePresetStrip: FC<StylePresetStripProps> = ({
   presets,
   selectedPresetId,
   onPresetChange,

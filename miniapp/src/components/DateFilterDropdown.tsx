@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface DateFilterDropdownProps {
@@ -34,7 +34,7 @@ const ArrowDownIcon = ({ isOpen }: { isOpen: boolean }) => (
   </svg>
 );
 
-export const DateFilterDropdown: React.FC<DateFilterDropdownProps> = ({
+export const DateFilterDropdown: FC<DateFilterDropdownProps> = ({
   selectedDate,
   onDateChange,
   disabled = false,

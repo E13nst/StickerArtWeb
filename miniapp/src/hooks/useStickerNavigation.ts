@@ -7,7 +7,7 @@ interface UseStickerNavigationOptions {
 
 export const useStickerNavigation = ({ 
   stickerCount, 
-  isModal = false 
+  isModal: _isModal = false 
 }: UseStickerNavigationOptions) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [currentStickerLoading, setCurrentStickerLoading] = useState(false);

@@ -1,10 +1,10 @@
-import React from 'react';
+import { FC } from 'react';
 
 interface LoadingSpinnerProps {
   message?: string;
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+export const LoadingSpinner: FC<LoadingSpinnerProps> = ({ 
   message = 'Загрузка...' 
 }) => {
   return (

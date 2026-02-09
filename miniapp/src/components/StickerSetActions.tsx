@@ -1,5 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, ReactNode, CSSProperties, FC, MouseEvent, ChangeEvent } from 'react';
 import { CloseIcon } from '@/components/ui/Icons';
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@/components/ui/Dialog';
+import { Text } from '@/components/ui/Text';
+import { Alert } from '@/components/ui/Alert';
+import { Spinner } from '@/components/ui/Spinner';
 import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { useStickerStore } from '@/store/useStickerStore';
@@ -11,18 +15,20 @@ function IconButton({
   onClick,
   disabled,
   sx = {},
+  style = {},
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   sx?: Record<string, unknown>;
+  style?: CSSProperties;
 }) {
-  const style: React.CSSProperties = {
+  const computedStyle: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    border: 'none',
+    border: (sx.border as string) ?? 'none',
     padding: 0,
     background: 'transparent',
     width: (sx.width as number) ?? 36,
@@ -31,11 +37,11 @@ function IconButton({
     borderRadius: (sx.borderRadius as string) ?? 'var(--tg-radius-s)',
     backgroundColor: sx.backgroundColor as string,
     color: sx.color as string,
-    border: (sx.border as string) ?? 'none',
     transition: (sx.transition as string) ?? 'transform 150ms ease, background-color 150ms ease',
+    ...style,
   };
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={style}>
+    <button type="button" onClick={onClick} disabled={disabled} style={computedStyle}>
       {children}
     </button>
   );
@@ -57,7 +63,7 @@ interface ActionDialogState {
   blockReason: string;
 }
 
-export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
+export const StickerSetActions: FC<StickerSetActionsProps> = ({
   stickerSet,
   availableActions,
   onActionComplete
@@ -91,18 +97,18 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
 
   // Общий адаптивный стиль для кнопок действий
   const baseButtonSx = {
-    width: 36,
-    height: 36,
+    width: '36px',
+    height: '36px',
     fontSize: '18px',
     borderRadius: 'var(--tg-radius-s)',
     '@media (max-width: 400px)': {
-      width: 32,
-      height: 32,
+      width: '32px',
+      height: '32px',
       fontSize: '16px'
     },
     '@media (max-width: 350px)': {
-      width: 28,
-      height: 28,
+      width: '28px',
+      height: '28px',
       fontSize: '14px'
     }
   };
@@ -281,29 +287,22 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
   return (
     <>
       <div
-        sx={{
+        style={{
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--tg-spacing-2)',
-          flexShrink: 0,
-          '@media (max-width: 400px)': {
-            gap: '4px'
-          }
+          flexShrink: 0
         }}
       >
         {shouldShowDelete && (
           <span title={getActionConfig('DELETE')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('DELETE')}
-              sx={{
+              style={{
                 ...baseButtonSx,
                 backgroundColor: 'rgba(244, 67, 54, 0.15)',
                 border: '1px solid rgba(244, 67, 54, 0.4)',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(244, 67, 54, 0.25)',
-                  border: '1px solid rgba(244, 67, 54, 0.6)'
-                }
+                color: 'white'
               }}
             >
               ❌
@@ -315,15 +314,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
           <span title={getActionConfig('BLOCK')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('BLOCK')}
-              sx={{
+              style={{
                 ...baseButtonSx,
                 backgroundColor: 'rgba(244, 67, 54, 0.15)',
                 border: '1px solid rgba(244, 67, 54, 0.4)',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(244, 67, 54, 0.25)',
-                  border: '1px solid rgba(244, 67, 54, 0.6)'
-                }
+                color: 'white'
               }}
             >
               🚫
@@ -335,15 +330,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
           <span title={getActionConfig('UNBLOCK')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('UNBLOCK')}
-              sx={{
+              style={{
                 ...baseButtonSx,
                 backgroundColor: 'rgba(76, 175, 80, 0.15)',
                 border: '1px solid rgba(76, 175, 80, 0.4)',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(76, 175, 80, 0.25)',
-                  border: '1px solid rgba(76, 175, 80, 0.6)'
-                }
+                color: 'white'
               }}
             >
               🔄
@@ -355,15 +346,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
           <span title={getActionConfig('PUBLISH')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('PUBLISH')}
-              sx={{
+              style={{
                 ...baseButtonSx,
                 backgroundColor: 'rgba(33, 150, 243, 0.15)',
                 border: '1px solid rgba(33, 150, 243, 0.4)',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(33, 150, 243, 0.25)',
-                  border: '1px solid rgba(33, 150, 243, 0.6)'
-                }
+                color: 'white'
               }}
             >
               👁️
@@ -375,15 +362,11 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
           <span title={getActionConfig('UNPUBLISH')?.tooltip ?? ''} style={{ display: 'inline-flex' }}>
             <IconButton
               onClick={() => handleOpenDialog('UNPUBLISH')}
-              sx={{
+              style={{
                 ...baseButtonSx,
                 backgroundColor: 'rgba(255, 152, 0, 0.15)',
                 border: '1px solid rgba(255, 152, 0, 0.4)',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 152, 0, 0.25)',
-                  border: '1px solid rgba(255, 152, 0, 0.6)'
-                }
+                color: 'white'
               }}
             >
               🙈
@@ -394,256 +377,66 @@ export const StickerSetActions: React.FC<StickerSetActionsProps> = ({
 
       {/* Модальное окно подтверждения */}
       {currentConfig && (
-        <Dialog
-          open={dialogState.open}
-          onClose={handleCloseDialog}
-          fullWidth
-          maxWidth="sm"
-          PaperProps={{
-            onClick: (e) => e.stopPropagation(),
-            sx: {
-              backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.85)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              color: 'white',
-              backgroundImage: 'none',
-              borderRadius: '21px',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-              margin: '21px',
-              position: 'relative'
-            }
-          }}
-          sx={{
-            '& .MuiDialog-container': {
-              alignItems: 'center',
-              justifyContent: 'center'
-            }
-          }}
-          BackdropProps={{
-            onClick: (e) => {
-              e.stopPropagation();
-              handleCloseDialog();
-            },
-            sx: {
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              backgroundColor: 'rgba(0, 0, 0, 0.6)'
-            }
-          }}
-        >
-          <DialogTitle
-            component="div"
-            sx={{
-              pb: 2,
-              pt: 3,
-              px: 3,
-              color: 'white',
-              fontSize: '1.4rem',
-              fontWeight: 700,
-              textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-              textAlign: 'center',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1
-            }}
-          >
+        <Dialog open={dialogState.open} onClose={handleCloseDialog}>
+          <DialogTitle style={{ paddingBottom: '16px', paddingTop: '24px', paddingLeft: '24px', paddingRight: '24px', color: 'white', fontSize: '1.4rem', fontWeight: 700, textShadow: '0 2px 8px rgba(0,0,0,0.5)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
             <span style={{ fontSize: '32px' }}>{currentConfig.emoji}</span>
             {currentConfig.title}
           </DialogTitle>
-          <DialogContent
-            dividers={false}
-            onClick={(e) => e.stopPropagation()}
-            sx={{
-              backgroundColor: 'transparent',
-              color: 'white',
-              borderColor: 'transparent',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-              px: 3,
-              py: 2
-            }}
-          >
+          <DialogContent style={{ backgroundColor: 'transparent', color: 'white', display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px 24px 16px' }} onClick={(e: MouseEvent) => e.stopPropagation()}>
             {dialogState.error && (
-              <Alert 
-                severity="error" 
-                sx={{ 
-                  mb: 1,
-                  backgroundColor: 'rgba(244, 67, 54, 0.15)',
-                  backdropFilter: 'blur(8px)',
-                  color: 'white',
-                  border: '1px solid rgba(244, 67, 54, 0.4)',
-                  '& .MuiAlert-icon': {
-                    color: '#ff6b6b'
-                  }
-                }}
-              >
+              <Alert severity="error" style={{ marginBottom: '8px', backgroundColor: 'rgba(244, 67, 54, 0.15)', color: 'white', border: '1px solid rgba(244, 67, 54, 0.4)' }}>
                 {dialogState.error}
               </Alert>
             )}
 
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontSize: '0.95rem',
-                lineHeight: 1.5,
-                textAlign: 'center'
-              }}
-            >
+            <Text variant="body" style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', lineHeight: '1.5px', textAlign: 'center' }}>
               {currentConfig.description}
-            </Typography>
+            </Text>
 
             {dialogState.action === 'BLOCK' && (
-              <TextField
-                label="Причина блокировки"
-                placeholder="Например: Нарушение авторских прав"
-                multiline
-                minRows={3}
-                value={dialogState.blockReason}
-                onChange={(e) =>
-                  setDialogState(prev => ({ ...prev, blockReason: e.target.value }))
-                }
-                fullWidth
-                helperText="Опционально. Укажите причину, чтобы автору было понятно, что нужно исправить."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(8px)',
-                    borderRadius: '13px',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.3)'
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.5)'
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.7)'
-                    }
-                  },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)'
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': {
-                    color: 'white'
-                  },
-                  '& .MuiFormHelperText-root': {
-                    color: 'rgba(255, 255, 255, 0.6)'
-                  }
-                }}
-              />
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', color: 'rgba(255,255,255,0.7)', fontSize: '14px'}}>Причина блокировки</label>
+                <textarea
+                  placeholder="Например: Нарушение авторских прав"
+                  rows={3}
+                  value={dialogState.blockReason}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDialogState(prev => ({ ...prev, blockReason: e.target.value }))}
+                  style={{ width: '100%', padding: 12, color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '13px', border: '1px solid rgba(255,255,255,0.3)', boxSizing: 'border-box' }}
+                />
+                <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Опционально. Укажите причину, чтобы автору было понятно, что нужно исправить.</span>
+              </div>
             )}
           </DialogContent>
-          <DialogActions
-            onClick={(e) => e.stopPropagation()}
-            sx={{
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-              px: 3,
-              pb: 3,
-              pt: 2,
-              gap: '13px',
-              justifyContent: 'center'
-            }}
-          >
+          <DialogActions style={{ backgroundColor: 'transparent', padding: '8px 24px 24px', gap: '13px', justifyContent: 'center' }} onClick={(e: MouseEvent) => e.stopPropagation()}>
             <IconButton
               onClick={handleCloseDialog}
               disabled={dialogState.loading}
-              sx={{
-                width: 55,
-                height: 55,
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                borderRadius: 'var(--tg-radius-l)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                transition: 'transform 150ms ease, background-color 150ms ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  transform: 'scale(1.05)'
-                },
-                '&:disabled': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'rgba(255, 255, 255, 0.4)'
-                }
-              }}
+              style={{ width: '55px', height: '55px', backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white', borderRadius: 'var(--tg-radius-l)', border: '1px solid rgba(255, 255, 255, 0.3)' }}
             >
-              <CloseIcon sx={{ fontSize: '24px' }} />
+              <CloseIcon size={24} />
             </IconButton>
             <IconButton
               onClick={handleConfirmAction}
               disabled={dialogState.loading}
-              sx={{
-                width: 55,
-                height: 55,
-                backgroundColor: 
-                  currentConfig.confirmColor === 'error' ? 'rgba(244, 67, 54, 0.3)' :
-                  currentConfig.confirmColor === 'success' ? 'rgba(76, 175, 80, 0.3)' :
-                  currentConfig.confirmColor === 'warning' ? 'rgba(255, 152, 0, 0.3)' :
-                  'rgba(33, 150, 243, 0.3)',
-                color: 
-                  currentConfig.confirmColor === 'error' ? '#f44336' :
-                  currentConfig.confirmColor === 'success' ? '#4CAF50' :
-                  currentConfig.confirmColor === 'warning' ? '#ff9800' :
-                  '#2196F3',
+              style={{
+                width: '55px',
+                height: '55px',
+                backgroundColor: currentConfig.confirmColor === 'error' ? 'rgba(244, 67, 54, 0.3)' : currentConfig.confirmColor === 'success' ? 'rgba(76, 175, 80, 0.3)' : currentConfig.confirmColor === 'warning' ? 'rgba(255, 152, 0, 0.3)' : 'rgba(33, 150, 243, 0.3)',
+                color: currentConfig.confirmColor === 'error' ? '#f44336' : currentConfig.confirmColor === 'success' ? '#4CAF50' : currentConfig.confirmColor === 'warning' ? '#ff9800' : '#2196F3',
                 borderRadius: 'var(--tg-radius-l)',
-                border: 
-                  currentConfig.confirmColor === 'error' ? '1px solid rgba(244, 67, 54, 0.5)' :
-                  currentConfig.confirmColor === 'success' ? '1px solid rgba(76, 175, 80, 0.5)' :
-                  currentConfig.confirmColor === 'warning' ? '1px solid rgba(255, 152, 0, 0.5)' :
-                  '1px solid rgba(33, 150, 243, 0.5)',
-                transition: 'transform 150ms ease, background-color 150ms ease',
-                '&:hover': {
-                  backgroundColor: 
-                    currentConfig.confirmColor === 'error' ? 'rgba(244, 67, 54, 0.4)' :
-                    currentConfig.confirmColor === 'success' ? 'rgba(76, 175, 80, 0.4)' :
-                    currentConfig.confirmColor === 'warning' ? 'rgba(255, 152, 0, 0.4)' :
-                    'rgba(33, 150, 243, 0.4)',
-                  border: 
-                    currentConfig.confirmColor === 'error' ? '1px solid rgba(244, 67, 54, 0.7)' :
-                    currentConfig.confirmColor === 'success' ? '1px solid rgba(76, 175, 80, 0.7)' :
-                    currentConfig.confirmColor === 'warning' ? '1px solid rgba(255, 152, 0, 0.7)' :
-                    '1px solid rgba(33, 150, 243, 0.7)',
-                  transform: 'scale(1.05)'
-                },
-                '&:disabled': {
-                  backgroundColor: 
-                    currentConfig.confirmColor === 'error' ? 'rgba(244, 67, 54, 0.1)' :
-                    currentConfig.confirmColor === 'success' ? 'rgba(76, 175, 80, 0.1)' :
-                    currentConfig.confirmColor === 'warning' ? 'rgba(255, 152, 0, 0.1)' :
-                    'rgba(33, 150, 243, 0.1)',
-                  color: 
-                    currentConfig.confirmColor === 'error' ? 'rgba(244, 67, 54, 0.4)' :
-                    currentConfig.confirmColor === 'success' ? 'rgba(76, 175, 80, 0.4)' :
-                    currentConfig.confirmColor === 'warning' ? 'rgba(255, 152, 0, 0.4)' :
-                    'rgba(33, 150, 243, 0.4)'
-                }
+                border: currentConfig.confirmColor === 'error' ? '1px solid rgba(244, 67, 54, 0.5)' : currentConfig.confirmColor === 'success' ? '1px solid rgba(76, 175, 80, 0.5)' : currentConfig.confirmColor === 'warning' ? '1px solid rgba(255, 152, 0, 0.5)' : '1px solid rgba(33, 150, 243, 0.5)'
               }}
             >
               {dialogState.loading ? (
-                <CircularProgress 
-                  size={24} 
-                  sx={{ 
-                    color: 
-                      currentConfig.confirmColor === 'error' ? '#f44336' :
-                      currentConfig.confirmColor === 'success' ? '#4CAF50' :
-                      currentConfig.confirmColor === 'warning' ? '#ff9800' :
-                      '#2196F3'
-                  }} 
-                />
+                <Spinner size={24} style={{ color: currentConfig.confirmColor === 'error' ? '#f44336' : currentConfig.confirmColor === 'success' ? '#4CAF50' : currentConfig.confirmColor === 'warning' ? '#ff9800' : '#2196F3' }} />
               ) : (
-                <SvgIcon sx={{ fontSize: '24px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                   {currentConfig.confirmColor === 'error' ? (
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z" />
-                  ) : currentConfig.confirmColor === 'success' ? (
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   ) : (
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                   )}
-                </SvgIcon>
+                </svg>
               )}
             </IconButton>
           </DialogActions>

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef, CSSProperties, FC, MouseEvent } from 'react';
 import { useLikesStore } from '../store/useLikesStore';
 import { useTelegram } from '../hooks/useTelegram';
 
@@ -10,7 +10,7 @@ interface InteractiveLikeCountProps {
 }
 
 // SVG компонент для иконки лайка с обрезкой по контуру сердца
-const LikeIcon: React.FC<{ 
+const LikeIcon: FC<{ 
   color: string; 
   size: number; 
   isLiked: boolean; 
@@ -41,7 +41,7 @@ const LikeIcon: React.FC<{
   );
 };
 
-export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
+export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
   packId,
   size = 'medium',
   placement = 'top-right',
@@ -161,7 +161,7 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
   };
 
   // Обработчик клика на лайк
-  const handleLikeClick = useCallback(async (e: React.MouseEvent) => {
+  const handleLikeClick = useCallback(async (e: MouseEvent) => {
     // Останавливаем propagation, чтобы не открывалась модалка стикера
     e.stopPropagation();
     e.preventDefault();
@@ -184,7 +184,7 @@ export const InteractiveLikeCount: React.FC<InteractiveLikeCountProps> = ({
     }
   }, [packId, toggleLike, tg]);
 
-  const positionStyles: React.CSSProperties =
+  const positionStyles: CSSProperties =
     placement === 'bottom-center'
       ? {
           bottom: 'clamp(12px, 4vw, 22px)',

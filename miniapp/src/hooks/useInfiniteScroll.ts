@@ -12,7 +12,7 @@ export const useInfiniteScroll = ({
   hasNextPage,
   isLoading,
   onLoadMore,
-  threshold = 100,
+  threshold: _threshold = 100,
   rootMargin = '100px'
 }: UseInfiniteScrollProps) => {
   const [isNearBottom, setIsNearBottom] = useState(false);

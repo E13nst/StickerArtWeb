@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC, useState, useEffect } from 'react';
 import './TelegramThemeToggle.css';
 
 // Пресеты темы в стиле Telegram WebApp
@@ -52,8 +52,8 @@ function applyTheme(theme: typeof lightTheme, scheme: 'light' | 'dark') {
   }
 }
 
-export const TelegramThemeToggle: React.FC = () => {
-  const [isDark, setIsDark] = React.useState<boolean>(() => {
+export const TelegramThemeToggle: FC = () => {
+  const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('stixly_tg_theme');
       if (saved) {
@@ -65,7 +65,7 @@ export const TelegramThemeToggle: React.FC = () => {
   });
 
   // При монтировании применяем сохранённую тему
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('stixly_tg_theme');
       if (saved) {

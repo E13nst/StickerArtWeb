@@ -1,6 +1,7 @@
-import React from 'react';
-;
+import { FC } from 'react';
 import { AuthResponse } from '@/types/sticker';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Text } from '@/components/ui/Text';
 
 interface AuthStatusProps {
   authStatus: AuthResponse | null;
@@ -8,22 +9,22 @@ interface AuthStatusProps {
   error?: string | null;
 }
 
-export const AuthStatus: React.FC<AuthStatusProps> = ({ 
+export const AuthStatus: FC<AuthStatusProps> = ({ 
   authStatus, 
   isLoading = false, 
   error = null 
 }) => {
   if (isLoading) {
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card style={{ marginBottom: '1rem' }}>
         <CardContent>
-          <Typography 
-            variant="body2" 
-            textAlign="center"
-            sx={{ color: 'var(--tg-theme-hint-color)' }}
+          <Text 
+            variant="bodySmall" 
+            align="center"
+            color="hint"
           >
             Проверка авторизации...
-          </Typography>
+          </Text>
         </CardContent>
       </Card>
     );
@@ -31,11 +32,11 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
 
   if (error) {
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card style={{ marginBottom: '1rem', borderLeft: '3px solid #f44336' }}>
         <CardContent>
-          <Alert severity="error">
+          <Text variant="bodySmall" style={{ color: '#f44336' }}>
             ❌ Ошибка авторизации: {error}
-          </Alert>
+          </Text>
         </CardContent>
       </Card>
     );
@@ -43,12 +44,12 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
 
   if (!authStatus) {
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card style={{ marginBottom: '1rem', borderLeft: '3px solid #2196f3' }}>
         <CardContent>
-          <Alert severity="info">
+          <Text variant="bodySmall" style={{ color: '#2196f3' }}>
             🌐 Режим браузера
             <br />Публичный доступ к API
-          </Alert>
+          </Text>
         </CardContent>
       </Card>
     );
@@ -56,23 +57,23 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({
 
   if (authStatus.authenticated) {
     return (
-      <Card sx={{ mb: 2 }}>
+      <Card style={{ marginBottom: '1rem', borderLeft: '3px solid #4caf50' }}>
         <CardContent>
-          <Alert severity="success">
+          <Text variant="bodySmall" style={{ color: '#4caf50' }}>
             ✅ Аутентификация успешна
             <br />Роль: {authStatus.role || 'не определена'}
-          </Alert>
+          </Text>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card style={{ marginBottom: '1rem', borderLeft: '3px solid #f44336' }}>
       <CardContent>
-        <Alert severity="error">
+        <Text variant="bodySmall" style={{ color: '#f44336' }}>
           ❌ Ошибка авторизации: {authStatus.message || 'Неизвестная ошибка'}
-        </Alert>
+        </Text>
       </CardContent>
     </Card>
   );

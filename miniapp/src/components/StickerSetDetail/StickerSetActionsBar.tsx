@@ -1,7 +1,7 @@
-import React from 'react';
+import { CSSProperties, FC } from 'react';
 import { FavoriteIcon, DownloadIcon, StarBorderIcon } from '@/components/ui/Icons';
 
-const actionsBarStyle: React.CSSProperties = {
+const actionsBarStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '13px',
@@ -10,7 +10,7 @@ const actionsBarStyle: React.CSSProperties = {
   justifyContent: 'space-between',
 };
 
-const iconButtonStyle = (overrides?: React.CSSProperties): React.CSSProperties => ({
+const iconButtonStyle = (overrides?: CSSProperties): CSSProperties => ({
   width: 55,
   flex: 1,
   display: 'flex',
@@ -29,7 +29,7 @@ const iconButtonStyle = (overrides?: React.CSSProperties): React.CSSProperties =
   ...overrides,
 });
 
-export const StickerSetActionsBar: React.FC<{
+export const StickerSetActionsBar: FC<{
   liked: boolean;
   likes: number;
   likeAnim: boolean;

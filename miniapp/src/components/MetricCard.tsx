@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import './MetricCard.css';
 
@@ -11,7 +11,7 @@ interface MetricCardProps {
   color?: string;
 }
 
-export const MetricCard: React.FC<MetricCardProps> = ({
+export const MetricCard: FC<MetricCardProps> = ({
   title,
   value,
   trend,

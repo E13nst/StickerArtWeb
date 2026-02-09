@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import './AccountActivityBlocks.css';
 
 /** Задача активности с прогресс-баром (Figma ACCOUNT) */
@@ -17,7 +17,7 @@ interface ActivityTaskItemProps {
   task: ActivityTask;
 }
 
-const ActivityTaskItem: React.FC<ActivityTaskItemProps> = ({ task }) => {
+const ActivityTaskItem: FC<ActivityTaskItemProps> = ({ task }) => {
   const percent = task.total > 0 ? Math.min(100, (task.progress / task.total) * 100) : 0;
   const isComplete = task.progress >= task.total;
 
@@ -59,7 +59,7 @@ interface QuestStixlyCardProps {
   onStart?: () => void;
 }
 
-export const QuestStixlyCard: React.FC<QuestStixlyCardProps> = ({
+export const QuestStixlyCard: FC<QuestStixlyCardProps> = ({
   title,
   description,
   onStart
@@ -82,12 +82,10 @@ export const QuestStixlyCard: React.FC<QuestStixlyCardProps> = ({
 /** Daily activity block */
 interface DailyActivityBlockProps {
   tasks: ActivityTask[];
-  onTaskAction?: (task: ActivityTask) => void;
 }
 
-export const DailyActivityBlock: React.FC<DailyActivityBlockProps> = ({
-  tasks,
-  onTaskAction
+export const DailyActivityBlock: FC<DailyActivityBlockProps> = ({
+  tasks
 }) => (
   <div className="activity-block activity-block--daily">
     <h3 className="activity-block__title">Daily activity</h3>
@@ -115,7 +113,7 @@ interface GlobalActivityBlockProps {
   tasks: ActivityTask[];
 }
 
-export const GlobalActivityBlock: React.FC<GlobalActivityBlockProps> = ({
+export const GlobalActivityBlock: FC<GlobalActivityBlockProps> = ({
   tasks
 }) => (
   <div className="activity-block activity-block--global">

@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense, FC } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import MainLayout from '@/layouts/MainLayout';
@@ -10,7 +10,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 // 🔍 Импортируем animationMonitor для диагностики производительности
 import '@/utils/animationMonitor';
 // ✅ FIX: Импортируем для обработки ошибок blob URLs
-import { videoBlobCache, imageLoader, LoadPriority } from '@/utils/imageLoader';
+import { videoBlobCache } from '@/utils/imageLoader';
 
 // Lazy load страниц для code splitting
 const GalleryPage = lazy(() => import('@/pages/GalleryPage2').then(m => ({ default: m.GalleryPage2 })));
@@ -25,7 +25,7 @@ const DesignSystemDemo = lazy(() => import('@/pages/DesignSystemDemo').then(m =>
 // TON Connect manifest URL (статический, так как MiniApp развёрнут на стабильном домене)
 const manifestUrl = 'https://sticker-art-e13nst.amvera.io/miniapp/tonconnect-manifest.json';
 
-const App: React.FC = () => {
+const App: FC = () => {
   // ✅ FIX: Используем selector для предотвращения пересоздания функции
   const clearStorage = useLikesStore(state => state.clearStorage);
   const initializeCurrentUser = useProfileStore((state) => state.initializeCurrentUser);

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 interface UserBehavior {
   likedPacks: string[];
@@ -224,7 +224,7 @@ export const useSmartRecommendations = (options: SmartRecommendationsOptions = {
     const words1 = title1.split(' ');
     const words2 = title2.split(' ');
     
-    const commonWords = words1.filter(word => words2.includes(word));
+    const commonWords = words1.filter((word: string) => words2.includes(word));
     const similarity = commonWords.length / Math.max(words1.length, words2.length);
     
     return Math.min(similarity + Math.random() * 0.2, 1); // Добавляем немного случайности

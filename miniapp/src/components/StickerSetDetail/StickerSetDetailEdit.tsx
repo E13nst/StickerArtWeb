@@ -1,6 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
-;
-import { DeleteIcon, RestoreIcon, DragIndicatorIcon } from '@/components/ui/Icons';
+import { useState, useMemo, useCallback, FC, useEffect } from 'react';
+import { DeleteIcon, RestoreIcon } from '@/components/ui/Icons';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { IconButton } from '@/components/ui/IconButton';
+import { Alert } from '@/components/ui/Alert';
 import { StickerSetResponse, Sticker, StickerSetEditOperations } from '@/types/sticker';
 import { StickerThumbnail } from '../StickerThumbnail';
 
@@ -11,7 +15,7 @@ interface StickerSetDetailEditProps {
 }
 
 // Иконка "бургер" для drag handle
-const BurgerIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+const BurgerIcon: FC<{ size?: number }> = ({ size = 20 }) => (
   <svg
     width={size}
     height={size}
@@ -25,7 +29,7 @@ const BurgerIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
   </svg>
 );
 
-export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
+export const StickerSetDetailEdit: FC<StickerSetDetailEditProps> = ({
   stickerSet,
   onCancel,
   onDone
@@ -38,12 +42,19 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
   );
 
   // Локальное состояние редактора
-  const [editingStickers, setEditingStickers] = useState<Sticker[]>(() => 
+  const [editingStickers, setEditingStickers] = useState<Sticker[]>(() =>
     [...originalStickers]
   );
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [emojiUpdates, setEmojiUpdates] = useState<Record<string, string>>({});
   const [showNotification, setShowNotification] = useState(false);
+
+  // Авто-скрытие уведомления через 4 сек
+  useEffect(() => {
+    if (!showNotification) return;
+    const t = setTimeout(() => setShowNotification(false), 4000);
+    return () => clearTimeout(t);
+  }, [showNotification]);
 
   // Переключение удаления стикера
   const toggleDelete = useCallback((fileId: string) => {
@@ -99,7 +110,7 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
     const currentOrder = editingStickers.map(s => s.file_id);
     const hasOrderChanged = currentOrder.length !== originalOrder.length ||
       currentOrder.some((id, idx) => id !== originalOrder[idx]);
-    
+
     if (hasOrderChanged) {
       ops.reorder = currentOrder;
     }
@@ -127,66 +138,59 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
   // Обработка нажатия "Готово"
   const handleDone = useCallback(() => {
     const ops = computeOperations();
-    
+
     // Проверяем, есть ли изменения
-    const hasChanges = 
+    const hasChanges =
       !!ops.reorder ||
       (!!ops.emojiUpdates && Object.keys(ops.emojiUpdates).length > 0) ||
       (!!ops.deleted && ops.deleted.length > 0);
 
     if (!hasChanges) {
-      // Нет изменений - просто отменяем
       onCancel();
       return;
     }
 
-    // Есть изменения - логируем и показываем уведомление
     console.log('Изменения (не сохраняются):', ops);
     setShowNotification(true);
-    
-    // Вызываем колбэк
     onDone(ops);
   }, [computeOperations, onCancel, onDone]);
 
-  // Показываем все стикеры (удалённые остаются в списке, но визуально помечены)
-  // Это позволяет восстановить их, если пользователь передумал
-
   return (
     <div
-      sx={{
+      style={{
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: '16px',
         padding: '16px'
       }}
     >
-      <Typography
-        variant="h6"
-        sx={{
+      <Text
+        variant="h4"
+        weight="bold"
+        style={{
           color: 'var(--tg-theme-text-color)',
           fontWeight: 600,
-          marginBottom: 1
+          marginBottom: '8px'
         }}
       >
         Редактирование стикерсета
-      </Typography>
+      </Text>
 
-      <List sx={{ width: '100%', padding: 0 }}>
+      <div style={{ width: '100%', padding: 0 }}>
         {editingStickers.map((sticker, index) => {
           const isDeleted = deletedIds.has(sticker.file_id);
-          const originalIndex = originalStickers.findIndex(s => s.file_id === sticker.file_id);
           const currentEmoji = getCurrentEmoji(sticker);
 
           return (
-            <ListItem
+            <div
               key={sticker.file_id}
-              sx={{
+              style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1,
+                gap: '8px',
                 padding: '12px',
-                marginBottom: 1,
+                marginBottom: '8px',
                 backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.1)',
                 borderRadius: '12px',
                 border: '1px solid rgba(var(--tg-theme-border-color-rgb, 0, 0, 0), 0.1)',
@@ -194,26 +198,21 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
                 transition: 'opacity 200ms ease'
               }}
             >
-              {/* Burger handle (для будущего DnD) */}
               <div
-                sx={{
+                style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   width: 32,
                   height: 32,
                   cursor: 'grab',
-                  color: 'var(--tg-theme-hint-color)',
-                  '&:active': {
-                    cursor: 'grabbing'
-                  }
+                  color: 'var(--tg-theme-hint-color)'
                 }}
               >
                 <BurgerIcon size={20} />
               </div>
 
-              {/* Мини-превью */}
-              <div sx={{ flexShrink: 0 }}>
+              <div style={{ flexShrink: 0 }}>
                 <StickerThumbnail
                   fileId={sticker.file_id}
                   thumbFileId={sticker.thumb?.file_id}
@@ -222,40 +221,32 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
                 />
               </div>
 
-              {/* Поле эмодзи */}
-              <TextField
+              <Input
                 value={currentEmoji}
-                onChange={(e) => updateEmoji(sticker.file_id, e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateEmoji(sticker.file_id, e.target.value)
+                }
                 placeholder="Эмодзи"
                 size="small"
-                sx={{
+                style={{
                   flex: '1 1 auto',
                   minWidth: 80,
-                  maxWidth: 120,
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.2)',
-                    color: 'var(--tg-theme-text-color)',
-                    '& fieldset': {
-                      borderColor: 'rgba(var(--tg-theme-border-color-rgb, 0, 0, 0), 0.2)'
-                    }
-                  }
+                  maxWidth: 120
                 }}
               />
 
-              {/* Кнопки перемещения (fallback, если DnD не работает) */}
-              <div sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <IconButton
                   size="small"
                   onClick={() => moveUp(index)}
                   disabled={index === 0}
-                  sx={{
+                  aria-label="Вверх"
+                  style={{
                     width: 24,
                     height: 24,
                     padding: 0,
                     color: 'var(--tg-theme-hint-color)',
-                    '&:disabled': {
-                      opacity: 0.3
-                    }
+                    opacity: index === 0 ? 0.3 : 1
                   }}
                 >
                   ↑
@@ -264,52 +255,52 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
                   size="small"
                   onClick={() => moveDown(index)}
                   disabled={index === editingStickers.length - 1}
-                  sx={{
+                  aria-label="Вниз"
+                  style={{
                     width: 24,
                     height: 24,
                     padding: 0,
                     color: 'var(--tg-theme-hint-color)',
-                    '&:disabled': {
-                      opacity: 0.3
-                    }
+                    opacity: index === editingStickers.length - 1 ? 0.3 : 1
                   }}
                 >
                   ↓
                 </IconButton>
               </div>
 
-              {/* Кнопка удаления/восстановления */}
               <IconButton
                 size="small"
                 onClick={() => toggleDelete(sticker.file_id)}
-                sx={{
+                aria-label={isDeleted ? 'Восстановить' : 'Удалить'}
+                style={{
                   width: 32,
                   height: 32,
-                  color: isDeleted ? 'var(--tg-theme-link-color)' : 'var(--tg-theme-destructive-text-color, #f44336)'
+                  color: isDeleted
+                    ? 'var(--tg-theme-link-color)'
+                    : 'var(--tg-theme-destructive-text-color, #f44336)'
                 }}
               >
                 {isDeleted ? <RestoreIcon /> : <DeleteIcon />}
               </IconButton>
-            </ListItem>
+            </div>
           );
         })}
-      </List>
+      </div>
 
-      {/* Кнопки управления */}
       <div
-        sx={{
+        style={{
           display: 'flex',
-          gap: 2,
+          gap: '16px',
           justifyContent: 'flex-end',
-          marginTop: 2,
-          paddingTop: 2,
+          marginTop: '16px',
+          paddingTop: '8px',
           borderTop: '1px solid rgba(var(--tg-theme-border-color-rgb, 0, 0, 0), 0.1)'
         }}
       >
         <Button
-          variant="outlined"
+          variant="outline"
           onClick={onCancel}
-          sx={{
+          style={{
             color: 'var(--tg-theme-text-color)',
             borderColor: 'rgba(var(--tg-theme-border-color-rgb, 0, 0, 0), 0.3)'
           }}
@@ -317,9 +308,9 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
           Отмена
         </Button>
         <Button
-          variant="contained"
+          variant="primary"
           onClick={handleDone}
-          sx={{
+          style={{
             backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
             color: 'var(--tg-theme-button-text-color, #ffffff)'
           }}
@@ -328,25 +319,28 @@ export const StickerSetDetailEdit: React.FC<StickerSetDetailEditProps> = ({
         </Button>
       </div>
 
-      {/* Уведомление о том, что изменения не сохраняются */}
-      <Snackbar
-        open={showNotification}
-        autoHideDuration={4000}
-        onClose={() => setShowNotification(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity="info"
-          onClose={() => setShowNotification(false)}
-          sx={{
-            backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.9)',
-            color: 'var(--tg-theme-text-color)'
+      {showNotification && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1400,
+            maxWidth: '90%'
           }}
         >
-          Изменения пока не сохраняются на сервере. Это прототип редактора.
-        </Alert>
-      </Snackbar>
+          <Alert
+            severity="info"
+            style={{
+              backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.95)',
+              color: 'var(--tg-theme-text-color)'
+            }}
+          >
+            Изменения пока не сохраняются на сервере. Это прототип редактора.
+          </Alert>
+        </div>
+      )}
     </div>
   );
 };
-

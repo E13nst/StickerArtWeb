@@ -1,0 +1,26 @@
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--border-radius-md, 8px);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.alert-error {
+  background: color-mix(in srgb, var(--color-error, #e03131) 15%, transparent);
+  color: var(--color-error);
+  border: 1px solid color-mix(in srgb, var(--color-error) 40%, transparent);
+}
+.alert-warning {
+  background: color-mix(in srgb, #f59e0b 15%, transparent);
+  color: #f59e0b;
+  border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+}
+.alert-info {
+  background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+  color: var(--color-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-secondary) 40%, transparent);
+}
+.alert-success {
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+  border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
+}

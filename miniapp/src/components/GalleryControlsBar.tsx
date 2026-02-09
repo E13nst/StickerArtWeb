@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-;
+import { useEffect, useRef, useState, useCallback, memo, FC } from 'react';
 import { SearchBar } from './SearchBar';
 import { CategoryFilter, Category } from './CategoryFilter';
 import { SortButton } from './SortButton';
@@ -47,7 +46,7 @@ interface GalleryControlsBarProps {
   scrollContainerRef?: React.RefObject<HTMLElement>;
 }
 
-const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
+const GalleryControlsBarComponent: FC<GalleryControlsBarProps> = ({
   searchValue,
   onSearchChange,
   onSearch,
@@ -64,7 +63,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
   selectedDate,
   onDateChange,
   onAddClick,
-  scrollContainerRef,
+  scrollContainerRef: _scrollContainerRef,
 }) => {
   const { tg } = useTelegram();
   const scrollElement = useScrollElement();
@@ -166,16 +165,16 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
     >
       {/* Top row: Search + Filter + Sort */}
       <div
-        sx={{
+        style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          mb: '0.5rem',
+          marginBottom: '0.5rem',
         }}
       >
         {/* Search Bar or Icon - collapses to icon when filter is active */}
         <div 
-          sx={{ 
+          style={{ 
             flex: isFilterActive ? '0 0 auto' : '1 1 auto',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             minWidth: isFilterActive ? '2.2rem' : '0',
@@ -226,7 +225,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
                 });
               }}
             >
-              <SearchIcon sx={{ fontSize: '1rem' }} />
+              <SearchIcon style={{ fontSize: '1rem' }} />
             </button>
           ) : (
             <SearchBar
@@ -289,7 +288,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
             });
           }}
         >
-          <TuneIcon sx={{ fontSize: '1rem', flexShrink: 0 }} />
+          <TuneIcon style={{ fontSize: '1rem', flexShrink: 0 }} />
           <span 
             style={{
               opacity: filterLabel ? 1 : 0,
@@ -313,8 +312,8 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
 
       {/* Filter content row - shows different content based on filter mode */}
       <div 
-        sx={{ 
-          mb: '0.5rem',
+        style={{ 
+          marginBottom: '0.5rem',
         }}
       >
         <div
@@ -363,7 +362,7 @@ const GalleryControlsBarComponent: React.FC<GalleryControlsBarProps> = ({
       `}</style>
 
       {/* Add button */}
-      <div sx={{ mb: '0' }}>
+      <div style={{ marginBottom: '0' }}>
         <AddStickerPackButton
           variant="gallery"
           onClick={onAddClick}
@@ -438,4 +437,4 @@ const arePropsEqual = (
   return true;
 };
 
-export const GalleryControlsBar = React.memo(GalleryControlsBarComponent, arePropsEqual);
+export const GalleryControlsBar = memo(GalleryControlsBarComponent, arePropsEqual);

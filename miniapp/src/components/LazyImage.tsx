@@ -1,17 +1,17 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import { useState, useRef, useEffect, memo, ReactNode, CSSProperties, FC } from 'react';
 import './LazyImage.css';
 
 interface LazyImageProps {
   src: string;
   alt: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   onLoad?: () => void;
   onError?: () => void;
-  placeholder?: React.ReactNode;
-  fallback?: React.ReactNode;
+  placeholder?: ReactNode;
+  fallback?: ReactNode;
 }
 
-const LazyImageComponent: React.FC<LazyImageProps> = ({
+const LazyImageComponent: FC<LazyImageProps> = ({
   src,
   alt,
   style,

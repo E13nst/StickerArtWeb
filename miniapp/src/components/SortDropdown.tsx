@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, FC } from 'react';
 import { createPortal } from 'react-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import './SortDropdown.css';
@@ -36,7 +36,7 @@ const ArrowDownIcon = ({ isOpen }: { isOpen: boolean }) => (
   </svg>
 );
 
-export const SortDropdown: React.FC<SortDropdownProps> = ({
+export const SortDropdown: FC<SortDropdownProps> = ({
   sortByLikes,
   onToggle,
   disabled = false,

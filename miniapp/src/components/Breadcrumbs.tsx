@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, Fragment, FC } from 'react';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 
 interface BreadcrumbItem {
@@ -16,7 +16,7 @@ interface BreadcrumbsProps {
   showHome?: boolean;
 }
 
-export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
+export const Breadcrumbs: FC<BreadcrumbsProps> = ({
   items,
   onNavigate,
   maxItems = 3,
@@ -105,7 +105,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
 
       {/* Видимые элементы */}
       {visibleItems.map((item, index) => (
-        <React.Fragment key={item.id}>
+        <Fragment key={item.id}>
           {index > 0 && (
             <span style={{ color: 'var(--tg-theme-hint-color)', fontSize: '12px' }}>›</span>
           )}
@@ -138,7 +138,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
             {item.icon && <span>{item.icon}</span>}
             <span>{item.label}</span>
           </button>
-        </React.Fragment>
+        </Fragment>
       ))}
 
       {/* Кнопка сворачивания */}

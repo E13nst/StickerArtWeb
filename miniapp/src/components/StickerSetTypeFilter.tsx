@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import './StickerSetTypeFilter.css';
 
@@ -24,7 +24,7 @@ const UncheckedIcon = () => (
   </svg>
 );
 
-export const StickerSetTypeFilter: React.FC<StickerSetTypeFilterProps> = ({
+export const StickerSetTypeFilter: FC<StickerSetTypeFilterProps> = ({
   selectedTypes,
   onTypeToggle,
   disabled = false

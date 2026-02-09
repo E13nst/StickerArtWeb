@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FC } from 'react';
 import { PackCard } from './PackCard';
 
 interface AnimatedPackCardProps {
   pack: any;
-  isHighPriority?: boolean;
   onClick?: (packId: string) => void;
   delay?: number; // Задержка анимации в мс
+  isHighPriority?: boolean;
 }
 
-export const AnimatedPackCard: React.FC<AnimatedPackCardProps> = ({
+export const AnimatedPackCard: FC<AnimatedPackCardProps> = ({
   pack,
-  isHighPriority = false,
   onClick,
-  delay = 0
+  delay = 0,
+  isHighPriority: _isHighPriority
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);

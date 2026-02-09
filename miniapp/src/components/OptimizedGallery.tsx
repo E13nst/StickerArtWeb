@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
+import { useRef, useMemo, useCallback, useEffect, useState, FC } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { PackCard } from './PackCard';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -41,11 +41,11 @@ const HORIZONTAL_PADDING_GALLERY = 0;
 const CARD_WIDTH_ACCOUNT = 177;
 const CARD_HEIGHT_ACCOUNT = 213;
 
-export const OptimizedGallery: React.FC<OptimizedGalleryProps> = ({
+export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
   packs,
   onPackClick,
-  getLikesCount,
-  onLikeClick,
+  getLikesCount: _getLikesCount,
+  onLikeClick: _onLikeClick,
   hasNextPage = false,
   isLoadingMore = false,
   onLoadMore,

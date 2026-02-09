@@ -1,4 +1,4 @@
-import React from 'react';
+import { ReactNode, CSSProperties, FC, createElement } from 'react';
 import './Text.css';
 
 export type TextVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'bodySmall' | 'caption' | 'label';
@@ -11,9 +11,9 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   weight?: TextWeight;
   color?: TextColor;
   align?: TextAlign;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   as?: keyof JSX.IntrinsicElements;
 }
 
@@ -28,7 +28,7 @@ const variantToElement: Record<TextVariant, keyof JSX.IntrinsicElements> = {
   label: 'span',
 };
 
-export const Text: React.FC<TextProps> = ({
+export const Text: FC<TextProps> = ({
   variant = 'body',
   weight,
   color = 'default',
@@ -57,7 +57,7 @@ export const Text: React.FC<TextProps> = ({
     ...rest,
   };
 
-  return React.createElement(Element, props, children);
+  return createElement(Element, props, children);
 };
 
 export default Text;

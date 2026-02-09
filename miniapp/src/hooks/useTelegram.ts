@@ -86,7 +86,7 @@ const createMockTelegramEnv = (realInitData?: string | null): TelegramWebApp => 
 };
 
 // Базовая конфигурация mock Telegram окружения
-const createMockTelegramEnvBase = (mockUser: TelegramUser): Partial<TelegramWebApp> => {
+const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWebApp> => {
 
   // Определяем тему на основе системных настроек
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -416,9 +416,10 @@ export const useTelegram = () => {
       
       // Вызываем disableVerticalSwipes только если версия поддерживает (>= 7.7)
       if (supportsDisableSwipes) {
-        if (typeof window !== 'undefined' && window.Telegram?.WebApp?.disableVerticalSwipes) {
+        const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+        if (webApp && typeof webApp.disableVerticalSwipes === 'function') {
           try {
-            window.Telegram.WebApp.disableVerticalSwipes();
+            webApp.disableVerticalSwipes();
             if (import.meta.env.DEV) {
               console.log('✅ Вертикальные свайпы отключены - Mini App не будет сворачиваться');
             }
@@ -454,9 +455,10 @@ export const useTelegram = () => {
       
       // Вызываем методы цвета только если версия поддерживает (>= 7.0)
       if (supportsColorMethods) {
-        if (typeof telegram.setHeaderColor === 'function') {
+        const tgAny = telegram as { setHeaderColor?: (c: string) => void; setBackgroundColor?: (c: string) => void };
+        if (typeof tgAny.setHeaderColor === 'function') {
           try {
-            telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+            tgAny.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
           } catch (e) {
             // Игнорируем ошибки если метод не поддерживается
             if (import.meta.env.DEV) {
@@ -465,9 +467,9 @@ export const useTelegram = () => {
           }
         }
         
-        if (typeof telegram.setBackgroundColor === 'function') {
+        if (typeof tgAny.setBackgroundColor === 'function') {
           try {
-            telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+            tgAny.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
           } catch (e) {
             // Игнорируем ошибки если метод не поддерживается
             if (import.meta.env.DEV) {
@@ -546,9 +548,10 @@ export const useTelegram = () => {
           
           // Вызываем методы только если версия поддерживает
           if (supportsColorMethods) {
-            if (typeof telegram.setHeaderColor === 'function') {
+            const tgAny = telegram as { setHeaderColor?: (c: string) => void; setBackgroundColor?: (c: string) => void };
+            if (typeof tgAny.setHeaderColor === 'function') {
               try {
-                telegram.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+                tgAny.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
               } catch (e) {
                 // Игнорируем ошибки если метод не поддерживается
                 if (import.meta.env.DEV) {
@@ -557,9 +560,9 @@ export const useTelegram = () => {
               }
             }
             
-            if (typeof telegram.setBackgroundColor === 'function') {
+            if (typeof tgAny.setBackgroundColor === 'function') {
               try {
-                telegram.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+                tgAny.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
               } catch (e) {
                 // Игнорируем ошибки если метод не поддерживается
                 if (import.meta.env.DEV) {
@@ -839,11 +842,12 @@ export const useTelegram = () => {
     
     // Задержка для группировки множественных вызовов
     updateHeaderColorTimeoutRef.current = window.setTimeout(() => {
-      if (tg && typeof tg.setHeaderColor === 'function') {
+      const tgAny = tg as { setHeaderColor?: (c: string) => void } | null;
+      if (tgAny && typeof tgAny.setHeaderColor === 'function') {
         try {
           // Используем 'bg_color' как ключ, а не hex цвет
           // setHeaderColor принимает ключ цвета ('bg_color', 'secondary_bg_color'), а не hex
-          tg.setHeaderColor('bg_color');
+          tgAny.setHeaderColor('bg_color');
           lastColorRef.current = color;
         } catch (e) {
           // Игнорируем ошибки если метод не поддерживается

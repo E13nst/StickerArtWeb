@@ -1,4 +1,3 @@
-import React from 'react';
 import './PageBackground.css';
 
 /** URL картинки задаётся через CSS: --page-bg-image: url('path/to/image.png'); на родителе или в :root */

@@ -31,6 +31,14 @@ export interface Sticker {
   custom_emoji_id?: string;
   needs_repainting?: boolean;
   file_size?: number;
+  /** Миниатюра (Telegram PhotoSize) */
+  thumb?: {
+    file_id: string;
+    file_unique_id?: string;
+    width?: number;
+    height?: number;
+    file_size?: number;
+  };
 }
 
 export interface StickerSet {
@@ -108,6 +116,15 @@ export interface StickerSetResponse {
     displayOrder: number;
     isActive: boolean;
   }>; // Категории стикерсета
+
+  /** Превью-стикеры для модалки/карточек */
+  previewStickers?: Sticker[];
+  /** Ссылка на стикерпак (t.me/addstickers/...) */
+  url?: string;
+  /** Публичный ли стикерпак */
+  isPublic?: boolean;
+  /** Количество стикеров в наборе */
+  stickerCount?: number;
 }
 
 export interface StickerSetPreviewResponse {

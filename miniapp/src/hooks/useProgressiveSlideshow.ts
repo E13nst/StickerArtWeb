@@ -21,12 +21,12 @@ export function useProgressiveSlideshow({
   isVisible,
   isDocumentHidden,
   prefersReducedMotion,
-  posters
+  posters: _posters
 }: UseProgressiveSlideshowOptions) {
   const [loadedImages, setLoadedImages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<ReturnType<typeof setTimeout>>();
   const loadingRef = useRef(false);
 
   // Загрузка дополнительных изображений при видимости

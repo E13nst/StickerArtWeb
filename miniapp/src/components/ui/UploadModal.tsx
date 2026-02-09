@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, FC, MouseEvent, ChangeEvent } from 'react';
 import './UploadModal.css';
 
 export interface UploadModalProps {
@@ -12,7 +12,7 @@ export interface UploadModalProps {
   className?: string;
 }
 
-export const UploadModal: React.FC<UploadModalProps> = ({
+export const UploadModal: FC<UploadModalProps> = ({
   isOpen,
   onClose,
   onUpload,
@@ -40,7 +40,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
   // Handle overlay click
   const handleOverlayClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
+    (event: MouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
         onClose();
       }
@@ -76,7 +76,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   };
 
   // Handle file selection
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const validFiles = validateFiles(files);

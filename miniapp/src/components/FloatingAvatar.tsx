@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-;
+import { useState, useEffect, useMemo, FC } from 'react';
+import { Avatar } from '@/components/ui/Avatar';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { UserInfo } from '@/store/useProfileStore';
 import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
@@ -7,16 +7,16 @@ import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
 interface FloatingAvatarProps {
   userInfo: UserInfo;
   size?: 'small' | 'medium' | 'large';
-  overlap?: number; // процент перекрытия (0-50)
+  overlap?: number;
 }
 
 const sizeMap = {
-  small: 0.382, // Золотое сечение (1 - 0.618)
-  medium: 0.5, // Половина экрана
-  large: 0.618 // Золотое сечение (фибоначчи)
+  small: 0.382,
+  medium: 0.5,
+  large: 0.618
 };
 
-export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
+export const FloatingAvatar: FC<FloatingAvatarProps> = ({
   userInfo,
   size = 'large',
   overlap = 35
@@ -26,14 +26,12 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
   const firstName = getUserFirstName(userInfo);
   const lastName = getUserLastName(userInfo);
   
-  // Определяем целевой размер аватара для выбора оптимального фото
   const targetSize = size === 'large' ? 160 : size === 'medium' ? 130 : 100;
   
   const avatarSrc = useMemo(() => {
     if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('blob:')) {
       return userInfo.avatarUrl;
     }
-    // Передаем userId, profilePhotos и targetSize для выбора оптимального размера
     const userId = userInfo.id || userInfo.telegramId;
     return userInfo.avatarUrl || getAvatarUrl(userId, userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize);
   }, [userInfo.avatarUrl, userInfo.id, userInfo.telegramId, userInfo.profilePhotoFileId, userInfo.profilePhotos, targetSize]);
@@ -45,45 +43,27 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
   const initials = getInitials(firstName, lastName);
   const avatarBgColor = getAvatarColor(firstName);
 
-  // Вычисляем размер аватара относительно viewport width
   const avatarSizeRatio = sizeMap[size];
   const avatarWidth = `calc(${avatarSizeRatio * 100}vw)`;
-  // Гармонические размеры: 160px (large), 130px (medium), 100px (small)
   const maxAvatarSize = size === 'large' ? '160px' : size === 'medium' ? '130px' : '100px';
+  const fontSize = size === 'large' ? '2.2rem' : size === 'medium' ? '1.8rem' : '1.4rem';
 
   return (
-    <div
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
-        marginTop: `-${overlap}%`,
-        marginBottom: 2
-      }}
-    >
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10, marginTop: `-${overlap}%`, marginBottom: 16 }}>
       <Avatar
         src={!avatarError ? avatarSrc : undefined}
-        imgProps={{
-          onError: () => setAvatarError(true),
-          loading: 'lazy'
-        }}
-        sx={{
-          width: { xs: avatarWidth, sm: maxAvatarSize },
-          height: { xs: avatarWidth, sm: maxAvatarSize },
-          maxWidth: maxAvatarSize,
-          maxHeight: maxAvatarSize,
-          border: '4px solid',
-          borderColor: 'var(--tg-theme-bg-color, #ffffff)',
+        size={targetSize}
+        style={{
+          border: '4px solid var(--tg-theme-bg-color, #ffffff)',
           backgroundColor: avatarBgColor,
-          fontSize: {
-            xs: `calc(${avatarSizeRatio} * 2rem)`,
-            sm: size === 'large' ? '2.2rem' : size === 'medium' ? '1.8rem' : '1.4rem'
-          },
+          fontSize,
           fontWeight: 'bold',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-          aspectRatio: '1 / 1'
+          aspectRatio: '1 / 1',
+          maxWidth: maxAvatarSize,
+          maxHeight: maxAvatarSize,
+          width: avatarWidth,
+          height: avatarWidth
         }}
       >
         {initials}
@@ -91,4 +71,3 @@ export const FloatingAvatar: React.FC<FloatingAvatarProps> = ({
     </div>
   );
 };
-

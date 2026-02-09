@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface StickerTypeFilterProps {
@@ -15,7 +15,7 @@ const STICKER_TYPES = [
   { id: 'official', label: 'Официальные', emoji: '✓' },
 ];
 
-export const StickerTypeFilter: React.FC<StickerTypeFilterProps> = ({
+export const StickerTypeFilter: FC<StickerTypeFilterProps> = ({
   selectedTypes,
   onTypeToggle,
   disabled = false,

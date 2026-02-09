@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, ReactNode, FC } from 'react';
 import { useHapticFeedback } from './useHapticFeedback';
 
 export type TransitionType = 'slide' | 'fade' | 'scale' | 'flip' | 'push' | 'cover';
@@ -30,7 +30,7 @@ export const usePageTransitions = () => {
   });
 
   const { hapticClick } = useHapticFeedback();
-  const transitionTimeoutRef = useRef<NodeJS.Timeout>();
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Выполнение перехода
   const transitionTo = useCallback(async (
@@ -41,7 +41,6 @@ export const usePageTransitions = () => {
       type = 'slide',
       direction = 'right',
       duration = 300,
-      easing = 'cubic-bezier(0.4, 0, 0.2, 1)',
       delay = 0
     } = options;
 
@@ -101,11 +100,11 @@ interface AnimatedPageProps {
   transitionType: TransitionType;
   direction: TransitionDirection;
   duration: number;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }
 
-export const AnimatedPage: React.FC<AnimatedPageProps> = ({
+export const AnimatedPage: FC<AnimatedPageProps> = ({
   pageId,
   isActive,
   isEntering,
@@ -120,7 +119,6 @@ export const AnimatedPage: React.FC<AnimatedPageProps> = ({
     if (!isEntering && !isExiting) return 'translateX(0) translateY(0) scale(1)';
     
     const isHorizontal = direction === 'left' || direction === 'right';
-    const isVertical = direction === 'up' || direction === 'down';
     
     switch (transitionType) {
       case 'slide':
