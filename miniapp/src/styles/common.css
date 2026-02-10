@@ -48,9 +48,18 @@
   padding-bottom: 0;
 }
 
-/* Единый фон для внутреннего контейнера на всех страницах */
+/* Единый фон для внутреннего контейнера на всех страницах; контент выше слоя градиента */
 .page-container .stixly-page-container {
+  position: relative;
+  z-index: 1;
   background-color: transparent !important;
+}
+
+/* Контент модалок — цвета приложения (surface, text); можно переопределять в компонентах */
+[data-modal-content] {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family, 'Manrope', sans-serif);
 }
 
 /* ============================================

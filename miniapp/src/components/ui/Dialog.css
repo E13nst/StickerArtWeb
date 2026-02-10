@@ -5,12 +5,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-overlay-dark-strong, rgba(0,0,0,0.5));
+  background: var(--color-overlay-dark);
   padding: 16px;
 }
 .dialog-paper {
-  background: var(--color-surface, var(--tg-theme-secondary-bg-color));
-  color: var(--color-text, var(--tg-theme-text-color));
+  background: var(--color-surface);
+  color: var(--color-text);
   border-radius: var(--border-radius-lg, 12px);
   max-width: 100%;
   max-height: calc(100vh - 32px);
@@ -20,8 +20,11 @@
 .dialog-title {
   margin: 0;
   padding: 16px 20px 8px;
-  font-size: 18px;
-  font-weight: 600;
+  font-family: var(--font-family, 'Manrope', sans-serif);
+  font-size: var(--font-size-h2, 20px);
+  font-weight: var(--font-weight-h2, 700);
+  line-height: var(--line-height-h2, 22px);
+  color: var(--color-text);
 }
 .dialog-content {
   padding: 8px 20px 16px;

@@ -62,7 +62,7 @@
 .sticker-set-detail-card__handle {
   width: 34px;
   height: 3px;
-  background-color: var(--tg-theme-hint-color);
+  background-color: var(--color-text-secondary);
   opacity: 0.4;
   border-radius: 2px;
   margin-top: 3px;
@@ -240,18 +240,18 @@
 }
 .sticker-set-detail-card__icon-btn--edit {
   background: transparent;
-  color: var(--tg-theme-link-color);
+  color: var(--color-primary);
 }
 .sticker-set-detail-card__icon-btn--edit:hover {
   background: rgba(36, 129, 204, 0.1);
 }
 .sticker-set-detail-card__icon-btn--categories {
   background: transparent;
-  color: var(--tg-theme-hint-color);
+  color: var(--color-text-secondary);
 }
 .sticker-set-detail-card__icon-btn--categories:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--tg-theme-text-color);
+  color: var(--color-text);
 }
 @media (max-width: 400px) {
   .sticker-set-detail-card__icon-btn {
@@ -271,8 +271,8 @@
   margin-left: 8px;
   margin-right: 8px;
   padding: 12px;
-  color: var(--tg-theme-text-color);
-  border: 1px solid var(--tg-theme-error-color);
+  color: var(--color-text);
+  border: 1px solid var(--color-error);
   background: rgba(244, 67, 54, 0.12);
   border-radius: 8px;
   font-size: 14px;
@@ -314,7 +314,7 @@
 .sticker-set-detail-card__divider {
   width: 100%;
   height: 1px;
-  background-color: var(--tg-theme-border-color);
+  background-color: var(--color-border);
   margin-top: 8px;
   margin-bottom: 8px;
 }

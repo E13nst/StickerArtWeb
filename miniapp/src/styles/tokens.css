@@ -7,7 +7,7 @@
      ============================================ */
   
   /* Primary Colors */
-  --color-primary: var(--tg-theme-button-color, #ee449f);
+  --color-primary: #ee449f;
   --color-secondary: var(--tg-theme-link-color, #007aff);
   
   /* Background Colors */

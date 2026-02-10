@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback, useRef, FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { KeyboardArrowDownIcon, NavGalleryIcon } from '@/components/ui/Icons';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import './GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { useTelegram } from '@/hooks/useTelegram';
+import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
@@ -31,9 +33,12 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
+const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
+const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
+
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
-  const { isInTelegramApp, tg } = useTelegram();
+  const { isInTelegramApp, tg, user } = useTelegram();
   
   // Inline-режим параметры из URL
   const [, setInlineQueryId] = useState<string | null>(null);
@@ -392,10 +397,13 @@ export const GeneratePage: FC = () => {
   const isFormValid = prompt.trim().length >= MIN_PROMPT_LENGTH && prompt.trim().length <= MAX_PROMPT_LENGTH;
   const isGenerating = pageState === 'generating';
   const isDisabled = isGenerating || !isFormValid;
+  const hasPromptText = prompt.trim().length > 0;
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
   const shouldShowGeneralError = errorMessage && errorKind !== 'prompt';
+  const isCompactState = pageState !== 'success';
+  const createStickerTitle = t('generate.createStickerWithAI', user?.language_code);
 
   const handlePromptChange = (value: string) => {
     setPrompt(value);
@@ -406,10 +414,74 @@ export const GeneratePage: FC = () => {
     }
   };
 
+  const modelOptions: Array<{ id: number | null; name: string }> = [
+    { id: null, name: 'Model 1' },
+    ...stylePresets.map((preset) => ({ id: preset.id, name: preset.name })),
+  ];
+
+  const handleModelChange = (rawValue: string) => {
+    if (rawValue === 'none') {
+      setSelectedStylePresetId(null);
+      return;
+    }
+    const parsed = Number(rawValue);
+    setSelectedStylePresetId(Number.isFinite(parsed) ? parsed : null);
+  };
+
+  const renderModelFileRow = (disabled: boolean) => (
+    <div className="generate-model-file-row">
+      <label className="generate-model-select-wrap">
+        <select
+          className="generate-model-select"
+          value={selectedStylePresetId == null ? 'none' : String(selectedStylePresetId)}
+          onChange={(e) => handleModelChange(e.target.value)}
+          disabled={disabled}
+          aria-label="Выбор модели генерации"
+        >
+          {modelOptions.map((option) => (
+            <option key={option.id ?? 'none'} value={option.id == null ? 'none' : String(option.id)}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+        <KeyboardArrowDownIcon size={14} color="var(--color-text-secondary)" />
+      </label>
+
+      <div className="generate-model-file-right">
+        <span className="generate-char-counter-inline">
+          {prompt.length}/{MAX_PROMPT_LENGTH}
+        </span>
+        <button
+          type="button"
+          className="generate-file-icon"
+          disabled
+          aria-label="Выбор файла"
+          title="Выбор файла"
+        >
+          <NavGalleryIcon size={19} color="var(--color-text-secondary)" />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderBrandBlock = () => (
+    <div className="generate-brand" aria-hidden="true">
+      <img
+        src={STIXLY_LOGO_ORANGE}
+        alt=""
+        className="generate-brand-logo"
+        loading="eager"
+        decoding="async"
+      />
+    </div>
+  );
+
   // Рендер состояния генерации (Figma: "Please wait..." + форма readonly + CANCEL)
   const renderGeneratingState = () => (
     <>
-      <p className="generate-logo-label">Генерация</p>
+      <div className="generate-status-container">
+        <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Идет генерация...'} />
+      </div>
       <p className="generate-status-header">Пожалуйста, подождите...</p>
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
@@ -420,9 +492,7 @@ export const GeneratePage: FC = () => {
             value={prompt}
             maxLength={MAX_PROMPT_LENGTH}
           />
-          <span className="generate-char-counter-inline">
-            {prompt.length}/{MAX_PROMPT_LENGTH}
-          </span>
+          {renderModelFileRow(true)}
         </div>
         <label className="generate-checkbox-label">
           <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
@@ -436,12 +506,9 @@ export const GeneratePage: FC = () => {
             disabled
           />
         </div>
-        <div className="generate-status-container">
-          <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Идет генерация...'} />
-          <Button variant="secondary" size="medium" onClick={handleReset} className="generate-button-cancel">
-            Отменить
-          </Button>
-        </div>
+        <Button variant="primary" size="medium" onClick={handleReset} className="generate-button-cancel">
+          Отменить
+        </Button>
       </div>
     </>
   );
@@ -449,7 +516,7 @@ export const GeneratePage: FC = () => {
   // Рендер результата (Figma: image → Save → форма readonly → GENERATE 10 ART)
   const renderSuccessState = () => (
     <div className="generate-result-container">
-      <p className="generate-logo-label">Генерация</p>
+      {renderBrandBlock()}
 
       <div className="generate-success-section">
         <p className="generate-section-title">Последний результат</p>
@@ -474,7 +541,7 @@ export const GeneratePage: FC = () => {
         <div className="generate-actions">
           {imageId && !stickerSaved && (
             <Button
-              variant="secondary"
+              variant="primary"
               size="medium"
               onClick={handleSaveToStickerSet}
               disabled={isSaving}
@@ -485,7 +552,7 @@ export const GeneratePage: FC = () => {
             </Button>
           )}
           <Button
-            variant="secondary"
+            variant="primary"
             size="medium"
             onClick={handleShareSticker}
             disabled={!fileId}
@@ -504,7 +571,13 @@ export const GeneratePage: FC = () => {
       <div className="generate-success-section generate-new-request">
         <p className="generate-section-title">Новый запрос</p>
         <div className="generate-form-block">
-          <div className={cn('generate-input-wrapper', shouldShowPromptError && 'generate-input-wrapper--error')}>
+          <div
+            className={cn(
+              'generate-input-wrapper',
+              hasPromptText && 'generate-input-wrapper--active',
+              shouldShowPromptError && 'generate-input-wrapper--error',
+            )}
+          >
             <textarea
               className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
               rows={4}
@@ -514,9 +587,7 @@ export const GeneratePage: FC = () => {
               maxLength={MAX_PROMPT_LENGTH}
               disabled={isGenerating}
             />
-            <span className="generate-char-counter-inline">
-              {prompt.length}/{MAX_PROMPT_LENGTH}
-            </span>
+            {renderModelFileRow(isGenerating)}
             {shouldShowPromptError && (
               <div className="generate-error-inline">
                 <span className="generate-error-icon">!</span>
@@ -546,7 +617,7 @@ export const GeneratePage: FC = () => {
           </div>
 
           <Button
-            variant="secondary"
+            variant="primary"
             size="medium"
             onClick={handleGenerate}
             disabled={isDisabled}
@@ -557,7 +628,7 @@ export const GeneratePage: FC = () => {
           </Button>
 
           <Button
-            variant="secondary"
+            variant="primary"
             size="small"
             onClick={handleGenerateAnother}
             disabled={isGenerating}
@@ -573,8 +644,8 @@ export const GeneratePage: FC = () => {
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      <p className="generate-logo-label">Генерация</p>
-      <p className="generate-header">Создайте стикер с помощью Stixly Generation</p>
+      {renderBrandBlock()}
+      <p className="generate-header">{createStickerTitle}</p>
       {shouldShowGeneralError && (
         <div className="generate-error-banner">
           <span className="generate-error-icon">!</span>
@@ -582,7 +653,13 @@ export const GeneratePage: FC = () => {
         </div>
       )}
       <div className="generate-form-block">
-        <div className={cn('generate-input-wrapper', shouldShowPromptError && 'generate-input-wrapper--error')}>
+        <div
+          className={cn(
+            'generate-input-wrapper',
+            hasPromptText && 'generate-input-wrapper--active',
+            shouldShowPromptError && 'generate-input-wrapper--error',
+          )}
+        >
           <textarea
             className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
             rows={4}
@@ -591,9 +668,7 @@ export const GeneratePage: FC = () => {
             onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
           />
-          <span className="generate-char-counter-inline">
-            {prompt.length}/{MAX_PROMPT_LENGTH}
-          </span>
+          {renderModelFileRow(false)}
           {shouldShowPromptError && (
             <div className="generate-error-inline">
               <span className="generate-error-icon">!</span>
@@ -634,11 +709,11 @@ export const GeneratePage: FC = () => {
   // Рендер формы (Figma: Logo → Header → Inpit → Delete background → Style preview → Button)
   const renderIdleState = () => (
     <>
-      <p className="generate-logo-label">Генерация</p>
-      <p className="generate-header">Создайте стикер с помощью Stixly Generation</p>
+      {renderBrandBlock()}
+      <p className="generate-header">{createStickerTitle}</p>
 
       <div className="generate-form-block">
-        <div className="generate-input-wrapper">
+        <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
           <textarea
             className="generate-input"
             rows={4}
@@ -647,9 +722,7 @@ export const GeneratePage: FC = () => {
             onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
           />
-          <span className="generate-char-counter-inline">
-            {prompt.length}/{MAX_PROMPT_LENGTH}
-          </span>
+          {renderModelFileRow(isGenerating)}
         </div>
 
         <label className="generate-checkbox-label">
@@ -689,7 +762,7 @@ export const GeneratePage: FC = () => {
   return (
     <div className={cn('page-container', 'generate-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
-      <StixlyPageContainer className="generate-inner">
+      <StixlyPageContainer className={cn('generate-inner', isCompactState && 'generate-inner--compact')}>
         {pageState === 'idle' && renderIdleState()}
         {pageState === 'generating' && renderGeneratingState()}
         {pageState === 'success' && renderSuccessState()}

@@ -5,6 +5,7 @@
   right: 0;
   bottom: 0;
   z-index: var(--z-modal, 1000);
+  background-color: var(--color-overlay-dark, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   display: flex;

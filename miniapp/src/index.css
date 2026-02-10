@@ -53,8 +53,8 @@
   --tg-theme-text-color-rgb: 0, 0, 0;
   --tg-theme-hint-color: #999999;
   --tg-theme-link-color: #2481cc;
-  --tg-theme-button-color: #2481cc;
-  --tg-theme-button-color-rgb: 36, 129, 204;
+  --tg-theme-button-color: #ee449f;
+  --tg-theme-button-color-rgb: 238, 68, 159;
   --tg-theme-button-text-color: #ffffff;
   --tg-theme-secondary-bg-color: #f8f9fa;
   --tg-theme-border-color: #e0e0e0;
@@ -961,8 +961,8 @@ svg,
   --tg-theme-text-color: #000000;
   --tg-theme-hint-color: #999999;
   --tg-theme-link-color: #2481cc;
-  --tg-theme-button-color: #2481cc;
-  --tg-theme-button-color-rgb: 36, 129, 204;
+  --tg-theme-button-color: #ee449f;
+  --tg-theme-button-color-rgb: 238, 68, 159;
   --tg-theme-button-text-color: #ffffff;
   --tg-theme-secondary-bg-color: #f8f9fa;
   --tg-theme-border-color: #e0e0e0;

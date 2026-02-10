@@ -7,8 +7,10 @@ import { SwipeCardStack } from '@/components/ui/SwipeCardStack';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { AnimatedSticker } from '@/components/AnimatedSticker';
 import { getStickerImageUrl } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
+import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 
 const SHOW_HELLO_KEY = 'swipe-hello-shown';
 
@@ -91,6 +93,8 @@ export const SwipePage: FC = () => {
     const stickerSet = card as StickerSetResponse;
     const previewSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
     const imageUrl = previewSticker ? getStickerImageUrl(previewSticker.file_id) : '';
+    const isAnimated = Boolean(previewSticker?.is_animated || stickerSet.telegramStickerSetInfo?.is_animated);
+    const isVideo = Boolean(previewSticker?.is_video || stickerSet.telegramStickerSetInfo?.is_video);
     const stopPropagation = (event: React.SyntheticEvent) => {
       event.stopPropagation();
     };
@@ -107,14 +111,70 @@ export const SwipePage: FC = () => {
         </div>
 
         <div className="swipe-card__preview">
-          {imageUrl && (
-            <img
-              src={imageUrl}
-              alt={stickerSet.title}
-              className="swipe-card__image"
-              loading={index === 0 ? 'eager' : 'lazy'}
-            />
-          )}
+          <div className="swipe-card__preview-inner">
+            {previewSticker ? (
+              isAnimated ? (
+                <AnimatedSticker
+                  fileId={previewSticker.file_id}
+                  imageUrl={imageUrl}
+                  emoji={previewSticker.emoji || '🎨'}
+                  className="pack-card-animated-sticker"
+                  hidePlaceholder={true}
+                  priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
+                />
+              ) : isVideo ? (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <video
+                    src={videoBlobCache.get(previewSticker.file_id) || imageUrl}
+                    className="pack-card-video"
+                    autoPlay={index === 0}
+                    loop
+                    muted
+                    playsInline
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <img
+                    src={imageCache.get(previewSticker.file_id) || imageUrl}
+                    alt={stickerSet.title}
+                    className="pack-card-image"
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
+              )
+            ) : (
+              <div className="swipe-card__placeholder">
+                <span className="swipe-card__placeholder-emoji">🎨</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="swipe-card__footer">

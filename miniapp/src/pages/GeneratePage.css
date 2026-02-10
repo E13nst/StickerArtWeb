@@ -1,5 +1,9 @@
 /* GeneratePage — по макету Figma. Фон как на других страницах: .page-container + OtherAccountBackground */
 .generate-page {
+  position: relative;
+  --page-dynamic-gradient:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
   padding-bottom: 100px;
   display: flex;
   flex-direction: column;
@@ -22,7 +26,42 @@
   gap: 16px;
 }
 
-/* Figma: Logo/маскот — "Generation" 8px, #ee449f */
+.generate-page .generate-inner.generate-inner--compact {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 402px;
+  height: 406px;
+  justify-content: center;
+  z-index: 1;
+}
+
+.generate-brand {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  gap: 0;
+  width: 280px;
+  height: 160px;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+.generate-brand-logo {
+  width: 280px;
+  height: 160px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 7.6px #EE449F);
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+/* Figma: Logo/маскот подпись — "Generation" 8px, #ee449f */
 .generate-logo-label {
   font-family: var(--font-family-base);
   font-size: 8px;
@@ -30,7 +69,12 @@
   line-height: 22px;
   color: var(--color-primary);
   text-align: center;
-  margin: 0 0 var(--spacing-sm) 0;
+  width: 42px;
+  height: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 
 /* Header — Figma: "Generate a sticker with Stixly Generation", 16px center (gap from parent) */
@@ -40,6 +84,11 @@
   font-weight: 400;
   line-height: 16px;
   color: var(--color-text);
+  width: 370px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   margin: 0;
 }
@@ -50,16 +99,39 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  max-width: 370px;
   align-self: stretch;
 }
 
 .generate-input-wrapper {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px;
+  gap: 8px;
   width: 100%;
+  max-width: 370px;
+  height: 99px;
+  background: #262626;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Подсвечиваем весь контейнер при вводе/фокусе */
+.generate-input-wrapper:focus-within,
+.generate-input-wrapper--active {
+  box-shadow: 0 0 0 2px var(--color-overlay-primary), 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 /* Input error state */
-.generate-input-wrapper--error .generate-input {
+.generate-input-wrapper--error {
   box-shadow: 0 0 0 1px var(--color-error), 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
@@ -69,25 +141,26 @@
 
 .generate-input {
   width: 100%;
-  min-height: 99px;
-  padding: 8px var(--spacing-md);
-  padding-bottom: 32px;
-  background-color: var(--color-surface);
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  padding-bottom: 0;
+  background-color: transparent;
   border: none;
-  border-radius: 16px;
+  border-radius: 0;
   color: var(--color-text);
   font-size: 12px;
   font-family: var(--font-family-base);
   line-height: 12px;
-  resize: vertical;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  resize: none;
+  transition: background-color 0.2s ease;
   box-sizing: border-box;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 .generate-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-overlay-primary);
 }
 
 .generate-input--readonly {
@@ -100,12 +173,78 @@
 }
 
 .generate-char-counter-inline {
-  position: absolute;
-  bottom: var(--spacing-sm);
-  right: var(--spacing-md);
+  position: static;
   font-size: 12px;
   color: var(--color-text-secondary);
   opacity: 0.8;
+  line-height: 12px;
+}
+
+/* Model/file row inside Inpit */
+.generate-model-file-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  gap: 10px;
+  width: 100%;
+  max-width: 354px;
+  height: 19px;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.generate-model-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 72px;
+  height: 12px;
+}
+
+.generate-model-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  line-height: 12px;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  cursor: pointer;
+}
+
+.generate-model-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.generate-model-file-right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.generate-file-icon {
+  width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: not-allowed;
+  opacity: 0.9;
 }
 
 /* Checkbox — Figma: "Delete background", 20×20, stroke #d1d1d6, radius 4 */
@@ -163,12 +302,24 @@
 /* Style preset row — Figma: horizontal, 70×70 previews, 16px radius */
 .generate-style-row {
   margin-top: 0;
+  width: 100%;
+  max-width: 370px;
+}
+
+.generate-style-row .style-preset-strip__scroll {
+  justify-content: space-between;
+  gap: 36px;
+  padding-bottom: 0;
+}
+
+.generate-style-row .style-preset-strip__card {
+  height: 92px;
 }
 
 /* Button Generate — Figma: 201×32 or 192×32, #ee449f, 16px radius, Bold 16px */
 .generate-button-submit {
   width: 100%;
-  max-width: 201px;
+  max-width: 192px;
   margin: 0 auto;
   height: 32px !important;
   min-height: 32px !important;
@@ -180,6 +331,21 @@
   background-color: var(--color-primary) !important;
   color: var(--color-text) !important;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+}
+
+.generate-checkbox-label {
+  width: 100%;
+  max-width: 370px;
+}
+
+@media (max-width: 420px) {
+  .generate-page .generate-inner.generate-inner--compact {
+    width: min(402px, calc(100vw - 16px));
+    height: auto;
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+    justify-content: flex-start;
+  }
 }
 
 .generate-button-clear {
@@ -212,18 +378,16 @@
 }
 
 /* ========== PROCESS (Please wait...) ========== */
+/* Занимает место логотипа (280×160) */
 .generate-status-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-lg) var(--spacing-md);
-  min-height: 80px;
-}
-
-.generate-form-block .generate-status-container {
-  padding: var(--spacing-md) 0;
-  min-height: 0;
+  width: 280px;
+  height: 160px;
+  flex: none;
+  flex-grow: 0;
 }
 
 .generate-status-header {

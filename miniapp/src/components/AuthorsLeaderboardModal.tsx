@@ -36,7 +36,7 @@ const LeaderboardAuthorItem: FC<LeaderboardAuthorItemProps> = ({ author, index }
     navigate(`/author/${author.authorId}`);
   };
 
-  const itemBg = index === 0 ? 'var(--tg-theme-button-color)' : (isHovered ? 'var(--tg-theme-secondary-bg-color)' : 'transparent');
+  const itemBg = index === 0 ? 'var(--color-primary)' : (isHovered ? 'rgba(255, 255, 255, 0.1)' : 'transparent');
 
   return (
     <div
@@ -55,7 +55,7 @@ const LeaderboardAuthorItem: FC<LeaderboardAuthorItemProps> = ({ author, index }
       }}
     >
       {/* Номер места */}
-      <div style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600, color: index < 3 ? 'var(--tg-theme-text-color)' : 'var(--tg-theme-hint-color)' }}>
+      <div style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 600, color: index < 3 ? 'var(--color-text)' : 'var(--color-text-secondary)' }}>
         {index + 1}
       </div>
 
@@ -66,7 +66,7 @@ const LeaderboardAuthorItem: FC<LeaderboardAuthorItemProps> = ({ author, index }
         </Avatar>
         {/* Бейдж места для топ-3 */}
         {index < 3 && (
-          <div style={{ position: 'absolute', top: -3, right: -3, width: '18px', height: '18px', borderRadius: '50%', backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#000', border: '2px solid var(--tg-theme-bg-color)' }}>
+          <div style={{ position: 'absolute', top: -3, right: -3, width: '18px', height: '18px', borderRadius: '50%', backgroundColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#000', border: '2px solid var(--color-surface)' }}>
             {index + 1}
           </div>
         )}
@@ -74,13 +74,13 @@ const LeaderboardAuthorItem: FC<LeaderboardAuthorItemProps> = ({ author, index }
 
       {/* Информация об авторе */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="bodySmall" style={{ color: index === 0 ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)', fontSize: '0.8125rem', fontWeight: index === 0 ? 600 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Text variant="bodySmall" style={{ color: index === 0 ? 'var(--color-text)' : 'var(--color-text)', fontSize: '0.8125rem', fontWeight: index === 0 ? 600 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {displayName}
         </Text>
       </div>
 
       {/* Количество публичных стикерсетов */}
-      <Chip label={String(author.publicCount)} size="small" style={{ height: '24px', fontSize: '0.7rem', backgroundColor: index === 0 ? 'rgba(255, 255, 255, 0.2)' : 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', fontWeight: 600, minWidth: '40px' }} />
+      <Chip label={String(author.publicCount)} size="small" style={{ height: '24px', fontSize: '0.7rem', backgroundColor: index === 0 ? 'rgba(255, 255, 255, 0.2)' : 'var(--color-primary)', color: 'var(--color-text)', fontWeight: 600, minWidth: '40px' }} />
     </div>
   );
 };
@@ -192,7 +192,7 @@ export const AuthorsLeaderboardModal: FC<AuthorsLeaderboardModalProps> = ({ open
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.75)',
+          backgroundColor: 'var(--color-surface)',
           backdropFilter: 'blur(15px)',
           WebkitBackdropFilter: 'blur(15px)',
           borderTopLeftRadius: '24px',
@@ -208,7 +208,7 @@ export const AuthorsLeaderboardModal: FC<AuthorsLeaderboardModalProps> = ({ open
           style={{
             width: '34px',
             height: '3px',
-            backgroundColor: 'var(--tg-theme-hint-color)',
+            backgroundColor: 'var(--color-text-secondary)',
             opacity: 0.4,
             borderRadius: '2px',
             marginTop: '3px',
@@ -229,10 +229,10 @@ export const AuthorsLeaderboardModal: FC<AuthorsLeaderboardModalProps> = ({ open
             flexShrink: 0
           }}
         >
-          <Text variant="h4" style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
+          <Text variant="h4" style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)' }}>
             Топ авторов стикерсетов
           </Text>
-          <IconButton onClick={onClose} size="small" style={{ color: 'var(--tg-theme-text-color)', width: '32px', height: '32px'}} aria-label="Закрыть">
+          <IconButton onClick={onClose} size="small" style={{ color: 'var(--color-text)', width: '32px', height: '32px'}} aria-label="Закрыть">
             <CloseIcon size={18} />
           </IconButton>
         </div>
@@ -257,13 +257,13 @@ export const AuthorsLeaderboardModal: FC<AuthorsLeaderboardModalProps> = ({ open
             </div>
           ) : error ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 16px' }}>
-              <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', textAlign: 'center', fontSize: '0.8125rem' }}>
+              <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)', textAlign: 'center', fontSize: '0.8125rem' }}>
                 {error}
               </Text>
             </div>
           ) : authors.length === 0 ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 0' }}>
-              <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.8125rem' }}>
+              <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>
                 Нет данных
               </Text>
             </div>

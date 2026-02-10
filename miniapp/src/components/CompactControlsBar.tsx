@@ -4,7 +4,7 @@ import { useTelegram } from '../hooks/useTelegram';
 import { SearchBar } from './SearchBar';
 import { Category } from './CategoryFilter';
 import { SortDropdown } from './SortDropdown';
-import { StickerSetTypeFilter, StickerSetType } from './StickerSetTypeFilter';
+import { StickerSetType } from './StickerSetTypeFilter';
 import './CompactControlsBar.css';
 import './SortDropdown.css';
 
@@ -75,10 +75,10 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
   onSearchChange,
   onSearch,
   searchDisabled = false,
-  categories: _categories,
-  selectedCategories: _selectedCategories,
-  onCategoryToggle: _onCategoryToggle,
-  categoriesDisabled: _categoriesDisabled = false,
+  categories,
+  selectedCategories,
+  onCategoryToggle,
+  categoriesDisabled = false,
   sortByLikes,
   onSortToggle,
   sortDisabled = false,
@@ -91,7 +91,26 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
   onAddClick: _onAddClick,
   variant = 'fixed',
 }) => {
-  const { tg } = useTelegram();
+  const { tg, user } = useTelegram();
+  const isRu = (user?.language_code || 'ru').toLowerCase().startsWith('ru');
+
+  const text = {
+    searchPlaceholder: isRu ? 'Поиск' : 'Search',
+    dateTrigger: isRu ? 'Дата' : 'Date',
+    filtersTitle: isRu ? 'Фильтры' : 'Filters',
+    reset: isRu ? 'Сброс' : 'Reset',
+    closeFilters: isRu ? 'Закрыть фильтры' : 'Close filters',
+    showFilters: isRu ? 'Показать фильтры' : 'Show filters',
+    hideFilters: isRu ? 'Скрыть фильтры' : 'Hide filters',
+    typeTitle: isRu ? 'Тип' : 'Type',
+    categoryTitle: isRu ? 'Категории' : 'Category',
+    sortTitle: isRu ? 'Сортировка' : 'Sort By',
+    sortByPopularity: isRu ? 'По популярности' : 'By popularity',
+    sortByDateNew: isRu ? 'Сначала новые' : 'Date (new)',
+    typeAll: isRu ? 'Все' : 'All',
+    typeOfficial: isRu ? 'Официальные' : 'Official',
+    typeCustom: isRu ? 'Пользовательские' : 'Custom',
+  };
   
   // State for filters expansion (search always visible in row per Figma Search + filter)
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -122,10 +141,43 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
     if (sortByLikes) {
       onSortToggle();
     }
+
+    // Categories - reset to all (empty selection)
+    if (selectedCategories.length > 0) {
+      selectedCategories.forEach((categoryId) => {
+        onCategoryToggle(categoryId);
+      });
+    }
     
     // Close filters menu after reset
     setFiltersExpanded(false);
-  }, [tg, sortByLikes, onSortToggle, selectedStickerSetTypes, onStickerSetTypeToggle]);
+  }, [tg, sortByLikes, onSortToggle, selectedStickerSetTypes, onStickerSetTypeToggle, selectedCategories, onCategoryToggle]);
+
+  const isAllTypesSelected = selectedStickerSetTypes.length === 0;
+  const isUserTypeSelected = selectedStickerSetTypes.length === 1 && selectedStickerSetTypes[0] === 'USER';
+  const isOfficialTypeSelected = selectedStickerSetTypes.length === 1 && selectedStickerSetTypes[0] === 'OFFICIAL';
+
+  const setStickerSetTypeMode = useCallback((mode: 'ALL' | 'USER' | 'OFFICIAL') => {
+    tg?.HapticFeedback?.impactOccurred('light');
+
+    const hasUser = selectedStickerSetTypes.includes('USER');
+    const hasOfficial = selectedStickerSetTypes.includes('OFFICIAL');
+
+    if (mode === 'ALL') {
+      if (hasUser) onStickerSetTypeToggle('USER');
+      if (hasOfficial) onStickerSetTypeToggle('OFFICIAL');
+      return;
+    }
+
+    if (mode === 'USER') {
+      if (hasOfficial) onStickerSetTypeToggle('OFFICIAL');
+      if (!hasUser) onStickerSetTypeToggle('USER');
+      return;
+    }
+
+    if (hasUser) onStickerSetTypeToggle('USER');
+    if (!hasOfficial) onStickerSetTypeToggle('OFFICIAL');
+  }, [tg, selectedStickerSetTypes, onStickerSetTypeToggle]);
 
   // Close filters menu when clicking outside (panel рендерится в portal в body)
   useEffect(() => {
@@ -164,7 +216,7 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
               value={searchValue}
               onChange={onSearchChange}
               onSearch={onSearch}
-              placeholder="Search"
+              placeholder={text.searchPlaceholder}
               disabled={searchDisabled}
               compact={true}
             />
@@ -175,14 +227,14 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
               sortByLikes={sortByLikes}
               onToggle={onSortToggle}
               disabled={sortDisabled}
-              triggerLabel="Date"
+              triggerLabel={text.dateTrigger}
             />
           </div>
 
           <button
             ref={filtersButtonRef}
             onClick={handleFiltersToggle}
-            aria-label={filtersExpanded ? 'Скрыть фильтры' : 'Показать фильтры'}
+            aria-label={filtersExpanded ? text.hideFilters : text.showFilters}
             className={`compact-controls-bar__btn ${filtersExpanded ? 'compact-controls-bar__btn--active' : ''}`}
           >
             <TuneIcon />
@@ -200,27 +252,28 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
               <div
                 ref={filtersMenuRef}
                 data-sort-dropdown-panel
-                className="sort-dropdown__panel"
+                className="sort-dropdown__panel compact-controls-bar__filters-panel"
                 role="dialog"
-                aria-label="Фильтры"
+                aria-label={text.filtersTitle}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="sort-dropdown__inner compact-controls-bar__filters-inner">
+                <div className="sort-dropdown__inner">
+                  <div className="compact-controls-bar__panel-grab" aria-hidden />
                   <div className="compact-controls-bar__dropdown-header compact-controls-bar__filters-header">
-                    <span className="sort-dropdown__title">Фильтры</span>
+                    <span className="sort-dropdown__title">{text.filtersTitle}</span>
                     <div className="compact-controls-bar__dropdown-actions">
                       <button
                         type="button"
                         onClick={handleResetFilters}
-                        aria-label="Сбросить фильтры"
+                        aria-label={text.reset}
                         className="compact-controls-bar__btn-reset"
                       >
-                        Сброс
+                        {text.reset}
                       </button>
                       <button
                         type="button"
                         onClick={handleFiltersToggle}
-                        aria-label="Закрыть фильтры"
+                        aria-label={text.closeFilters}
                         className="compact-controls-bar__btn-close"
                       >
                         <CloseIcon />
@@ -228,19 +281,89 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
                     </div>
                   </div>
                   <div className="compact-controls-bar__filters-content">
-                    <StickerSetTypeFilter
-                      selectedTypes={selectedStickerSetTypes}
-                      onTypeToggle={onStickerSetTypeToggle}
-                      disabled={false}
-                    />
+                    <div className="compact-controls-bar__filters-section">
+                      <h3 className="compact-controls-bar__filters-section-title">{text.typeTitle}</h3>
+                      <div className="compact-controls-bar__chips-row compact-controls-bar__chips-row--type">
+                        <button
+                          type="button"
+                          className={`compact-controls-bar__chip ${isAllTypesSelected ? 'compact-controls-bar__chip--active' : ''}`}
+                          onClick={() => setStickerSetTypeMode('ALL')}
+                          disabled={categoriesDisabled}
+                        >
+                          {text.typeAll}
+                        </button>
+                        <button
+                          type="button"
+                          className={`compact-controls-bar__chip ${isOfficialTypeSelected ? 'compact-controls-bar__chip--active' : ''}`}
+                          onClick={() => setStickerSetTypeMode('OFFICIAL')}
+                          disabled={categoriesDisabled}
+                        >
+                          {text.typeOfficial}
+                        </button>
+                        <button
+                          type="button"
+                          className={`compact-controls-bar__chip ${isUserTypeSelected ? 'compact-controls-bar__chip--active' : ''}`}
+                          onClick={() => setStickerSetTypeMode('USER')}
+                          disabled={categoriesDisabled}
+                        >
+                          {text.typeCustom}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="compact-controls-bar__filters-section compact-controls-bar__filters-section--categories">
+                      <h3 className="compact-controls-bar__filters-section-title">{text.categoryTitle}</h3>
+                      <div className="compact-controls-bar__chips-grid" role="group" aria-label={text.categoryTitle}>
+                        {categories.map((category) => {
+                          const isSelected = selectedCategories.includes(category.id);
+                          return (
+                            <button
+                              key={category.id}
+                              type="button"
+                              className={`compact-controls-bar__chip ${isSelected ? 'compact-controls-bar__chip--active' : ''}`}
+                              onClick={() => onCategoryToggle(category.id)}
+                              disabled={categoriesDisabled}
+                              title={category.title || category.label}
+                            >
+                              {category.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                  <div className="compact-controls-bar__filters-sort">
-                    <SortDropdown
-                      sortByLikes={sortByLikes}
-                      onToggle={onSortToggle}
+                  <div className="compact-controls-bar__filters-sort" role="group" aria-label={text.sortTitle}>
+                    <div className="sort-dropdown__header">
+                      <span className="sort-dropdown__title">{text.sortTitle}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`sort-dropdown__option${sortByLikes ? ' sort-dropdown__option--active' : ''}`}
+                      onClick={() => {
+                        if (!sortByLikes) onSortToggle();
+                        setFiltersExpanded(false);
+                      }}
                       disabled={sortDisabled}
-                    />
+                    >
+                      <span className={`sort-dropdown__option-label${sortByLikes ? ' sort-dropdown__option-label--active' : ''}`}>
+                        {text.sortByPopularity}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`sort-dropdown__option${!sortByLikes ? ' sort-dropdown__option--active' : ''}`}
+                      onClick={() => {
+                        if (sortByLikes) onSortToggle();
+                        setFiltersExpanded(false);
+                      }}
+                      disabled={sortDisabled}
+                    >
+                      <span className={`sort-dropdown__option-label${!sortByLikes ? ' sort-dropdown__option-label--active' : ''}`}>
+                        {text.sortByDateNew}
+                      </span>
+                    </button>
                   </div>
+                  <div className="compact-controls-bar__panel-home-indicator" aria-hidden />
                 </div>
               </div>
             </>,

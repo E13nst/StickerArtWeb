@@ -109,7 +109,7 @@ const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWeb
       text_color: '#000000',
       hint_color: '#999999',
       link_color: '#2481cc',
-      button_color: '#2481cc',
+      button_color: '#ee449f',
       button_text_color: '#ffffff',
       secondary_bg_color: '#f8f9fa',
     },
@@ -128,7 +128,7 @@ const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWeb
     },
     MainButton: {
       text: '',
-      color: '#2481cc',
+      color: '#ee449f',
       textColor: '#ffffff',
       isVisible: false,
       isActive: true,
@@ -497,7 +497,7 @@ export const useTelegram = () => {
           root.style.setProperty('--tg-theme-bg-color', telegram.themeParams.bg_color || '#ffffff');
           root.style.setProperty('--tg-theme-text-color', telegram.themeParams.text_color || '#000000');
           root.style.setProperty('--tg-theme-hint-color', telegram.themeParams.hint_color || '#999999');
-          root.style.setProperty('--tg-theme-button-color', telegram.themeParams.button_color || '#2481cc');
+          root.style.setProperty('--tg-theme-button-color', telegram.themeParams.button_color || '#ee449f');
           root.style.setProperty('--tg-theme-button-text-color', telegram.themeParams.button_text_color || '#ffffff');
           root.style.setProperty('--tg-theme-secondary-bg-color', telegram.themeParams.secondary_bg_color || '#f8f9fa');
           root.style.setProperty('--tg-theme-link-color', telegram.themeParams.link_color || '#2481cc');
@@ -511,7 +511,7 @@ export const useTelegram = () => {
           // RGB-переменные для rgba() использования
           const bgColor = telegram.themeParams.bg_color || '#ffffff';
           const textColor = telegram.themeParams.text_color || (isDark ? '#ffffff' : '#000000');
-          const buttonColor = telegram.themeParams.button_color || '#2481cc';
+          const buttonColor = telegram.themeParams.button_color || '#ee449f';
           
           root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(bgColor));
           root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(textColor));
@@ -627,7 +627,7 @@ export const useTelegram = () => {
           text_color: '#000000',
           hint_color: '#999999',
           link_color: '#2481cc',
-          button_color: '#2481cc',
+          button_color: '#ee449f',
           button_text_color: '#ffffff',
           secondary_bg_color: '#f8f9fa',
         };

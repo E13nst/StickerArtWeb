@@ -784,7 +784,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
           justifyContent: 'flex-start',
           padding: '8px',
           paddingTop: '5px',
-          backgroundColor: isModal ? 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.75)' : 'transparent',
+          backgroundColor: isModal ? 'var(--color-surface)' : 'transparent',
           backdropFilter: isModal ? 'blur(15px)' : 'none',
           WebkitBackdropFilter: isModal ? 'blur(15px)' : 'none',
           borderTopLeftRadius: isModal ? '24px' : 0,

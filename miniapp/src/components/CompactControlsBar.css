@@ -314,19 +314,11 @@
   }
 }
 
-/* Панель фильтров в портале: та же структура, что у SortDropdown (sort-dropdown__panel > sort-dropdown__inner) */
-.compact-controls-bar__filters-inner {
-  align-items: stretch;
-  gap: 0;
-}
-
 .compact-controls-bar__filters-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  margin-bottom: 8px;
+  padding: 0 16px 32px;
 }
 
 .compact-controls-bar__filters-header .sort-dropdown__title {
@@ -334,12 +326,136 @@
   margin: 0;
 }
 
+.compact-controls-bar__filters-panel.sort-dropdown__panel {
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+}
+
+.compact-controls-bar__panel-grab {
+  width: 100px;
+  height: 4px;
+  border-radius: 2.5px;
+  background: rgba(255, 255, 255, 0.5);
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .compact-controls-bar__filters-content {
-  padding: 0 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 0 16px;
 }
 
 .compact-controls-bar__filters-sort {
-  padding: 0 24px 24px;
+  padding: 16px 16px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding-top: 16px;
+  margin-top: 16px;
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
+}
+
+.compact-controls-bar__filters-sort .sort-dropdown__header {
+  padding-bottom: 16px;
+}
+
+.compact-controls-bar__filters-sort .sort-dropdown__title {
+  font-size: 24px;
+}
+
+.compact-controls-bar__filters-sort .sort-dropdown__option {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  text-align: left;
+}
+
+.compact-controls-bar__filters-sort .sort-dropdown__option:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.compact-controls-bar__filters-sort .sort-dropdown__option-label {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.compact-controls-bar__filters-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.compact-controls-bar__filters-section--categories {
+  padding-top: 4px;
+}
+
+.compact-controls-bar__filters-section-title {
+  margin: 0;
+  font-family: 'Manrope', var(--font-family-base);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 22px;
+  color: #FFFFFF;
+}
+
+.compact-controls-bar__chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.compact-controls-bar__chips-grid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.compact-controls-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 16px;
+  background: #8A8A8A;
+  color: #FFFFFF;
+  font-family: 'Manrope', var(--font-family-base);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  min-height: 28px;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.compact-controls-bar__chip:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.compact-controls-bar__chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.compact-controls-bar__chip--active {
+  background: #EE449F;
+}
+
+.compact-controls-bar__panel-home-indicator {
+  width: 140px;
+  height: 5px;
+  border-radius: 2.5px;
+  background: #FFFFFF;
+  margin: 8px auto calc(8px + env(safe-area-inset-bottom, 0));
 }

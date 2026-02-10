@@ -24,6 +24,28 @@
   padding-inline: 16px;
   padding-bottom: var(--stixly-taskbar-height, 90.25px);
   box-sizing: border-box;
+  background:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%),
+    var(--page-bg-base);
+}
+
+/* На Swipe кнопки всегда в фирменном pink, без Telegram-blue fallback */
+.swipe-page .button.button-primary,
+.swipe-page .button.button-secondary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #ffffff !important;
+}
+
+.swipe-page .button.button-primary:hover:not(:disabled),
+.swipe-page .button.button-secondary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-primary) 90%, black) !important;
+}
+
+.swipe-page .button.button-primary:active:not(:disabled),
+.swipe-page .button.button-secondary:active:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-primary) 85%, black) !important;
 }
 
 /* ============================================
@@ -82,6 +104,8 @@
   position: absolute;
   left: 0;
   right: 0;
+  display: flex;
+  justify-content: center;
   inline-size: var(--swipe-stack-width);
   block-size: var(--swipe-stack-height);
   max-inline-size: 100%;
@@ -411,24 +435,15 @@
 }
 
 /* ============================================
-   Header panel на странице Swipe (Figma)
-   ============================================ */
-
-.stixly-main-layout:has(.swipe-page) .header-panel {
-  /* Figma: 108px top — как на остальных страницах */
-  padding: calc(108px + var(--stixly-safe-area-top)) 16px 16px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 16px;
-}
-
-/* ============================================
    Responsive
    ============================================ */
 
 @media (max-width: 430px) {
   .swipe-page__cards {
     width: calc(100% - 32px);
-    left: 16px;
+    left: 0;
+    right: 0;
+    margin-inline: auto;
   }
 
   /* Карточка заполняет контейнер, контент масштабируется внутри */

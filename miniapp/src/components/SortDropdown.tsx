@@ -11,11 +11,6 @@ interface SortDropdownProps {
   triggerLabel?: string;
 }
 
-const SORT_OPTIONS = [
-  { id: 'likes', label: 'По популярности', value: true },
-  { id: 'new', label: 'Новые', value: false },
-];
-
 const ArrowDownIcon = ({ isOpen }: { isOpen: boolean }) => (
   <svg
     width="16"
@@ -42,7 +37,13 @@ export const SortDropdown: FC<SortDropdownProps> = ({
   disabled = false,
   triggerLabel,
 }) => {
-  const { tg } = useTelegram();
+  const { tg, user } = useTelegram();
+  const isRu = (user?.language_code || 'ru').toLowerCase().startsWith('ru');
+  const sortOptions = [
+    { id: 'likes', label: isRu ? 'По популярности' : 'By popularity', value: true },
+    { id: 'new', label: isRu ? 'Сначала новые' : 'Date (new)', value: false },
+  ];
+  const sortAriaLabel = isRu ? 'Сортировка' : 'Sort';
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -78,8 +79,8 @@ export const SortDropdown: FC<SortDropdownProps> = ({
     setIsOpen(false);
   };
 
-  const currentOption = SORT_OPTIONS.find((opt) => opt.value === sortByLikes);
-  const displayLabel = triggerLabel ?? (currentOption?.label ?? 'Новые');
+  const currentOption = sortOptions.find((opt) => opt.value === sortByLikes);
+  const displayLabel = triggerLabel ?? (currentOption?.label ?? (isRu ? 'Сначала новые' : 'Date (new)'));
 
   return (
     <div ref={dropdownRef} className="sort-dropdown">
@@ -111,13 +112,13 @@ export const SortDropdown: FC<SortDropdownProps> = ({
               data-sort-dropdown-panel
               className="sort-dropdown__panel"
               role="listbox"
-              aria-label="Сортировка"
+              aria-label={sortAriaLabel}
             >
               <div className="sort-dropdown__inner">
                 <div className="sort-dropdown__header">
-                  <span className="sort-dropdown__title">Сортировка</span>
+                  <span className="sort-dropdown__title">{isRu ? 'Сортировка' : 'Sort By'}</span>
                 </div>
-                {SORT_OPTIONS.map((option) => {
+                {sortOptions.map((option) => {
                   const isSelected = sortByLikes === option.value;
                   return (
                     <div
