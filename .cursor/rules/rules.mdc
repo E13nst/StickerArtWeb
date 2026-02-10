@@ -160,7 +160,8 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 
 #### Profiles
 - `GET /api/profiles/me` — профиль текущего пользователя (используется в `MyProfilePage` для `/profile` без параметра)
-- `GET /api/profiles/{userId}` — профиль по Telegram ID (используется в `ProfilePage` для `/profile/:userId`)
+- `GET /api/users/{userId}/profile` — профиль по Telegram ID (используется в `ProfilePage` для `/profile/:userId`)
+- `GET /api/profiles/{profileId}` — профиль по ID профиля
 - `PUT /api/profiles/{userId}/balance` — установить баланс (админ, body: новое значение)
 - `POST /api/profiles/{userId}/balance/add` — добавить к балансу (админ, body: delta)
 - **Важно**: при отсутствии `initData` (401 ошибка) показывается `ErrorDisplay` вместо пустой страницы

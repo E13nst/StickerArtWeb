@@ -872,7 +872,7 @@ class ApiClient {
 
   // ============ МЕТОДЫ ДЛЯ ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ ============
 
-  // Получение профиля пользователя по userId: GET /api/profiles/{userId}
+  // Получение профиля пользователя по Telegram userId: GET /api/users/{userId}/profile
   // Вспомогательная функция для маппинга ProfileResponse → UserInfo
   private mapProfileToUserInfo(data: ProfileResponse): UserInfo {
     return {
@@ -901,13 +901,26 @@ class ApiClient {
       };
   }
 
+  // Профиль по profileId: GET /api/profiles/{profileId}
+  async getProfileById(profileId: number): Promise<UserInfo> {
+    return requestDeduplicator.fetch(
+      `/profiles/${profileId}`,
+      async () => {
+        const response = await this.client.get<ProfileResponse>(`/profiles/${profileId}`);
+        return this.mapProfileToUserInfo(response.data);
+      },
+      { profileId },
+      { skipCache: false }
+    );
+  }
+
   async getProfile(userId: number): Promise<UserInfo> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
-      `/profiles/${userId}`,
+      `/users/${userId}/profile`,
       async () => {
         try {
-          const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+          const response = await this.client.get<ProfileResponse>(`/users/${userId}/profile`);
           return this.mapProfileToUserInfo(response.data);
         } catch (error) {
           console.warn('⚠️ API недоступен, используем мок данные для профиля');
@@ -933,9 +946,9 @@ class ApiClient {
   async getProfileStrict(userId: number): Promise<ProfileResponse> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
-      `/profiles/${userId}`,
+      `/users/${userId}/profile`,
       async () => {
-        const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+        const response = await this.client.get<ProfileResponse>(`/users/${userId}/profile`);
         return response.data;
       },
       { userId }, // Параметры для ключа кэша
@@ -1014,14 +1027,14 @@ class ApiClient {
     );
   }
 
-  // Получение информации о пользователе по ID (использует новый API /profiles/{userId})
+  // Получение информации о пользователе по Telegram ID: /api/users/{userId}/profile
   async getUserInfo(userId: number): Promise<UserInfo> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
-      `/profiles/${userId}`,
+      `/users/${userId}/profile`,
       async () => {
         try {
-          const response = await this.client.get<ProfileResponse>(`/profiles/${userId}`);
+          const response = await this.client.get<ProfileResponse>(`/users/${userId}/profile`);
           const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo
@@ -1071,15 +1084,15 @@ class ApiClient {
     );
   }
 
-  // Получение информации о текущем пользователе по Telegram ID (использует новый API /profiles/{userId})
+  // Получение информации о текущем пользователе по Telegram ID: /api/users/{userId}/profile
   async getUserByTelegramId(telegramId: number): Promise<UserInfo> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
-      `/profiles/${telegramId}`,
+      `/users/${telegramId}/profile`,
       async () => {
         try {
-          // API endpoint: /api/profiles/{userId} где userId = telegramId
-          const response = await this.client.get<ProfileResponse>(`/profiles/${telegramId}`);
+          // API endpoint: /api/users/{userId}/profile где userId = telegramId
+          const response = await this.client.get<ProfileResponse>(`/users/${telegramId}/profile`);
           const data = response.data;
       
       // Маппинг новой структуры ответа в UserInfo

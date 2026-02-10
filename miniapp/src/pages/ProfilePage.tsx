@@ -89,7 +89,7 @@ export const ProfilePage: FC = () => {
     setUserError(null);
 
     try {
-      // 1) получаем полный профиль через API /profiles/{userId}
+      // 1) получаем полный профиль через API /users/{userId}/profile
       const userProfile = await apiClient.getProfile(id);
 
       // 2) фото профиля /users/{id}/photo (404 -> null)
@@ -422,7 +422,7 @@ export const ProfilePage: FC = () => {
   }
 
   return (
-    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
+    <div className={cn('page-container', 'profile-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
       {/* Карточка профиля под header (Header Panel в MainLayout) */}
       <StixlyPageContainer className="page-container-no-margin-top">
@@ -547,6 +547,7 @@ export const ProfilePage: FC = () => {
                     isLoadingMore={isLoadingMore}
                     onLoadMore={loadMoreStickerSets}
                     scrollElement={scrollElement}
+                    variant="gallery"
                   />
                 </div>
               )}

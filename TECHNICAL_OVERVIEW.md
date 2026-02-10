@@ -243,7 +243,8 @@ Routes:
 
 #### Профили:
 - `GET /api/profiles/me` — профиль текущего пользователя
-- `GET /api/profiles/{userId}` — профиль пользователя
+- `GET /api/users/{userId}/profile` — профиль по Telegram ID пользователя
+- `GET /api/profiles/{profileId}` — профиль по ID профиля
 - `GET /api/users/{userId}/photo` — фото профиля
 
 #### Категории:
