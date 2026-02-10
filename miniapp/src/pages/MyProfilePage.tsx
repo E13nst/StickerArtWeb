@@ -29,7 +29,6 @@ import { QuestStixlyCard, DailyActivityBlock, GlobalActivityBlock } from '@/comp
 import { Category } from '@/components/CategoryFilter';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import '@/styles/common.css';
 import '@/styles/MyProfilePage.css';
 
@@ -953,8 +952,7 @@ export const MyProfilePage: FC = () => {
 
 
   return (
-    <div className={cn('page-container', 'account-page', isInTelegramApp && 'telegram-app')}>
-      <OtherAccountBackground />
+    <div className={cn('page-container', 'my-profile-page', 'account-page', isInTelegramApp && 'telegram-app')}>
       {/* Head account (Figma): шапка профиля без Header Panel */}
       <div
         className={cn('head-account', isInTelegramApp && 'head-account--telegram')}

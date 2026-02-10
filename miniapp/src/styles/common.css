@@ -1,8 +1,21 @@
 /* Common Styles for All Pages */
 
-/* Фон страниц (OtherAccountBackground): SVG задаётся глобально */
+/* Глобальные переменные лёгкого фона: градиент + SVG-паттерн */
 :root {
-  --other-account-bg-image: url('/assets/other-account-bg.svg');
+  --page-pattern-image: url('/assets/patterns/heart-fill.svg');
+  /* Fibonacci scale for pattern sizes: 89, 144, 233, 377 */
+  --page-pattern-size-sm: clamp(89px, 13vw, 144px);
+  --page-pattern-size-md: clamp(144px, 21vw, 233px);
+  --page-pattern-size-lg: clamp(233px, 34vw, 377px);
+  /* Backward compatibility aliases */
+  --page-pattern-size: var(--page-pattern-size-md);
+  --page-pattern-size-secondary: var(--page-pattern-size-lg);
+  --page-pattern-opacity: 0.14;
+  --page-pattern-filter: brightness(0) saturate(100%) invert(45%) sepia(88%) saturate(1770%) hue-rotate(296deg) brightness(98%) contrast(95%);
+  --page-bg-base: #191818;
+  --page-bg-accent-primary: var(--color-overlay-primary);
+  --page-bg-accent-secondary: var(--color-overlay-light);
+  --page-dynamic-gradient: none;
 }
 
 /* ============================================
@@ -14,7 +27,7 @@
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background-color: #191818 !important;
+  background-color: #191818;
   color: var(--color-text);
   overflow-x: hidden;
   overflow-y: visible;
@@ -30,14 +43,14 @@
 
 .page-container-full-height {
   min-height: 100%;
-  background-color: #191818 !important;
+  background-color: #191818;
   color: var(--color-text);
   padding-bottom: 0;
 }
 
 /* Единый фон для внутреннего контейнера на всех страницах */
 .page-container .stixly-page-container {
-  background-color: #191818 !important;
+  background-color: transparent !important;
 }
 
 /* ============================================
@@ -414,6 +427,66 @@
 
 .mt-2 {
   margin-top: 2rem;
+}
+
+/* ============================================
+   PackCard — стили галереи (177×213px Figma)
+   Используются везде, где OptimizedGallery (Gallery, MyProfile, Profile, Author).
+   Исключение: Dashboard — свой стиль через .dashboard-card-carousel
+   ============================================ */
+
+.optimized-gallery .pack-card,
+.optimized-gallery .pack-card__placeholder {
+  background: rgba(238, 68, 159, 0.2) !important;
+  background-color: rgba(238, 68, 159, 0.2) !important;
+}
+
+.optimized-gallery .pack-card {
+  width: 177px !important;
+  height: 213px !important;
+  aspect-ratio: auto !important;
+  max-width: 177px;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  border: none;
+}
+
+/* Варианты gallery и account — заголовок под контентом */
+.optimized-gallery--gallery .pack-card,
+.optimized-gallery--account .pack-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 8px 8px;
+}
+
+.optimized-gallery--gallery .pack-card__content,
+.optimized-gallery--account .pack-card__content {
+  width: 161px;
+  height: 161px;
+  flex: none;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.optimized-gallery--gallery .pack-card__title-overlay,
+.optimized-gallery--account .pack-card__title-overlay {
+  position: static !important;
+  flex: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  color: #ffffff;
+  text-align: center;
+  padding: 0 4px;
+  margin-top: 8px;
+  min-height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ============================================

@@ -81,10 +81,18 @@
 }
 
 .profile-tabs__panel {
-  padding-top: 0;
-  padding-bottom: 0.764rem;
+  padding-top: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
   margin-top: 0;
   margin-bottom: 0;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Панель контента вкладок не должна перекрывать фон страницы */
+[id^="profile-tabpanel-"] {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* ============================================

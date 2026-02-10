@@ -16,7 +16,6 @@
   max-height: 100vh;
   margin: 0;
   max-width: none;
-  background: #191818;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -25,109 +24,6 @@
   padding-inline: 16px;
   padding-bottom: var(--stixly-taskbar-height, 90.25px);
   box-sizing: border-box;
-}
-
-/* На Swipe свой фон по Figma — отключаем other-account background */
-.swipe-page .other-account-background {
-  background-image: none;
-}
-
-/* ============================================
-   Background (Figma: 402×1600, left 0, top 151px, blur 22.3px)
-   ============================================ */
-
-.swipe-page__background {
-  position: absolute;
-  left: 0;
-  top: 151px;
-  width: 402px;
-  max-width: 100%;
-  height: 1600px;
-  z-index: 0;
-  pointer-events: none;
-  filter: blur(22.3px);
-  overflow: hidden;
-}
-
-.swipe-page__background-item {
-  position: absolute;
-  width: 402px;
-  max-width: 100%;
-  height: 400px;
-  left: calc(50% - 402px / 2);
-  background: var(--color-primary);
-  opacity: 0.15;
-  filter: none;
-  box-sizing: border-box;
-}
-
-.swipe-page__background-item:nth-child(1) {
-  top: 0;
-  background: linear-gradient(180deg, rgba(238, 68, 159, 0.2) 0%, transparent 100%);
-}
-
-.swipe-page__background-item:nth-child(2) {
-  top: 397px;
-  background: linear-gradient(180deg, rgba(238, 68, 159, 0.15) 0%, transparent 100%);
-  transform: matrix(-1, 0, 0, 1, 0, 0);
-}
-
-.swipe-page__background-item:nth-child(3) {
-  top: 796px;
-  left: calc(50% - 402px / 2 + 1px);
-  transform: rotate(90deg);
-  background: linear-gradient(180deg, rgba(238, 68, 159, 0.12) 0%, transparent 100%);
-}
-
-.swipe-page__background-item:nth-child(4) {
-  top: 1198px;
-  left: calc(50% - 402px / 2 + 1px);
-  transform: rotate(-90deg);
-  background: linear-gradient(180deg, rgba(238, 68, 159, 0.12) 0%, transparent 100%);
-}
-
-/* Rectangles (Figma: 402×400, left calc(50% - 402px/2), tops 151, 548, 947, 1349) */
-.swipe-page__rectangles {
-  position: absolute;
-  left: 0;
-  top: 151px;
-  width: 402px;
-  max-width: 100%;
-  height: 1600px;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.swipe-page__rect-item {
-  position: absolute;
-  width: 402px;
-  max-width: 100%;
-  height: 400px;
-  left: calc(50% - 402px / 2);
-  background: linear-gradient(180deg, rgba(238, 68, 159, 0.08) 0%, transparent 100%);
-  filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25));
-  box-sizing: border-box;
-}
-
-.swipe-page__rect-item:nth-child(1) {
-  top: 0;
-}
-
-.swipe-page__rect-item:nth-child(2) {
-  top: 397px;
-  transform: matrix(-1, 0, 0, 1, 0, 0);
-}
-
-.swipe-page__rect-item:nth-child(3) {
-  top: 796px;
-  left: calc(50% - 402px / 2 + 1px);
-  transform: rotate(90deg);
-}
-
-.swipe-page__rect-item:nth-child(4) {
-  top: 1198px;
-  left: calc(50% - 402px / 2 + 1px);
-  transform: rotate(-90deg);
 }
 
 /* ============================================

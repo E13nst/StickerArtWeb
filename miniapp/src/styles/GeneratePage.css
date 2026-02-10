@@ -16,25 +16,9 @@
   padding: calc(100vh * 0.04) calc(100vw * 0.04);
   padding-top: clamp(80px, 12vh, 140px);
   padding-bottom: calc(100vh * 0.12 + 80px);
-  background: var(--tg-theme-bg-color);
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
-}
-
-/* Современный градиентный фон */
-.generate-page::before {
-  content: "";
-  position: absolute;
-  top: -10%;
-  left: -10%;
-  width: 120%;
-  height: 120%;
-  background: 
-    radial-gradient(circle at 80% 20%, color-mix(in srgb, #ff6b35 15%, transparent) 0%, transparent 40%),
-    radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--tg-theme-button-color) 10%, transparent) 0%, transparent 40%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* ============================================

@@ -1,7 +1,4 @@
-/* Other account background (Figma #Other account background)
-   Задать SVG/картинку: --other-account-bg-image в CSS страницы или :root.
-   Пример: --other-account-bg-image: url('/assets/other-account-bg.svg');
-   или data URL из Figma: Export → Copy as SVG, затем вставить в url("data:image/svg+xml,...") */
+/* OtherAccountBackground — динамический градиент из --page-dynamic-gradient поверх базового цвета. */
 
 .other-account-background {
   position: absolute;
@@ -11,8 +8,6 @@
   min-height: 100%;
   pointer-events: none;
   z-index: 0;
-  background-image: var(--other-account-bg-image, none);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  overflow: hidden;
+  background: var(--page-dynamic-gradient), var(--page-bg-base);
 }

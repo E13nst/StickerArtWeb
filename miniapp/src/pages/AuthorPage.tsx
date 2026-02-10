@@ -424,7 +424,7 @@ export const AuthorPage: FC = () => {
   const packCount = totalElements || stickerSets.length;
 
   return (
-    <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
+    <div className={cn('page-container', 'author-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
       {/* OTHER ACCOUNT (Figma): шапка профиля автора */}
       <div
@@ -508,6 +508,7 @@ export const AuthorPage: FC = () => {
               isLoadingMore={isLoadingMore}
               onLoadMore={hasNextPage ? handleLoadMore : undefined}
               scrollElement={scrollElement}
+              variant="gallery"
             />
           </div>
         )}

@@ -31,12 +31,9 @@ interface OptimizedGalleryProps {
   variant?: 'default' | 'account' | 'gallery';
 }
 
-// Константы для отступов
-const GAP = 8; // Отступ между карточками
-const HORIZONTAL_PADDING = 8; // Боковые отступы
-/** Content_gallery Figma: 16px gap, 0 — боковые отступы в контейнере */
-const GAP_GALLERY = 16;
-const HORIZONTAL_PADDING_GALLERY = 0;
+// Константы для отступов (единообразие с design tokens)
+const GAP = 16; // --spacing-md: отступ между карточками везде
+const HORIZONTAL_PADDING = 0; // Боковые отступы — контейнер задаёт padding
 
 const CARD_WIDTH_ACCOUNT = 177;
 const CARD_HEIGHT_ACCOUNT = 213;
@@ -87,8 +84,8 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
 
   const isAccountVariant = variant === 'account' || variant === 'gallery';
   const isGalleryVariant = variant === 'gallery';
-  const gap = isGalleryVariant ? GAP_GALLERY : GAP;
-  const horizontalPadding = isGalleryVariant ? HORIZONTAL_PADDING_GALLERY : HORIZONTAL_PADDING;
+  const gap = GAP;
+  const horizontalPadding = HORIZONTAL_PADDING;
 
   // Вычисляем примерную высоту карточки
   const estimateRowHeight = useCallback(() => {

@@ -240,6 +240,7 @@ export function getRandomStickersFromSet<T>(
  * formatStickerTitle("@mention1 @mention2 text") // "text"
  * formatStickerTitle("text1 @mention1 text2 @mention2") // "text1 text2"
  * formatStickerTitle("Pepe the Frog") // "Pepe the Frog"
+ * formatStickerTitle("by Author @bot") // "Author" (после удаления @ убираются ведущие "by", "от", "•", ":", "::")
  */
 export function formatStickerTitle(title: string | null | undefined): string {
   if (!title) {
@@ -312,14 +313,28 @@ export function formatStickerTitle(title: string | null | undefined): string {
   }
 
   // Если есть обычный текст (до или после упоминаний), возвращаем его
-  const result = textParts.filter(part => part.length > 0).join(' ').trim();
+  let result = textParts.filter(part => part.length > 0).join(' ').trim();
   if (result) {
-    return result;
+    return stripTitleDelimiters(result);
   }
 
   // Если был только текст до упоминаний, но он был пустым, или только упоминания
   // Возвращаем первое упоминание без @
-  return firstMention;
+  return stripTitleDelimiters(firstMention);
+}
+
+/** Убирает ведущие/замыкающие "by", "от", "•", ":", "::", "(", ")" (регистронезависимо для слов). */
+const TITLE_DELIMITER_RE = /^\s*(by|от|•|::|:|\(|\))\s*|\s*(by|от|•|::|:|\(|\))\s*$/gi;
+
+function stripTitleDelimiters(s: string): string {
+  if (!s) return s;
+  let prev = '';
+  let current = s.trim();
+  while (prev !== current) {
+    prev = current;
+    current = current.replace(TITLE_DELIMITER_RE, '').trim();
+  }
+  return current;
 }
 
 /**

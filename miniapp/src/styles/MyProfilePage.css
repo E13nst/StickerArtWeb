@@ -787,23 +787,7 @@
   color: var(--tg-theme-button-text-color, #ffffff);
 }
 
-/* ============================================
-   Карточки стикеров 177×213px (Figma ACCOUNT)
-   ============================================ */
-
-/* Карточки галереи на странице профиля — фиолетово-розовые сразу (и при загрузке) */
-.account-page .optimized-gallery--account .pack-card,
-.account-page .optimized-gallery--account .pack-card__placeholder {
-  background: rgba(238, 68, 159, 0.2) !important;
-  background-color: rgba(238, 68, 159, 0.2) !important;
-}
-
-.account-page .optimized-gallery--account .pack-card {
-  width: 177px !important;
-  height: 213px !important;
-  aspect-ratio: auto !important;
-  max-width: 177px;
-}
+/* PackCard стили — в common.css (.optimized-gallery) */
 
 /* ============================================
    Контент menu (Quest Stixly, activity blocks)

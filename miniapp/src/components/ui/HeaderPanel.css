@@ -9,8 +9,10 @@
   /* Поверх скроллящегося контента — иначе полупрозрачность и backdrop-filter не видны */
   position: relative;
   z-index: var(--z-header, 100);
-  /* Резерв только под Telegram UI (safe area) */
-  padding: var(--stixly-safe-area-top) var(--spacing-sm) 0;
+  /* Safe zone + обычный отступ сверху от safe area */
+  padding: calc(
+      var(--stixly-safe-area-top) + var(--tg-content-safe-area-inset-top, 0px) + var(--spacing-md)
+    ) var(--spacing-md) var(--spacing-md);
   background: var(--component-header-panel-background-color, rgba(0, 0, 0, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -36,7 +38,7 @@
   justify-content: space-between;
   gap: 10px;
   max-width: 370px;
-  padding: var(--spacing-sm);
+  padding: 0;
   box-sizing: border-box;
 }
 

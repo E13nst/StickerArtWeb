@@ -2,6 +2,11 @@
 
 @import './common.css';
 
+/* Уникальный градиент страницы (отображается через OtherAccountBackground) */
+.page-container.profile-page {
+  --page-dynamic-gradient: radial-gradient(circle at 50% 0%, var(--page-bg-accent-primary) 0%, transparent 40%);
+}
+
 /* ============================================
    Стили профильного header
    ============================================ */

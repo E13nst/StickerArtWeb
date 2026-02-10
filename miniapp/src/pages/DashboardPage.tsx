@@ -347,7 +347,7 @@ export const DashboardPage: FC = () => {
   }, [activeCategoryKey, categoryFilterOptions]);
 
   return (
-    <div className={cn('page-container', 'account-page', 'page-container-full-height', isInTelegramApp && 'telegram-app')}>
+    <div className={cn('page-container', 'dashboard-page', 'account-page', 'page-container-full-height', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
       <StixlyPageContainer className="dashboard-container">
         {isLoading ? (

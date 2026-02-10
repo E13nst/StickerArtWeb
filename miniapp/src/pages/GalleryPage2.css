@@ -1,4 +1,14 @@
 /* GalleryPage2.css - стили для страницы галереи */
+@import '../styles/common.css';
+
+/* Уникальный градиент страницы (отображается через OtherAccountBackground) */
+.page-container.gallery-page {
+  --page-dynamic-gradient: radial-gradient(circle at 80% 80%, var(--page-bg-accent-secondary) 0%, transparent 45%);
+}
+
+.page-container.gallery-page-loading {
+  --page-dynamic-gradient: radial-gradient(circle at 80% 80%, var(--page-bg-accent-secondary) 0%, transparent 45%);
+}
 
 /* ============================================
    Main Gallery Page Container
@@ -7,7 +17,6 @@
 .gallery-page {
   width: 100%;
   min-height: 100vh;
-  background-color: var(--color-background);
   color: var(--color-text);
   position: relative;
 }
@@ -44,7 +53,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-background);
 }
 
 .gallery-page__content-loading {
@@ -83,25 +91,7 @@
   padding: var(--spacing-xl) var(--spacing-md);
 }
 
-/* ============================================
-   PackCard — стиль и размеры как MyProfilePage (177×213px Figma)
-   ============================================ */
-
-.gallery-page .optimized-gallery .pack-card,
-.gallery-page .optimized-gallery .pack-card__placeholder {
-  background: rgba(238, 68, 159, 0.2) !important;
-  background-color: rgba(238, 68, 159, 0.2) !important;
-}
-
-.gallery-page .optimized-gallery .pack-card {
-  width: 177px !important;
-  height: 213px !important;
-  aspect-ratio: auto !important;
-  max-width: 177px;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
-  border-radius: 16px;
-  border: none;
-}
+/* PackCard стили — в common.css (.optimized-gallery) */
 
 /* ============================================
    Fade-in Animation

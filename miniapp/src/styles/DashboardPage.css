@@ -2,6 +2,11 @@
 
 @import './common.css';
 
+/* Уникальный градиент страницы (отображается через OtherAccountBackground) */
+.page-container.dashboard-page {
+  --page-dynamic-gradient: radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%);
+}
+
 /* ============================================
    Content_home — контейнер по Figma
    width: 402px, left: calc(50% - 402px/2), top: 172px
@@ -19,6 +24,8 @@
   flex-direction: column;
   gap: 16px;
   box-sizing: border-box;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* ============================================
