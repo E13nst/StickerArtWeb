@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useMemo, useEffect, CSSProperties, FC } 
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { useTelegram } from '@/hooks/useTelegram';
 import { AnimatedSticker } from './AnimatedSticker';
+import { FavoriteIcon } from '@/components/ui/Icons';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
@@ -398,7 +399,7 @@ export const SwipeCard: FC<SwipeCardProps> = ({
 
         {/* Счетчик лайков */}
         <div className="swipe-card__likes">
-          <span className="swipe-card__likes-icon">❤️</span>
+          <span className="swipe-card__likes-icon"><FavoriteIcon size={14} color="#ff6b6b" /></span>
           <span className="swipe-card__likes-count">{likesCount}</span>
         </div>
       </div>

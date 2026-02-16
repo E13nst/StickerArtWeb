@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, FC, MouseEvent } from 'react';
+import { FavoriteIcon } from '@/components/ui/Icons';
 
 interface LikeButtonProps {
   packId: string;
@@ -91,7 +92,7 @@ export const LikeButton: FC<LikeButtonProps> = ({
         transition: 'all 0.2s ease',
         transform: isAnimating ? 'scale(1.3)' : 'scale(1)'
       }}>
-        {isLiked ? '❤️' : '🤍'}
+        <FavoriteIcon size={parseInt(currentSize.fontSize)} color={isLiked ? '#ff6b6b' : '#ffffff'} />
       </div>
       
       {/* Счетчик лайков для больших размеров */}

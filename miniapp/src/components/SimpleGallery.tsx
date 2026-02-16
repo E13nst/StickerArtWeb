@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo, ReactNode, FC } from 'react';
 import { PackCard } from './PackCard';
 import { VirtualizedGallery } from './VirtualizedGallery';
+import { FavoriteIcon } from '@/components/ui/Icons';
 import { useSmartCache } from '../hooks/useSmartCache';
 import { LoadingSpinner } from './LoadingSpinner';
 import { throttle } from '../utils/throttle';
@@ -645,11 +646,10 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        fontSize: '24px',
                         animation: 'likeHeart 0.6s ease-out'
                       }}
                     >
-                      ❤️
+                      <FavoriteIcon size={24} color="#ff6b6b" />
                     </div>
                   </div>
                 )}
@@ -795,11 +795,10 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        fontSize: '24px',
                         animation: 'likeHeart 0.6s ease-out'
                       }}
                     >
-                      ❤️
+                      <FavoriteIcon size={24} color="#ff6b6b" />
                     </div>
                   </div>
                 )}

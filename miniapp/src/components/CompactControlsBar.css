@@ -38,6 +38,7 @@
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 30px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Frame 50 — поле поиска: тёмный полупрозрачный фон, рамка #8A8A8A */
@@ -47,25 +48,26 @@
   min-width: 0;
 }
 
+/* Search-bar визуально сливается с compact-controls-bar__row — без своей рамки и фона */
 .compact-controls-bar__search-slot .search-bar {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0 18px;
-  gap: 10px;
+  padding: 0 4px 0 12px;
+  gap: 8px;
   width: 100%;
-  height: 30px;
+  height: 100%;
   min-height: 30px;
   max-height: 30px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid #8A8A8A;
-  border-radius: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   box-shadow: none;
 }
 
 .compact-controls-bar__search-slot .search-bar:focus-within {
   box-shadow: none;
-  border-color: #8A8A8A;
+  border: none;
 }
 
 /* Плейсхолдер и текст — Manrope 12px, #8A8A8A (Figma Search) */
@@ -82,6 +84,14 @@
 
 .compact-controls-bar__search-slot .search-bar__input {
   padding: 0;
+  /* Без выделения при вводе — поле равно контейнеру search-bar */
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.compact-controls-bar__search-slot .search-bar__input::selection {
+  background: transparent;
+  color: inherit;
 }
 
 /* В Figma внутри поля только плейсхолдер "Search", иконку лупы скрываем */

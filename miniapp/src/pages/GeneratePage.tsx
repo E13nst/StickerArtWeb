@@ -49,7 +49,7 @@ export const GeneratePage: FC = () => {
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
-  const [removeBackground, setRemoveBackground] = useState<boolean>(true);
+  const [removeBackground, setRemoveBackground] = useState<boolean>(false);
   
   // Состояние генерации
   const [pageState, setPageState] = useState<PageState>('idle');
@@ -61,7 +61,6 @@ export const GeneratePage: FC = () => {
   const [stickerSaved, setStickerSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const shareAfterSaveRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [, setIsSendingToChat] = useState(false);
@@ -326,45 +325,50 @@ export const GeneratePage: FC = () => {
     setFileId(stickerFileId);
     setStickerSaved(true);
     setSaveError(null);
-    if (shareAfterSaveRef.current) {
-      shareAfterSaveRef.current = false;
-      const query = buildSwitchInlineQuery(stickerFileId);
-      const fallbackUrl = buildFallbackShareUrl(stickerFileId);
-      if (tg?.switchInlineQuery) {
-        if (tg.initDataUnsafe?.chat) {
-          tg.switchInlineQuery(query);
-        } else {
-          tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
-        }
-      } else if (tg?.openTelegramLink) {
-        tg.openTelegramLink(fallbackUrl);
-      } else {
-        window.open(fallbackUrl, '_blank');
-      }
-    }
-  }, [tg]);
+  }, []);
 
-  const handleShareSticker = () => {
-    if (fileId) {
-      const query = buildSwitchInlineQuery(fileId);
-      const fallbackUrl = buildFallbackShareUrl(fileId);
-      if (tg?.switchInlineQuery) {
-        if (tg.initDataUnsafe?.chat) {
-          tg.switchInlineQuery(query);
-        } else {
-          tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
-        }
-        return;
+  const [isSavingAndSharing, setIsSavingAndSharing] = useState(false);
+
+  const openChatPicker = useCallback((stickerFileId: string) => {
+    const query = buildSwitchInlineQuery(stickerFileId);
+    const fallbackUrl = buildFallbackShareUrl(stickerFileId);
+    if (tg?.switchInlineQuery) {
+      if (tg.initDataUnsafe?.chat) {
+        tg.switchInlineQuery(query);
+      } else {
+        tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
       }
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(fallbackUrl);
-        return;
-      }
-      window.open(fallbackUrl, '_blank');
       return;
     }
-    shareAfterSaveRef.current = true;
-    setSaveModalOpen(true);
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(fallbackUrl);
+      return;
+    }
+    window.open(fallbackUrl, '_blank');
+  }, [tg]);
+
+  const handleShareSticker = async () => {
+    if (fileId) {
+      openChatPicker(fileId);
+      return;
+    }
+    if (!imageId) return;
+
+    setIsSavingAndSharing(true);
+    setSaveError(null);
+    try {
+      const res = await apiClient.saveImageToStickerSet({
+        imageUuid: imageId,
+        emoji: '🎨',
+      });
+      setFileId(res.stickerFileId);
+      setStickerSaved(true);
+      openChatPicker(res.stickerFileId);
+    } catch (e: any) {
+      setSaveError(e?.message ?? 'Не удалось сохранить стикер');
+    } finally {
+      setIsSavingAndSharing(false);
+    }
   };
 
   // Валидация формы
@@ -477,6 +481,7 @@ export const GeneratePage: FC = () => {
       <p className="generate-status-header">Пожалуйста, подождите...</p>
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
+          <img src={`${BASE}assets/pictures-icon.svg`} alt="" className="generate-input-wrapper__pictures-icon" aria-hidden="true" />
           <textarea
             className="generate-input generate-input--readonly"
             rows={4}
@@ -510,10 +515,7 @@ export const GeneratePage: FC = () => {
   // Рендер результата (Figma: image → Save → форма readonly → GENERATE 10 ART)
   const renderSuccessState = () => (
     <div className="generate-result-container">
-      {renderBrandBlock()}
-
       <div className="generate-success-section">
-        <p className="generate-section-title">Последний результат</p>
         {resultImageUrl && (
           <div className="generate-result-image-wrapper">
             <img
@@ -524,13 +526,11 @@ export const GeneratePage: FC = () => {
           </div>
         )}
 
-        {stickerSaved ? (
-          <span className="generate-sticker-saved">Сохранено в набор</span>
-        ) : saveError ? (
+        {saveError && (
           <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
             {saveError}
           </Text>
-        ) : null}
+        )}
 
         <div className="generate-actions">
           {imageId && (
@@ -541,16 +541,18 @@ export const GeneratePage: FC = () => {
               disabled={stickerSaved}
               className="generate-action-button save"
             >
-              {stickerSaved ? 'Сохранено в набор' : 'Сохранить набор'}
+              {stickerSaved ? 'Сохранено в пак' : 'Сохранить в пак'}
             </Button>
           )}
           <Button
             variant="primary"
             size="medium"
             onClick={handleShareSticker}
+            disabled={isSavingAndSharing}
+            loading={isSavingAndSharing}
             className="generate-action-button share"
           >
-            Сохранить и поделиться
+            {isSavingAndSharing ? 'Сохраняем...' : 'Сохранить и поделиться'}
           </Button>
         </div>
       </div>
@@ -564,6 +566,7 @@ export const GeneratePage: FC = () => {
               shouldShowPromptError && 'generate-input-wrapper--error',
             )}
           >
+            <img src={`${BASE}assets/pictures-icon.svg`} alt="" className="generate-input-wrapper__pictures-icon" aria-hidden="true" />
             <textarea
               className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
               rows={4}
@@ -637,6 +640,7 @@ export const GeneratePage: FC = () => {
             shouldShowPromptError && 'generate-input-wrapper--error',
           )}
         >
+          <img src={`${BASE}assets/pictures-icon.svg`} alt="" className="generate-input-wrapper__pictures-icon" aria-hidden="true" />
           <textarea
             className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
             rows={4}
@@ -693,6 +697,7 @@ export const GeneratePage: FC = () => {
 
       <div className="generate-form-block">
         <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
+          <img src={`${BASE}assets/pictures-icon.svg`} alt="" className="generate-input-wrapper__pictures-icon" aria-hidden="true" />
           <textarea
             className="generate-input"
             rows={4}

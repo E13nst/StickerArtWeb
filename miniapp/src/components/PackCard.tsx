@@ -24,11 +24,14 @@ interface Pack {
 interface PackCardProps {
   pack: Pack;
   onClick?: (packId: string) => void;
+  /** Компактный лайк (например в dashboard-card) — тот же цвет, меньший размер */
+  likeSize?: 'small' | 'medium' | 'large';
 }
 
 const PackCardComponent: FC<PackCardProps> = ({ 
   pack, 
-  onClick
+  onClick,
+  likeSize = 'medium'
 }) => {
   // Используем react-intersection-observer для ленивой загрузки
   const { ref, inView } = useInView({
@@ -188,10 +191,10 @@ const PackCardComponent: FC<PackCardProps> = ({
         {formattedTitle}
       </div>
 
-      {/* Лайк */}
+      {/* Лайк — тот же стиль (активный #ee449f), размер через likeSize */}
       <InteractiveLikeCount
         packId={pack.id}
-        size="medium"
+        size={likeSize}
         placement="top-right"
       />
 
@@ -208,6 +211,7 @@ const PackCardComponent: FC<PackCardProps> = ({
 export const PackCard = memo(PackCardComponent, (prev, next) => {
   // Не сравниваем title, так как форматирование применяется при каждом рендере
   return prev.pack.id === next.pack.id && 
-         prev.onClick === next.onClick;
+         prev.onClick === next.onClick &&
+         prev.likeSize === next.likeSize;
 });
 

@@ -1,13 +1,37 @@
 import { CSSProperties, FC } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  NavHomeIcon,
-  NavGalleryIcon,
-  NavSwipeIcon,
-  NavGenerationIcon,
-  NavAccountIcon,
-} from './Icons';
 import './Navbar.css';
+
+const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
+
+const navMaskIcon = (svgFile: string): FC<{ size?: number; color?: string; className?: string; style?: CSSProperties }> => {
+  const Component: FC<{ size?: number; color?: string; className?: string; style?: CSSProperties }> = ({ size = 20, className, style }) => (
+    <div
+      className={className}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: 'currentColor',
+        WebkitMaskImage: `url(${BASE}${svgFile})`,
+        maskImage: `url(${BASE}${svgFile})`,
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain',
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center',
+        ...style,
+      }}
+    />
+  );
+  return Component;
+};
+
+const NavArtIcon = navMaskIcon('art-icon.svg');
+const NavLikeIcon = navMaskIcon('like-icon.svg');
+const NavHomeIcon = navMaskIcon('assets/home-icon.svg');
+const NavGalleryIcon = navMaskIcon('assets/gallery-icon.svg');
+const NavAccountIcon = navMaskIcon('assets/account-icon.svg');
 
 interface NavItem {
   path: string;
@@ -18,8 +42,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Home', Icon: NavHomeIcon },
   { path: '/gallery', label: 'Gallery', Icon: NavGalleryIcon },
-  { path: '/nft-soon', label: 'Swipe', Icon: NavSwipeIcon },
-  { path: '/generate', label: 'Generation', Icon: NavGenerationIcon },
+  { path: '/nft-soon', label: 'Swipe', Icon: NavLikeIcon },
+  { path: '/generate', label: 'Generation', Icon: NavArtIcon },
   { path: '/profile', label: 'Account', Icon: NavAccountIcon },
 ];
 

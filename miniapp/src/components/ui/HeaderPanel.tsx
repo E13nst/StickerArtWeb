@@ -1,20 +1,24 @@
-import { useMemo, useEffect, useRef, FC } from 'react';
+import { useMemo, useEffect, useRef, useState, FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
-import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
+import { getAvatarUrl } from '@/utils/avatarUtils';
 import { AccountBalanceWalletIcon } from '@/components/ui/Icons';
 import './HeaderPanel.css';
 
+const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
+
 /**
  * HeaderPanel — шапка с аватаром текущего пользователя, балансом ART и кнопками.
- * Аватар: photo_url из Telegram → blob из API (useUserAvatar) → userInfo → инициалы.
+ * Аватар: photo_url из Telegram → blob из API (useUserAvatar) → userInfo.
+ * При отсутствии пользователя/аватара или ошибке загрузки — иконка Account.
  */
 export const HeaderPanel: FC = () => {
   const { user } = useTelegram();
   const { userInfo, currentUserId } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
   const headerRef = useRef<HTMLElement>(null);
+  const [avatarError, setAvatarError] = useState(false);
 
   const avatarUrl = useMemo(() => {
     if (!user) return undefined;
@@ -24,8 +28,13 @@ export const HeaderPanel: FC = () => {
     return userInfo.avatarUrl ?? getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 96);
   }, [user, user?.photo_url, avatarBlobUrl, userInfo]);
 
+  const showAccountIcon = !user || !avatarUrl || avatarError;
+
   useEffect(() => {
-    if (!user) return;
+    setAvatarError(false);
+  }, [avatarUrl]);
+
+  useEffect(() => {
     const updateHeaderHeight = () => {
       if (!headerRef.current) return;
       const height = headerRef.current.getBoundingClientRect().height;
@@ -39,9 +48,7 @@ export const HeaderPanel: FC = () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateHeaderHeight);
     };
-  }, [user]);
-
-  if (!user) return null;
+  }, []);
 
   // Получаем баланс из store или показываем 0
   const balance = userInfo?.artBalance ?? 0;
@@ -51,9 +58,6 @@ export const HeaderPanel: FC = () => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
-
-  const initials = getInitials(user.first_name, user.last_name);
-  const placeholderColor = getAvatarColor(user.first_name || user.username || 'U');
 
   // Обработчики событий
   const handlePlusClick = () => {
@@ -70,20 +74,34 @@ export const HeaderPanel: FC = () => {
     <header ref={headerRef} className="header-panel" role="banner">
       <div className="header-panel__inner">
         <div className="header-panel__content">
-          {/* Аватар: фото или плейсхолдер с инициалами */}
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={user.first_name}
-              className="header-panel__avatar"
-            />
-          ) : (
-            <div
-              className="header-panel__avatar header-panel__avatar--placeholder"
-              style={{ backgroundColor: placeholderColor }}
-            >
-              {initials || user.first_name.charAt(0).toUpperCase()}
+          {/* Аватар: фото или иконка Account при отсутствии/ошибке загрузки */}
+          {showAccountIcon ? (
+            <div className="header-panel__avatar header-panel__avatar--placeholder">
+              <span
+                style={{
+                  width: 28,
+                  height: 28,
+                  display: 'block',
+                  backgroundColor: 'currentColor',
+                  WebkitMaskImage: `url(${BASE}assets/account-icon.svg)`,
+                  maskImage: `url(${BASE}assets/account-icon.svg)`,
+                  WebkitMaskSize: 'contain',
+                  maskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'center',
+                  maskPosition: 'center',
+                }}
+                aria-hidden
+              />
             </div>
+          ) : (
+            <img
+              src={avatarUrl!}
+              alt={user?.first_name ?? 'Avatar'}
+              className="header-panel__avatar"
+              onError={() => setAvatarError(true)}
+            />
           )}
 
           <div className="header-panel__balance">

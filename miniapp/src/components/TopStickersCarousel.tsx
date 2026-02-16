@@ -1,5 +1,6 @@
 import { useEffect, FC } from 'react';
 import { Text } from '@/components/ui/Text';
+import { FavoriteIcon } from '@/components/ui/Icons';
 import { imageLoader, getCachedStickerUrl, LoadPriority } from '@/utils/imageLoader';
 
 interface Sticker {
@@ -85,7 +86,7 @@ export const TopStickersCarousel: FC<TopStickersCarouselProps> = ({
             </Text>
             
             <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.7rem' }}>
-              {sticker.likes} ❤️
+              {sticker.likes} <FavoriteIcon size={12} color="#ff6b6b" style={{ verticalAlign: 'middle' }} />
             </Text>
           </div>
         ))}

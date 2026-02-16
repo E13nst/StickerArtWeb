@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, ReactNode, FC, MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import './BottomSheet.css';
 
 export interface BottomSheetProps {
@@ -102,7 +103,7 @@ export const BottomSheet: FC<BottomSheetProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const sheet = (
     <div
       className="bottom-sheet-overlay"
       onClick={handleOverlayClick}
@@ -164,4 +165,6 @@ export const BottomSheet: FC<BottomSheetProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(sheet, document.body);
 };

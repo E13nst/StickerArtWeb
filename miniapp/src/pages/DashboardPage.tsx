@@ -398,37 +398,16 @@ export const DashboardPage: FC = () => {
                     <div
                       className={cn('dashboard-card-carousel-track', userTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
                       style={{
-                        transform: (() => {
-                          const total = userPacks.length <= 1 ? userPacks.length : userPacks.length + 1;
-                          const pct = total ? (100 / total) * carouselUserIndex : 0;
-                          return `translateX(-${pct}%)`;
-                        })(),
-                        width: (() => {
-                          const total = userPacks.length <= 1 ? userPacks.length : userPacks.length + 1;
-                          return `${total * 100}%`;
-                        })(),
+                        transform: `translateX(-${carouselUserIndex * 209}px)`,
                       }}
                     >
                       {userPacks.map((pack) => (
-                        <div
-                          key={pack.id}
-                          className="dashboard-card-carousel-slide"
-                          style={{
-                            width: (() => {
-                              const total = userPacks.length <= 1 ? userPacks.length : userPacks.length + 1;
-                              return total ? `${100 / total}%` : '100%';
-                            })(),
-                          }}
-                        >
+                        <div key={pack.id} className="dashboard-card-carousel-slide">
                           <PackCard pack={pack} onClick={handlePackClick} />
                         </div>
                       ))}
                       {userPacks.length > 1 && userPacks[0] && (
-                        <div
-                          className="dashboard-card-carousel-slide"
-                          style={{ width: `${100 / (userPacks.length + 1)}%` }}
-                          aria-hidden
-                        >
+                        <div className="dashboard-card-carousel-slide" aria-hidden>
                           <PackCard pack={userPacks[0]} onClick={handlePackClick} />
                         </div>
                       )}
@@ -441,37 +420,16 @@ export const DashboardPage: FC = () => {
                     <div
                       className={cn('dashboard-card-carousel-track', officialTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
                       style={{
-                        transform: (() => {
-                          const total = officialPacks.length <= 1 ? officialPacks.length : officialPacks.length + 1;
-                          const pct = total ? (100 / total) * carouselOfficialIndex : 0;
-                          return `translateX(-${pct}%)`;
-                        })(),
-                        width: (() => {
-                          const total = officialPacks.length <= 1 ? officialPacks.length : officialPacks.length + 1;
-                          return `${total * 100}%`;
-                        })(),
+                        transform: `translateX(-${carouselOfficialIndex * 209}px)`,
                       }}
                     >
                       {officialPacks.map((pack) => (
-                        <div
-                          key={pack.id}
-                          className="dashboard-card-carousel-slide"
-                          style={{
-                            width: (() => {
-                              const total = officialPacks.length <= 1 ? officialPacks.length : officialPacks.length + 1;
-                              return total ? `${100 / total}%` : '100%';
-                            })(),
-                          }}
-                        >
+                        <div key={pack.id} className="dashboard-card-carousel-slide">
                           <PackCard pack={pack} onClick={handlePackClick} />
                         </div>
                       ))}
                       {officialPacks.length > 1 && officialPacks[0] && (
-                        <div
-                          className="dashboard-card-carousel-slide"
-                          style={{ width: `${100 / (officialPacks.length + 1)}%` }}
-                          aria-hidden
-                        >
+                        <div className="dashboard-card-carousel-slide" aria-hidden>
                           <PackCard pack={officialPacks[0]} onClick={handlePackClick} />
                         </div>
                       )}

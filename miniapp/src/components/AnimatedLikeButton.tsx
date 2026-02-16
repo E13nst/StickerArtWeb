@@ -1,4 +1,5 @@
 import { useState, useCallback, FC } from 'react';
+import { FavoriteIcon } from '@/components/ui/Icons';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 
 interface AnimatedLikeButtonProps {
@@ -110,7 +111,7 @@ export const AnimatedLikeButton: FC<AnimatedLikeButtonProps> = ({
             transition: 'transform 0.2s ease'
           }}
         >
-          {isLiked ? '❤️' : '🤍'}
+          <FavoriteIcon size={parseInt(buttonSize.fontSize)} color={isLiked ? '#ff6b6b' : '#ffffff'} />
         </span>
 
         {/* Счетчик лайков */}

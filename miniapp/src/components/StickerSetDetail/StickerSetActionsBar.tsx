@@ -78,12 +78,12 @@ export const StickerSetActionsBar: FC<{
           }}
           style={iconButtonStyle({
             background: 'transparent',
-            color: liked ? '#f44336' : 'white',
-            border: liked ? '1px solid rgba(244, 67, 54, 0.4)' : '1px solid rgba(255, 255, 255, 0.25)',
+            color: liked ? '#ee449f' : 'white',
+            border: liked ? '1px solid rgba(238, 68, 159, 0.4)' : '1px solid rgba(255, 255, 255, 0.25)',
             transform: likeAnim ? 'scale(1.2)' : 'scale(1.0)',
           })}
         >
-          <FavoriteIcon size={32} color={liked ? '#f44336' : 'white'} />
+          <FavoriteIcon size={32} color={liked ? '#ee449f' : 'white'} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'inherit', lineHeight: 1 }}>{likes}</span>
         </button>
 

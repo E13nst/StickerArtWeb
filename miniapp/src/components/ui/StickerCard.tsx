@@ -1,4 +1,5 @@
 import { FC, MouseEvent } from 'react';
+import { FavoriteIcon } from './Icons';
 import { Text } from './Text';
 import './StickerCard.css';
 
@@ -68,7 +69,7 @@ export const StickerCard: FC<StickerCardProps> = ({
         aria-label={`Лайков: ${likes}`}
         type="button"
       >
-        <span className="sticker-card__like-icon">❤️</span>
+        <span className="sticker-card__like-icon"><FavoriteIcon size={12} color="#ff6b6b" /></span>
         <span className="sticker-card__like-count">{likes}</span>
       </button>
     </div>

@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef, CSSProperties, FC, MouseEvent } from 'react';
+import { FavoriteIcon } from '@/components/ui/Icons';
 import { useLikesStore } from '../store/useLikesStore';
 import { useTelegram } from '../hooks/useTelegram';
 
@@ -9,37 +10,14 @@ interface InteractiveLikeCountProps {
   showCount?: boolean;
 }
 
-// SVG компонент для иконки лайка с обрезкой по контуру сердца
+// Обёртка над FavoriteIcon с поддержкой isLiked-состояния
 const LikeIcon: FC<{ 
   color: string; 
   size: number; 
   isLiked: boolean; 
-}> = ({ color, size, isLiked }) => {
-  return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 200 200" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <clipPath id="heartClip">
-          <path d="M100.832,141.398c-1.4,0-2.8-0.6-3.8-1.6l-37.2-37.2c-0.8-0.8-0.8-2,0-2.8c0.8-0.8,2-0.8,2.8,0l37.2,37.2
-            c0.5,0.5,1.4,0.5,2,0l37.2-37.2c0.8-0.8,2-0.8,2.8,0c0.8,0.8,0.8,2,0,2.8l-37.2,37.2
-            C103.632,140.798,102.232,141.398,100.832,141.398z M54.832,86.998c-1.1,0-2-0.9-2-2c0-14.9,12.1-27,27-27c8.7,0,17,4.3,22,11.4c0.6,0.9,0.4,2.2-0.5,2.8
-            s-2.1,0.4-2.8-0.5c-4.2-6.1-11.3-9.7-18.7-9.7c-12.7,0-23,10.3-23,23C56.832,86.098,55.932,86.998,54.832,86.998z M145.832,86.998c-1.1,0-2-0.9-2-2c0-12.7-10.3-23-23-23c-7.4,0-14.5,3.6-18.8,9.7c-0.6,0.9-1.9,1.1-2.8,0.5
-            c-0.9-0.6-1.1-1.9-0.5-2.8c5.1-7.1,13.3-11.4,22.1-11.4c14.9,0,27,12.1,27,27C147.832,86.098,146.932,86.998,145.832,86.998z"/>
-        </clipPath>
-      </defs>
-      <rect 
-        width="200" 
-        height="200" 
-        fill={isLiked ? '#ff6b6b' : color}
-        clipPath="url(#heartClip)"
-      />
-    </svg>
-  );
-};
+}> = ({ color, size, isLiked }) => (
+  <FavoriteIcon size={size} color={isLiked ? '#ee449f' : '#2a2a2a'} />
+);
 
 export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
   packId,
@@ -117,48 +95,12 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
 
   const currentSize = sizeStyles[size];
   const baseIconSize = currentSize.iconSize;
-  // Для top-right уменьшаем размер круга, но увеличиваем размер иконки
-  const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize * 0.75;
-  const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize * 1.3;
+  const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize * 0.42;
+  const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize * 0.75;
   
-  const getThemeColor = () => {
-    const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-bg-color').trim();
-    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-text-color').trim();
-    
-    if (bgColor && textColor) {
-      const isDark = bgColor.includes('#') ? 
-        parseInt(bgColor.replace('#', ''), 16) < 0x808080 : 
-        bgColor.includes('dark') || bgColor.includes('black');
-      
-      return isDark ? '#ffffff' : '#6b7280';
-    }
-    
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#ffffff' : '#6b7280';
-  };
+  const getThemeColor = () => '#2a2a2a';
   
-  // Получаем цвет текста для числа лайков с учетом темы и состояния лайка
-  const getTextColor = () => {
-    if (isLiked) {
-      // При поставленном лайке - проверяем тему для контраста
-      const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-bg-color').trim();
-      
-      if (bgColor) {
-        const isDark = bgColor.includes('#') ? 
-          parseInt(bgColor.replace('#', ''), 16) < 0x808080 : 
-          bgColor.includes('dark') || bgColor.includes('black');
-        
-        // На светлой теме используем темный цвет для контраста с красным сердцем
-        // На темной теме используем белый
-        return isDark ? '#ffffff' : '#1f2937';
-      }
-      
-      // Fallback: определяем по системной теме
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#ffffff' : '#1f2937';
-    }
-    
-    // Если лайк не поставлен - используем обычный цвет темы
-    return getThemeColor();
-  };
+  const getTextColor = () => isLiked ? '#ffffff' : '#ffffff';
 
   // Обработчик клика на лайк
   const handleLikeClick = useCallback(async (e: MouseEvent) => {
@@ -192,8 +134,8 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
           transform: 'translate(-50%, 0)'
         }
       : {
-          top: 'clamp(2px, 1vw, 1px)',
-          right: 'clamp(2px, 1vw, 1px)'
+          top: '-6px',
+          right: '-6px'
         };
 
   const transformValue = isAnimating ? 'scale(1.18)' : 'scale(1)';
@@ -210,7 +152,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
         justifyContent: 'center',
         width: `${visualIconSize}px`,
         height: `${visualIconSize}px`,
-        zIndex: 4,
+        zIndex: 10,
         transition: 'all 0.233s ease',
         pointerEvents: 'auto', // Делаем кликабельным!
         cursor: 'pointer',

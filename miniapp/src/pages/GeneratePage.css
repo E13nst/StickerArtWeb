@@ -126,6 +126,18 @@
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
+.generate-input-wrapper__pictures-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0.85;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%); /* #8A8A8A в стиле приложения */
+}
+
 .generate-input-footer {
   display: flex;
   flex-direction: row;
@@ -280,13 +292,13 @@
   user-select: none;
 }
 
-/* Единые стили при клике на чекбокс И на текст — hover и active через label */
-.generate-checkbox-label:hover .generate-checkbox:not(:disabled) {
+/* hover/active для НЕотмеченного чекбокса — :checked исключён, чтобы розовый не перекрывался */
+.generate-checkbox-label:hover .generate-checkbox:not(:disabled):not(:checked) {
   border-color: var(--color-text-secondary);
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-.generate-checkbox-label:active .generate-checkbox:not(:disabled) {
+.generate-checkbox-label:active .generate-checkbox:not(:disabled):not(:checked) {
   border-color: var(--color-text-secondary);
   background-color: rgba(255, 255, 255, 0.12);
 }
@@ -479,6 +491,7 @@
   background-color: var(--color-surface) !important;
   color: var(--color-text) !important;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  align-self: center;
 }
 
 /* ========== RESULT ========== */

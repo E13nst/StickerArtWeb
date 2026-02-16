@@ -81,7 +81,9 @@ const SearchBarComponent: FC<SearchBarProps> = ({
         onKeyPress={handleKeyPress}
         disabled={disabled}
         data-testid="search-input"
-        style={{
+        style={compact ? {
+          color: textColorResolved,
+        } : {
           color: textColorResolved,
           backgroundColor: glassSolid,
           borderColor: borderColor,

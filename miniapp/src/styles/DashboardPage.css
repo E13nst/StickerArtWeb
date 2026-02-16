@@ -157,7 +157,7 @@
   width: 100%;
 }
 
-/* Card Custom + Card Official — ряд 370px по ширине как Our Statistics */
+/* Card Custom + Card Official — ряд по ширине как Our Statistics (370px) */
 .dashboard-category-cards-row {
   display: flex;
   flex-direction: row;
@@ -165,10 +165,9 @@
   align-items: stretch;
   justify-content: space-between;
   gap: 16px;
-  width: min(370px, calc(100% + 32px));
-  max-width: none;
-  margin-left: -16px;
-  margin-right: -16px;
+  width: 100%;
+  max-width: 370px;
+  box-sizing: border-box;
 }
 
 /* Card Custom / Card Official — Figma: 177×249px, padding 16px 8px, gap 16px */
@@ -178,11 +177,14 @@
   align-items: center;
   padding: 16px 8px;
   gap: 16px;
-  width: 177px;
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: 177px;
   height: 249px;
   border-radius: 16px;
   box-sizing: border-box;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
 }
 
 .dashboard-card-custom {
@@ -211,11 +213,12 @@
   margin: 0;
 }
 
-/* Preview — Figma: 161×189px, gap 16px внутри слайда */
+/* Preview — 161×189px; overflow не нужен: .dashboard-card (177px, overflow:hidden) обрезает соседние слайды,
+   а gap:48px гарантирует, что они далеко за пределами видимой области */
 .dashboard-card-carousel {
   width: 161px;
   height: 189px;
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
   border-radius: 16px;
 }
@@ -223,6 +226,7 @@
 .dashboard-card-carousel-track {
   display: flex;
   flex-direction: row;
+  gap: 48px; /* расстояние между слайдами — соседний лайк не виден */
   height: 100%;
   transition: transform 0.45s ease-in-out;
 }
@@ -232,7 +236,7 @@
 }
 
 .dashboard-card-carousel-slide {
-  flex: 0 0 auto;
+  flex: 0 0 161px;
   height: 100%;
   display: flex;
   align-items: center;
@@ -254,7 +258,7 @@
   background-color: transparent !important;
 }
 
-/* Слайд карусели — Figma: 161×189px, колонка, название ближе к контенту */
+/* Слайд карусели — 161×189px, колонка, название ближе к контенту */
 .dashboard-card-carousel .pack-card,
 .dashboard-card-carousel-slide .pack-card {
   display: flex !important;
@@ -268,7 +272,7 @@
   max-width: 161px;
   flex-shrink: 0;
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .dashboard-card-carousel .pack-card:hover,
@@ -276,7 +280,7 @@
   transform: none;
 }
 
-/* Photo/like — Figma: 161×161px, border-radius 16px */
+/* Photo — Figma: 161×161px, border-radius 16px */
 .dashboard-card-carousel .pack-card__content,
 .dashboard-card-carousel-slide .pack-card__content {
   width: 161px !important;
@@ -410,7 +414,12 @@
    Daily activity (Figma)
    ============================================ */
 
-/* Daily activity — по Figma: 370×234px */
+/* Daily activity — по Figma: 370×234px, контент не обрезается */
+.dashboard-daily-activity-section {
+  overflow: visible;
+  min-height: 0;
+}
+
 .dashboard-daily-activity {
   display: flex;
   flex-direction: column;
@@ -419,24 +428,27 @@
   gap: 24px;
   width: 370px;
   max-width: 100%;
-  height: 234px;
+  min-height: 234px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.5);
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 16px;
+  overflow: visible;
 }
 
 .dashboard-daily-activity-title {
   width: 338px;
   max-width: 100%;
-  height: 14px;
+  min-height: 26px;
+  padding: 2px 0;
   font-family: 'Manrope', sans-serif;
   font-style: normal;
   font-weight: 700;
   font-size: 20px;
-  line-height: 22px;
+  line-height: 1.25;
   display: flex;
   align-items: center;
+  justify-content: center;
   text-align: center;
   color: #ffffff;
   flex: none;
@@ -445,16 +457,17 @@
   flex-grow: 0;
   margin: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-daily-activity-carousel {
   width: 338px;
   max-width: 100%;
-  height: 96px;
+  min-height: 96px;
   flex: none;
   order: 1;
   flex-grow: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .dashboard-daily-activity-pool {
@@ -465,18 +478,18 @@
   gap: 24px;
   width: 100%;
   max-width: 338px;
-  height: 96px;
+  min-height: 96px;
 }
 
 .dashboard-daily-activity-task {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0;
+  padding: 2px 0;
   gap: 8px;
   width: 100%;
   max-width: 338px;
-  height: 36px;
+  min-height: 40px;
   flex: none;
   order: 0;
   align-self: stretch;
@@ -514,9 +527,9 @@
   justify-content: center;
   align-items: flex-start;
   padding: 0;
-  gap: 10px;
+  gap: 2px;
   width: auto;
-  height: 31px;
+  min-height: 38px;
   flex: none;
   order: 1;
   flex: 1 1 auto;
@@ -525,11 +538,12 @@
 
 .dashboard-daily-activity-task__title {
   width: 100%;
-  height: 12px;
+  min-height: 20px;
+  padding: 1px 0;
   font-family: 'Manrope', sans-serif;
   font-weight: 700;
   font-size: 16px;
-  line-height: 22px;
+  line-height: 1.25;
   display: flex;
   align-items: center;
   color: #ffffff;
@@ -542,11 +556,12 @@
 
 .dashboard-daily-activity-task__reward {
   width: auto;
-  height: 9px;
+  min-height: 15px;
+  padding: 1px 0;
   font-family: 'Manrope', sans-serif;
   font-weight: 400;
   font-size: 12px;
-  line-height: 22px;
+  line-height: 1.25;
   display: flex;
   align-items: center;
   text-align: center;
@@ -562,7 +577,7 @@
   padding: 8px 12px;
   width: auto;
   min-width: 54px;
-  height: 25px;
+  min-height: 28px;
   flex: none;
   order: 2;
   flex-grow: 0;
@@ -573,7 +588,7 @@
   font-family: 'Manrope', sans-serif;
   font-weight: 700;
   font-size: 12px;
-  line-height: 22px;
+  line-height: 1.25;
   white-space: nowrap;
   color: #ffffff;
   cursor: pointer;
@@ -621,10 +636,10 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding: 16px;
+  padding: 12px 16px;
   width: 338px;
   max-width: 100%;
-  height: 44px;
+  min-height: 48px;
   flex: none;
   order: 2;
   align-self: stretch;
@@ -636,7 +651,7 @@
   font-family: 'Manrope', sans-serif;
   font-weight: 800;
   font-size: 16px;
-  line-height: 22px;
+  line-height: 1.25;
   color: #ffffff;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -646,7 +661,7 @@
   background: #d93d8f;
 }
 
-/* Центрирование Daily activity */
+/* Центрирование Daily activity (overflow уже задан выше) */
 .dashboard-daily-activity-section {
   display: flex;
   justify-content: center;

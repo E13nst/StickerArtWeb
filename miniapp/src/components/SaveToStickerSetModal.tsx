@@ -23,7 +23,7 @@ function getSetPreviewUrl(set: StickerSetResponse): string {
 }
 
 function getStickerCount(set: StickerSetResponse): number {
-  return set.telegramStickerSetInfo?.stickers?.length ?? set.stickerCount ?? 0;
+  return set.stickerCount ?? set.telegramStickerSetInfo?.stickers?.length ?? 0;
 }
 
 export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
@@ -48,7 +48,9 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     setError(null);
     try {
       const res = await apiClient.getUserStickerSets(userInfo.id, 0, 50, 'createdAt', 'DESC', true);
-      setSets(res.content ?? []);
+      const botSuffix = '_by_stixlybot';
+      const ownSets = (res.content ?? []).filter(s => s.name.endsWith(botSuffix));
+      setSets(ownSets);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить наборы');
     } finally {
@@ -114,7 +116,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Сохранить в набор" showCloseButton>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Сохранить в пак" showCloseButton>
       <div className="save-to-stickerset-modal">
         {imageUrl && (
           <div className="save-to-stickerset-modal__preview">
