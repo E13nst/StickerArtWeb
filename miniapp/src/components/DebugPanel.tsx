@@ -23,7 +23,7 @@ const lightTheme = {
 };
 
 const darkTheme = {
-  bg_color: '#18222d',
+  bg_color: '#191818',
   text_color: '#ffffff',
   hint_color: '#708499',
   link_color: '#6ab2f2',

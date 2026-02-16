@@ -206,8 +206,8 @@ export const NavSwipeIcon: FC<IconProps> = ({ size = 20, color = 'currentColor',
 );
 
 export const NavGenerationIcon: FC<IconProps> = ({ size = 20, color = 'currentColor', className, style }) => (
-  <svg width={size} height={size} viewBox="0 0 20 20" fill="none" className={className} style={{ ...style, transform: 'scaleX(-1)' }}>
-    <path d="M10 2l1.5 3 3.5.5-2.5 2.5.6 3.5L10 9.5l-3.1 1.5.6-3.5L5 5.5l3.5-.5L10 2z" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+  <svg width={size} height={size} viewBox="4 1 12 12" fill="none" className={className} style={{ ...style, transform: 'scaleX(-1)' }}>
+    <path d="M10 2l1.5 3 3.5.5-2.5 2.5.6 3.5L10 9.5l-3.1 1.5.6-3.5L5 5.5l3.5-.5L10 2z" stroke={color} strokeWidth="1.48" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 

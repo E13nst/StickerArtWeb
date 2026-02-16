@@ -79,6 +79,7 @@
   flex-direction: column;
   gap: clamp(4px, 1vw, 8px);
   padding-top: clamp(6px, 1.5vw, 10px);
+  padding-bottom: clamp(4px, 1vw, 8px);
   margin-bottom: clamp(8px, 2vw, 16px);
   padding-left: 2px;
   padding-right: 2px;

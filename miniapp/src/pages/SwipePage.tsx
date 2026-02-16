@@ -8,7 +8,8 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { AnimatedSticker } from '@/components/AnimatedSticker';
-import { getStickerImageUrl } from '@/utils/stickerUtils';
+import { AuthorDisplay } from '@/components/AuthorDisplay';
+import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 
@@ -103,11 +104,18 @@ export const SwipePage: FC = () => {
       <div className="swipe-card">
         <div className="swipe-card__content">
           <Text variant="h2" weight="bold" className="swipe-card__title">
-            {stickerSet.title}
+            {formatStickerTitle(stickerSet.title)}
           </Text>
-          <Text variant="body" color="primary" className="swipe-card__subtitle">
-            @{stickerSet.name}
-          </Text>
+          {stickerSet.authorId != null && (
+            <AuthorDisplay
+              authorId={stickerSet.authorId}
+              username={stickerSet.username}
+              firstName={stickerSet.firstName}
+              lastName={stickerSet.lastName}
+              className="swipe-card__subtitle swipe-card__subtitle--link"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
         </div>
 
         <div className="swipe-card__preview">
@@ -158,7 +166,7 @@ export const SwipePage: FC = () => {
                 >
                   <img
                     src={imageCache.get(previewSticker.file_id) || imageUrl}
-                    alt={stickerSet.title}
+                    alt={formatStickerTitle(stickerSet.title)}
                     className="pack-card-image"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     style={{
@@ -191,12 +199,6 @@ export const SwipePage: FC = () => {
           >
             Download
           </Button>
-          
-          <div className="swipe-card__info">
-            <Text variant="caption" color="secondary">
-              {stickerSet.telegramStickerSetInfo?.stickers?.length || 0} stickers
-            </Text>
-          </div>
         </div>
       </div>
     );

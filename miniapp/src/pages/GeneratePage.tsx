@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { KeyboardArrowDownIcon, NavGalleryIcon } from '@/components/ui/Icons';
+import { KeyboardArrowDownIcon } from '@/components/ui/Icons';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import './GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
@@ -12,6 +12,7 @@ import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
+import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
@@ -58,8 +59,9 @@ export const GeneratePage: FC = () => {
   const [imageId, setImageId] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const shareAfterSaveRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [, setIsSendingToChat] = useState(false);
@@ -75,6 +77,8 @@ export const GeneratePage: FC = () => {
   
   // Polling ref
   const pollingIntervalRef = useRef<number | null>(null);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const modelDropdownRef = useRef<HTMLDivElement | null>(null);
   
   // Извлечение параметров из URL при инициализации
   useEffect(() => {
@@ -310,7 +314,6 @@ export const GeneratePage: FC = () => {
     setImageId(null);
     setFileId(null);
     setStickerSaved(false);
-    setIsSaving(false);
     setSaveError(null);
     setErrorMessage(null);
     setErrorKind(null);
@@ -319,78 +322,49 @@ export const GeneratePage: FC = () => {
     // Не очищаем inlineQueryId и userId - они нужны для повторной отправки
   };
 
-  // Генерация еще раз (очищаем всё включая prompt)
-  const handleGenerateAnother = () => {
-    handleReset();
-    setPrompt('');
-    setSelectedStylePresetId(null);
-    setRemoveBackground(true);
-  };
-
-  // Сохранение стикера в стикерсет
-  const handleSaveToStickerSet = async () => {
-    if (!imageId || isSaving) return;
-
-    setIsSaving(true);
+  const handleSavedFromModal = useCallback((stickerFileId: string) => {
+    setFileId(stickerFileId);
+    setStickerSaved(true);
     setSaveError(null);
-
-    try {
-      const response = await apiClient.saveImageToStickerSet({
-        imageUuid: imageId,
-        stickerSetName: null,
-        emoji: '🎨'
-      });
-      
-      // Обновляем fileId из ответа, если он есть
-      if (response.stickerFileId) {
-        setFileId(response.stickerFileId);
-        console.log('✅ Получен stickerFileId из ответа сохранения:', response.stickerFileId);
+    if (shareAfterSaveRef.current) {
+      shareAfterSaveRef.current = false;
+      const query = buildSwitchInlineQuery(stickerFileId);
+      const fallbackUrl = buildFallbackShareUrl(stickerFileId);
+      if (tg?.switchInlineQuery) {
+        if (tg.initDataUnsafe?.chat) {
+          tg.switchInlineQuery(query);
+        } else {
+          tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
+        }
+      } else if (tg?.openTelegramLink) {
+        tg.openTelegramLink(fallbackUrl);
+      } else {
+        window.open(fallbackUrl, '_blank');
       }
-      
-      setStickerSaved(true);
-    } catch (error: any) {
-      let message = 'Не удалось сохранить стикер';
-      
-      if (error.message?.includes('полон') || error.message?.includes('120')) {
-        message = 'Стикерсет полон. Максимум 120 стикеров в одном наборе';
-      } else if (error.message?.includes('не найдено') || error.message?.includes('404')) {
-        message = 'Изображение не найдено';
-      } else if (error.message) {
-        message = error.message;
-      }
-      
-      setSaveError(message);
-    } finally {
-      setIsSaving(false);
     }
-  };
+  }, [tg]);
 
   const handleShareSticker = () => {
-    if (!fileId) {
-      setSaveError('Невозможно поделиться: сначала сохраните стикер');
-      return;
-    }
-
-    const query = buildSwitchInlineQuery(fileId);
-    const fallbackUrl = buildFallbackShareUrl(fileId);
-
-    if (tg?.switchInlineQuery) {
-      // Если открыт из чата, Telegram откроет inline в этом чате
-      if (tg.initDataUnsafe?.chat) {
-        tg.switchInlineQuery(query);
+    if (fileId) {
+      const query = buildSwitchInlineQuery(fileId);
+      const fallbackUrl = buildFallbackShareUrl(fileId);
+      if (tg?.switchInlineQuery) {
+        if (tg.initDataUnsafe?.chat) {
+          tg.switchInlineQuery(query);
+        } else {
+          tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
+        }
         return;
       }
-      // Иначе открываем выбор чата
-      tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(fallbackUrl);
+        return;
+      }
+      window.open(fallbackUrl, '_blank');
       return;
     }
-
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(fallbackUrl);
-      return;
-    }
-
-    window.open(fallbackUrl, '_blank');
+    shareAfterSaveRef.current = true;
+    setSaveModalOpen(true);
   };
 
   // Валидация формы
@@ -416,7 +390,6 @@ export const GeneratePage: FC = () => {
 
   const modelOptions: Array<{ id: number | null; name: string }> = [
     { id: null, name: 'Model 1' },
-    ...stylePresets.map((preset) => ({ id: preset.id, name: preset.name })),
   ];
 
   const handleModelChange = (rawValue: string) => {
@@ -428,41 +401,60 @@ export const GeneratePage: FC = () => {
     setSelectedStylePresetId(Number.isFinite(parsed) ? parsed : null);
   };
 
-  const renderModelFileRow = (disabled: boolean) => (
-    <div className="generate-model-file-row">
-      <label className="generate-model-select-wrap">
-        <select
-          className="generate-model-select"
-          value={selectedStylePresetId == null ? 'none' : String(selectedStylePresetId)}
-          onChange={(e) => handleModelChange(e.target.value)}
-          disabled={disabled}
-          aria-label="Выбор модели генерации"
-        >
-          {modelOptions.map((option) => (
-            <option key={option.id ?? 'none'} value={option.id == null ? 'none' : String(option.id)}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-        <KeyboardArrowDownIcon size={14} color="var(--color-text-secondary)" />
-      </label>
+  useEffect(() => {
+    if (!modelDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
+        setModelDropdownOpen(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [modelDropdownOpen]);
 
-      <div className="generate-model-file-right">
-        <span className="generate-char-counter-inline">
-          {prompt.length}/{MAX_PROMPT_LENGTH}
-        </span>
+  const renderModelFileRow = (disabled: boolean) => {
+    const selectedOption = modelOptions.find(o => o.id === selectedStylePresetId || (o.id == null && selectedStylePresetId == null))
+      ?? modelOptions[0];
+    return (
+      <div ref={modelDropdownRef} className="generate-model-select-wrap">
         <button
           type="button"
-          className="generate-file-icon"
-          disabled
-          aria-label="Выбор файла"
-          title="Выбор файла"
+          className="generate-model-select-trigger"
+          onClick={() => !disabled && setModelDropdownOpen(v => !v)}
+          disabled={disabled}
+          aria-label="Выбор модели генерации"
+          aria-expanded={modelDropdownOpen}
         >
-          <NavGalleryIcon size={19} color="var(--color-text-secondary)" />
+          <span className="generate-model-select-value">{selectedOption.name}</span>
+          <KeyboardArrowDownIcon
+            size={14}
+            color="var(--color-text-secondary)"
+            style={{ transform: modelDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+          />
         </button>
+        {modelDropdownOpen && (
+          <div className="generate-model-select-dropdown">
+            {modelOptions.map((option) => (
+              <button
+                key={option.id ?? 'none'}
+                type="button"
+                className={cn('generate-model-select-option', (option.id === selectedStylePresetId || (option.id == null && selectedStylePresetId == null)) && 'generate-model-select-option--selected')}
+                onClick={() => {
+                  handleModelChange(option.id == null ? 'none' : String(option.id));
+                  setModelDropdownOpen(false);
+                }}
+              >
+                {option.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderBrandBlock = () => (
     <div className="generate-brand" aria-hidden="true">
@@ -492,12 +484,14 @@ export const GeneratePage: FC = () => {
             value={prompt}
             maxLength={MAX_PROMPT_LENGTH}
           />
-          {renderModelFileRow(true)}
+          <div className="generate-input-footer">
+            {renderModelFileRow(true)}
+            <label className="generate-checkbox-label generate-checkbox-label--inline">
+              <span>Удалить фон</span>
+              <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
+            </label>
+          </div>
         </div>
-        <label className="generate-checkbox-label">
-          <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
-          <span>Удалить фон</span>
-        </label>
         <div className="generate-style-row">
           <StylePresetStrip
             presets={stylePresets}
@@ -539,37 +533,29 @@ export const GeneratePage: FC = () => {
         ) : null}
 
         <div className="generate-actions">
-          {imageId && !stickerSaved && (
+          {imageId && (
             <Button
               variant="primary"
               size="medium"
-              onClick={handleSaveToStickerSet}
-              disabled={isSaving}
-              loading={isSaving}
+              onClick={() => setSaveModalOpen(true)}
+              disabled={stickerSaved}
               className="generate-action-button save"
             >
-              {isSaving ? 'Сохранение...' : 'Сохранить в набор'}
+              {stickerSaved ? 'Сохранено в набор' : 'Сохранить набор'}
             </Button>
           )}
           <Button
             variant="primary"
             size="medium"
             onClick={handleShareSticker}
-            disabled={!fileId}
             className="generate-action-button share"
           >
-            Поделиться
+            Сохранить и поделиться
           </Button>
-          {!fileId && (
-            <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }} align="center">
-              Сначала сохраните стикер, чтобы поделиться
-            </Text>
-          )}
         </div>
       </div>
 
       <div className="generate-success-section generate-new-request">
-        <p className="generate-section-title">Новый запрос</p>
         <div className="generate-form-block">
           <div
             className={cn(
@@ -587,7 +573,19 @@ export const GeneratePage: FC = () => {
               maxLength={MAX_PROMPT_LENGTH}
               disabled={isGenerating}
             />
-            {renderModelFileRow(isGenerating)}
+            <div className="generate-input-footer">
+              {renderModelFileRow(isGenerating)}
+              <label className="generate-checkbox-label generate-checkbox-label--inline">
+                <span>Удалить фон</span>
+                <input
+                  type="checkbox"
+                  checked={removeBackground}
+                  onChange={(e) => setRemoveBackground(e.target.checked)}
+                  disabled={isGenerating}
+                  className="generate-checkbox"
+                />
+              </label>
+            </div>
             {shouldShowPromptError && (
               <div className="generate-error-inline">
                 <span className="generate-error-icon">!</span>
@@ -595,17 +593,6 @@ export const GeneratePage: FC = () => {
               </div>
             )}
           </div>
-
-          <label className="generate-checkbox-label">
-            <input
-              type="checkbox"
-              checked={removeBackground}
-              onChange={(e) => setRemoveBackground(e.target.checked)}
-              disabled={isGenerating}
-              className="generate-checkbox"
-            />
-            <span>Удалить фон</span>
-          </label>
 
           <div className="generate-style-row">
             <StylePresetStrip
@@ -625,16 +612,6 @@ export const GeneratePage: FC = () => {
             className="generate-button-regenerate"
           >
             {generateLabel}
-          </Button>
-
-          <Button
-            variant="primary"
-            size="small"
-            onClick={handleGenerateAnother}
-            disabled={isGenerating}
-            className="generate-button-clear"
-          >
-            Очистить параметры
           </Button>
         </div>
       </div>
@@ -668,7 +645,18 @@ export const GeneratePage: FC = () => {
             onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
           />
-          {renderModelFileRow(false)}
+          <div className="generate-input-footer">
+            {renderModelFileRow(false)}
+            <label className="generate-checkbox-label generate-checkbox-label--inline">
+              <span>Удалить фон</span>
+              <input
+                type="checkbox"
+                checked={removeBackground}
+                onChange={(e) => setRemoveBackground(e.target.checked)}
+                className="generate-checkbox"
+              />
+            </label>
+          </div>
           {shouldShowPromptError && (
             <div className="generate-error-inline">
               <span className="generate-error-icon">!</span>
@@ -676,15 +664,6 @@ export const GeneratePage: FC = () => {
             </div>
           )}
         </div>
-        <label className="generate-checkbox-label">
-          <input
-            type="checkbox"
-            checked={removeBackground}
-            onChange={(e) => setRemoveBackground(e.target.checked)}
-            className="generate-checkbox"
-          />
-          <span>Удалить фон</span>
-        </label>
         <div className="generate-style-row">
           <StylePresetStrip
             presets={stylePresets}
@@ -722,19 +701,20 @@ export const GeneratePage: FC = () => {
             onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
           />
-          {renderModelFileRow(isGenerating)}
+          <div className="generate-input-footer">
+            {renderModelFileRow(isGenerating)}
+            <label className="generate-checkbox-label generate-checkbox-label--inline">
+              <span>Удалить фон</span>
+              <input
+                type="checkbox"
+                checked={removeBackground}
+                onChange={(e) => setRemoveBackground(e.target.checked)}
+                disabled={isGenerating}
+                className="generate-checkbox"
+              />
+            </label>
+          </div>
         </div>
-
-        <label className="generate-checkbox-label">
-          <input
-            type="checkbox"
-            checked={removeBackground}
-            onChange={(e) => setRemoveBackground(e.target.checked)}
-            disabled={isGenerating}
-            className="generate-checkbox"
-          />
-          <span>Удалить фон</span>
-        </label>
 
         <div className="generate-style-row">
           <StylePresetStrip
@@ -768,6 +748,13 @@ export const GeneratePage: FC = () => {
         {pageState === 'success' && renderSuccessState()}
         {pageState === 'error' && renderErrorState()}
       </StixlyPageContainer>
+      <SaveToStickerSetModal
+        isOpen={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        imageUrl={resultImageUrl}
+        imageId={imageId}
+        onSaved={handleSavedFromModal}
+      />
     </div>
   );
 };

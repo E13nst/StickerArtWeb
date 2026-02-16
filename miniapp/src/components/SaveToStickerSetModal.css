@@ -1,0 +1,161 @@
+/* SaveToStickerSetModal — по Figma "Save generation" */
+
+.save-to-stickerset-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: var(--spacing-md);
+}
+
+.save-to-stickerset-modal__preview {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+}
+
+.save-to-stickerset-modal__preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.save-to-stickerset-modal__list {
+  width: 100%;
+  max-height: 168px;
+  overflow-y: auto;
+  background-color: #000000;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.save-to-stickerset-modal__list-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.save-to-stickerset-modal__item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.save-to-stickerset-modal__item:last-child {
+  border-bottom: none;
+}
+
+.save-to-stickerset-modal__item:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.save-to-stickerset-modal__item:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.save-to-stickerset-modal__num {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 20px;
+  text-align: center;
+}
+
+.save-to-stickerset-modal__thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #000000;
+}
+
+.save-to-stickerset-modal__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.save-to-stickerset-modal__title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-to-stickerset-modal__count {
+  font-size: 16px;
+  color: var(--color-success);
+}
+
+.save-to-stickerset-modal__hint {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+}
+
+.save-to-stickerset-modal__error {
+  font-size: 12px;
+  color: var(--color-error);
+  text-align: center;
+  margin: 0;
+}
+
+.save-to-stickerset-modal__create-btn {
+  width: 100%;
+  height: 49px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: 16px !important;
+}
+
+.save-to-stickerset-modal__create {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.save-to-stickerset-modal__input {
+  width: 100%;
+  padding: 16px;
+  background-color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.save-to-stickerset-modal__input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.save-to-stickerset-modal__create-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.save-to-stickerset-modal__create-actions > * {
+  flex: 1;
+}

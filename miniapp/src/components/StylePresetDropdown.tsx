@@ -63,17 +63,20 @@ export const StylePresetDropdown: FC<StylePresetDropdownProps> = ({
     setIsOpen(false);
   };
 
+  const stripPresetName = (name: string) =>
+    name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+
   const getSelectedLabel = () => {
     if (selectedPresetId === null) {
       return 'Без стиля';
     }
     const selected = presets.find(p => p.id === selectedPresetId);
-    return selected?.name || 'Без стиля';
+    return selected ? stripPresetName(selected.name) : 'Без стиля';
   };
 
   const allOptions = [
     { id: null, name: 'Без стиля', description: 'Без применения пресета стиля' },
-    ...presets.map(p => ({ id: p.id, name: p.name, description: p.description }))
+    ...presets.map(p => ({ id: p.id, name: stripPresetName(p.name), description: p.description }))
   ];
 
   return (

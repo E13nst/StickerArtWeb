@@ -4,7 +4,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { AnimatedSticker } from './AnimatedSticker';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
-import { getStickerImageUrl } from '@/utils/stickerUtils';
+import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
 
 interface SwipeCardProps {
@@ -346,7 +346,7 @@ export const SwipeCard: FC<SwipeCardProps> = ({
               >
                 <img
                   src={imageCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
-                  alt={currentSticker.emoji || stickerSet.title}
+                  alt={currentSticker.emoji || formatStickerTitle(stickerSet.title)}
                   className="pack-card-image"
                   loading={isTopCard ? 'eager' : 'lazy'}
                   style={{
@@ -382,7 +382,7 @@ export const SwipeCard: FC<SwipeCardProps> = ({
 
       {/* Информация о стикерсете */}
       <div className="swipe-card__info">
-        <h2 className="swipe-card__title">{stickerSet.title}</h2>
+        <h2 className="swipe-card__title">{formatStickerTitle(stickerSet.title)}</h2>
         <p className="swipe-card__name">@{stickerSet.name}</p>
 
         {/* Категории */}

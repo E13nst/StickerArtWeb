@@ -832,7 +832,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
           align="center"
           style={{
             fontSize: '21px',
-            lineHeight: '1.2',
+            lineHeight: '1.25',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -863,6 +863,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
               style={{
                 color: 'var(--tg-theme-link-color)',
                 fontSize: '13px',
+                lineHeight: '1.25',
               }}
             >
               {authorUsername}

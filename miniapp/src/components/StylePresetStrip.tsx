@@ -19,9 +19,12 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
 }) => {
   const { tg } = useTelegram();
 
+  const stripPresetName = (name: string) =>
+    name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+
   const options: { id: number | null; name: string }[] = [
     { id: null, name: 'Без стиля' },
-    ...presets.map((p) => ({ id: p.id, name: p.name })),
+    ...presets.map((p) => ({ id: p.id, name: stripPresetName(p.name) })),
   ];
 
   const handleSelect = (presetId: number | null) => {

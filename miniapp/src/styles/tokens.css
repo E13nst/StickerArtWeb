@@ -114,7 +114,7 @@
      ============================================ */
   
   /* Navbar */
-  --component-navbar-height: 50px;
+  --component-navbar-height: 56px;
   --component-navbar-background-color: rgba(255, 255, 255, 0.2);
   --component-navbar-border-radius: 16px;
   --component-navbar-font-size: 8px;
@@ -122,7 +122,7 @@
 
   /* Taskbar (Figma: Navbar + Home Indicator area) + safe-area для кнопок Telegram */
   --stixly-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-  --stixly-taskbar-height: calc(90.25px + var(--stixly-safe-area-bottom));
+  --stixly-taskbar-height: calc(96.25px + var(--stixly-safe-area-bottom));
   --stixly-home-indicator-height: 20px;
   --stixly-home-indicator-pill-height: 5px;
   --stixly-home-indicator-pill-width: 140px;

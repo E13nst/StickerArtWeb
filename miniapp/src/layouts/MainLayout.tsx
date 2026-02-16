@@ -32,7 +32,7 @@ export default function MainLayout({ children }: Props) {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: 'var(--tg-theme-bg-color, #ffffff)'
+        backgroundColor: 'var(--tg-theme-bg-color, #191818)'
       }}>
         <LoadingSpinner message="Инициализация..." />
       </div>
@@ -64,6 +64,7 @@ export default function MainLayout({ children }: Props) {
             overflowX: 'hidden',
             paddingBottom: isSwipePage ? 0 : 'var(--stixly-taskbar-height, 90.25px)', // Taskbar: Navbar + Home Indicator (Figma)
             WebkitOverflowScrolling: 'touch',
+            backgroundColor: '#191818',
           }}
         >
           <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>

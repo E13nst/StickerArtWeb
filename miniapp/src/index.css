@@ -919,7 +919,7 @@ svg,
 /* Автоматическое определение темы через prefers-color-scheme */
 @media (prefers-color-scheme: dark) {
   :root {
-    --tg-theme-bg-color: #18222d;
+    --tg-theme-bg-color: #191818;
     --tg-theme-text-color: #ffffff;
     --tg-theme-hint-color: #708499;
     --tg-theme-link-color: #6ab2f2;
@@ -939,7 +939,7 @@ svg,
 /* Принудительная тёмная тема */
 .tg-dark-theme {
   color-scheme: dark;
-  --tg-theme-bg-color: #18222d;
+  --tg-theme-bg-color: #191818;
   --tg-theme-text-color: #ffffff;
   --tg-theme-hint-color: #708499;
   --tg-theme-link-color: #6ab2f2;

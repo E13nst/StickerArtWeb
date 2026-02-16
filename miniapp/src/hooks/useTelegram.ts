@@ -97,7 +97,7 @@ const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWeb
     platform: 'web',
     colorScheme: colorScheme,
     themeParams: isDarkMode ? {
-      bg_color: '#18222d',
+      bg_color: '#191818',
       text_color: '#ffffff',
       hint_color: '#708499',
       link_color: '#6ab2f2',
@@ -487,14 +487,23 @@ export const useTelegram = () => {
         return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 0, 0';
       };
 
+      // Нормализуем устаревший bg_color #18222d -> #191818
+      const normalizedBgColor = (c: string | undefined, darkFallback: string) =>
+        !c ? darkFallback : (c === '#18222d' || c.toLowerCase() === '#18222d' ? '#191818' : c);
+
       // Функция применения темы
       const applyTheme = () => {
         if (telegram.themeParams) {
           const root = document.documentElement;
           const body = document.body;
-          
+          const isDark = telegram.colorScheme === 'dark';
+          const bgColor = normalizedBgColor(
+            telegram.themeParams.bg_color,
+            isDark ? '#191818' : '#ffffff'
+          );
+
           // CSS переменные для темы
-          root.style.setProperty('--tg-theme-bg-color', telegram.themeParams.bg_color || '#ffffff');
+          root.style.setProperty('--tg-theme-bg-color', bgColor);
           root.style.setProperty('--tg-theme-text-color', telegram.themeParams.text_color || '#000000');
           root.style.setProperty('--tg-theme-hint-color', telegram.themeParams.hint_color || '#999999');
           root.style.setProperty('--tg-theme-button-color', telegram.themeParams.button_color || '#ee449f');
@@ -503,13 +512,11 @@ export const useTelegram = () => {
           root.style.setProperty('--tg-theme-link-color', telegram.themeParams.link_color || '#2481cc');
           
           // Дополнительные переменные для лучшей поддержки тем
-          const isDark = telegram.colorScheme === 'dark';
           root.style.setProperty('--tg-theme-border-color', isDark ? '#2a3441' : '#e0e0e0');
           root.style.setProperty('--tg-theme-shadow-color', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
           root.style.setProperty('--tg-theme-overlay-color', isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)');
           
           // RGB-переменные для rgba() использования
-          const bgColor = telegram.themeParams.bg_color || '#ffffff';
           const textColor = telegram.themeParams.text_color || (isDark ? '#ffffff' : '#000000');
           const buttonColor = telegram.themeParams.button_color || '#ee449f';
           
@@ -519,7 +526,7 @@ export const useTelegram = () => {
           root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54'); // Фиксированный цвет ошибки
           
           // Применяем тему к body
-          body.style.backgroundColor = telegram.themeParams.bg_color || '#ffffff';
+          body.style.backgroundColor = bgColor;
           body.style.color = telegram.themeParams.text_color || '#000000';
           
           // Устанавливаем класс для темной темы
@@ -531,11 +538,12 @@ export const useTelegram = () => {
             root.classList.remove('tg-dark-theme');
           }
           
-          // Сохраняем тему в localStorage
+          // Сохраняем тему в localStorage (с нормализованным bg_color)
           try {
+            const paramsToSave = { ...telegram.themeParams, bg_color: bgColor };
             localStorage.setItem('stixly_tg_theme', JSON.stringify({
               scheme: telegram.colorScheme,
-              params: telegram.themeParams
+              params: paramsToSave
             }));
           } catch (error) {
             console.warn('Не удалось сохранить тему в localStorage:', error);
@@ -562,7 +570,7 @@ export const useTelegram = () => {
             
             if (typeof tgAny.setBackgroundColor === 'function') {
               try {
-                tgAny.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+                tgAny.setBackgroundColor(bgColor);
               } catch (e) {
                 // Игнорируем ошибки если метод не поддерживается
                 if (import.meta.env.DEV) {
@@ -579,11 +587,24 @@ export const useTelegram = () => {
         }
       };
       
+      // Миграция: заменяем устаревший #18222d на базовый #191818
+      const migrateBgColor = (p: { bg_color?: string } | null | undefined) => {
+        if (!p?.bg_color) return p;
+        if (p.bg_color === '#18222d' || p.bg_color.toLowerCase() === '#18222d') {
+          return { ...p, bg_color: '#191818' };
+        }
+        return p;
+      };
+
       // Применяем тему: сначала проверяем локально сохранённую
       const savedTheme = (() => {
         try {
           const raw = localStorage.getItem('stixly_tg_theme');
-          return raw ? JSON.parse(raw) : null;
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed?.params) {
+            parsed.params = migrateBgColor(parsed.params);
+          }
+          return parsed;
         } catch {
           return null;
         }
@@ -593,7 +614,7 @@ export const useTelegram = () => {
         const root = document.documentElement;
         const body = document.body;
         const params = savedTheme.params || {
-          bg_color: '#18222d',
+          bg_color: '#191818',
           text_color: '#ffffff',
           hint_color: '#708499',
           link_color: '#6ab2f2',

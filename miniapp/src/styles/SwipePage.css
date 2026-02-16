@@ -92,12 +92,12 @@
 }
 
 /* ============================================
-   Cards Container — Figma: Swipe 370×537, left 16px, top calc(50% - 537px/2 + 38px)
+   Cards Container — высота 61.8% viewport (золотое сечение)
    ============================================ */
 
 .swipe-page__cards {
   --swipe-stack-width: 370px;
-  --swipe-stack-height: 537px;
+  --swipe-stack-height: 61.8vh;
   --swipe-taskbar-h: var(--stixly-taskbar-height, 120px);
   --swipe-available-h: calc(100vh - var(--swipe-taskbar-h));
   --swipe-gap-top: 16px; /* минимальный отступ от header */
@@ -163,11 +163,11 @@
 .swipe-card__content .swipe-card__title {
   inline-size: var(--swipe-card-content-width);
   max-inline-size: 100%;
-  block-size: 44px;
+  min-block-size: 44px;
   font-family: 'Manrope', sans-serif;
   font-weight: 700;
   font-size: 32px;
-  line-height: 44px;
+  line-height: 1.25;
   color: #FFFFFF;
   margin: 0;
   overflow: hidden;
@@ -179,11 +179,11 @@
 .swipe-card__content .swipe-card__subtitle {
   inline-size: var(--swipe-card-content-width);
   max-inline-size: 100%;
-  block-size: 25px;
+  min-block-size: 23px;
   font-family: 'Manrope', sans-serif;
   font-weight: 400;
   font-size: 18px;
-  line-height: 25px;
+  line-height: 1.25;
   color: #EE449F;
   margin: 0;
   overflow: hidden;
@@ -191,7 +191,18 @@
   white-space: nowrap;
 }
 
-/* Preview — Figma: 338×338, gap 16px */
+/* Ссылка на автора — кликабельная, без подчёркивания */
+.swipe-card__subtitle--link {
+  text-decoration: none;
+  cursor: pointer;
+  display: block;
+}
+
+.swipe-card__subtitle--link:hover {
+  text-decoration: underline;
+}
+
+/* Preview — flex: 1 с min 0: занимает оставшееся место, сжимается при нехватке (контент всегда помещается) */
 .swipe-card__preview {
   display: flex;
   flex-direction: row;
@@ -200,21 +211,17 @@
   padding: 0;
   gap: var(--swipe-card-gap);
   inline-size: var(--swipe-card-content-width);
-  block-size: 338px;
   max-inline-size: 100%;
-  flex: none;
-  min-inline-size: 0;
+  flex: 1;
+  min-block-size: 0;
   overflow: hidden;
 }
 
 .swipe-card__preview-inner {
-  inline-size: var(--swipe-card-content-width);
-  block-size: 338px;
-  max-inline-size: 100%;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: var(--swipe-card-content-width);
   max-block-size: 100%;
-  flex: 1;
-  min-inline-size: 0;
-  min-block-size: 0;
   border-radius: var(--swipe-card-radius);
   overflow: hidden;
   background: #1a1a1a;
@@ -234,16 +241,15 @@
   border-radius: var(--swipe-card-radius);
 }
 
-/* Footer — Figma: Button 338×48, padding 16px 8px, gap 10px */
+/* Footer — кнопка, фиксированный размер, не сжимается */
 .swipe-card__footer {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
+  flex: 0 0 auto;
   inline-size: var(--swipe-card-content-width);
   max-inline-size: 100%;
-  flex: none;
-  min-inline-size: 0;
 }
 
 .swipe-card__button {
@@ -251,6 +257,7 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
+  margin-block: 12px;
   padding: 16px 8px;
   inline-size: var(--swipe-card-content-width);
   max-inline-size: 100%;

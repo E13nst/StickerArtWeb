@@ -323,8 +323,8 @@ export function formatStickerTitle(title: string | null | undefined): string {
   return stripTitleDelimiters(firstMention);
 }
 
-/** Убирает ведущие/замыкающие "by", "от", "•", ":", "::", "(", ")" (регистронезависимо для слов). */
-const TITLE_DELIMITER_RE = /^\s*(by|от|•|::|:|\(|\))\s*|\s*(by|от|•|::|:|\(|\))\s*$/gi;
+/** Убирает ведущие/замыкающие "by", "от", "•", ":", "::", "(", ")", "-" (регистронезависимо для слов). */
+const TITLE_DELIMITER_RE = /^\s*(by|от|•|::|:|-|\(|\))\s*|\s*(by|от|•|::|:|-|\(|\))\s*$/gi;
 
 function stripTitleDelimiters(s: string): string {
   if (!s) return s;

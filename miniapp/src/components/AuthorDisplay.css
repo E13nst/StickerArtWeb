@@ -1,0 +1,20 @@
+/* Контейнер "by" + имя автора — в стиле generate-checkbox-label--inline */
+.author-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+}
+
+.author-display--inline {
+  width: auto;
+  max-width: none;
+}
+
+/* "by " — в стиле .generate-checkbox-label span */
+.author-display__by {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+}

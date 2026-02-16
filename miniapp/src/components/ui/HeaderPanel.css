@@ -112,18 +112,18 @@
   opacity: 0.6;
 }
 
-/* Wallet button */
+/* Wallet button — круглая как avatar */
 .header-panel__wallet {
-  width: 45px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 0;
   box-sizing: border-box;
   background: var(--component-header-panel-wallet-background-color);
   border: none;
-  border-radius: 16px;
+  border-radius: 50%;
   color: var(--color-text);
   cursor: pointer;
   transition: opacity 0.2s ease;
