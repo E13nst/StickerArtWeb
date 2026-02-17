@@ -473,7 +473,7 @@ export const DashboardPage: FC = () => {
                       <span className="dashboard-daily-activity-task__reward">100 ART</span>
                     </div>
                     <button type="button" className="dashboard-daily-activity-task__btn dashboard-daily-activity-task__btn--calm">
-                      Calm
+                      Claim
                     </button>
                   </div>
                 </div>

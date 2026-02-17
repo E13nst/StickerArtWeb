@@ -11,11 +11,10 @@ interface InteractiveLikeCountProps {
 }
 
 // Обёртка над FavoriteIcon с поддержкой isLiked-состояния
-const LikeIcon: FC<{ 
-  color: string; 
-  size: number; 
-  isLiked: boolean; 
-}> = ({ color, size, isLiked }) => (
+const LikeIcon: FC<{
+  size: number;
+  isLiked: boolean;
+}> = ({ size, isLiked }) => (
   <FavoriteIcon size={size} color={isLiked ? '#ee449f' : '#2a2a2a'} />
 );
 
@@ -97,8 +96,6 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
   const baseIconSize = currentSize.iconSize;
   const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize * 0.42;
   const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize * 0.75;
-  
-  const getThemeColor = () => '#2a2a2a';
   
   const getTextColor = () => isLiked ? '#ffffff' : '#ffffff';
 
@@ -182,8 +179,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
         transition: 'transform 0.233s ease',
         overflow: 'visible'
       }}>
-        <LikeIcon 
-          color={placement === 'bottom-center' ? '#ffffff' : getThemeColor()}
+        <LikeIcon
           size={heartIconSize}
           isLiked={isLiked}
         />

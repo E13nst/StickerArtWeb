@@ -31,17 +31,53 @@
   /* имя автора */
 }
 
+.other-account__avatar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.other-account__avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.other-account__avatar-wrap--placeholder {
+  align-items: center;
+  justify-content: center;
+}
+
+.other-account__avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--color-border, rgba(255, 255, 255, 0.2));
+  display: block;
+}
+
 /* ============================================
-   Стили поиска и сортировки
+   compact-controls-bar — как на Gallery (fixed, тот же вид)
    ============================================ */
 
-/* Использует .flex-row из common.css */
-.author-search-container {
-  gap: 0.618rem;
-  width: 100%;
-  margin-top: 0.75rem;
-  margin-bottom: 0.618rem;
-  position: relative;
-  z-index: 10;
+.author-page .compact-controls-bar--fixed {
+  --compact-controls-bar-top: var(--spacing-sm, 8px);
+  max-width: 402px;
+}
+
+.author-page .compact-controls-bar-inner {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.author-page .stixly-page-container {
+  max-width: 402px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+  padding-top: calc(30px + var(--spacing-sm, 8px));
+  box-sizing: border-box;
 }
 

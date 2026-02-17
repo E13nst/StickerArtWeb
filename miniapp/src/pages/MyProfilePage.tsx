@@ -1313,17 +1313,17 @@ export const MyProfilePage: FC = () => {
             </div>
             <DailyActivityBlock
               tasks={[
-                { id: '1', title: 'Visit Project', progress: 1, total: 1, status: 'calm' },
+                { id: '1', title: 'Visit Project', progress: 1, total: 1, status: 'claim' },
                 { id: '2', title: 'Upgrade 10 ...', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
-                { id: '3', title: 'Share two Stickers', progress: 2, total: 2, status: 'calm' },
-                { id: '4', title: 'Visit Project', progress: 1, total: 1, status: 'calm' },
+                { id: '3', title: 'Share two Stickers', progress: 2, total: 2, status: 'claim' },
+                { id: '4', title: 'Visit Project', progress: 1, total: 1, status: 'claim' },
               ]}
             />
             <GlobalActivityBlock
               tasks={[
-                { id: 'g1', title: 'Connect TON', progress: 1, total: 1, reward: '1,000 ART', status: 'calm' },
+                { id: 'g1', title: 'Connect TON', progress: 1, total: 1, reward: '1,000 ART', status: 'claim' },
                 { id: 'g2', title: 'Invite friends', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
-                { id: 'g3', title: 'Donate authors', progress: 1, total: 1, reward: '100 ART', status: 'calm' },
+                { id: 'g3', title: 'Donate authors', progress: 1, total: 1, reward: '100 ART', status: 'claim' },
                 { id: 'g4', title: 'Like 10 stickers', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
               ]}
             />

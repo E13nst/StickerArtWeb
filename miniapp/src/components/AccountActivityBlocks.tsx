@@ -8,7 +8,7 @@ export interface ActivityTask {
   progress: number;
   total: number;
   reward?: string;
-  status: 'calm' | 'go-up' | 'active';
+  status: 'claim' | 'go-up' | 'active';
   onAction?: () => void;
   actionLabel?: string;
 }
@@ -41,9 +41,9 @@ const ActivityTaskItem: FC<ActivityTaskItemProps> = ({ task }) => {
           {task.progress}/{task.total}
         </span>
         <div
-          className={`activity-task__badge activity-task__badge--${task.status} ${isComplete ? 'activity-task__badge--complete' : ''}`}
+          className={`activity-task__badge activity-task__badge--${task.status === 'claim' ? 'calm' : task.status} ${isComplete ? 'activity-task__badge--complete' : ''}`}
         >
-          {task.status === 'calm' && 'Calm'}
+          {task.status === 'claim' && 'Claim'}
           {task.status === 'go-up' && 'Go Up'}
           {task.status === 'active' && 'Start'}
         </div>

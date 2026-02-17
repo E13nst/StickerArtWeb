@@ -32,6 +32,9 @@ playwright-report-prod/
 *.test-results.json
 *.test-results.xml
 
+# Docs (local documentation)
+docs/
+
 # Temp
 .cache/
 *.local

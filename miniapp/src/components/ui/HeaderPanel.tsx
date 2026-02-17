@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useRef, useState, FC } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -14,19 +15,25 @@ const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
  * При отсутствии пользователя/аватара или ошибке загрузки — иконка Account.
  */
 export const HeaderPanel: FC = () => {
+  const { pathname } = useLocation();
   const { user } = useTelegram();
   const { userInfo, currentUserId } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
+
+  // На /author/ и /profile/:id показываем placeholder — аватар автора не в шапке, а на странице
+  const isViewingOtherUser = /\/author\/|\/profile\/[^/]+/.test(pathname);
   const headerRef = useRef<HTMLElement>(null);
   const [avatarError, setAvatarError] = useState(false);
 
   const avatarUrl = useMemo(() => {
     if (!user) return undefined;
+    if (!userInfo || isViewingOtherUser) {
+      return user.photo_url ?? undefined;
+    }
     if (user.photo_url) return user.photo_url;
     if (avatarBlobUrl) return avatarBlobUrl;
-    if (!userInfo) return undefined;
     return userInfo.avatarUrl ?? getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 96);
-  }, [user, user?.photo_url, avatarBlobUrl, userInfo]);
+  }, [user, user?.photo_url, userInfo, avatarBlobUrl, isViewingOtherUser]);
 
   const showAccountIcon = !user || !avatarUrl || avatarError;
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 import { useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { useUserAvatar } from '../hooks/useUserAvatar';
 import { EmptyState } from '../components/EmptyState';
 import { OptimizedGallery } from '../components/OptimizedGallery';
 import { StickerPackModal } from '../components/StickerPackModal';
@@ -10,7 +11,7 @@ import { useTelegram } from '../hooks/useTelegram';
 import { StickerSetResponse, ProfileResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { SearchBar } from '../components/SearchBar';
-import { SortButton } from '../components/SortButton';
+import { SortDropdown } from '../components/SortDropdown';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { getUserFullName } from '../utils/userUtils';
@@ -19,6 +20,8 @@ import { Text } from '../components/ui/Text';
 import { OtherAccountBackground } from '../components/OtherAccountBackground';
 import '../styles/common.css';
 import '../styles/AuthorPage.css';
+import '../components/CompactControlsBar.css';
+import '../components/SortDropdown.css';
 
 // Утилита для объединения классов
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
@@ -92,7 +95,7 @@ export const AuthorPage: FC = () => {
 
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [, setAuthorAvatarUrl] = useState<string | null>(null);
+  const { avatarBlobUrl: authorAvatarUrl } = useUserAvatar(authorId ?? undefined);
   
   const effectiveInitData = useMemo(() => initData || window.Telegram?.WebApp?.initData || '', [initData]);
 
@@ -270,73 +273,6 @@ export const AuthorPage: FC = () => {
     fetchStickerSets(0, false);
   }, [authorId, sortByLikes, fetchStickerSets]);
 
-  useEffect(() => {
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    if (!profile || (!profile.profilePhotoFileId && !profile.profilePhotos)) {
-      setAuthorAvatarUrl(null);
-      return () => {
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-        }
-      };
-    }
-
-    const loadAvatar = async () => {
-      try {
-        if (effectiveInitData) {
-          apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
-        } else {
-          apiClient.checkExtensionHeaders();
-        }
-        
-        // Выбираем оптимальный fileId из profilePhotos, если есть
-        let optimalFileId = profile.profilePhotoFileId;
-        if (profile.profilePhotos?.photos?.[0]?.[0]) {
-          const photoSet = profile.profilePhotos.photos[0];
-          const targetSize = 160;
-          let bestPhoto = photoSet.find((p: any) => Math.min(p.width, p.height) >= targetSize);
-          if (!bestPhoto) {
-            bestPhoto = photoSet.reduce((max: any, p: any) => {
-              const maxSize = Math.min(max.width, max.height);
-              const photoSize = Math.min(p.width, p.height);
-              return photoSize > maxSize ? p : max;
-            });
-          }
-          optimalFileId = bestPhoto?.file_id || profile.profilePhotoFileId;
-        }
-
-        if (!optimalFileId) {
-          setAuthorAvatarUrl(null);
-          return;
-        }
-
-        // Используем getUserPhotoBlob вместо getSticker для фото профиля
-        const userId = profile.userId;
-        const blob = await apiClient.getUserPhotoBlob(userId, optimalFileId);
-        if (cancelled) {
-          return;
-        }
-        objectUrl = URL.createObjectURL(blob);
-        setAuthorAvatarUrl(objectUrl);
-      } catch {
-        if (!cancelled) {
-          setAuthorAvatarUrl(null);
-        }
-      }
-    };
-
-    loadAvatar();
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [profile?.profilePhotoFileId, profile?.profilePhotos, profile?.userId, effectiveInitData, user?.language_code]);
-
   const displayName = useMemo(() => {
     if (!profile) {
       return null;
@@ -442,6 +378,15 @@ export const AuthorPage: FC = () => {
         ) : profile ? (
           <Card className={cn('other-account__card', 'card-base', 'card-base-no-padding-top')}>
             <CardContent className="card-content-with-avatar">
+              {authorAvatarUrl ? (
+                <div className="other-account__avatar-wrap">
+                  <img src={authorAvatarUrl} alt="" className="other-account__avatar" />
+                </div>
+              ) : (
+                <div className="other-account__avatar-wrap other-account__avatar-wrap--placeholder">
+                  <span className="other-account__avatar-placeholder" aria-hidden />
+                </div>
+              )}
               <div className={cn('other-account__name', 'text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
                 {displayName && (
                   <Text variant="h4" weight="bold" className="typography-bold">
@@ -465,30 +410,40 @@ export const AuthorPage: FC = () => {
         ) : null}
       </div>
 
+      {/* Панель поиска и сортировки — как compact-controls-bar на Gallery (fixed, тот же вид) */}
+      {!isProfileLoading && (
+        <div className="compact-controls-bar compact-controls-bar--fixed">
+          <div className="compact-controls-bar-inner">
+            <div className="compact-controls-bar__row">
+              <div className="compact-controls-bar__search-slot">
+                <SearchBar
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  onSearch={handleSearch}
+                  placeholder="Поиск стикерсетов автора..."
+                  disabled={isSetsLoading && stickerSets.length === 0}
+                  compact
+                />
+              </div>
+              <div className="compact-controls-bar__date-slot">
+                <SortDropdown
+                  sortByLikes={sortByLikes}
+                  onToggle={handleSortToggle}
+                  disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
+                />
+              </div>
+              <div className="compact-controls-bar__btn" aria-hidden style={{ visibility: 'hidden', pointerEvents: 'none' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       <StixlyPageContainer>
         {setsError && !isSetsLoading && !isLoadingMore && (
           <div className="error-alert-inline" role="alert">
             <Text variant="body" color="default">{setsError}</Text>
           </div>
         )}
-
-        {/* SearchBar и SortButton всегда видны */}
-        <div className="flex-row author-search-container">
-          <div style={{ flex: 1 }}>
-            <SearchBar
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onSearch={handleSearch}
-              placeholder="Поиск стикерсетов автора..."
-              disabled={isSetsLoading && stickerSets.length === 0}
-            />
-          </div>
-          <SortButton
-            sortByLikes={sortByLikes}
-            onToggle={handleSortToggle}
-            disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
-          />
-        </div>
 
         {displayedStickerSets.length === 0 && !isProfileLoading && !isSetsLoading ? (
           <EmptyState
