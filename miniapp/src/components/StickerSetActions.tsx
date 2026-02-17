@@ -378,18 +378,18 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
       {/* Модальное окно подтверждения */}
       {currentConfig && (
         <Dialog open={dialogState.open} onClose={handleCloseDialog}>
-          <DialogTitle style={{ paddingBottom: '16px', paddingTop: '24px', paddingLeft: '24px', paddingRight: '24px', color: 'white', fontSize: '1.4rem', fontWeight: 700, textShadow: '0 2px 8px rgba(0,0,0,0.5)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+          <DialogTitle style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '24px 24px 16px' }}>
             <span style={{ fontSize: '32px' }}>{currentConfig.emoji}</span>
             {currentConfig.title}
           </DialogTitle>
-          <DialogContent style={{ backgroundColor: 'transparent', color: 'white', display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px 24px 16px' }} onClick={(e: MouseEvent) => e.stopPropagation()}>
+          <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '8px 24px 16px' }} onClick={(e: MouseEvent) => e.stopPropagation()}>
             {dialogState.error && (
               <Alert severity="error" style={{ marginBottom: '8px', backgroundColor: 'rgba(244, 67, 54, 0.15)', color: 'white', border: '1px solid rgba(244, 67, 54, 0.4)' }}>
                 {dialogState.error}
               </Alert>
             )}
 
-            <Text variant="body" style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', lineHeight: '1.5px', textAlign: 'center' }}>
+            <Text variant="body" style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', lineHeight: 1.5, textAlign: 'center' }}>
               {currentConfig.description}
             </Text>
 
@@ -407,7 +407,7 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
               </div>
             )}
           </DialogContent>
-          <DialogActions style={{ backgroundColor: 'transparent', padding: '8px 24px 24px', gap: '13px', justifyContent: 'center' }} onClick={(e: MouseEvent) => e.stopPropagation()}>
+          <DialogActions style={{ padding: '8px 24px 24px', gap: '13px', justifyContent: 'center' }} onClick={(e: MouseEvent) => e.stopPropagation()}>
             <IconButton
               onClick={handleCloseDialog}
               disabled={dialogState.loading}

@@ -2,74 +2,124 @@
 
 @import './common.css';
 
-/* Уникальный градиент страницы (отображается через OtherAccountBackground) */
+/* Фон как на GeneratePage (отображается через OtherAccountBackground) */
 .page-container.author-page {
-  --page-dynamic-gradient: radial-gradient(circle at 70% 30%, var(--page-bg-accent-secondary) 0%, transparent 45%);
+  --page-dynamic-gradient:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
 /* ============================================
-   OTHER ACCOUNT (Figma) — шапка профиля автора.
-   Фон: только градиенты (OtherAccountBackground).
+   Author page — использует head-account из MyProfilePage.css,
+   но переопределяет только специфичные настройки.
    ============================================ */
 
-.other-account {
+/* На author-page head-account тоже полная ширина (как MyProfilePage) */
+.author-page .head-account {
   width: 100%;
+  max-width: none;
   margin: 0 auto;
   margin-top: 0;
   padding: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.other-account--telegram {
-  max-width: 600px;
+/* Telegram-контекст: фиксируем поведение шапки без зависимости от загрузки MyProfilePage.css */
+.author-page .head-account--telegram {
+  max-width: none;
 }
 
-.other-account__card {
-  /* карточка внутри OTHER ACCOUNT */
-}
-
-.other-account__name {
-  /* имя автора */
-}
-
-.other-account__avatar-wrap {
-  display: flex;
+/* Карточка профиля автора — синхронизирована с MyProfilePage (Figma ACCOUNT), без wallet */
+.author-page .head-account__card {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 347px !important;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column !important;
   justify-content: center;
-  margin-top: 1rem;
+  align-items: center;
+  padding: 108px 16px 16px !important;
+  gap: 16px !important;
+  background: #262626 !important;
+  background-color: #262626 !important;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 16px !important;
+  border: none !important;
+  position: relative;
+  z-index: 1;
 }
 
-.other-account__avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+/* Аватар */
+.author-page .head-account__avatar {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 50% !important;
+  border: 4px solid #1a1a1a !important;
+  overflow: hidden;
+  flex-shrink: 0;
+  order: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #333 !important;
+}
+
+.author-page .head-account__avatar img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
-.other-account__avatar-wrap--placeholder {
-  align-items: center;
-  justify-content: center;
+/* Имя автора */
+.author-page .head-account__name {
+  width: 370px;
+  max-width: 100%;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  text-align: center;
+  margin: 0;
 }
 
-.other-account__avatar-placeholder {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--color-border, rgba(255, 255, 255, 0.2));
-  display: block;
+/* Статистика */
+.author-page .head-account__info {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  width: 370px;
+  max-width: 100%;
+}
+
+.author-page .head-account__stat {
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.author-page .head-account__stat-value {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #EE449F !important;
+}
+
+.author-page .head-account__stat-label {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #fff !important;
 }
 
 /* ============================================
-   compact-controls-bar — как на Gallery (fixed, тот же вид)
+   Контент ниже карточки — подстраиваем под fixed controls bar
    ============================================ */
-
-.author-page .compact-controls-bar--fixed {
-  --compact-controls-bar-top: var(--spacing-sm, 8px);
-  max-width: 402px;
-}
-
-.author-page .compact-controls-bar-inner {
-  padding-left: 16px;
-  padding-right: 16px;
-}
 
 .author-page .stixly-page-container {
   max-width: 402px;
@@ -77,7 +127,68 @@
   margin-right: auto;
   padding-left: 16px;
   padding-right: 16px;
-  padding-top: calc(30px + var(--spacing-sm, 8px));
+  padding-top: var(--spacing-sm, 8px);
   box-sizing: border-box;
 }
 
+.author-page .author-page__controls-sticky {
+  position: sticky;
+  top: var(--stixly-header-height, 0px);
+  z-index: var(--z-ui-controls, 200);
+  margin-bottom: var(--spacing-sm, 8px);
+}
+
+/* Контейнер — адаптивные отступы на узких экранах */
+@media (max-width: 420px) {
+  .author-page .stixly-page-container {
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .author-page .stixly-page-container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .author-page .stixly-page-container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* ============================================
+   Адаптивность для узких экранов
+   ============================================ */
+
+@media (max-width: 380px) {
+  .author-page .head-account__card {
+    padding: clamp(64px, 28vw, 108px) 12px 12px !important;
+    gap: clamp(12px, 4vw, 16px) !important;
+  }
+  .author-page .head-account__avatar {
+    width: clamp(64px, 21vw, 80px) !important;
+    height: clamp(64px, 21vw, 80px) !important;
+  }
+  .author-page .head-account__name {
+    font-size: clamp(16px, 4.5vw, 20px) !important;
+  }
+  .author-page .head-account__info {
+    gap: 8px;
+    width: 100%;
+  }
+  .author-page .head-account__stat {
+    width: 50%;
+    max-width: 180px;
+  }
+  .author-page .head-account__stat-value {
+    font-size: 16px !important;
+  }
+  .author-page .head-account__stat-label {
+    font-size: clamp(14px, 4vw, 16px) !important;
+  }
+}

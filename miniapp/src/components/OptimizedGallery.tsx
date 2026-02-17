@@ -73,6 +73,28 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
     return () => window.removeEventListener('resize', updateColumnCount);
   }, []);
 
+  // Адаптивный gap для узких экранов (iPhone 11 Pro и уже)
+  const [gap, setGap] = useState(() => {
+    if (typeof window === 'undefined') return GAP;
+    const width = window.innerWidth;
+    if (width <= 360) return 8;
+    if (width <= 375) return 10;
+    if (width <= 400) return 12;
+    return GAP;
+  });
+
+  useEffect(() => {
+    const updateGap = () => {
+      const width = window.innerWidth;
+      if (width <= 360) setGap(8);
+      else if (width <= 375) setGap(10);
+      else if (width <= 400) setGap(12);
+      else setGap(GAP);
+    };
+    window.addEventListener('resize', updateGap);
+    return () => window.removeEventListener('resize', updateGap);
+  }, []);
+
   // Группируем элементы по строкам
   const rows = useMemo(() => {
     const result: Pack[][] = [];
@@ -84,7 +106,6 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
 
   const isAccountVariant = variant === 'account' || variant === 'gallery';
   const isGalleryVariant = variant === 'gallery';
-  const gap = GAP;
   const horizontalPadding = HORIZONTAL_PADDING;
 
   // Вычисляем примерную высоту карточки
@@ -100,15 +121,18 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
   }, [columnCount, variant, isAccountVariant, gap, horizontalPadding]);
 
   // Виртуализация строк
+  // Для gallery/account не используем measureElement: высота строк фиксирована (177×213),
+  // иначе getTotalSize() обновляется после загрузки превью и загрузка следующей страницы откладывается
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollElement || parentRef.current,
     estimateSize: estimateRowHeight,
     overscan: 3, // Рендерим 3 строки за пределами viewport
-    // Включаем измерение для точной высоты с учетом aspect ratio карточек
-    measureElement: (element) => {
-      return element?.getBoundingClientRect().height ?? estimateRowHeight();
-    },
+    ...(isAccountVariant ? {} : {
+      measureElement: (element) => {
+        return element?.getBoundingClientRect().height ?? estimateRowHeight();
+      },
+    }),
   });
 
   // Infinite scroll через IntersectionObserver
@@ -171,7 +195,7 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
             <div
               key={virtualRow.key}
               data-index={virtualRow.index}
-              ref={rowVirtualizer.measureElement}
+              ref={isAccountVariant ? undefined : rowVirtualizer.measureElement}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -185,6 +209,7 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
               }}
             >
               <div
+                className={isAccountVariant ? 'optimized-gallery__row-grid' : undefined}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: isAccountVariant

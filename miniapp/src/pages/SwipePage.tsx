@@ -320,10 +320,6 @@ export const SwipePage: FC = () => {
         <div className="swipe-page__background-item" />
       </div>
 
-      {/* Swipe Gradients */}
-      <div className="swipe-page__gradient swipe-page__gradient--green" />
-      <div className="swipe-page__gradient swipe-page__gradient--red" />
-
       {/* SwipeCardStack Component */}
       {visibleCards.length > 0 && (
         <div className="swipe-page__cards">

@@ -61,6 +61,7 @@ export const GalleryPage2: FC = () => {
 
   const initialSetId = searchParams.get('set_id');
   const hasInitializedRef = useRef(false);
+  const closedByUserRef = useRef(false);
   const lastFiltersRef = useRef<{ 
     categories: string[], 
     sortByLikes: boolean, 
@@ -207,6 +208,7 @@ export const GalleryPage2: FC = () => {
   }, [tg, stickerSets, setSearchParams]);
 
   const handleBackToList = useCallback(() => {
+    closedByUserRef.current = true;
     if (tg?.HapticFeedback) {
       tg.HapticFeedback.impactOccurred('light');
     }
@@ -326,6 +328,10 @@ export const GalleryPage2: FC = () => {
 
   // Открытие модалки из URL
   useEffect(() => {
+    if (closedByUserRef.current) {
+      closedByUserRef.current = false;
+      return;
+    }
     const isInitialLoading = isLoading && stickerSets.length === 0 && !error;
     if (!initialSetId || isDetailOpen || isInitialLoading || stickerSets.length === 0) {
       return;
@@ -428,9 +434,6 @@ export const GalleryPage2: FC = () => {
         open={isDetailOpen} 
         stickerSet={selectedStickerSet} 
         onClose={handleBackToList}
-        onLike={(id, title) => {
-          console.log(`Лайк для стикерсета ${id}: ${title}`);
-        }}
       />
     </div>
   );

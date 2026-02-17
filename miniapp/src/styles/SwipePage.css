@@ -24,6 +24,7 @@
   padding-inline: 16px;
   padding-bottom: var(--stixly-taskbar-height, 90.25px);
   box-sizing: border-box;
+  /* Фон как на GeneratePage */
   background:
     radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%),
@@ -46,32 +47,6 @@
 .swipe-page .button.button-primary:active:not(:disabled),
 .swipe-page .button.button-secondary:active:not(:disabled) {
   background-color: color-mix(in srgb, var(--color-primary) 85%, black) !important;
-}
-
-/* ============================================
-   Gradients (Figma: 465×323, left -29px, blur 50px)
-   ============================================ */
-
-.swipe-page__gradient {
-  position: absolute;
-  width: 465px;
-  height: 323px;
-  left: -29px;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.5;
-  filter: blur(50px);
-  box-sizing: border-box;
-}
-
-.swipe-page__gradient--green {
-  background: #00AF11;
-  top: 49px;
-}
-
-.swipe-page__gradient--red {
-  background: #E03131;
-  top: 631px;
 }
 
 /* ============================================

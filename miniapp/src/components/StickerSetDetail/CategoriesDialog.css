@@ -1,0 +1,521 @@
+/* ===== CategoriesDialog — Bottom-sheet modal ===== */
+
+/* Контейнер bottom-sheet (якорится к низу экрана) */
+.categories-dialog {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1301;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Панель модального окна */
+.categories-dialog__panel {
+  position: relative;
+  width: 402px;
+  max-width: 100%;
+  height: 595px;
+  max-height: calc(100vh - 40px);
+  background: #262626;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+  animation: categoriesDialogSlideUp 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.45);
+}
+
+.categories-dialog__panel--closing {
+  animation: categoriesDialogSlideDown 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes categoriesDialogSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes categoriesDialogSlideDown {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+/* Handle (индикатор перетаскивания) */
+.categories-dialog__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+/* Шапка */
+.categories-dialog__header {
+  padding: 16px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.categories-dialog__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.categories-dialog__close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  flex-shrink: 0;
+}
+
+.categories-dialog__close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.categories-dialog__close-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Ошибка сохранения */
+.categories-dialog__error {
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* Подзаголовок */
+.categories-dialog__subtitle {
+  padding: 16px 24px 0;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Область скролла с категориями */
+.categories-dialog__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 24px 16px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.categories-dialog__body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.categories-dialog__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.categories-dialog__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* Контейнер чипсов */
+.categories-dialog__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Чипс категории */
+.categories-dialog__chip {
+  padding: 9px 18px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: all 150ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+}
+
+.categories-dialog__chip:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.categories-dialog__chip:active {
+  transform: scale(0.97);
+}
+
+.categories-dialog__chip--selected {
+  background: rgba(33, 150, 243, 0.28);
+  border: 2px solid rgba(33, 150, 243, 0.6);
+  font-weight: 700;
+  padding: 8px 17px; /* компенсируем толщину border */
+}
+
+.categories-dialog__chip--selected:hover {
+  background: rgba(33, 150, 243, 0.35);
+  border-color: rgba(33, 150, 243, 0.75);
+}
+
+/* Спиннер загрузки */
+.categories-dialog__loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.categories-dialog__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: categoriesDialogSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes categoriesDialogSpin {
+  to { transform: rotate(360deg); }
+}
+
+.categories-dialog__loading-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+}
+
+/* Ошибка загрузки категорий */
+.categories-dialog__load-error {
+  padding: 12px;
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.categories-dialog__load-error-text {
+  color: #ffffff;
+  font-size: 0.875rem;
+}
+
+.categories-dialog__retry-btn {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.categories-dialog__retry-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Футер */
+.categories-dialog__footer {
+  flex-shrink: 0;
+  padding: 12px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.categories-dialog__count {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+  text-align: center;
+  font-weight: 500;
+  margin: 0;
+}
+
+.categories-dialog__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Кнопка отмены */
+.categories-dialog__cancel-btn {
+  width: 55px;
+  height: 55px;
+  border-radius: var(--tg-radius-l, 14px);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.categories-dialog__cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.categories-dialog__cancel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Кнопка сохранения */
+.categories-dialog__save-btn {
+  width: 55px;
+  height: 55px;
+  border-radius: var(--tg-radius-l, 14px);
+  background: rgba(76, 175, 80, 0.25);
+  border: 1px solid rgba(76, 175, 80, 0.45);
+  color: #4CAF50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.categories-dialog__save-btn:hover {
+  background: rgba(76, 175, 80, 0.35);
+  border-color: rgba(76, 175, 80, 0.6);
+}
+
+.categories-dialog__save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.categories-dialog__save-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(76, 175, 80, 0.25);
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: categoriesDialogSpin 0.8s linear infinite;
+}
+
+/* ===================== АДАПТИВНОСТЬ ===================== */
+
+/* Планшеты и мобильные — ширина до 480px */
+@media (max-width: 480px) {
+  .categories-dialog__panel {
+    width: 100%;
+    height: 580px;
+    max-height: calc(100vh - 24px);
+    border-radius: 14px 14px 0 0;
+  }
+
+  .categories-dialog__header {
+    padding: 14px 20px 0;
+  }
+
+  .categories-dialog__title {
+    font-size: 1.2rem;
+  }
+
+  .categories-dialog__subtitle {
+    padding: 14px 20px 0;
+    font-size: 0.9rem;
+  }
+
+  .categories-dialog__body {
+    padding: 10px 20px 14px;
+  }
+
+  .categories-dialog__chips {
+    gap: 7px;
+  }
+
+  .categories-dialog__chip {
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 11px;
+  }
+
+  .categories-dialog__chip--selected {
+    padding: 7px 13px;
+  }
+
+  .categories-dialog__footer {
+    padding: 10px 20px 20px;
+  }
+
+  .categories-dialog__cancel-btn,
+  .categories-dialog__save-btn {
+    width: 50px;
+    height: 50px;
+  }
+
+  .categories-dialog__error {
+    margin: 10px 20px 0;
+  }
+}
+
+/* Узкие мобильные — ширина до 360px */
+@media (max-width: 360px) {
+  .categories-dialog__panel {
+    height: 560px;
+    max-height: calc(100vh - 16px);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .categories-dialog__header {
+    padding: 12px 16px 0;
+  }
+
+  .categories-dialog__title {
+    font-size: 1.1rem;
+  }
+
+  .categories-dialog__subtitle {
+    padding: 12px 16px 0;
+    font-size: 0.85rem;
+  }
+
+  .categories-dialog__body {
+    padding: 8px 16px 12px;
+  }
+
+  .categories-dialog__chips {
+    gap: 6px;
+  }
+
+  .categories-dialog__chip {
+    padding: 7px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+
+  .categories-dialog__chip--selected {
+    padding: 6px 11px;
+  }
+
+  .categories-dialog__footer {
+    padding: 8px 16px 16px;
+    gap: 10px;
+  }
+
+  .categories-dialog__cancel-btn,
+  .categories-dialog__save-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .categories-dialog__error {
+    margin: 8px 16px 0;
+    font-size: 0.8rem;
+  }
+
+  .categories-dialog__count {
+    font-size: 0.8rem;
+  }
+}
+
+/* Очень маленькие экраны — до 320px */
+@media (max-width: 320px) {
+  .categories-dialog__panel {
+    height: 520px;
+    max-height: calc(100vh - 12px);
+    border-radius: 10px 10px 0 0;
+  }
+
+  .categories-dialog__chip {
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 8px;
+  }
+
+  .categories-dialog__chip--selected {
+    padding: 5px 9px;
+  }
+
+  .categories-dialog__cancel-btn,
+  .categories-dialog__save-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Высота экрана маленькая — модалка подстраивается */
+@media (max-height: 650px) {
+  .categories-dialog__panel {
+    height: auto;
+    max-height: calc(100vh - 24px);
+  }
+}
+
+@media (max-height: 500px) {
+  .categories-dialog__panel {
+    max-height: calc(100vh - 16px);
+  }
+
+  .categories-dialog__footer {
+    padding-bottom: 12px;
+  }
+}
+
+/* Широкие экраны — центрируем без растягивания */
+@media (min-width: 768px) {
+  .categories-dialog__panel {
+    width: 402px;
+    box-shadow: 0 -12px 60px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* safe-area-inset-bottom для устройств с нотчем */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .categories-dialog__footer {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: 480px) {
+    .categories-dialog__footer {
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+  }
+}

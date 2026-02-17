@@ -95,15 +95,16 @@ const PackCardComponent: FC<PackCardProps> = ({
   }, [currentStickerIndex]);
 
   // Пауза видео при выходе из viewport
+  const isVideoSticker = activeSticker?.isVideo ?? (activeSticker as any)?.is_video;
   useEffect(() => {
-    if (!videoRef.current || !(activeSticker?.isVideo ?? (activeSticker as any).is_video)) return;
+    if (!videoRef.current || !isVideoSticker) return;
 
     if (inView) {
       videoRef.current.play().catch(() => {});
     } else {
       videoRef.current.pause();
     }
-  }, [inView, activeSticker?.isVideo ?? (activeSticker as any).is_video]);
+  }, [inView, isVideoSticker]);
 
   const handleClick = useCallback(() => {
     onClick?.(pack.id);

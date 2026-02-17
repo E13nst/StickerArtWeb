@@ -45,12 +45,5 @@ export const BottomNav: FC<BottomNavProps> = () => {
     return null;
   }
 
-  return (
-    <>
-      <Navbar />
-      <div className="home-indicator-area" aria-hidden="true">
-        <div className="home-indicator" />
-      </div>
-    </>
-  );
+  return <Navbar />;
 };

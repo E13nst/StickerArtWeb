@@ -1,5 +1,7 @@
-import { ReactNode, CSSProperties, FC, MouseEvent } from 'react';
+import { ReactNode, CSSProperties, FC, MouseEvent, useEffect, useState } from 'react';
 import './Dialog.css';
+
+const DIALOG_CLOSE_ANIMATION_MS = 350;
 
 interface DialogProps {
   open: boolean;
@@ -18,12 +20,36 @@ export const Dialog: FC<DialogProps> = ({
   style = {},
   'data-modal-content': dataModalContent
 }) => {
-  if (!open) return null;
+  const [isVisible, setIsVisible] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true);
+      setIsClosing(false);
+    } else if (isVisible) {
+      setIsClosing(true);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setIsClosing(false);
+      }, DIALOG_CLOSE_ANIMATION_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  if (!isVisible) return null;
+
+  const backdropClass = [
+    'dialog-backdrop',
+    open && !isClosing ? 'dialog-backdrop--open' : '',
+    isClosing ? 'dialog-backdrop--closing' : ''
+  ].filter(Boolean).join(' ');
+
   return (
     <div
-      className="dialog-backdrop"
+      className={backdropClass}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+        if (e.target === e.currentTarget && !isClosing) onClose?.();
       }}
       role="dialog"
       aria-modal="true"

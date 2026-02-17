@@ -1,8 +1,10 @@
-import { useState, useCallback, useEffect, CSSProperties, FC } from 'react';
+import { useState, useCallback, useEffect, FC } from 'react';
 import { CloseIcon } from '@/components/ui/Icons';
 import { CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';
+import { ModalBackdrop } from '../ModalBackdrop';
+import './CategoriesDialog.css';
 
 interface CategoriesDialogProps {
   open: boolean;
@@ -95,185 +97,118 @@ export const CategoriesDialog: FC<CategoriesDialogProps> = ({
 
   if (!open) return null;
 
-  const backdropStyle: CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 1300,
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  };
-  const paperStyle: CSSProperties = {
-    position: 'fixed',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    zIndex: 1301,
-    width: '100%',
-    maxWidth: 400,
-    margin: 21,
-    backgroundColor: 'rgba(30, 30, 30, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    color: 'white',
-    borderRadius: 21,
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-  };
-
   return (
-    <>
-      <div role="presentation" style={backdropStyle} onClick={handleClose} />
-      <div role="dialog" aria-modal="true" style={paperStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={{ padding: '24px 24px 16px', color: 'white', fontSize: '1.4rem', fontWeight: 700, textAlign: 'center' }}>
-          Добавьте категории
-        </div>
-        <div style={{ padding: '0 24px 24px', backgroundColor: 'transparent', color: 'white' }}>
+    <ModalBackdrop open={open} onClose={handleClose}>
+      <div
+        className="categories-dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Добавьте категории"
+          className="categories-dialog__panel"
+        >
+          {/* Handle */}
+          <div className="categories-dialog__handle" />
+
+          {/* Шапка */}
+          <div className="categories-dialog__header">
+            <h2 className="categories-dialog__title">Добавьте категории</h2>
+            <button
+              type="button"
+              className="categories-dialog__close-btn"
+              onClick={handleClose}
+              disabled={isSavingCategories}
+              aria-label="Закрыть"
+            >
+              <CloseIcon size={16} />
+            </button>
+          </div>
+
+          {/* Ошибка сохранения */}
           {categorySaveError && (
-            <div style={{
-              marginBottom: 16,
-              padding: 12,
-              backgroundColor: 'rgba(244, 67, 54, 0.15)',
-              backdropFilter: 'blur(8px)',
-              color: 'white',
-              border: '1px solid rgba(244, 67, 54, 0.4)',
-              borderRadius: 8,
-            }}>
+            <div className="categories-dialog__error">
               {categorySaveError}
             </div>
           )}
 
-          <p style={{ fontWeight: 600, color: 'rgba(255, 255, 255, 0.9)', marginBottom: 16, fontSize: '0.95rem' }}>
+          {/* Подзаголовок */}
+          <p className="categories-dialog__subtitle">
             Доступные категории
           </p>
 
-          {categoriesLoading && availableCategories.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <div style={{
-                width: 18,
-                height: 18,
-                border: '2px solid rgba(255,255,255,0.2)',
-                borderTopColor: 'white',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }} />
-              <span style={{ color: 'rgba(255, 255, 255, 0.9)' }}>Загрузка категорий…</span>
-            </div>
-          ) : categoriesLoadError ? (
-            <div style={{
-              marginBottom: 16,
-              padding: 12,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              backgroundColor: 'rgba(244, 67, 54, 0.15)',
-              backdropFilter: 'blur(8px)',
-              color: 'white',
-              border: '1px solid rgba(244, 67, 54, 0.4)',
-              borderRadius: 8,
-            }}>
-              <span>{categoriesLoadError}</span>
+          {/* Область скролла с категориями */}
+          <div className="categories-dialog__body">
+            {categoriesLoading && availableCategories.length === 0 ? (
+              <div className="categories-dialog__loading">
+                <div className="categories-dialog__spinner" />
+                <span className="categories-dialog__loading-text">Загрузка категорий…</span>
+              </div>
+            ) : categoriesLoadError ? (
+              <div className="categories-dialog__load-error">
+                <span className="categories-dialog__load-error-text">{categoriesLoadError}</span>
+                <button
+                  type="button"
+                  className="categories-dialog__retry-btn"
+                  onClick={loadCategories}
+                >
+                  Повторить загрузку
+                </button>
+              </div>
+            ) : (
+              <div className="categories-dialog__chips">
+                {availableCategories.map((category) => {
+                  const isSelected = selectedCategoryKeys.includes(category.key);
+                  return (
+                    <button
+                      type="button"
+                      key={category.key}
+                      onClick={() => handleToggleCategory(category.key)}
+                      className={`categories-dialog__chip${isSelected ? ' categories-dialog__chip--selected' : ''}`}
+                    >
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Футер */}
+          <div className="categories-dialog__footer">
+            <p className="categories-dialog__count">
+              Выбрано категорий: {selectedCategoryKeys.length}
+            </p>
+            <div className="categories-dialog__actions">
               <button
                 type="button"
-                onClick={loadCategories}
-                style={{
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                }}
+                className="categories-dialog__cancel-btn"
+                onClick={handleClose}
+                disabled={isSavingCategories}
+                aria-label="Отмена"
               >
-                Повторить загрузку
+                <CloseIcon size={24} />
+              </button>
+              <button
+                type="button"
+                className="categories-dialog__save-btn"
+                onClick={handleSaveCategories}
+                disabled={isSavingCategories}
+                aria-label="Сохранить"
+              >
+                {isSavingCategories ? (
+                  <div className="categories-dialog__save-spinner" />
+                ) : (
+                  <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                )}
               </button>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {availableCategories.map((category) => {
-                const isSelected = selectedCategoryKeys.includes(category.key);
-                return (
-                  <button
-                    type="button"
-                    key={category.key}
-                    onClick={() => handleToggleCategory(category.key)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 13,
-                      backgroundColor: isSelected ? 'rgba(33, 150, 243, 0.3)' : 'rgba(255, 255, 255, 0.15)',
-                      color: 'white',
-                      fontSize: 14,
-                      fontWeight: isSelected ? 700 : 600,
-                      whiteSpace: 'nowrap',
-                      border: isSelected ? '2px solid rgba(33, 150, 243, 0.6)' : '1px solid rgba(255, 255, 255, 0.25)',
-                      cursor: 'pointer',
-                      transition: 'all 150ms ease',
-                    }}
-                  >
-                    {category.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', textAlign: 'center', fontWeight: 500, margin: 0 }}>
-            Выбрано категорий: {selectedCategoryKeys.length}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 13, justifyContent: 'center', padding: '0 24px 24px' }} onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isSavingCategories}
-            style={{
-              width: 55,
-              height: 55,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              borderRadius: 'var(--tg-radius-l)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              cursor: isSavingCategories ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CloseIcon size={24} />
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveCategories}
-            disabled={isSavingCategories}
-            style={{
-              width: 55,
-              height: 55,
-              backgroundColor: 'rgba(76, 175, 80, 0.3)',
-              color: '#4CAF50',
-              borderRadius: 'var(--tg-radius-l)',
-              border: '1px solid rgba(76, 175, 80, 0.5)',
-              cursor: isSavingCategories ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {isSavingCategories ? (
-              <div style={{
-                width: 24,
-                height: 24,
-                border: '2px solid rgba(76, 175, 80, 0.3)',
-                borderTopColor: '#4CAF50',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }} />
-            ) : (
-              <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-            )}
-          </button>
+          </div>
         </div>
       </div>
-    </>
+    </ModalBackdrop>
   );
 };
-

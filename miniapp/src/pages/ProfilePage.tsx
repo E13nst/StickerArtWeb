@@ -596,9 +596,6 @@ export const ProfilePage: FC = () => {
         open={isModalOpen}
         stickerSet={selectedStickerSet}
         onClose={handleCloseModal}
-        onLike={(id) => {
-          useLikesStore.getState().toggleLike(String(id));
-        }}
         onStickerSetUpdated={handleStickerSetUpdated}
       />
     </div>

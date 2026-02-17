@@ -1,13 +1,12 @@
 /* GalleryPage2.css - стили для страницы галереи */
 @import '../styles/common.css';
 
-/* Уникальный градиент страницы (отображается через OtherAccountBackground) */
-.page-container.gallery-page {
-  --page-dynamic-gradient: radial-gradient(circle at 80% 80%, var(--page-bg-accent-secondary) 0%, transparent 45%);
-}
-
+/* Фон как на GeneratePage (отображается через OtherAccountBackground) */
+.page-container.gallery-page,
 .page-container.gallery-page-loading {
-  --page-dynamic-gradient: radial-gradient(circle at 80% 80%, var(--page-bg-accent-secondary) 0%, transparent 45%);
+  --page-dynamic-gradient:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
 /* ============================================
@@ -71,6 +70,7 @@
 .gallery-page__content {
   width: 100%;
   padding-top: var(--spacing-md);
+  overflow: visible; /* иконка лайка на карточках не обрезается за границами контента */
 }
 
 .gallery-page__content-error {
@@ -113,8 +113,46 @@
 }
 
 /* ============================================
-   Responsive Adjustments
+   Responsive Adjustments (iPhone 11 Pro 375px и уже)
    ============================================ */
+
+/* Контейнер и отступы — чтобы контент не упирался в края */
+@media (max-width: 420px) {
+  .gallery-page .stixly-page-container {
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .gallery-page .compact-controls-bar--fixed {
+    max-width: 100%;
+  }
+  .gallery-page .compact-controls-bar-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .gallery-page .stixly-page-container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .gallery-page .compact-controls-bar-inner {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .gallery-page .stixly-page-container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .gallery-page .compact-controls-bar-inner {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
 
 /* Mobile Devices */
 @media (max-width: 480px) {

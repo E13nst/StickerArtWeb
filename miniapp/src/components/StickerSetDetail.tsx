@@ -6,7 +6,7 @@ import { StickerSetResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl, getStickerImageUrl } from '@/utils/stickerUtils';
 import { StickerThumbnail } from './StickerThumbnail';
-import { useLikesStore } from '@/store/useLikesStore';
+
 import { prefetchSticker, getCachedStickerUrl, imageCache, LoadPriority, imageLoader } from '@/utils/imageLoader';
 import { useTelegram } from '@/hooks/useTelegram';
 import { Link } from 'react-router-dom';
@@ -16,7 +16,9 @@ import { StickerSetActions } from './StickerSetActions';
 // Новые модули
 import { useStickerSetData } from '@/hooks/useStickerSetData';
 import { useStickerNavigation } from '@/hooks/useStickerNavigation';
-import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetActionsBar, StickerSetDetailEdit } from './StickerSetDetail/index';
+import { CategoriesDialog, BlockDialog, StickerPreview, StickerSetDetailEdit } from './StickerSetDetail/index';
+import { InteractiveLikeCount } from './InteractiveLikeCount';
+import { DownloadIcon } from '@/components/ui/Icons';
 import { StickerSetEditOperations } from '@/types/sticker';
 import { DonateModal } from './DonateModal';
 import './StickerSetDetail.css';
@@ -91,7 +93,6 @@ interface StickerSetDetailProps {
   stickerSet: StickerSetResponse;
   onBack: () => void;
   onShare: (name: string, title: string) => void;
-  onLike?: (id: number, title: string) => void;
   isInTelegramApp?: boolean;
   isModal?: boolean;
   enableCategoryEditing?: boolean;
@@ -103,7 +104,6 @@ interface StickerSetDetailProps {
 export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   stickerSet,
   onBack,
-  onLike,
   isInTelegramApp: _isInTelegramApp = false,
   isModal = false,
   enableCategoryEditing = false,
@@ -210,11 +210,9 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     previewRef
   } = useStickerNavigation({ stickerCount, isModal });
 
-  const [likeAnim, setLikeAnim] = useState(false);
   const [authorUsername, setAuthorUsername] = useState<string | null>(null);
   const [isCategoriesDialogOpen, setIsCategoriesDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
-  const [starsInfoAnchor, setStarsInfoAnchor] = useState<HTMLElement | null>(null);
   const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
   
   // Режим просмотра/редактирования (только для автора)
@@ -282,22 +280,21 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     availableActions: effectiveStickerSet.availableActions
   });
 
-  // Используем глобальный store для лайков с селекторами для автоматического обновления
-  const { isLiked: liked, likesCount: likes } = useLikesStore((state) => 
-    state.likes[stickerSet.id.toString()] || { 
-      packId: stickerSet.id.toString(), 
-      isLiked: false, 
-      likesCount: 0 
-    }
-  );
-  const toggleLike = useLikesStore((state) => state.toggleLike);
+  // Fallback имени автора из полей самого stickerSet (доступны без доп. запроса)
+  const stickerSetAuthorFallback = useMemo(() => {
+    const uname = stickerSet.username?.trim();
+    if (uname && uname.length > 0) return `@${uname}`;
+    const parts = [stickerSet.firstName, stickerSet.lastName].filter(Boolean).join(' ').trim();
+    return parts || null;
+  }, [stickerSet.username, stickerSet.firstName, stickerSet.lastName]);
+
   useEffect(() => {
     let isMounted = true;
 
     const targetAuthorId = stickerSet.authorId;
 
     if (!targetAuthorId) {
-      setAuthorUsername(null);
+      setAuthorUsername(stickerSetAuthorFallback);
       return;
     }
 
@@ -307,7 +304,13 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
       '';
 
     apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
-    setAuthorUsername(null);
+
+    // Показываем fallback сразу, пока грузится точное имя
+    if (stickerSetAuthorFallback) {
+      setAuthorUsername(stickerSetAuthorFallback);
+    } else {
+      setAuthorUsername(null);
+    }
 
     (async () => {
       try {
@@ -318,10 +321,11 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
         const fromUsername = userInfo.username?.trim();
         const fallbackName = [userInfo.firstName, userInfo.lastName].filter(Boolean).join(' ').trim();
         const displayName = fromUsername && fromUsername.length > 0 ? `@${fromUsername}` : fallbackName || null;
-        setAuthorUsername(displayName);
+        setAuthorUsername(displayName || stickerSetAuthorFallback);
       } catch {
         if (isMounted) {
-          setAuthorUsername(null);
+          // При ошибке API оставляем fallback из stickerSet
+          setAuthorUsername((prev) => prev || stickerSetAuthorFallback);
         }
       }
     })();
@@ -329,7 +333,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [stickerSet.authorId, initData, user?.language_code]);
+  }, [stickerSet.authorId, stickerSetAuthorFallback, initData, user?.language_code]);
 
   
   // Загружаем текущий стикер и prefetch соседних при изменении activeIndex
@@ -541,32 +545,6 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     });
   }, [activeIndex]);
 
-  const handleLikeClick = async () => {
-    const willLike = !liked;
-    setLikeAnim(true);
-    window.setTimeout(() => setLikeAnim(false), 220);
-    
-    try {
-      await toggleLike(stickerSet.id.toString());
-      
-      // Обновляем данные при изменении лайков
-      if (fullStickerSet) {
-        const updatedData = {
-          ...fullStickerSet,
-          likesCount: willLike ? (fullStickerSet.likesCount ?? 0) + 1 : Math.max((fullStickerSet.likesCount ?? 1) - 1, 0),
-          isLikedByCurrentUser: willLike,
-          isLiked: willLike
-        };
-        updateStickerSet(updatedData);
-      }
-      
-      if (onLike && willLike) onLike(stickerSet.id, stickerSet.title);
-    } catch (error) {
-      console.error('Ошибка при лайке:', error);
-      // UI уже откатится автоматически в store при ошибке
-    }
-  };
-
   const handleShareClick = useCallback(() => {
     const targetUrl =
       fullStickerSet?.url ?? stickerSet.url ?? getStickerThumbnailUrl(stickers[activeIndex]?.file_id);
@@ -647,116 +625,145 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
 
   const handleOutsidePreviewClick = useCallback((event: MouseEvent) => {
     if (!isModal) return;
-    
-    // Останавливаем всплытие события, чтобы оно не доходило до ModalBackdrop
-    event.stopPropagation();
-    
+
     const target = event.target as HTMLElement;
     
-    // Не закрываем, если Popover открыт - проверяем классы MUI Popover
-    if (starsInfoAnchor) {
-      // Проверяем, был ли клик внутри Popover или на его backdrop
-      const isPopoverElement = target.closest('.MuiPopover-root') || 
-                               target.closest('[role="presentation"]') ||
-                               target.classList.contains('MuiPopover-root') ||
-                               target.classList.contains('MuiPaper-root');
-      if (isPopoverElement) {
-        return;
-      }
+    // Не закрываем при клике по кнопкам действий (лайк, share)
+    if (target.closest('[data-testid="interactive-like-button"]') || target.closest('.sticker-set-detail-card__share-btn')) {
+      return;
     }
-    
-    // Не закрываем, если клик внутри Popover через ref
-    if (starsPopoverRef.current && starsPopoverRef.current.contains(target)) {
+
+    // Не закрываем при клике по strip (миниатюры)
+    if (target.closest('.sticker-set-detail-card__strip')) {
       return;
     }
     
+    // Не закрываем при клике по футеру (категории, кнопки, actions-wrap) — там свои действия
+    if (target.closest('.sticker-set-detail-card__footer') || target.closest('.sticker-set-detail-card__actions-wrap')) {
+      return;
+    }
+
     // Проверяем, был ли клик вне области большого превью
     if (previewRef.current && !previewRef.current.contains(target)) {
       onBack();
     }
-  }, [isModal, onBack, starsInfoAnchor]);
-
-  // Обработчик клика выше модального окна (в backdrop области)
-  useEffect(() => {
-    if (!isModal) return;
-
-    const handleBackdropClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      
-      // Не закрываем, если Popover открыт
-      if (starsInfoAnchor) {
-        const isPopoverElement = target.closest('.MuiPopover-root') || 
-                                 target.closest('[role="presentation"]') ||
-                                 target.classList.contains('MuiPopover-root') ||
-                                 target.classList.contains('MuiPaper-root');
-        if (isPopoverElement) {
-          return;
-        }
-      }
-      
-      // Проверяем, был ли клик выше модального окна
-      if (modalContentRef.current) {
-        const modalRect = modalContentRef.current.getBoundingClientRect();
-        const clickY = event.clientY;
-        
-        // Если клик выше модального окна (выше его верхней границы)
-        if (clickY < modalRect.top) {
-          onBack();
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleBackdropClick as unknown as EventListener);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleBackdropClick as unknown as EventListener);
-    };
-  }, [isModal, onBack, starsInfoAnchor]);
+  }, [isModal, onBack]);
 
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const touchStartYRef = useRef<number | null>(null);
-  const starsPopoverRef = useRef<HTMLDivElement | null>(null);
+  const isDraggingDownRef = useRef(false);
 
-  // Упрощенная логика: свайп вниз закрывает модальное окно
+  const DISMISS_THRESHOLD = 100;
+  const DRAG_ANIMATION_MS = 200;
+
+  // Drag-to-dismiss: свайп вниз с визуальной обратной связью
   useEffect(() => {
     if (!isModal) return;
 
+    const modalElement = modalContentRef.current;
+    if (!modalElement) return;
+
     const handleTouchStart = (e: TouchEvent) => {
-      touchStartYRef.current = e.touches[0].clientY;
+      // Начинаем drag только если модалка прокручена до самого верха
+      if (modalElement.scrollTop <= 0) {
+        touchStartYRef.current = e.touches[0].clientY;
+      } else {
+        touchStartYRef.current = null;
+      }
+      isDraggingDownRef.current = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStartYRef.current === null) return;
 
       const deltaY = e.touches[0].clientY - touchStartYRef.current;
-      
-      // Свайп вниз > 80px - закрываем модальное окно
-      if (deltaY > 80) {
+
+      if (deltaY > 5) {
+        isDraggingDownRef.current = true;
         e.preventDefault();
-        e.stopPropagation();
-        onBack();
+        modalElement.style.transition = 'none';
+        modalElement.style.transform = `translateY(${deltaY}px)`;
+        modalElement.classList.add('sticker-set-detail-card--dragging');
+
+        // Затемнение backdrop пропорционально перетаскиванию
+        const progress = Math.min(deltaY / 400, 1);
+        const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
+        if (backdrop) {
+          backdrop.style.opacity = String(1 - progress * 0.6);
+        }
+      } else if (deltaY < -5) {
+        // Свайп вверх — отменяем drag, пусть нативный скролл работает
         touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
       }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartYRef.current === null || !isDraggingDownRef.current) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+        return;
+      }
+
+      // Подавляем синтетический click (~300ms), чтобы он не провалился
+      // сквозь закрывающуюся модалку к элементам галереи
+      e.preventDefault();
+
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
       touchStartYRef.current = null;
+      isDraggingDownRef.current = false;
+
+      const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
+
+      if (deltaY > DISMISS_THRESHOLD) {
+        // Плавно доводим карточку вниз за экран
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(100vh)';
+
+        if (backdrop) {
+          backdrop.style.transition = `opacity ${DRAG_ANIMATION_MS}ms ease-out`;
+          backdrop.style.opacity = '0';
+        }
+
+        setTimeout(() => {
+          // Блокируем CSS-анимации перед вызовом onBack
+          modalElement.classList.remove('sticker-set-detail-card--dragging');
+          modalElement.classList.add('sticker-set-detail-card--drag-dismissed');
+          if (backdrop) {
+            backdrop.classList.add('modal-backdrop--drag-dismissed');
+          }
+          onBack();
+        }, DRAG_ANIMATION_MS);
+      } else {
+        // Возвращаем карточку на место
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(0)';
+
+        if (backdrop) {
+          backdrop.style.transition = `opacity ${DRAG_ANIMATION_MS}ms ease-out`;
+          backdrop.style.opacity = '1';
+        }
+
+        setTimeout(() => {
+          modalElement.style.transition = '';
+          modalElement.style.transform = '';
+          modalElement.classList.remove('sticker-set-detail-card--dragging');
+          if (backdrop) {
+            backdrop.style.transition = '';
+            backdrop.style.opacity = '';
+          }
+        }, DRAG_ANIMATION_MS);
+      }
     };
 
-    // Добавляем обработчики на модальное окно, чтобы предотвратить всплытие
-    const modalElement = modalContentRef.current;
-    if (modalElement) {
-      modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
-      modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-      modalElement.addEventListener('touchend', handleTouchEnd, { passive: true });
-    }
+    modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    modalElement.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
-      if (modalElement) {
-        modalElement.removeEventListener('touchstart', handleTouchStart);
-        modalElement.removeEventListener('touchmove', handleTouchMove);
-        modalElement.removeEventListener('touchend', handleTouchEnd);
-      }
+      modalElement.removeEventListener('touchstart', handleTouchStart);
+      modalElement.removeEventListener('touchmove', handleTouchMove);
+      modalElement.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isModal, onBack]);
 
@@ -819,7 +826,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     <div
       ref={modalContentRef}
       data-modal-content
-      onClick={handleOutsidePreviewClick}
+      onClick={isModal ? undefined : handleOutsidePreviewClick}
       className={`sticker-set-detail-card ${isModal ? 'sticker-set-detail-card--modal' : ''}`}
       style={!isModal ? { height: '100vh', minHeight: '100vh' } : undefined}
     >
@@ -896,19 +903,22 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
               touchHandled={touchHandledRef}
               previewRef={previewRef}
             />
-            <div className="sticker-set-detail-card__actions-overlay" onClick={(e) => e.stopPropagation()}>
-              <StickerSetActionsBar
-                liked={liked}
-                likes={likes}
-                likeAnim={likeAnim}
-                onLikeClick={handleLikeClick}
-                onShareClick={handleShareClick}
-                starsInfoAnchor={starsInfoAnchor}
-                onStarsInfoOpen={(anchor) => setStarsInfoAnchor(anchor)}
-                onStarsInfoClose={() => setStarsInfoAnchor(null)}
-              />
-            </div>
+            {/* Лайк — внутри preview-wrap, выходит вверх за границу в header */}
+            <InteractiveLikeCount
+              packId={String(stickerSet.id)}
+              size="large"
+              placement="top-right"
+            />
           </div>
+          {/* Share — квадратная кнопка у нижней границы __main */}
+          <button
+            type="button"
+            aria-label="share"
+            className="sticker-set-detail-card__share-btn"
+            onClick={(e) => { e.stopPropagation(); handleShareClick(); }}
+          >
+            <DownloadIcon size={24} />
+          </button>
         </div>
       )}
 

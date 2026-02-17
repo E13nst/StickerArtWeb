@@ -14,8 +14,11 @@
   --page-pattern-filter: brightness(0) saturate(100%) invert(45%) sepia(88%) saturate(1770%) hue-rotate(296deg) brightness(98%) contrast(95%);
   --page-bg-base: #191818;
   --page-bg-accent-primary: var(--color-overlay-primary);
-  --page-bg-accent-secondary: var(--color-overlay-light);
-  --page-dynamic-gradient: none;
+  --page-bg-accent-secondary: rgba(134, 111, 201, 0.2);
+  /* Фон как на GeneratePage: два градиента. Dashboard переопределяет в DashboardPage.css */
+  --page-dynamic-gradient:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
 /* ============================================
@@ -496,6 +499,39 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Адаптивные карточки для узких экранов (iPhone 11 Pro 375px и уже) */
+@media (max-width: 400px) {
+  .optimized-gallery__row-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .optimized-gallery .pack-card {
+    width: 100% !important;
+    max-width: 177px;
+    height: auto !important;
+    aspect-ratio: 177 / 213 !important;
+  }
+  .optimized-gallery--gallery .pack-card__content,
+  .optimized-gallery--account .pack-card__content {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    flex: none;
+  }
+}
+
+@media (max-width: 375px) {
+  .optimized-gallery__row-grid {
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .optimized-gallery__row-grid {
+    gap: 8px !important;
+  }
 }
 
 /* ============================================

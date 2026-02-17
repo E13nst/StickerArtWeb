@@ -24,6 +24,31 @@
   padding: 0 var(--spacing-sm);
 }
 
+/* Адаптивность на узких экранах (iPhone 11 Pro и уже) — везде, где используется bar */
+@media (max-width: 420px) {
+  .compact-controls-bar--fixed {
+    max-width: 100%;
+  }
+  .compact-controls-bar-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .compact-controls-bar-inner {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .compact-controls-bar-inner {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
 /* Search + filter — пилюля по Figma: #262626, тень, 30px высота, gap 16px */
 .compact-controls-bar__row {
   display: flex;

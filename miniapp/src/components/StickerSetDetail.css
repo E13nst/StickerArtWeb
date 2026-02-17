@@ -58,6 +58,36 @@
   }
 }
 
+@keyframes sticker-set-detail-modal-slide-down {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+.sticker-set-detail-card--closing {
+  animation: sticker-set-detail-modal-slide-down 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.modal-backdrop--closing .sticker-set-detail-card--modal {
+  animation: sticker-set-detail-modal-slide-down 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.sticker-set-detail-card--drag-dismissed {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translateY(100vh) !important;
+}
+
+.sticker-set-detail-card--dragging {
+  animation: none !important;
+  will-change: transform;
+}
+
 /* Ручка для свайпа */
 .sticker-set-detail-card__handle {
   width: 34px;
@@ -89,6 +119,7 @@
 
 /* Основной блок: превью — занимает оставшееся место (flex: 1) */
 .sticker-set-detail-card__main {
+  position: relative;
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
@@ -111,23 +142,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 
-.sticker-set-detail-card__actions-overlay {
+/* Лайк внутри preview-wrap: сдвинут вверх, частично заходит на header */
+.sticker-set-detail-card__preview-wrap > [data-testid="interactive-like-button"] {
+  top: -18px !important;
+  right: 4px !important;
+  width: 48px !important;
+  height: 48px !important;
+}
+
+/* Share — квадратная кнопка у нижней границы __main */
+.sticker-set-detail-card__share-btn {
   position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  right: 8px;
+  bottom: 4px;
   z-index: 10;
+  width: 40px;
+  height: 40px;
   display: flex;
-  align-items: stretch;
-  padding: clamp(6px, 1.5vw, 10px) clamp(2px, 1vw, 6px) clamp(6px, 1.5vw, 10px) 0;
-  pointer-events: none;
-  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tg-radius-l, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 150ms ease, background-color 150ms ease;
+  pointer-events: auto;
 }
 
-.sticker-set-detail-card__actions-overlay > * {
-  pointer-events: auto;
+.sticker-set-detail-card__share-btn:active {
+  transform: scale(0.92);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 /* Нижняя лента миниатюр — фиксированная высота */

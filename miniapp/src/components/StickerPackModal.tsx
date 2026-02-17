@@ -8,7 +8,6 @@ interface StickerPackModalProps {
   open: boolean;
   stickerSet: StickerSetResponse | null;
   onClose: () => void;
-  onLike?: (id: number, title: string) => void;
   enableCategoryEditing?: boolean;
   infoVariant?: 'default' | 'minimal';
   onCategoriesUpdated?: (updated: StickerSetResponse) => void;
@@ -19,7 +18,6 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
   open,
   stickerSet,
   onClose,
-  onLike,
   enableCategoryEditing = false,
   infoVariant = 'default',
   onCategoriesUpdated,
@@ -27,49 +25,42 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
 }) => {
   const cleanupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Сохраняем последний stickerSet, чтобы ModalBackdrop не размонтировался мгновенно
+  // при onClose (родитель ставит stickerSet=null одновременно с open=false).
+  // Без этого ModalBackdrop не успевает отыграть 350ms close-анимацию,
+  // body.modal-open снимается сразу, и CSS-защита (pointer-events:none) пропадает.
+  const lastSetRef = useRef<StickerSetResponse | null>(null);
+  if (stickerSet) lastSetRef.current = stickerSet;
+  const displaySet = stickerSet || lastSetRef.current;
+
+  // Пауза/возобновление фоновых видео
   useEffect(() => {
-    if (typeof document === 'undefined') {
-      return () => undefined;
+    if (typeof document === 'undefined') return;
+
+    if (open) {
+      const videos = document.querySelectorAll('video');
+      videos.forEach((video) => {
+        if (!video.closest('[data-modal-content]')) {
+          video.setAttribute('data-was-playing', !video.paused ? 'true' : 'false');
+          if (!video.paused) video.pause();
+        }
+      });
     }
 
-    const applyLock = (shouldLock: boolean) => {
-      if (shouldLock) {
-        document.body.classList.add('modal-lock', 'modal-open');
-        document.documentElement.classList.add('modal-lock', 'modal-open');
-        
-        // Останавливаем все видео на фоне (кроме видео внутри модального окна)
-        const videos = document.querySelectorAll('video');
-        videos.forEach((video) => {
-          const isInModal = video.closest('[data-modal-content]');
-          if (!isInModal) {
-            const wasPlaying = !video.paused;
-            if (wasPlaying) {
-              video.pause();
-              video.setAttribute('data-was-playing', 'true');
-            } else {
-              video.setAttribute('data-was-playing', 'false');
-            }
-          }
-        });
-      } else {
-        document.body.classList.remove('modal-lock', 'modal-open');
-        document.documentElement.classList.remove('modal-lock', 'modal-open');
-        
-        // Возобновляем видео, которые были воспроизведены до открытия модального окна
-        const videos = document.querySelectorAll('video[data-was-playing="true"]');
-        videos.forEach((video) => {
-          const rect = video.getBoundingClientRect();
-          const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-          if (isVisible) {
-            (video as HTMLVideoElement).play().catch(() => {});
-          }
-          video.removeAttribute('data-was-playing');
-        });
-      }
+    return () => {
+      const videos = document.querySelectorAll('video[data-was-playing="true"]');
+      videos.forEach((video) => {
+        const rect = video.getBoundingClientRect();
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          (video as HTMLVideoElement).play().catch(() => {});
+        }
+        video.removeAttribute('data-was-playing');
+      });
     };
+  }, [open]);
 
-    applyLock(open);
-
+  // Очистка кэша стикеров после закрытия
+  useEffect(() => {
     if (cleanupTimeoutRef.current) {
       clearTimeout(cleanupTimeoutRef.current);
       cleanupTimeoutRef.current = null;
@@ -79,9 +70,7 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
       const preserveIds = new Set<string>();
       stickerSet.previewStickers?.forEach((preview: any) => {
         const id = preview?.fileId || preview?.file_id || preview?.telegramFileId || preview?.telegram_file_id;
-        if (id) {
-          preserveIds.add(id);
-        }
+        if (id) preserveIds.add(id);
       });
 
       cleanupTimeoutRef.current = setTimeout(() => {
@@ -103,7 +92,6 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
     }
 
     return () => {
-      applyLock(false);
       if (cleanupTimeoutRef.current) {
         clearTimeout(cleanupTimeoutRef.current);
         cleanupTimeoutRef.current = null;
@@ -111,15 +99,22 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
     };
   }, [open, stickerSet]);
 
-  if (!stickerSet) return null;
+  // Очищаем lastSetRef после завершения close-анимации
+  useEffect(() => {
+    if (!open && !stickerSet) {
+      const timer = setTimeout(() => { lastSetRef.current = null; }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [open, stickerSet]);
+
+  if (!displaySet) return null;
 
   return (
     <ModalBackdrop open={open} onClose={onClose}>
       <StickerSetDetail
-        stickerSet={stickerSet}
+        stickerSet={displaySet}
         onBack={onClose}
         onShare={() => {}}
-        onLike={onLike}
         isInTelegramApp={true}
         isModal={true}
         enableCategoryEditing={enableCategoryEditing}

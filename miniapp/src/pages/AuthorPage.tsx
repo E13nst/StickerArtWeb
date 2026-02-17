@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 import { useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { useUserAvatar } from '../hooks/useUserAvatar';
 import { EmptyState } from '../components/EmptyState';
 import { OptimizedGallery } from '../components/OptimizedGallery';
 import { StickerPackModal } from '../components/StickerPackModal';
@@ -10,20 +9,17 @@ import { apiClient } from '../api/client';
 import { useTelegram } from '../hooks/useTelegram';
 import { StickerSetResponse, ProfileResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
-import { SearchBar } from '../components/SearchBar';
-import { SortDropdown } from '../components/SortDropdown';
+import { CompactControlsBar } from '../components/CompactControlsBar';
+import { StickerSetType } from '../components/StickerSetTypeFilter';
+import { Category } from '../components/CategoryFilter';
 import { useScrollElement } from '../contexts/ScrollContext';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { getUserFullName } from '../utils/userUtils';
-import { Card, CardContent } from '../components/ui/Card';
 import { Text } from '../components/ui/Text';
 import { OtherAccountBackground } from '../components/OtherAccountBackground';
 import '../styles/common.css';
 import '../styles/AuthorPage.css';
-import '../components/CompactControlsBar.css';
-import '../components/SortDropdown.css';
 
-// Утилита для объединения классов
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
@@ -31,6 +27,116 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
 type AuthorProfile = ProfileResponse & { profilePhotoFileId?: string; profilePhotos?: any };
 
 const PAGE_SIZE = 24;
+
+const toNonEmptyString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const toNumericId = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const normalizeUsername = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  return value.startsWith('@') ? value.slice(1) : value;
+};
+
+const isValidProfileResponse = (value: unknown): value is ProfileResponse => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as ProfileResponse;
+  return typeof candidate.userId === 'number' && !!candidate.user && typeof candidate.user === 'object';
+};
+
+type FallbackAuthorData = {
+  name: string | null;
+  avatarUrl: string | null;
+  userId: number | null;
+};
+
+const extractFallbackAuthorData = (set?: StickerSetResponse | null): FallbackAuthorData | null => {
+  if (!set) {
+    return null;
+  }
+  const extended = set as StickerSetResponse & {
+    author?: {
+      id?: number | string;
+      userId?: number | string;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+      avatarUrl?: string;
+    };
+    user?: {
+      id?: number | string;
+      userId?: number | string;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+      avatarUrl?: string;
+    };
+    authorUsername?: string;
+    authorFirstName?: string;
+    authorLastName?: string;
+    authorAvatarUrl?: string;
+  };
+
+  const username = normalizeUsername(
+    toNonEmptyString(extended.username) ||
+      toNonEmptyString(extended.authorUsername) ||
+      toNonEmptyString(extended.author?.username) ||
+      toNonEmptyString(extended.user?.username)
+  );
+  const firstName =
+    toNonEmptyString(extended.firstName) ||
+    toNonEmptyString(extended.authorFirstName) ||
+    toNonEmptyString(extended.author?.firstName) ||
+    toNonEmptyString(extended.user?.firstName);
+  const lastName =
+    toNonEmptyString(extended.lastName) ||
+    toNonEmptyString(extended.authorLastName) ||
+    toNonEmptyString(extended.author?.lastName) ||
+    toNonEmptyString(extended.user?.lastName);
+  const avatarUrl =
+    toNonEmptyString(extended.avatarUrl) ||
+    toNonEmptyString(extended.authorAvatarUrl) ||
+    toNonEmptyString(extended.author?.avatarUrl) ||
+    toNonEmptyString(extended.user?.avatarUrl);
+
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  const name = fullName || (username ? `@${username}` : null);
+  const userId =
+    toNumericId(extended.userId) ||
+    toNumericId(extended.author?.userId) ||
+    toNumericId(extended.author?.id) ||
+    toNumericId(extended.user?.userId) ||
+    toNumericId(extended.user?.id) ||
+    null;
+
+  if (!name && !avatarUrl && !userId) {
+    return null;
+  }
+
+  return {
+    name,
+    avatarUrl,
+    userId
+  };
+};
 
 const mapProfileToUserInfo = (profile: AuthorProfile): UserInfo => ({
   id: profile.userId,
@@ -61,9 +167,9 @@ const mapProfileToUserInfo = (profile: AuthorProfile): UserInfo => ({
     : undefined
 });
 
-const fetchAuthorPhoto = async (authorId: number) => {
+const fetchAuthorPhoto = async (userId: number) => {
   try {
-    return await apiClient.getUserPhoto(authorId);
+    return await apiClient.getUserPhoto(userId);
   } catch (error: any) {
     if (error?.response?.status === 404) {
       return null;
@@ -95,7 +201,14 @@ export const AuthorPage: FC = () => {
 
   const [selectedStickerSet, setSelectedStickerSet] = useState<StickerSetResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { avatarBlobUrl: authorAvatarUrl } = useUserAvatar(authorId ?? undefined);
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState<string | null>(null);
+
+  // Фильтры для CompactControlsBar (упрощённые — без категорий и типов)
+  const [selectedCategories] = useState<string[]>([]);
+  const [categories] = useState<Category[]>([]);
+  const [selectedStickerSetTypes] = useState<StickerSetType[]>([]);
+  const [selectedStickerTypes] = useState<string[]>([]);
+  const [selectedDate] = useState<string | null>('all');
   
   const effectiveInitData = useMemo(() => initData || window.Telegram?.WebApp?.initData || '', [initData]);
 
@@ -121,7 +234,6 @@ export const AuthorPage: FC = () => {
       try {
         let response;
         
-        // Если есть поисковый запрос, используем специальный эндпоинт поиска
         if (searchQuery && searchQuery.trim()) {
           response = await apiClient.searchAuthorStickerSets(
             authorId,
@@ -208,6 +320,7 @@ export const AuthorPage: FC = () => {
     };
   }, [tg]);
 
+  // Загрузка профиля автора
   useEffect(() => {
     if (!authorId || Number.isNaN(authorId)) {
       setProfile(null);
@@ -229,8 +342,13 @@ export const AuthorPage: FC = () => {
       setProfileError(null);
 
       try {
-        const profileResponse = await apiClient.getProfileStrict(authorId);
-        const photo = await fetchAuthorPhoto(authorId);
+        // Основной сценарий: когда id в роуте совпадает с userId
+        const profileResponseRaw = await apiClient.getProfileStrict(authorId);
+        if (!isValidProfileResponse(profileResponseRaw)) {
+          throw new Error('Invalid profile response payload');
+        }
+        const profileResponse = profileResponseRaw;
+        const photo = await fetchAuthorPhoto(profileResponse.userId);
         if (!cancelled) {
           setProfile({
             ...profileResponse,
@@ -239,6 +357,34 @@ export const AuthorPage: FC = () => {
           });
         }
       } catch (error) {
+        // Fallback: /author/:id обычно содержит authorId, который может не совпадать с userId.
+        // Пытаемся получить userId из первого стикерсета автора и загрузить профиль по нему.
+        try {
+          const firstPage = await apiClient.getStickerSetsByAuthor(authorId, 0, 1, 'createdAt', 'DESC', true);
+          const fallbackUserId = extractFallbackAuthorData(firstPage.content?.[0])?.userId;
+
+          if (typeof fallbackUserId === 'number' && !Number.isNaN(fallbackUserId)) {
+            const profileResponseRaw = await apiClient.getProfileStrict(fallbackUserId);
+            if (!isValidProfileResponse(profileResponseRaw)) {
+              throw new Error('Invalid fallback profile response payload');
+            }
+            const profileResponse = profileResponseRaw;
+            const photo = await fetchAuthorPhoto(profileResponse.userId);
+
+            if (!cancelled) {
+              setProfile({
+                ...profileResponse,
+                profilePhotoFileId: photo?.profilePhotoFileId,
+                profilePhotos: photo?.profilePhotos
+              });
+              setProfileError(null);
+            }
+            return;
+          }
+        } catch {
+          // Молча переходим к общему обработчику ошибки.
+        }
+
         if (!cancelled) {
           setProfile(null);
           setProfileError('Не удалось загрузить профиль автора');
@@ -256,6 +402,60 @@ export const AuthorPage: FC = () => {
       cancelled = true;
     };
   }, [authorId, effectiveInitData, user?.language_code]);
+
+  // Загрузка аватара автора (blob)
+  useEffect(() => {
+    if (!profile || (!profile.profilePhotoFileId && !profile.profilePhotos)) {
+      setAuthorAvatarUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    const loadAvatar = async () => {
+      try {
+        if (effectiveInitData) {
+          apiClient.setAuthHeaders(effectiveInitData, user?.language_code);
+        } else {
+          apiClient.checkExtensionHeaders();
+        }
+        
+        let optimalFileId = profile.profilePhotoFileId;
+        if (profile.profilePhotos?.photos?.[0]?.[0]) {
+          const photoSet = profile.profilePhotos.photos[0];
+          const targetSize = 160;
+          let bestPhoto = photoSet.find((p: any) => Math.min(p.width, p.height) >= targetSize);
+          if (!bestPhoto) {
+            bestPhoto = photoSet.reduce((max: any, p: any) => {
+              const photoSize = Math.min(p.width, p.height);
+              return photoSize > Math.min(max.width, max.height) ? p : max;
+            });
+          }
+          optimalFileId = bestPhoto?.file_id || profile.profilePhotoFileId;
+        }
+
+        if (!optimalFileId) {
+          setAuthorAvatarUrl(null);
+          return;
+        }
+
+        const blob = await apiClient.getUserPhotoBlob(profile.userId, optimalFileId);
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setAuthorAvatarUrl(objectUrl);
+      } catch {
+        if (!cancelled) setAuthorAvatarUrl(null);
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [profile?.profilePhotoFileId, profile?.profilePhotos, profile?.userId, effectiveInitData, user?.language_code]);
 
   useEffect(() => {
     if (!authorId || Number.isNaN(authorId)) {
@@ -277,15 +477,31 @@ export const AuthorPage: FC = () => {
     if (!profile) {
       return null;
     }
-    // Используем полное имя вместо username
     const userInfo = mapProfileToUserInfo(profile);
     const fullName = getUserFullName(userInfo);
     return fullName || null;
   }, [profile]);
 
+  const fallbackAuthor = useMemo(() => {
+    const candidate = stickerSets
+      .map((set) => extractFallbackAuthorData(set))
+      .find((entry): entry is FallbackAuthorData => !!entry);
+
+    if (!candidate) {
+      return null;
+    }
+
+    return {
+      name: candidate.name || (candidate.userId ? `Автор #${candidate.userId}` : null),
+      avatarUrl: candidate.avatarUrl || null
+    };
+  }, [stickerSets]);
+
+  const resolvedDisplayName = displayName || fallbackAuthor?.name || (authorId ? `Автор #${authorId}` : '—');
+  const resolvedAvatarUrl = authorAvatarUrl || fallbackAuthor?.avatarUrl || null;
+  const shouldShowHeaderCard = Boolean(profile || fallbackAuthor || stickerSets.length > 0);
+
   const displayedStickerSets = useMemo(() => {
-    // Если есть активный поиск, то данные уже отфильтрованы на сервере
-    // Локальная фильтрация не нужна
     if (sortByLikes) {
       return [...stickerSets].sort((a, b) => {
         const likesA = (a.likesCount ?? a.likes ?? 0);
@@ -293,7 +509,6 @@ export const AuthorPage: FC = () => {
         return likesB - likesA;
       });
     }
-
     return stickerSets;
   }, [stickerSets, sortByLikes]);
 
@@ -319,21 +534,12 @@ export const AuthorPage: FC = () => {
     setSelectedStickerSet(null);
   };
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchTerm(value);
-  }, []);
-
   const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
-    if (!authorId || Number.isNaN(authorId)) {
-      return;
-    }
-    // Сбрасываем на первую страницу при поиске
-    // НЕ очищаем stickerSets, чтобы SearchBar оставался видимым
+    if (!authorId || Number.isNaN(authorId)) return;
     setCurrentPage(0);
     setTotalPages(0);
     setTotalElements(0);
-    // Если строка поиска пустая, загружаем все стикерсеты, иначе выполняем поиск
     fetchStickerSets(0, false, value.trim() || undefined);
   }, [authorId, fetchStickerSets]);
 
@@ -344,12 +550,8 @@ export const AuthorPage: FC = () => {
   const hasNextPage = useMemo(() => totalPages > 0 && currentPage < totalPages - 1, [totalPages, currentPage]);
 
   const handleLoadMore = useCallback(() => {
-    if (isLoadingMore || isSetsLoading) {
-      return;
-    }
-    if (!hasNextPage) {
-      return;
-    }
+    if (isLoadingMore || isSetsLoading) return;
+    if (!hasNextPage) return;
     fetchStickerSets(currentPage + 1, true, searchTerm);
   }, [currentPage, fetchStickerSets, hasNextPage, isLoadingMore, isSetsLoading, searchTerm]);
 
@@ -362,9 +564,9 @@ export const AuthorPage: FC = () => {
   return (
     <div className={cn('page-container', 'author-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
-      {/* OTHER ACCOUNT (Figma): шапка профиля автора */}
+      {/* Шапка профиля автора — как head-account на MyProfilePage */}
       <div
-        className={cn('other-account', isInTelegramApp && 'other-account--telegram')}
+        className={cn('head-account', isInTelegramApp && 'head-account--telegram')}
         data-figma-block="OTHER ACCOUNT"
       >
         {profileError && (
@@ -375,70 +577,59 @@ export const AuthorPage: FC = () => {
 
         {(isProfileLoading || (isSetsLoading && stickerSets.length === 0)) ? (
           <LoadingSpinner message="Загрузка..." />
-        ) : profile ? (
-          <Card className={cn('other-account__card', 'card-base', 'card-base-no-padding-top')}>
-            <CardContent className="card-content-with-avatar">
-              {authorAvatarUrl ? (
-                <div className="other-account__avatar-wrap">
-                  <img src={authorAvatarUrl} alt="" className="other-account__avatar" />
-                </div>
+        ) : shouldShowHeaderCard ? (
+          <div className="head-account__card">
+            {/* Аватар 80×80 внутри карточки (как на MyProfilePage) */}
+            <div className="head-account__avatar">
+              {resolvedAvatarUrl ? (
+                <img src={resolvedAvatarUrl} alt="" />
               ) : (
-                <div className="other-account__avatar-wrap other-account__avatar-wrap--placeholder">
-                  <span className="other-account__avatar-placeholder" aria-hidden />
-                </div>
+                <Text variant="h2" weight="bold" style={{ color: '#fff' }}>
+                  {(resolvedDisplayName || '?').slice(0, 1).toUpperCase()}
+                </Text>
               )}
-              <div className={cn('other-account__name', 'text-center', 'relative', 'z-index-30')} style={{ marginBottom: '0.618rem', marginTop: '1rem' }}>
-                {displayName && (
-                  <Text variant="h4" weight="bold" className="typography-bold">
-                    {displayName}
-                  </Text>
-                )}
+            </div>
+            {/* Имя */}
+            <Text variant="h2" weight="bold" className="head-account__name" as="div">
+              {resolvedDisplayName}
+            </Text>
+            {/* Статистика */}
+            <div className="head-account__info">
+              <div className="head-account__stat">
+                <span className="head-account__stat-value">{packCount}</span>
+                <span className="head-account__stat-label">sticker packs</span>
               </div>
-
-              <div className="flex-row-space-around">
-                <div className="stat-box">
-                  <Text variant="h3" weight="bold" className="stat-value">
-                    {packCount}
-                  </Text>
-                  <Text variant="bodySmall" className="stat-label">
-                    Наборов
-                  </Text>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : null}
       </div>
 
-      {/* Панель поиска и сортировки — как compact-controls-bar на Gallery (fixed, тот же вид) */}
-      {!isProfileLoading && (
-        <div className="compact-controls-bar compact-controls-bar--fixed">
-          <div className="compact-controls-bar-inner">
-            <div className="compact-controls-bar__row">
-              <div className="compact-controls-bar__search-slot">
-                <SearchBar
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  onSearch={handleSearch}
-                  placeholder="Поиск стикерсетов автора..."
-                  disabled={isSetsLoading && stickerSets.length === 0}
-                  compact
-                />
-              </div>
-              <div className="compact-controls-bar__date-slot">
-                <SortDropdown
-                  sortByLikes={sortByLikes}
-                  onToggle={handleSortToggle}
-                  disabled={(isSetsLoading && stickerSets.length === 0) || !!searchTerm}
-                />
-              </div>
-              <div className="compact-controls-bar__btn" aria-hidden style={{ visibility: 'hidden', pointerEvents: 'none' }} />
-            </div>
-          </div>
-        </div>
-      )}
-
       <StixlyPageContainer>
+        {!isProfileLoading && (
+          <div className="author-page__controls-sticky">
+            <CompactControlsBar
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              onSearch={handleSearch}
+              searchDisabled={false}
+              categories={categories}
+              selectedCategories={selectedCategories}
+              onCategoryToggle={() => {}}
+              categoriesDisabled={true}
+              sortByLikes={sortByLikes}
+              onSortToggle={handleSortToggle}
+              sortDisabled={!!searchTerm}
+              selectedStickerTypes={selectedStickerTypes}
+              onStickerTypeToggle={() => {}}
+              selectedStickerSetTypes={selectedStickerSetTypes}
+              onStickerSetTypeToggle={() => {}}
+              selectedDate={selectedDate}
+              onDateChange={() => {}}
+              variant="static"
+            />
+          </div>
+        )}
+
         {setsError && !isSetsLoading && !isLoadingMore && (
           <div className="error-alert-inline" role="alert">
             <Text variant="body" color="default">{setsError}</Text>
@@ -447,7 +638,7 @@ export const AuthorPage: FC = () => {
 
         {displayedStickerSets.length === 0 && !isProfileLoading && !isSetsLoading ? (
           <EmptyState
-            title={isSearchActive ? 'Поиск не дал результатов' : '📁 Стикерсетов пока нет'}
+            title={isSearchActive ? 'Поиск не дал результатов' : 'Стикерсетов пока нет'}
             message={
               isSearchActive
                 ? `По запросу «${searchTerm.trim()}» ничего не найдено`

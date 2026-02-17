@@ -131,8 +131,9 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
           transform: 'translate(-50%, 0)'
         }
       : {
-          top: '-6px',
-          right: '-6px'
+          /* Внутри карточки, чтобы не обрезалось контейнером с overflow-x: hidden (галерея) */
+          top: '6px',
+          right: '6px'
         };
 
   const transformValue = isAnimating ? 'scale(1.18)' : 'scale(1)';

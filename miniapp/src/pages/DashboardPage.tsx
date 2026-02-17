@@ -565,9 +565,6 @@ export const DashboardPage: FC = () => {
           setIsModalOpen(false);
           setSelectedStickerSet(null);
         }}
-        onLike={(id) => {
-          useLikesStore.getState().toggleLike(String(id));
-        }}
         onStickerSetUpdated={handleStickerSetUpdated}
       />
     </div>

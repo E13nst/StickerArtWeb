@@ -2,9 +2,11 @@
 
 @import './common.css';
 
-/* Уникальный градиент страницы (отображается через OtherAccountBackground) */
+/* Фон как на GeneratePage (отображается через OtherAccountBackground) */
 .page-container.profile-page {
-  --page-dynamic-gradient: radial-gradient(circle at 50% 0%, var(--page-bg-accent-primary) 0%, transparent 40%);
+  --page-dynamic-gradient:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
 /* ============================================
