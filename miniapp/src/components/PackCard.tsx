@@ -45,6 +45,11 @@ const PackCardComponent: FC<PackCardProps> = ({
   const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stickerShownAtRef = useRef<number>(Date.now());
 
+  // Флаг: карточка хотя бы раз оказалась вблизи viewport — не снимаем src после загрузки
+  const hasBeenInViewRef = useRef(false);
+  if (inView) hasBeenInViewRef.current = true;
+  const shouldLoad = hasBeenInViewRef.current;
+
   const isDimmed = pack.isBlocked || pack.isDeleted;
   const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
   
@@ -122,7 +127,11 @@ const PackCardComponent: FC<PackCardProps> = ({
       <div className="pack-card__content">
         {activeSticker ? (
           <>
-            {(activeSticker.isAnimated ?? (activeSticker as any).is_animated) ? (
+            {!shouldLoad ? (
+              <div className="pack-card__placeholder">
+                {activeSticker.emoji || '🎨'}
+              </div>
+            ) : (activeSticker.isAnimated ?? (activeSticker as any).is_animated) ? (
               <AnimatedSticker
                 fileId={activeSticker.fileId}
                 imageUrl={activeSticker.url}
@@ -149,6 +158,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                   loop
                   muted
                   playsInline
+                  preload="none"
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
@@ -171,6 +181,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                   alt={activeSticker.emoji}
                   className="pack-card-image"
                   loading="lazy"
+                  fetchpriority={inView ? 'high' : 'low'}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',

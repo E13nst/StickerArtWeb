@@ -51,6 +51,8 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  // Guard: предотвращает дублирование onLoadMore между IO-callback и следующим циклом
+  const loadMoreCalledRef = useRef(false);
 
   // Вычисляем количество колонок на основе ширины
   const [columnCount, setColumnCount] = useState(() => {
@@ -140,10 +142,14 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasNextPage || isLoadingMore || !onLoadMore) return;
 
+    // Сброс guard при перезапуске эффекта (например, после завершения загрузки страницы)
+    loadMoreCalledRef.current = false;
+
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && hasNextPage && !isLoadingMore) {
+        if (entry.isIntersecting && hasNextPage && !isLoadingMore && !loadMoreCalledRef.current) {
+          loadMoreCalledRef.current = true;
           onLoadMore();
         }
       },

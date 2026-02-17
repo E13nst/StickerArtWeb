@@ -11,7 +11,7 @@
 
   /* Position: над областью Home Indicator (Taskbar 96.25px = Navbar 56px + область индикатора ~40px) */
   position: fixed;
-  bottom: calc(var(--stixly-taskbar-height, 96.25px) - var(--component-navbar-height, 56px));
+  bottom: calc((var(--stixly-taskbar-height, 96.25px) - var(--component-navbar-height, 56px)) / 2.5);
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 32px);

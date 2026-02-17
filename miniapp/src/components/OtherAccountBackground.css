@@ -1,13 +1,11 @@
-/* OtherAccountBackground — динамический градиент из --page-dynamic-gradient поверх базового цвета. */
+/* OtherAccountBackground — градиент на размер вьюпорта, не растёт при подгрузке страниц. */
 
 .other-account-background {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  min-height: 100%;
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
   pointer-events: none;
   z-index: 0;
-  overflow: hidden;
   background: var(--page-dynamic-gradient), var(--page-bg-base);
 }
