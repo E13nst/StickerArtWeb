@@ -1229,13 +1229,15 @@ class ApiClient {
   }
 
   // Получение стикерсетов пользователя по userId
+  // shortInfo=true — вернуть только локальную информацию без telegramStickerSetInfo
   async getUserStickerSets(
     userId: number,
     page: number = 0,
     size: number = 20,
     sort: 'createdAt' | 'title' | 'name' = 'createdAt',
     direction: 'ASC' | 'DESC' = 'DESC',
-    preview?: boolean
+    preview?: boolean,
+    shortInfo?: boolean
   ): Promise<StickerSetListResponse> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
@@ -1245,6 +1247,9 @@ class ApiClient {
           const params: Record<string, any> = { page, size, sort, direction };
           if (typeof preview === 'boolean') {
             params.preview = preview;
+          }
+          if (typeof shortInfo === 'boolean') {
+            params.shortInfo = shortInfo;
           }
           const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
             params
@@ -1267,7 +1272,7 @@ class ApiClient {
           };
         }
       },
-      { userId, page, size, sort, direction, preview }, // Параметры для ключа кэша
+      { userId, page, size, sort, direction, preview, shortInfo }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
   }

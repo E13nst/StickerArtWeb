@@ -97,6 +97,7 @@ export const MyProfilePage: FC = () => {
     userStickerSets,
     currentPage,
     totalPages,
+    totalElements,
     error,
     userError,
     stickerSetsError,
@@ -554,7 +555,7 @@ export const MyProfilePage: FC = () => {
       }
       
       console.log('🔍 Загружаем стикерсеты пользователя...');
-      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true);
+      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true, true);
       console.log('✅ Ответ от API получен:', { 
         hasResponse: !!response, 
         contentLength: response?.content?.length || 0,
@@ -1033,7 +1034,7 @@ export const MyProfilePage: FC = () => {
             {/* Статистика: 2 колонки (Наборов / ART) */}
             <div className="head-account__info">
               <div className="head-account__stat">
-                <span className="head-account__stat-value">{userStickerSets.length}</span>
+                <span className="head-account__stat-value">{totalElements}</span>
                 <span className="head-account__stat-label">sticker packs</span>
               </div>
               <div className="head-account__stat">
