@@ -181,7 +181,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                   alt={activeSticker.emoji}
                   className="pack-card-image"
                   loading="lazy"
-                  fetchpriority={inView ? 'high' : 'low'}
+                  fetchPriority={inView ? 'high' : 'low'}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
