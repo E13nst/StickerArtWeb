@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
 import { useSwipeStickerFeed } from '@/hooks/useSwipeStickerFeed';
-import { SwipeCardStack } from '@/components/ui/SwipeCardStack';
+import { SwipeCardStack, type SwipeCardActions } from '@/components/ui/SwipeCardStack';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { AnimatedSticker } from '@/components/AnimatedSticker';
 import { AuthorDisplay } from '@/components/AuthorDisplay';
+import { CloseIcon, FavoriteIcon } from '@/components/ui/Icons';
 import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
@@ -89,8 +90,8 @@ export const SwipePage: FC = () => {
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   }, []);
 
-  // Рендер карточки для SwipeCardStack
-  const renderCard = useCallback((card: any, index: number) => {
+  // Рендер карточки для SwipeCardStack. Клик по карточке = download; в футере — dislike/like.
+  const renderCard = useCallback((card: any, index: number, actions?: SwipeCardActions) => {
     const stickerSet = card as StickerSetResponse;
     const previewSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
     const imageUrl = previewSticker ? getStickerImageUrl(previewSticker.file_id) : '';
@@ -99,9 +100,24 @@ export const SwipePage: FC = () => {
     const stopPropagation = (event: React.SyntheticEvent) => {
       event.stopPropagation();
     };
+    const onCardClick = () => {
+      handleDownload(stickerSet, imageUrl);
+    };
 
     return (
-      <div className="swipe-card">
+      <div
+        className="swipe-card"
+        role="button"
+        tabIndex={0}
+        onClick={onCardClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCardClick();
+          }
+        }}
+        aria-label="Открыть стикерпак"
+      >
         <div className="swipe-card__content">
           <Text variant="h2" weight="bold" className="swipe-card__title">
             {formatStickerTitle(stickerSet.title)}
@@ -185,24 +201,33 @@ export const SwipePage: FC = () => {
           </div>
         </div>
 
-        <div className="swipe-card__footer">
-          <Button
-            variant="primary"
-            size="large"
-            className="swipe-card__button"
-            onClick={(event) => {
-              stopPropagation(event);
-              handleDownload(stickerSet, imageUrl);
+        <div className="swipe-card__footer" onClick={stopPropagation} onPointerDown={stopPropagation} onTouchStart={stopPropagation}>
+          <button
+            type="button"
+            className="swipe-card__action swipe-card__action--dislike"
+            onClick={(e) => {
+              stopPropagation(e);
+              actions?.triggerSwipeLeft?.();
             }}
-            onPointerDown={stopPropagation}
-            onTouchStart={stopPropagation}
+            aria-label="Пропустить"
           >
-            Download
-          </Button>
+            <CloseIcon size={24} color="currentColor" />
+          </button>
+          <button
+            type="button"
+            className="swipe-card__action swipe-card__action--like"
+            onClick={(e) => {
+              stopPropagation(e);
+              actions?.triggerSwipeRight?.();
+            }}
+            aria-label="Нравится"
+          >
+            <FavoriteIcon size={24} color="currentColor" />
+          </button>
         </div>
       </div>
     );
-  }, []);
+  }, [handleDownload]);
 
   // Получаем видимые карточки для SwipeCardStack
   const visibleCards = useMemo(() => {

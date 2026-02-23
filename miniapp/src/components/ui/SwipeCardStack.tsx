@@ -8,12 +8,17 @@ export interface SwipeCard {
   [key: string]: any;
 }
 
+export interface SwipeCardActions {
+  triggerSwipeLeft: () => void;
+  triggerSwipeRight: () => void;
+}
+
 export interface SwipeCardStackProps {
   cards: SwipeCard[];
   onSwipeLeft: (card: SwipeCard) => void;
   onSwipeRight: (card: SwipeCard) => void;
   onEnd: () => void;
-  renderCard: (card: SwipeCard, index: number) => ReactNode;
+  renderCard: (card: SwipeCard, index: number, actions?: SwipeCardActions) => ReactNode;
   maxVisibleCards?: number;
   swipeThreshold?: number;
 }
@@ -54,6 +59,32 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
     setToastState((prev) => ({ ...prev, isVisible: false }));
   }, []);
 
+  const runSwipe = useCallback(
+    (direction: 'up' | 'down') => {
+      const currentCard = cards[currentIndex];
+      setExitDirection(direction);
+      if (direction === 'down') {
+        onSwipeLeft(currentCard);
+        showToast('Skipped', 'error');
+      } else {
+        onSwipeRight(currentCard);
+        showToast('Liked', 'success');
+      }
+      setTimeout(() => {
+        setCurrentIndex((prev) => prev + 1);
+        setExitDirection(null);
+        y.set(0);
+        if (currentIndex + 1 >= cards.length) {
+          onEnd();
+        }
+      }, 300);
+    },
+    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, showToast, y]
+  );
+
+  const triggerSwipeLeft = useCallback(() => runSwipe('down'), [runSwipe]);
+  const triggerSwipeRight = useCallback(() => runSwipe('up'), [runSwipe]);
+
   const handleDragEnd = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       void event;
@@ -62,32 +93,12 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
 
       if (Math.abs(swipeDistance) > swipeThreshold || Math.abs(swipeVelocity) > 500) {
         const direction = swipeDistance < 0 ? 'up' : 'down';
-        setExitDirection(direction);
-
-        const currentCard = cards[currentIndex];
-
-        if (direction === 'down') {
-          onSwipeLeft(currentCard);
-          showToast('Skipped', 'error');
-        } else {
-          onSwipeRight(currentCard);
-          showToast('Liked', 'success');
-        }
-
-        setTimeout(() => {
-          setCurrentIndex((prev) => prev + 1);
-          setExitDirection(null);
-          y.set(0);
-
-          if (currentIndex + 1 >= cards.length) {
-            onEnd();
-          }
-        }, 300);
+        runSwipe(direction);
       } else {
         y.set(0);
       }
     },
-    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, showToast, swipeThreshold, y]
+    [runSwipe, swipeThreshold, y]
   );
 
   // Calculate visible cards
@@ -132,7 +143,7 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
                 }
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
-                {renderCard(card, cardIndex)}
+                {renderCard(card, cardIndex, { triggerSwipeLeft, triggerSwipeRight })}
               </motion.div>
             );
           }
@@ -158,7 +169,7 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
                   transformOrigin: '0 0',
                 }}
               >
-                {renderCard(card, cardIndex)}
+                {renderCard(card, cardIndex, undefined)}
               </div>
             </motion.div>
           );

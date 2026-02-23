@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef, FC } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonAddress } from '@tonconnect/ui-react';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -40,6 +40,7 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
 
 export const MyProfilePage: FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { tg, user, initData, isInTelegramApp } = useTelegram();
   const scrollElement = useScrollElement();
   
@@ -148,6 +149,14 @@ export const MyProfilePage: FC = () => {
   // Верхний уровень: Stickers (0) — head-account-tabs-wrap; Art-points (1) — account-menu-content / account-quests-grid
   const [mainTab, setMainTab] = useState(0); // 0: Stickers, 1: Art-points
   const isLikesTab = activeProfileTab === 1;
+
+  // Открытие вкладки ART-points по ссылке (например с Dashboard "Check all" -> /profile?tab=artpoints)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'artpoints' || tab === 'art-points') {
+      setMainTab(1);
+    }
+  }, [searchParams]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [sortByLikes, setSortByLikes] = useState(false);
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);

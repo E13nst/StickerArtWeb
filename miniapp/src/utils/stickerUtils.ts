@@ -323,8 +323,10 @@ export function formatStickerTitle(title: string | null | undefined): string {
   return stripTitleDelimiters(firstMention);
 }
 
-/** Убирает ведущие/замыкающие "by", "от", "•", ":", "::", "(", ")", "-". "by" и "от" — только как отдельные слова, чтобы не обрезать "открытки" → "крытки". */
-const TITLE_DELIMITER_RE = /^\s*(?:by|от)(?=\s|$)\s*|\s*(?<=\s|^)(?:by|от)\s*$|^\s*(?:•|::|:|-|\(|\))\s*|\s*(?:•|::|:|-|\(|\))\s*$/gi;
+/** Убирает ведущие/замыкающие "by", "от", "•", ":", "::", "(", ")", "-", запятую. "by" и "от" — только как отдельные слова. */
+const TITLE_DELIMITER_RE = /^\s*(?:by|от)(?=\s|$)\s*|\s*(?<=\s|^)(?:by|от)\s*$|,\s*(?:by|от)\s*$|^\s*(?:•|::|:|-|\(|\)|,)\s*|\s*(?:•|::|:|-|\(|\)|,)\s*$/gi;
+/** В середине строки: " (by ", "(by ". */
+const TITLE_BY_PAREN_RE = /\s*\(\s*by\s+/gi;
 
 function stripTitleDelimiters(s: string): string {
   if (!s) return s;
@@ -332,7 +334,15 @@ function stripTitleDelimiters(s: string): string {
   let current = s.trim();
   while (prev !== current) {
     prev = current;
+    // Удаляем "(by " и " (by "
+    current = current.replace(TITLE_BY_PAREN_RE, '').trim();
+    // Удаляем ", by" и ", by " (в конце или в середине), затем лишнюю запятую в конце
+    current = current.replace(/,\s*by\s*/gi, ',').trim();
+    // Удаляем отдельное слово " by " в середине
+    current = current.replace(/\s+by\s+/gi, ' ').trim();
     current = current.replace(TITLE_DELIMITER_RE, '').trim();
+    // Убираем двойные пробелы и завершающую запятую
+    current = current.replace(/\s{2,}/g, ' ').replace(/,\s*$/, '').trim();
   }
   return current;
 }
