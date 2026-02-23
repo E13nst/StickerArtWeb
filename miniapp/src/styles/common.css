@@ -550,3 +550,26 @@
   z-index: 30;
 }
 
+/* Кнопка в виде гиперссылки — единый стиль (Dashboard, Top Users, Top Authors, Swipe) */
+.top-users-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 28px;
+  text-align: center;
+  text-decoration-line: underline;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.top-users-link:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+

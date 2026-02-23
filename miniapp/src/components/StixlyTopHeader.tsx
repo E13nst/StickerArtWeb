@@ -251,24 +251,20 @@ export default function StixlyTopHeader({
           return;
         }
 
-        const totalSets =
-          coerceNumber((statisticsResponse as any)?.stickerSets?.total) ?? 0;
-        const setsDailyDelta =
-          coerceNumber((statisticsResponse as any)?.stickerSets?.daily) ?? 0;
-        const totalLikes =
-          coerceNumber((statisticsResponse as any)?.likes?.total) ?? 0;
-        const likesDailyDelta =
-          coerceNumber((statisticsResponse as any)?.likes?.daily) ?? 0;
+        const totalSets = coerceNumber(statisticsResponse.stickerSets?.total) ?? 0;
+        const setsDailyDelta = coerceNumber(statisticsResponse.stickerSets?.daily) ?? 0;
+        const totalLikes = coerceNumber(statisticsResponse.likes?.total) ?? 0;
+        const likesDailyDelta = coerceNumber(statisticsResponse.likes?.daily) ?? 0;
 
         const artTotal = pickFirstNumber([
-          (statisticsResponse as any)?.art?.earned?.total,
-          (statisticsResponse as any)?.art?.total,
-          (statisticsResponse as any)?.art?.balance,
+          statisticsResponse.art?.earned?.total,
+          statisticsResponse.art?.total,
+          statisticsResponse.art?.balance,
         ]);
 
         const artDelta = pickFirstNumber([
-          (statisticsResponse as any)?.art?.earned?.daily,
-          (statisticsResponse as any)?.art?.daily,
+          statisticsResponse.art?.earned?.daily,
+          statisticsResponse.art?.daily,
         ]);
 
         const statsData = {

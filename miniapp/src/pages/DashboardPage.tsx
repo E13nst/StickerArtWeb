@@ -4,7 +4,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useStickerStore } from '@/store/useStickerStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
-import { apiClient } from '@/api/client';
+import { apiClient, StatisticsResponse } from '@/api/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { TopUsers } from '@/components/TopUsers';
 import { TopAuthors } from '@/components/TopAuthors';
@@ -42,7 +42,7 @@ export const DashboardPage: FC = () => {
   const MAX_TOP_STICKERS = 10;
   const navigate = useNavigate();
   const { isInTelegramApp } = useTelegram();
-  const { totalElements, stickerSets } = useStickerStore();
+  const { stickerSets } = useStickerStore();
   const { likes, initializeLikes } = useLikesStore();
   const { userInfo } = useProfileStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -155,21 +155,58 @@ export const DashboardPage: FC = () => {
     });
   }, []);
 
-  const quickActions = [
-    { label: 'AI-Tools' },
-    { label: 'Earn ART' },
-    { label: 'NFT 2.0' },
-  ];
-
-  // Подсчет статистики с трендами
+  // Подсчет статистики: все цифры и тренды из /api/statistics
   useEffect(() => {
+    const toNum = (v: unknown): number | null => {
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      if (typeof v === 'string') { const n = Number(v); return Number.isFinite(n) ? n : null; }
+      return null;
+    };
+    const formatTrend = (daily: number): string =>
+      daily > 0 ? `+${daily % 1 === 0 ? daily : daily.toFixed(1)}` : '+0';
+
     const calculateStats = async () => {
       setIsLoading(true);
       try {
-        // Всего стикерпаков в базе - получаем из API если totalElements не загружен
-        let totalStickerPacksInBase = totalElements || 0;
-        
-        // Загружаем топ-3 ОФИЦИАЛЬНЫХ стикерсета по лайкам с preview=true для оптимизации
+        // Статистика блока "Our Statistics" — только из /api/statistics
+        let statsFromApi: DashboardStats | null = null;
+        try {
+          const statisticsResponse: StatisticsResponse = await apiClient.getStatistics();
+          const ss = statisticsResponse.stickerSets;
+          const lk = statisticsResponse.likes;
+          const art = statisticsResponse.art;
+          const artEarned = art?.earned;
+
+          const totalStickerPacks = toNum(ss?.total) ?? 0;
+          const stickerPacksDaily = toNum(ss?.daily) ?? 0;
+          const totalLikes = toNum(lk?.total) ?? 0;
+          const likesDaily = toNum(lk?.daily) ?? 0;
+          const artEarnedTotal = toNum(artEarned?.total) ?? toNum(art?.total) ?? toNum(art?.balance) ?? 0;
+          const artDaily = toNum(artEarned?.daily) ?? toNum(art?.daily) ?? 0;
+
+          statsFromApi = {
+            totalStickerPacks,
+            stickerPacksTrend: formatTrend(stickerPacksDaily),
+            totalLikes,
+            likesTodayTrend: formatTrend(likesDaily),
+            artEarnedTotal,
+            artEarnedTrend: formatTrend(artDaily)
+          };
+          setStats(statsFromApi);
+          console.log('📊 Статистика с /api/statistics:', statsFromApi);
+        } catch (e) {
+          console.warn('⚠️ Не удалось загрузить /api/statistics:', e);
+          setStats({
+            totalStickerPacks: 0,
+            stickerPacksTrend: '+0',
+            totalLikes: 0,
+            likesTodayTrend: '+0',
+            artEarnedTotal: 0,
+            artEarnedTrend: '+0'
+          });
+        }
+
+        // Загружаем топ ОФИЦИАЛЬНЫХ и ПОЛЬЗОВАТЕЛЬСКИХ стикерсетов только для каруселей
         let officialStickerSets: StickerSetResponse[] = [];
         try {
           const officialResponse = await apiClient.getStickerSets(0, 3, {
@@ -179,12 +216,10 @@ export const DashboardPage: FC = () => {
             preview: true
           });
           officialStickerSets = officialResponse.content || [];
-          console.log('📊 Загружено топ-3 ОФИЦИАЛЬНЫХ стикерсета по лайкам:', officialStickerSets.length);
         } catch (e) {
           console.warn('⚠️ Не удалось загрузить официальные стикерсеты:', e);
         }
-        
-        // Загружаем топ-3 ПОЛЬЗОВАТЕЛЬСКИХ стикерсета по лайкам с preview=true для оптимизации
+
         let userStickerSets: StickerSetResponse[] = [];
         try {
           const userResponse = await apiClient.getStickerSets(0, 3, {
@@ -194,95 +229,12 @@ export const DashboardPage: FC = () => {
             preview: true
           });
           userStickerSets = userResponse.content || [];
-          console.log('📊 Загружено топ-3 ПОЛЬЗОВАТЕЛЬСКИХ стикерсета по лайкам:', userStickerSets.length);
         } catch (e) {
           console.warn('⚠️ Не удалось загрузить пользовательские стикерсеты:', e);
         }
-        
-        // Получаем общее количество элементов из первого успешного ответа
-        try {
-          const countResponse = await apiClient.getStickerSets(0, 1, {
-            sort: 'id',
-            direction: 'DESC'
-          });
-          totalStickerPacksInBase = countResponse.totalElements || totalStickerPacksInBase || 0;
-        } catch (e) {
-          console.warn('⚠️ Не удалось загрузить общее количество стикерсетов:', e);
-        }
-        
-        // Объединяем загруженные данные для подсчета статистики
+
         const loadedStickerSets = [...officialStickerSets, ...userStickerSets];
-        
-        // Используем загруженные данные или данные из store
         const setsForStats = loadedStickerSets.length > 0 ? loadedStickerSets : stickerSets;
-        
-        console.log('📊 Dashboard stats:', {
-          totalElements,
-          totalStickerPacksInBase,
-          stickerSetsCount: stickerSets.length,
-          officialCount: officialStickerSets.length,
-          userCount: userStickerSets.length,
-          setsForStatsCount: setsForStats.length,
-          likesCount: Object.values(likes).length
-        });
-        
-        // Получаем общее количество лайков на платформе (суммируем все likesCount)
-        // Это сумма всех лайков по всем стикерсетам
-        const totalLikesOnPlatform = setsForStats.reduce((sum, set) => {
-          const setLikes = likes[set.id.toString()]?.likesCount || set.likesCount || 0;
-          return sum + setLikes;
-        }, 0);
-        
-        // Подсчитываем общее количество стикеров на платформе
-        const totalStickersCount = setsForStats.reduce((sum, set) => {
-          const stickerCount = set.telegramStickerSetInfo?.stickers?.length || 0;
-          return sum + stickerCount;
-        }, 0);
-        
-        console.log('📊 Статистика:', {
-          totalStickerPacksInBase,
-          totalLikesOnPlatform,
-          totalStickersCount
-        });
-
-        // ART — из API /statistics (art.earned.total, art.total, art.balance; art.earned.daily, art.daily)
-        let artEarnedTotal = 0;
-        let artEarnedTrend = '+0';
-        try {
-          const statisticsResponse = await apiClient.getStatistics();
-          const res = statisticsResponse as Record<string, unknown> | undefined;
-          const art = res?.art as Record<string, unknown> | undefined;
-          const artEarned = art?.earned as Record<string, unknown> | undefined;
-          const toNum = (v: unknown): number | null => {
-            if (typeof v === 'number' && Number.isFinite(v)) return v;
-            if (typeof v === 'string') { const n = Number(v); return Number.isFinite(n) ? n : null; }
-            return null;
-          };
-          const total = toNum(artEarned?.total) ?? toNum(art?.total) ?? toNum(art?.balance);
-          const daily = toNum(artEarned?.daily) ?? toNum(art?.daily);
-          if (total !== null) artEarnedTotal = total;
-          if (daily !== null && daily > 0) artEarnedTrend = `+${daily % 1 === 0 ? daily : daily.toFixed(1)}`;
-        } catch (e) {
-          console.warn('⚠️ Не удалось загрузить статистику ART с /api/statistics:', e);
-        }
-
-        // Расчет трендов за день/сегодня
-        // Для стикерпаков: предполагаем рост ~2% в день
-        const packsPerDay = Math.floor(totalStickerPacksInBase * 0.02);
-        const stickerPacksTrend = packsPerDay > 0 ? `+${packsPerDay}` : '+0';
-        
-        // Для лайков за сегодня: предполагаем ~5% от общего количества
-        const likesToday = Math.floor(totalLikesOnPlatform * 0.05);
-        const likesTodayTrend = likesToday > 0 ? `+${likesToday}` : '+0';
-
-        setStats({
-          totalStickerPacks: totalStickerPacksInBase,
-          stickerPacksTrend,
-          totalLikes: totalLikesOnPlatform,
-          likesTodayTrend,
-          artEarnedTotal,
-          artEarnedTrend
-        });
 
         const getStickerLikes = (stickerSet: StickerSetResponse): number =>
           likes[stickerSet.id.toString()]?.likesCount ?? stickerSet.likesCount ?? stickerSet.likes ?? 0;
@@ -343,7 +295,7 @@ export const DashboardPage: FC = () => {
 
     calculateStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalElements, userInfo]);
+  }, [userInfo]);
 
   useEffect(() => {
     if (!categoryFilterOptions.some((option) => option.id === activeCategoryKey)) {
@@ -444,10 +396,35 @@ export const DashboardPage: FC = () => {
               </div>
             </div>
 
-            {/* Daily activity — Figma */}
+            {/* Кнопка генерации стикера — над секцией Earn ART */}
+            <div className="dashboard-quick-actions-container">
+              <div className="dashboard-quick-actions-background" />
+              <div className="dashboard-quick-actions-content">
+                <div className="dashboard-quick-actions-grid dashboard-quick-actions-grid--single">
+                  <button
+                    type="button"
+                    className="button-base button-rounded-lg dashboard-quick-action-button dashboard-quick-action-button--large"
+                    onClick={() => navigate('/generate')}
+                  >
+                    СГЕНЕРИРОВАТЬ СТИКЕР
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Earn ART — бывшие Daily activity */}
             <div className="dashboard-daily-activity-section">
             <div className="dashboard-daily-activity">
-              <h2 className="dashboard-daily-activity-title">Daily activity</h2>
+              <div className="dashboard-daily-activity-header">
+                <h2 className="dashboard-daily-activity-title">Earn ART</h2>
+                <button
+                  type="button"
+                  className="top-users-link"
+                  onClick={() => navigate('/profile?tab=artpoints')}
+                >
+                  Check all
+                </button>
+              </div>
               <div className="dashboard-daily-activity-carousel">
                 <div className="dashboard-daily-activity-pool">
                   <div className="dashboard-daily-activity-task">
@@ -483,36 +460,8 @@ export const DashboardPage: FC = () => {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                className="dashboard-daily-activity-check-all"
-                onClick={() => navigate('/profile?tab=artpoints')}
-              >
-                CHECK ALL ACTIVITY
-              </button>
             </div>
             </div>
-
-            {/* Quick Actions */}
-            {quickActions.length > 0 && (
-              <div className="dashboard-quick-actions-container">
-                <div className="dashboard-quick-actions-background" />
-                <div className="dashboard-quick-actions-content">
-                  <div className="dashboard-quick-actions-grid">
-                    {quickActions.map((action) => (
-                      <button
-                        key={action.label}
-                        type="button"
-                        disabled
-                        className="button-base button-rounded-lg dashboard-quick-action-button"
-                      >
-                        {action.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Top Users Section */}
             <div className="dashboard-top-users-section">

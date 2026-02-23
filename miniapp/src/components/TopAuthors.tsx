@@ -86,7 +86,7 @@ export const TopAuthors: FC<TopAuthorsProps> = ({ authors }) => {
           ))}
         </div>
         <div className="top-authors-footer">
-          <button type="button" onClick={handleOpenModal} className="top-authors-link">
+          <button type="button" onClick={handleOpenModal} className="top-users-link">
             Полный список
           </button>
         </div>

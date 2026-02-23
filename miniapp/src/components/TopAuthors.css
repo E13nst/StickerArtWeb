@@ -192,24 +192,7 @@
   align-self: stretch;
 }
 
-.top-authors-link {
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: var(--font-family-base);
-  font-weight: var(--typography-light-font-weight);
-  font-size: var(--typography-body-small-font-size);
-  line-height: var(--typography-light-line-height);
-  text-align: center;
-  text-decoration-line: underline;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.top-authors-link:hover {
-  color: var(--color-text);
-}
+/* Ссылка — класс .top-users-link в common.css */
 
 /* Responsive */
 @media (max-width: 480px) {

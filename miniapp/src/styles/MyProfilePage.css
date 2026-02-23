@@ -138,12 +138,17 @@
 .head-account__share-wrap {
   position: absolute;
   top: calc(12px + var(--tg-content-safe-area-inset-top, 0px));
-  right: 16px;
+  right: calc(16px + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
   z-index: 1;
+}
+
+/* В Telegram Mini App сдвигаем кнопку вниз, чтобы не перекрывалась UI (шапка/меню) */
+.head-account--telegram .head-account__share-wrap {
+  top: calc(12px + var(--tg-content-safe-area-inset-top, 0px) + 44px);
 }
 
 .head-account__share-btn {

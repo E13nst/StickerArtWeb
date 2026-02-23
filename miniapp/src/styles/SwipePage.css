@@ -166,16 +166,7 @@
   white-space: nowrap;
 }
 
-/* Ссылка на автора — кликабельная, без подчёркивания */
-.swipe-card__subtitle--link {
-  text-decoration: none;
-  cursor: pointer;
-  display: block;
-}
-
-.swipe-card__subtitle--link:hover {
-  text-decoration: underline;
-}
+/* Ссылка на автора — класс .top-users-link в common.css */
 
 /* Preview — flex: 1 с min 0: занимает оставшееся место, сжимается при нехватке (контент всегда помещается) */
 .swipe-card__preview {

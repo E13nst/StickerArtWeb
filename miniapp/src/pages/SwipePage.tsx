@@ -112,7 +112,7 @@ export const SwipePage: FC = () => {
               username={stickerSet.username}
               firstName={stickerSet.firstName}
               lastName={stickerSet.lastName}
-              className="swipe-card__subtitle swipe-card__subtitle--link"
+              className="swipe-card__subtitle top-users-link"
               onClick={(e) => e.stopPropagation()}
             />
           )}

@@ -93,6 +93,18 @@ export interface ReferralLinkResponse {
   url: string;
 }
 
+/** Ответ GET /api/statistics — общая статистика платформы */
+export interface StatisticsResponse {
+  stickerSets?: { total?: number; daily?: number };
+  likes?: { total?: number; daily?: number };
+  art?: {
+    total?: number;
+    balance?: number;
+    daily?: number;
+    earned?: { total?: number; daily?: number };
+  };
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private language: string;
@@ -340,17 +352,16 @@ class ApiClient {
     return `${url}?${queryString}`;
   }
 
-  // Общая статистика платформы
-  async getStatistics(): Promise<any> {
-    // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
+  // Общая статистика платформы (GET /api/statistics)
+  async getStatistics(): Promise<StatisticsResponse> {
     return requestDeduplicator.fetch(
       '/statistics',
       async () => {
-        const response = await this.client.get('/statistics');
+        const response = await this.client.get<StatisticsResponse>('/statistics');
         return response.data;
       },
-      {}, // Параметры для ключа кэша
-      { skipCache: false } // Кэшируем на 5 минут
+      {},
+      { skipCache: false }
     );
   }
 
