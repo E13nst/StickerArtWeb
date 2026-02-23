@@ -54,7 +54,7 @@
   }
 }
 
-/* Панель снизу на всю ширину экрана — выезжает снизу */
+/* Панель снизу — те же стили, что у модалки (ModalBackdrop): появление снизу, 300ms ease, transform + opacity */
 .sort-dropdown__panel {
   position: fixed;
   left: 0;
@@ -62,28 +62,48 @@
   bottom: 0;
   width: 100%;
   z-index: calc(var(--z-dropdown, 300) + 1);
-  background: #262626;
-  border-radius: 16px 16px 0 0;
+  background-color: var(--component-card-background-color);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--component-card-border-radius) var(--component-card-border-radius) 0 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   overflow: hidden;
-  animation: sort-dropdown-slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform, opacity;
+  animation: filters-panel-slide-up 300ms ease;
   padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
 }
 
-@keyframes sort-dropdown-slide-up {
-  from {
+@keyframes filters-panel-slide-up {
+  0% {
+    opacity: 0;
     transform: translateY(100%);
   }
-  to {
+  100% {
+    opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Внутренний блок Sort — padding 40px 0 0 */
+/* Свайп вниз: во время перетаскивания inline-стили управляют transform */
+.sort-dropdown__panel--dragging {
+  animation: none !important;
+  will-change: transform;
+}
+
+.sort-dropdown__panel--drag-dismissed {
+  animation: none !important;
+  transform: translateY(100%) !important;
+  opacity: 0 !important;
+}
+
+/* Внутренний блок — отступы как у модальной карточки */
 .sort-dropdown__inner {
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 40px 0 0;
+  padding: clamp(4px, 1vw, 8px) clamp(6px, 2vw, 12px) 0;
+  box-sizing: border-box;
 }
 
 /* Header — "Sort By" / "Сортировка" */

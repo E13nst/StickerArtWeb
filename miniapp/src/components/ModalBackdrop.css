@@ -1,3 +1,4 @@
+/* Модалка: появление снизу. По умолчанию бэкдроп на весь экран. */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -9,76 +10,97 @@
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  will-change: opacity, backdrop-filter;
-  transform: translateZ(0);
-  animation: backdropFadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 300ms ease, opacity 300ms ease;
+}
+
+/* Как sort-dropdown__backdrop: затемнение на весь viewport (inset: 0), только fade, без slide */
+.modal-backdrop--keep-navbar {
+  inset: 0;
+  transform: none;
+  will-change: opacity;
+  display: block;
+  animation: modal-backdrop-fade-in 0.25s ease-out;
+}
+
+.modal-backdrop--keep-navbar.modal-backdrop--no-blur {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop--keep-navbar.modal-backdrop--open {
+  transform: none;
+  opacity: 1;
+}
+
+.modal-backdrop--keep-navbar.modal-backdrop--closing {
+  transform: none;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+  animation: none;
+  contain: paint;
+}
+
+@keyframes modal-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-backdrop--no-blur:not(.modal-backdrop--keep-navbar) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .modal-backdrop--open {
-  animation: backdropFadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+  opacity: 1;
 }
 
-/* При открытой модалке контент под ней не получает pointer events — клик по backdrop не попадает в stixly-page-container */
+/* Закрытие только свайпом вниз, без исчезновения (opacity не меняем) */
+.modal-backdrop--closing:not(.modal-backdrop--keep-navbar) {
+  transform: translateY(100%);
+  opacity: 1;
+  transition: transform 300ms ease;
+  contain: paint;
+}
+
+/* При открытой модалке контент под ней не получает pointer events — клик по backdrop закрывает модалку и не открывает новый контент */
 body.modal-open .stixly-page-container {
   pointer-events: none;
 }
 
-/* Контейнер контента (z-index: 1 в MainLayout) поднимаем выше Navbar (--z-header 100), чтобы модалка не уходила под navbar при закрытии вложенного диалога */
-body.modal-open .stixly-main-scroll > div {
-  z-index: 1100 !important;
-}
-
-.modal-backdrop--closing {
-  animation: backdropFadeOut 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes backdropFadeIn {
-  0% {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
-  }
-  100% {
-    opacity: 1;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-  }
-}
-
-@keyframes backdropFadeOut {
-  0% {
-    opacity: 1;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-  }
-  100% {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
-  }
-}
+/* StickerPackModal рендерится в portal — поверх navbar без подъёма контента. Другие модалки при необходимости тоже в portal. */
 
 .modal-backdrop-content {
   touch-action: pan-y;
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
 }
 
-/* При drag-dismiss: отключить CSS-анимации, чтобы inline-стили не перебивались.
-   pointer-events НЕ отключаем — модалка должна поглощать остаточные события */
+/* При drag-dismiss: только slide вниз, без исчезновения */
 .modal-backdrop--drag-dismissed {
-  animation: none !important;
-  opacity: 0 !important;
+  transition: none !important;
+  transform: translateY(100%) !important;
+  opacity: 1 !important;
 }
 
-/* Адаптивность для разных размеров экрана */
+/* keep-navbar при свайпе не получает --drag-dismissed, исчезает через --closing (плавный fade) */
+
+/* Адаптивность для разных размеров экрана (blur только если не --no-blur) */
 @media (max-width: 480px) {
-  .modal-backdrop {
+  .modal-backdrop:not(.modal-backdrop--no-blur) {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }

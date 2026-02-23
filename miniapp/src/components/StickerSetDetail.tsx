@@ -684,13 +684,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
         modalElement.style.transition = 'none';
         modalElement.style.transform = `translateY(${deltaY}px)`;
         modalElement.classList.add('sticker-set-detail-card--dragging');
-
-        // Затемнение backdrop пропорционально перетаскиванию
-        const progress = Math.min(deltaY / 400, 1);
-        const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
-        if (backdrop) {
-          backdrop.style.opacity = String(1 - progress * 0.6);
-        }
+        // Без изменения opacity бэкдропа — просто свайп вниз, как у панели фильтров
       } else if (deltaY < -5) {
         // Свайп вверх — отменяем drag, пусть нативный скролл работает
         touchStartYRef.current = null;
@@ -716,20 +710,15 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
       const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
 
       if (deltaY > DISMISS_THRESHOLD) {
-        // Плавно доводим карточку вниз за экран
+        // Плавно доводим карточку вниз (без исчезновения бэкдропа — как панель фильтров)
         modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
         modalElement.style.transform = 'translateY(100vh)';
 
-        if (backdrop) {
-          backdrop.style.transition = `opacity ${DRAG_ANIMATION_MS}ms ease-out`;
-          backdrop.style.opacity = '0';
-        }
-
         setTimeout(() => {
-          // Блокируем CSS-анимации перед вызовом onBack
           modalElement.classList.remove('sticker-set-detail-card--dragging');
           modalElement.classList.add('sticker-set-detail-card--drag-dismissed');
-          if (backdrop) {
+          // При keep-navbar не вешаем --drag-dismissed на бэкдроп: тогда при onBack() сработает --closing и затемнение плавно исчезнет (как у sort-dropdown)
+          if (backdrop && !backdrop.classList.contains('modal-backdrop--keep-navbar')) {
             backdrop.classList.add('modal-backdrop--drag-dismissed');
           }
           onBack();
@@ -739,19 +728,10 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
         modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
         modalElement.style.transform = 'translateY(0)';
 
-        if (backdrop) {
-          backdrop.style.transition = `opacity ${DRAG_ANIMATION_MS}ms ease-out`;
-          backdrop.style.opacity = '1';
-        }
-
         setTimeout(() => {
           modalElement.style.transition = '';
           modalElement.style.transform = '';
           modalElement.classList.remove('sticker-set-detail-card--dragging');
-          if (backdrop) {
-            backdrop.style.transition = '';
-            backdrop.style.opacity = '';
-          }
         }, DRAG_ANIMATION_MS);
       }
     };

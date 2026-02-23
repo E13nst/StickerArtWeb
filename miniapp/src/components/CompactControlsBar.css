@@ -20,8 +20,9 @@
   top: var(--compact-controls-bar-top, var(--stixly-header-height, 0px));
 }
 
+/* Единый вид на всех страницах: отступы 16px (галерея, профиль, автор) */
 .compact-controls-bar-inner {
-  padding: 0 var(--spacing-sm);
+  padding: 0 16px;
 }
 
 /* Адаптивность на узких экранах (iPhone 11 Pro и уже) — везде, где используется bar */
@@ -128,26 +129,15 @@
   color: #8A8A8A;
 }
 
-/* Frame 51 — Date + иконки: 55px, высота 20px, цвет #8A8A8A */
+/* Одна кнопка «Фильтры/Дата» — открывает большое меню (тип, категории, сортировка) */
 .compact-controls-bar__date-slot {
   flex: none;
-  flex-grow: 0;
-  width: 55px;
-  min-width: 55px;
-  height: 20px;
-}
-
-.compact-controls-bar__date-slot > div {
-  width: 100%;
-  height: 100%;
-}
-
-.compact-controls-bar__date-slot button {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0;
-  gap: 4px;
+  gap: 6px;
+  padding: 0 2px;
+  min-width: 0;
   height: 20px;
   min-height: 20px;
   background: transparent !important;
@@ -158,16 +148,24 @@
   font-weight: 400;
   font-size: 12px;
   line-height: 22px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
 }
 
-.compact-controls-bar__date-slot button:hover:not(:disabled) {
+.compact-controls-bar__date-slot:hover:not(:disabled) {
   background: transparent !important;
   color: #8A8A8A !important;
   opacity: 0.9;
 }
 
-.compact-controls-bar__date-slot button svg {
+.compact-controls-bar__date-slot svg {
+  flex-shrink: 0;
   color: #8A8A8A;
+}
+
+.compact-controls-bar__date-slot span {
+  white-space: nowrap;
 }
 
 .compact-controls-bar__row--with-extra {
@@ -211,6 +209,12 @@
   width: 20px;
   height: 19px;
   color: #8A8A8A;
+}
+
+/* Объединённая кнопка date-slot + btn — ширина по контенту (иконка + подпись) */
+.compact-controls-bar__date-slot.compact-controls-bar__btn {
+  width: auto;
+  min-width: 0;
 }
 
 .compact-controls-bar__btn-add {
@@ -271,65 +275,6 @@
   gap: 0.4rem;
 }
 
-.compact-controls-bar__dropdown-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 0.35rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.compact-controls-bar__dropdown-title {
-  font-size: var(--typography-body-small-font-size);
-  font-weight: 600;
-  color: var(--color-text);
-  opacity: 0.9;
-  font-family: var(--font-family-base);
-}
-
-.compact-controls-bar__dropdown-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.compact-controls-bar__btn-reset {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text);
-  font-size: 0.65rem;
-  font-weight: 500;
-  padding: 0;
-  opacity: 0.6;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  transition: opacity 0.2s;
-}
-
-.compact-controls-bar__btn-reset:hover {
-  opacity: 1;
-}
-
-.compact-controls-bar__btn-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text);
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  transition: opacity 0.2s, background 0.2s;
-  border-radius: var(--border-radius-sm);
-}
-
-.compact-controls-bar__btn-close:hover {
-  opacity: 1;
-  background: var(--color-overlay-light);
-}
-
 /* Search+filter по Figma всегда в тёмной панели #262626; переменные оставлены для dropdown и др. */
 :root {
   --compact-controls-bar-glass: rgba(0, 0, 0, 0.35);
@@ -349,28 +294,21 @@
   }
 }
 
-.compact-controls-bar__filters-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px 32px;
-}
-
-.compact-controls-bar__filters-header .sort-dropdown__title {
-  font-size: 32px;
-  margin: 0;
-}
-
+/* Панель фильтров — те же стили появления, что у модалки: снизу, 300ms ease (см. SortDropdown.css .sort-dropdown__panel) */
 .compact-controls-bar__filters-panel.sort-dropdown__panel {
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
+  border-top-left-radius: var(--component-card-border-radius);
+  border-top-right-radius: var(--component-card-border-radius);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
+/* Ручка как у модальной карточки (sticker-set-detail-card__handle) */
 .compact-controls-bar__panel-grab {
-  width: 100px;
-  height: 4px;
-  border-radius: 2.5px;
-  background: rgba(255, 255, 255, 0.5);
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--color-text-secondary);
+  opacity: 0.4;
   position: absolute;
   top: 10px;
   left: 50%;
@@ -382,42 +320,7 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  padding: 0 16px;
-}
-
-.compact-controls-bar__filters-sort {
-  padding: 16px 16px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  margin-top: 16px;
-  width: 100%;
-  align-self: stretch;
-  box-sizing: border-box;
-}
-
-.compact-controls-bar__filters-sort .sort-dropdown__header {
-  padding-bottom: 16px;
-}
-
-.compact-controls-bar__filters-sort .sort-dropdown__title {
-  font-size: 24px;
-}
-
-.compact-controls-bar__filters-sort .sort-dropdown__option {
-  width: 100%;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  background: transparent;
-  text-align: left;
-}
-
-.compact-controls-bar__filters-sort .sort-dropdown__option:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.compact-controls-bar__filters-sort .sort-dropdown__option-label {
-  width: 100%;
-  justify-content: center;
-  text-align: center;
+  padding: 16px clamp(6px, 2vw, 12px) 0;
 }
 
 .compact-controls-bar__filters-section {
@@ -432,7 +335,7 @@
 }
 
 .compact-controls-bar__filters-section-title {
-  margin: 0;
+  margin: 0 0 8px 0;
   font-family: 'Manrope', var(--font-family-base);
   font-style: normal;
   font-weight: 700;
@@ -448,11 +351,30 @@
   flex-wrap: wrap;
 }
 
+/* Горизонтальная скролл-лента: два ряда chips, прокрутка по горизонтали, fade слева и справа */
 .compact-controls-bar__chips-grid {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
   gap: 8px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: var(--stixly-taskbar-height, 96.25px);
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 20px, black calc(100% - 20px), transparent 100%);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.compact-controls-bar__chips-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .compact-controls-bar__chip {
@@ -487,10 +409,3 @@
   background: #EE449F;
 }
 
-.compact-controls-bar__panel-home-indicator {
-  width: 140px;
-  height: 5px;
-  border-radius: 2.5px;
-  background: #FFFFFF;
-  margin: 8px auto calc(8px + env(safe-area-inset-bottom, 0));
-}

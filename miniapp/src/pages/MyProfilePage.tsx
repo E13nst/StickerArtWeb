@@ -6,12 +6,13 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useWallet } from '@/hooks/useWallet';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
-import { apiClient } from '@/api/client';
+import { apiClient, ReferralLinkResponse } from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';
 
 // UI Компоненты
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { ShareIcon } from '@/components/ui/Icons';
 
 // Компоненты
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -151,7 +152,34 @@ export const MyProfilePage: FC = () => {
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   // Отдельное состояние для загрузки следующей страницы "Мои" (аналогично GalleryPage)
   const [isLoadingMorePublished, setIsLoadingMorePublished] = useState(false);
-  
+  // Реферальная ссылка: кэш и тултип "Ссылка скопирована"
+  const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(null);
+  const [referralLinkLoading, setReferralLinkLoading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const shareButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleShareReferral = useCallback(async () => {
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    try {
+      let url = referralLink?.url;
+      if (!url) {
+        setReferralLinkLoading(true);
+        const data = await apiClient.getReferralLink();
+        setReferralLink(data);
+        url = data.url;
+        setReferralLinkLoading(false);
+      }
+      if (url && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        setCopySuccess(true);
+        window.setTimeout(() => setCopySuccess(false), 2000);
+      }
+    } catch (e) {
+      console.warn('[MyProfilePage] Ошибка копирования реферальной ссылки', e);
+      setReferralLinkLoading(false);
+    }
+  }, [referralLink?.url, tg]);
+
   // Определение темы для кнопки (как в AddStickerPackButton)
   const computeIsLightTheme = useCallback(() => {
     if (tg?.colorScheme === 'light') return true;
@@ -970,6 +998,24 @@ export const MyProfilePage: FC = () => {
         
         {userInfo && (
           <div className="head-account__card">
+            {/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area */}
+            <div className="head-account__share-wrap">
+              <button
+                ref={shareButtonRef}
+                type="button"
+                className="head-account__share-btn"
+                onClick={handleShareReferral}
+                disabled={referralLinkLoading}
+                aria-label="Поделиться"
+              >
+                <ShareIcon size={20} color="currentColor" style={referralLinkLoading ? { opacity: 0.6 } : undefined} />
+              </button>
+              {copySuccess && (
+                <div className="head-account__share-toast" role="status">
+                  Ссылка скопирована
+                </div>
+              )}
+            </div>
             {/* Аватар 80×80 внутри карточки (Figma ACCOUNT) */}
             <div className="head-account__avatar">
               {userInfoWithAvatar?.avatarUrl ? (
@@ -1183,7 +1229,7 @@ export const MyProfilePage: FC = () => {
               ) : (
                 <div className="fade-in">
                   <OptimizedGallery
-                    variant="account"
+                    variant="gallery"
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={!searchTerm && currentPage < totalPages - 1}
@@ -1207,7 +1253,7 @@ export const MyProfilePage: FC = () => {
               ) : (
                 <div className="fade-in">
                   <OptimizedGallery
-                    variant="account"
+                    variant="gallery"
                     packs={adaptStickerSetsToGalleryPacks(likedStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={likedCurrentPage < likedTotalPages - 1}
@@ -1280,7 +1326,7 @@ export const MyProfilePage: FC = () => {
               ) : (
                 <div className="fade-in">
                   <OptimizedGallery
-                    variant="account"
+                    variant="gallery"
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}
                     hasNextPage={!searchTerm && currentPage < totalPages - 1}

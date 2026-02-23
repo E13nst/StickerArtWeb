@@ -528,7 +528,9 @@ export const useTelegram = () => {
           // Применяем тему к body
           body.style.backgroundColor = bgColor;
           body.style.color = telegram.themeParams.text_color || '#000000';
-          
+          if (import.meta.env.DEV) {
+            console.log('[theme] body backgroundColor/color set — useTelegram.applyTheme', { bgColor });
+          }
           // Устанавливаем класс для темной темы
           if (isDark) {
             root.classList.add('tg-dark-theme');
@@ -638,6 +640,9 @@ export const useTelegram = () => {
         root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54');
         body.style.backgroundColor = params.bg_color;
         body.style.color = params.text_color;
+        if (import.meta.env.DEV) {
+          console.log('[theme] body backgroundColor/color set — useTelegram.savedThemeDark', { bg: params.bg_color });
+        }
         root.classList.add('tg-dark-theme');
         root.classList.remove('tg-light-theme');
       } else if (savedTheme?.scheme === 'light') {
@@ -668,6 +673,9 @@ export const useTelegram = () => {
         root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54');
         body.style.backgroundColor = params.bg_color;
         body.style.color = params.text_color;
+        if (import.meta.env.DEV) {
+          console.log('[theme] body backgroundColor/color set — useTelegram.savedThemeLight', { bg: params.bg_color });
+        }
         root.classList.add('tg-light-theme');
         root.classList.remove('tg-dark-theme');
       } else {
@@ -677,6 +685,14 @@ export const useTelegram = () => {
       // Подписываемся на изменения темы
       if (typeof telegram.onEvent === 'function') {
         telegram.onEvent('themeChanged', () => {
+          const justClosed = (window as Window & { __stixlyModalJustClosed?: number }).__stixlyModalJustClosed;
+          const guardMs = 450;
+          if (justClosed != null && Date.now() - justClosed < guardMs) {
+            if (import.meta.env.DEV) {
+              console.log('🎨 themeChanged отложен (модалка только что закрылась)');
+            }
+            return;
+          }
           if (import.meta.env.DEV) {
             console.log('🎨 Тема изменилась на:', telegram.colorScheme);
           }

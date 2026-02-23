@@ -26,11 +26,6 @@
   max-width: 402px;
 }
 
-.gallery-page .compact-controls-bar-inner {
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
 /* Content_gallery: контейнер 402px, 16px padding */
 .gallery-page .stixly-page-container {
   max-width: 402px;
@@ -126,10 +121,6 @@
   .gallery-page .compact-controls-bar--fixed {
     max-width: 100%;
   }
-  .gallery-page .compact-controls-bar-inner {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
 }
 
 @media (max-width: 375px) {
@@ -137,18 +128,10 @@
     padding-left: 10px;
     padding-right: 10px;
   }
-  .gallery-page .compact-controls-bar-inner {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
 }
 
 @media (max-width: 360px) {
   .gallery-page .stixly-page-container {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-  .gallery-page .compact-controls-bar-inner {
     padding-left: 8px;
     padding-right: 8px;
   }

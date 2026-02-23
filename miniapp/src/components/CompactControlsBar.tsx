@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { SearchBar } from './SearchBar';
 import { Category } from './CategoryFilter';
-import { SortDropdown } from './SortDropdown';
 import { StickerSetType } from './StickerSetTypeFilter';
 import './CompactControlsBar.css';
 import './SortDropdown.css';
@@ -63,13 +62,6 @@ const TuneIcon = () => (
   </svg>
 );
 
-const CloseIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-);
-
 const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
   searchValue,
   onSearchChange,
@@ -89,7 +81,7 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
   selectedDate: _selectedDate,
   onDateChange: _onDateChange,
   onAddClick: _onAddClick,
-  variant = 'fixed',
+  variant = 'static',
 }) => {
   const { tg, user } = useTelegram();
   const isRu = (user?.language_code || 'ru').toLowerCase().startsWith('ru');
@@ -105,7 +97,7 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
     typeTitle: isRu ? 'Тип' : 'Type',
     categoryTitle: isRu ? 'Категории' : 'Category',
     sortTitle: isRu ? 'Сортировка' : 'Sort By',
-    sortByPopularity: isRu ? 'По популярности' : 'By popularity',
+    sortByPopularity: isRu ? 'Сначала популярные' : 'By popularity',
     sortByDateNew: isRu ? 'Сначала новые' : 'Date (new)',
     typeAll: isRu ? 'Все' : 'All',
     typeOfficial: isRu ? 'Официальные' : 'Official',
@@ -119,39 +111,118 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
   const filtersMenuRef = useRef<HTMLDivElement>(null);
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
 
+  // Свайп вниз для закрытия панели (как у модалки StickerSetDetail)
+  const touchStartYRef = useRef<number | null>(null);
+  const isDraggingDownRef = useRef(false);
+  const DISMISS_THRESHOLD = 100;
+  const DRAG_ANIMATION_MS = 200;
+
+  useEffect(() => {
+    if (!filtersExpanded) return;
+    const panel = filtersMenuRef.current;
+    if (!panel) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Начинаем drag только если контент прокручен до верха (как у модалки)
+      const scrollTop = panel.scrollTop ?? 0;
+      if (scrollTop <= 0) {
+        touchStartYRef.current = e.touches[0].clientY;
+      } else {
+        touchStartYRef.current = null;
+      }
+      isDraggingDownRef.current = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (touchStartYRef.current === null) return;
+      const deltaY = e.touches[0].clientY - touchStartYRef.current;
+
+      if (deltaY > 5) {
+        isDraggingDownRef.current = true;
+        e.preventDefault();
+        panel.style.animation = 'none';
+        panel.style.transition = 'none';
+        panel.style.transform = `translateY(${deltaY}px)`;
+        panel.classList.add('sort-dropdown__panel--dragging');
+        const backdrop = panel.previousElementSibling as HTMLElement | null;
+        if (backdrop) {
+          const progress = Math.min(deltaY / 400, 1);
+          backdrop.style.opacity = String(1 - progress * 0.6);
+        }
+      } else if (deltaY < -5) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartYRef.current === null || !isDraggingDownRef.current) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+        return;
+      }
+      e.preventDefault();
+
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+      touchStartYRef.current = null;
+      isDraggingDownRef.current = false;
+      const backdrop = panel.previousElementSibling as HTMLElement | null;
+
+      if (deltaY > DISMISS_THRESHOLD) {
+        panel.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        panel.style.transform = 'translateY(100vh)';
+        if (backdrop) {
+          backdrop.style.transition = `opacity ${DRAG_ANIMATION_MS}ms ease-out`;
+          backdrop.style.opacity = '0';
+        }
+        setTimeout(() => {
+          panel.classList.remove('sort-dropdown__panel--dragging');
+          panel.classList.add('sort-dropdown__panel--drag-dismissed');
+          setFiltersExpanded(false);
+          panel.style.animation = '';
+          panel.style.transition = '';
+          panel.style.transform = '';
+          if (backdrop) {
+            backdrop.style.transition = '';
+            backdrop.style.opacity = '';
+          }
+        }, DRAG_ANIMATION_MS);
+      } else {
+        panel.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        panel.style.transform = 'translateY(0)';
+        if (backdrop) {
+          backdrop.style.transition = `opacity ${DRAG_ANIMATION_MS}ms ease-out`;
+          backdrop.style.opacity = '1';
+        }
+        setTimeout(() => {
+          panel.style.animation = '';
+          panel.style.transition = '';
+          panel.style.transform = '';
+          panel.classList.remove('sort-dropdown__panel--dragging');
+          if (backdrop) {
+            backdrop.style.transition = '';
+            backdrop.style.opacity = '';
+          }
+        }, DRAG_ANIMATION_MS);
+      }
+    };
+
+    panel.addEventListener('touchstart', handleTouchStart, { passive: true });
+    panel.addEventListener('touchmove', handleTouchMove, { passive: false });
+    panel.addEventListener('touchend', handleTouchEnd, { passive: false });
+    return () => {
+      panel.removeEventListener('touchstart', handleTouchStart);
+      panel.removeEventListener('touchmove', handleTouchMove);
+      panel.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [filtersExpanded]);
+
   // Toggle filters expansion
   const handleFiltersToggle = useCallback((e?: MouseEvent) => {
     e?.stopPropagation();
     tg?.HapticFeedback?.impactOccurred('light');
     setFiltersExpanded(prev => !prev);
   }, [tg]);
-
-  // Handle reset filters
-  const handleResetFilters = useCallback(() => {
-    tg?.HapticFeedback?.impactOccurred('light');
-    
-    // StickerSet Type filter - reset to all (empty array = all types)
-    if (selectedStickerSetTypes.length > 0) {
-      selectedStickerSetTypes.forEach(type => {
-        onStickerSetTypeToggle(type);
-      });
-    }
-    
-    // Sort - set to false (новые)
-    if (sortByLikes) {
-      onSortToggle();
-    }
-
-    // Categories - reset to all (empty selection)
-    if (selectedCategories.length > 0) {
-      selectedCategories.forEach((categoryId) => {
-        onCategoryToggle(categoryId);
-      });
-    }
-    
-    // Close filters menu after reset
-    setFiltersExpanded(false);
-  }, [tg, sortByLikes, onSortToggle, selectedStickerSetTypes, onStickerSetTypeToggle, selectedCategories, onCategoryToggle]);
 
   const isAllTypesSelected = selectedStickerSetTypes.length === 0;
   const isUserTypeSelected = selectedStickerSetTypes.length === 1 && selectedStickerSetTypes[0] === 'USER';
@@ -222,22 +293,15 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
             />
           </div>
 
-          <div className="compact-controls-bar__date-slot">
-            <SortDropdown
-              sortByLikes={sortByLikes}
-              onToggle={onSortToggle}
-              disabled={sortDisabled}
-              triggerLabel={text.dateTrigger}
-            />
-          </div>
-
           <button
             ref={filtersButtonRef}
             onClick={handleFiltersToggle}
             aria-label={filtersExpanded ? text.hideFilters : text.showFilters}
-            className={`compact-controls-bar__btn ${filtersExpanded ? 'compact-controls-bar__btn--active' : ''}`}
+            aria-expanded={filtersExpanded}
+            className={`compact-controls-bar__date-slot compact-controls-bar__btn ${filtersExpanded ? 'compact-controls-bar__btn--active' : ''}`}
           >
             <TuneIcon />
+            <span>{text.dateTrigger}</span>
           </button>
         </div>
 
@@ -259,28 +323,8 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
               >
                 <div className="sort-dropdown__inner">
                   <div className="compact-controls-bar__panel-grab" aria-hidden />
-                  <div className="compact-controls-bar__dropdown-header compact-controls-bar__filters-header">
-                    <span className="sort-dropdown__title">{text.filtersTitle}</span>
-                    <div className="compact-controls-bar__dropdown-actions">
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        aria-label={text.reset}
-                        className="compact-controls-bar__btn-reset"
-                      >
-                        {text.reset}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleFiltersToggle}
-                        aria-label={text.closeFilters}
-                        className="compact-controls-bar__btn-close"
-                      >
-                        <CloseIcon />
-                      </button>
-                    </div>
-                  </div>
                   <div className="compact-controls-bar__filters-content">
+                    {/* Типы — секция с переключателями */}
                     <div className="compact-controls-bar__filters-section">
                       <h3 className="compact-controls-bar__filters-section-title">{text.typeTitle}</h3>
                       <div className="compact-controls-bar__chips-row compact-controls-bar__chips-row--type">
@@ -311,6 +355,34 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
                       </div>
                     </div>
 
+                    {/* Сортировка */}
+                    <div className="compact-controls-bar__filters-section" role="group" aria-label={text.sortTitle}>
+                      <h3 className="compact-controls-bar__filters-section-title">{text.sortTitle}</h3>
+                      <div className="compact-controls-bar__chips-row compact-controls-bar__chips-row--sort">
+                        <button
+                          type="button"
+                          className={`compact-controls-bar__chip ${sortByLikes ? 'compact-controls-bar__chip--active' : ''}`}
+                          onClick={() => {
+                            if (!sortByLikes) onSortToggle();
+                          }}
+                          disabled={sortDisabled}
+                        >
+                          {text.sortByPopularity}
+                        </button>
+                        <button
+                          type="button"
+                          className={`compact-controls-bar__chip ${!sortByLikes ? 'compact-controls-bar__chip--active' : ''}`}
+                          onClick={() => {
+                            if (sortByLikes) onSortToggle();
+                          }}
+                          disabled={sortDisabled}
+                        >
+                          {text.sortByDateNew}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Категории */}
                     <div className="compact-controls-bar__filters-section compact-controls-bar__filters-section--categories">
                       <h3 className="compact-controls-bar__filters-section-title">{text.categoryTitle}</h3>
                       <div className="compact-controls-bar__chips-grid" role="group" aria-label={text.categoryTitle}>
@@ -332,38 +404,6 @@ const CompactControlsBarComponent: FC<CompactControlsBarProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="compact-controls-bar__filters-sort" role="group" aria-label={text.sortTitle}>
-                    <div className="sort-dropdown__header">
-                      <span className="sort-dropdown__title">{text.sortTitle}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className={`sort-dropdown__option${sortByLikes ? ' sort-dropdown__option--active' : ''}`}
-                      onClick={() => {
-                        if (!sortByLikes) onSortToggle();
-                        setFiltersExpanded(false);
-                      }}
-                      disabled={sortDisabled}
-                    >
-                      <span className={`sort-dropdown__option-label${sortByLikes ? ' sort-dropdown__option-label--active' : ''}`}>
-                        {text.sortByPopularity}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`sort-dropdown__option${!sortByLikes ? ' sort-dropdown__option--active' : ''}`}
-                      onClick={() => {
-                        if (sortByLikes) onSortToggle();
-                        setFiltersExpanded(false);
-                      }}
-                      disabled={sortDisabled}
-                    >
-                      <span className={`sort-dropdown__option-label${!sortByLikes ? ' sort-dropdown__option-label--active' : ''}`}>
-                        {text.sortByDateNew}
-                      </span>
-                    </button>
-                  </div>
-                  <div className="compact-controls-bar__panel-home-indicator" aria-hidden />
                 </div>
               </div>
             </>,

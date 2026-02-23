@@ -1,4 +1,5 @@
 import { useEffect, useRef, FC } from 'react';
+import { createPortal } from 'react-dom';
 import { StickerSetResponse } from '@/types/sticker';
 import { StickerSetDetail } from './StickerSetDetail';
 import { ModalBackdrop } from './ModalBackdrop';
@@ -109,8 +110,9 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
 
   if (!displaySet) return null;
 
-  return (
-    <ModalBackdrop open={open} onClose={onClose}>
+  // Рендер в portal (как у панели фильтров): модалка поверх всего, navbar не скрывается
+  const modal = (
+    <ModalBackdrop open={open} onClose={onClose} noBlur keepNavbarVisible>
       <StickerSetDetail
         stickerSet={displaySet}
         onBack={onClose}
@@ -124,4 +126,5 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
       />
     </ModalBackdrop>
   );
+  return createPortal(modal, document.body);
 };

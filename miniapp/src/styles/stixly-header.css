@@ -172,13 +172,12 @@ header.stixlytopheader > .stixly-top-header > * {
   box-sizing: border-box;
 }
 
-/* Inner wrapper for CompactControlsBar - ограничивает ширину на широких экранах */
+/* Inner wrapper for CompactControlsBar — ширина и центр; padding единый в CompactControlsBar.css */
 .compact-controls-bar-inner {
   position: relative;
   width: 100%;
-  max-width: 600px; /* узкий лейаут для основного контента */
+  max-width: 600px;
   margin: 0 auto;
-  padding: 0.5rem 0.618rem;
   box-sizing: border-box;
 }
 

@@ -77,7 +77,7 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Обёртка вкладок Create/Likes/Upload — вне Head account, отдельный блок */
+/* Обёртка вкладок Create/Likes/Upload — только боковые отступы; вертикальный отступ у profile-tabs__panel */
 .head-account-tabs-wrap {
   width: 100%;
   max-width: 402px;
@@ -115,6 +115,7 @@
 /* Карточка Head account — на всю ширину */
 .page-container .head-account__card,
 .head-account__card {
+  position: relative;
   width: 100% !important;
   max-width: none !important;
   min-height: 347px !important;
@@ -131,6 +132,66 @@
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 16px !important;
   border: none !important;
+}
+
+/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area под кнопки Telegram */
+.head-account__share-wrap {
+  position: absolute;
+  top: calc(12px + var(--tg-content-safe-area-inset-top, 0px));
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 1;
+}
+
+.head-account__share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.head-account__share-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.head-account__share-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.head-account__share-toast {
+  padding: 6px 10px;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: head-account-share-toast-in 0.2s ease;
+}
+
+@keyframes head-account-share-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .page-container .head-account__avatar,
@@ -244,6 +305,9 @@
   .head-account__card {
     padding: clamp(64px, 28vw, 108px) 12px 12px !important;
     gap: clamp(12px, 4vw, 16px) !important;
+  }
+  .head-account__share-wrap {
+    right: 12px;
   }
   .page-container .head-account__avatar,
   .head-account__avatar {
@@ -427,10 +491,10 @@
   margin: 0;
 }
 
-/* Контейнер с Search+Filter под вкладками Create/Upload — без фона, с отступами как на GalleryPage2 */
+/* Контейнер с Search+Filter — один отступ сверху, как у табов (без дублирования) */
 .account-page .my-profile-tabs-container {
   background-color: transparent !important;
-  margin-top: var(--spacing-sm, 8px);
+  margin-top: 0;
   margin-bottom: var(--spacing-sm, 8px);
 }
 
@@ -504,16 +568,15 @@
   color: var(--account-text) !important;
 }
 
-/* CompactControlsBar внутри account-page — отступы как на галерее, фон прозрачный */
+/* CompactControlsBar внутри account-page — вид как на галерее: один отступ 16px от краёв (контейнер уже даёт 16px, у бара — 0) */
 .account-page .compact-controls-bar {
   background-color: transparent;
   color: var(--account-text);
 }
 
-/* Горизонтальный отступ контейнера панели — как на GalleryPage2, без лишней полосы по бокам */
-.account-page .compact-controls-bar .compact-controls-bar-inner {
-  padding-left: var(--spacing-md, 16px);
-  padding-right: var(--spacing-md, 16px);
+.account-page .compact-controls-bar-inner {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .account-page .tg-search__input,

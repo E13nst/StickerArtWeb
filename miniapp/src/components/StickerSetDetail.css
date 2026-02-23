@@ -23,11 +23,11 @@
   box-sizing: border-box;
 }
 
+/* Карточка в модалке: как панель фильтров — снизу viewport, поверх navbar (position: fixed, bottom: 0) */
 .sticker-set-detail-card--modal {
   position: fixed;
   left: 0;
   right: 0;
-  transform: none;
   bottom: 0;
   width: 100%;
   max-width: 100%;
@@ -39,43 +39,16 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-top-left-radius: var(--component-card-border-radius);
-  border-top-right-radius: var(--component-card-border-radius);
-  z-index: var(--z-modal, 1000);
-  animation: sticker-set-detail-modal-slide-up 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--component-card-border-radius) var(--component-card-border-radius) 0 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
+  z-index: calc(var(--z-modal, 1000) + 1);
 }
 
-@keyframes sticker-set-detail-modal-slide-up {
-  0% {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sticker-set-detail-modal-slide-down {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-}
-
-.sticker-set-detail-card--closing {
-  animation: sticker-set-detail-modal-slide-down 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.modal-backdrop--closing .sticker-set-detail-card--modal {
-  animation: sticker-set-detail-modal-slide-down 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+/* Анимация открытия/закрытия выполняется на ModalBackdrop (slide снизу), карточка не дублирует */
 
 .sticker-set-detail-card--drag-dismissed {
   animation: none !important;

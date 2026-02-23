@@ -11,26 +11,6 @@ interface SortDropdownProps {
   triggerLabel?: string;
 }
 
-const ArrowDownIcon = ({ isOpen }: { isOpen: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{
-      transition: 'transform 0.3s',
-      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-      flexShrink: 0,
-    }}
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
 export const SortDropdown: FC<SortDropdownProps> = ({
   sortByLikes,
   onToggle,
@@ -40,7 +20,7 @@ export const SortDropdown: FC<SortDropdownProps> = ({
   const { tg, user } = useTelegram();
   const isRu = (user?.language_code || 'ru').toLowerCase().startsWith('ru');
   const sortOptions = [
-    { id: 'likes', label: isRu ? 'По популярности' : 'By popularity', value: true },
+    { id: 'likes', label: isRu ? 'Сначала популярные' : 'By popularity', value: true },
     { id: 'new', label: isRu ? 'Сначала новые' : 'Date (new)', value: false },
   ];
   const sortAriaLabel = isRu ? 'Сортировка' : 'Sort';
@@ -94,7 +74,6 @@ export const SortDropdown: FC<SortDropdownProps> = ({
         aria-label={displayLabel}
       >
         <span>{displayLabel}</span>
-        <ArrowDownIcon isOpen={isOpen} />
       </button>
 
       {isOpen &&

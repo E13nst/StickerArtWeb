@@ -1,4 +1,4 @@
-import { useState, useEffect, FC } from 'react';
+import { FC } from 'react';
 import { Navbar } from '@/components/ui/Navbar';
 import './BottomNav.css';
 
@@ -8,42 +8,7 @@ interface BottomNavProps {
   isInTelegramApp?: boolean;
 }
 
+/** Navbar всегда видим; модалки с keepNavbarVisible (StickerSetDetail) не перекрывают его бэкдропом. */
 export const BottomNav: FC<BottomNavProps> = () => {
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-
-  // Проверяем, открыто ли модальное окно
-  useEffect(() => {
-    const checkModalState = () => {
-      const hasModalOpen = document.body.classList.contains('modal-open') || 
-                          document.documentElement.classList.contains('modal-open');
-      setIsModalOpen(hasModalOpen);
-    };
-
-    // Проверяем сразу
-    checkModalState();
-
-    // Создаем MutationObserver для отслеживания изменений классов
-    const observer = new MutationObserver(checkModalState);
-    
-    // Наблюдаем за изменениями в body и html
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  // Скрываем навигацию, если модальное окно открыто
-  if (isModalOpen) {
-    return null;
-  }
-
   return <Navbar />;
 };

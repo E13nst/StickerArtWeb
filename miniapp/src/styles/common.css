@@ -463,17 +463,15 @@
   border: none;
 }
 
-/* Варианты gallery и account — заголовок под контентом */
-.optimized-gallery--gallery .pack-card,
-.optimized-gallery--account .pack-card {
+/* Единый вид карточек: галерея, профиль, страница автора — заголовок под контентом */
+.optimized-gallery .pack-card {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   padding: 0 8px 8px;
 }
 
-.optimized-gallery--gallery .pack-card__content,
-.optimized-gallery--account .pack-card__content {
+.optimized-gallery .pack-card__content {
   width: 161px;
   height: 161px;
   flex: none;
@@ -481,8 +479,7 @@
   overflow: hidden;
 }
 
-.optimized-gallery--gallery .pack-card__title-overlay,
-.optimized-gallery--account .pack-card__title-overlay {
+.optimized-gallery .pack-card__title-overlay {
   position: static !important;
   flex: none;
   background: transparent !important;
@@ -513,8 +510,7 @@
     height: auto !important;
     aspect-ratio: 177 / 213 !important;
   }
-  .optimized-gallery--gallery .pack-card__content,
-  .optimized-gallery--account .pack-card__content {
+  .optimized-gallery .pack-card__content {
     width: 100% !important;
     height: auto !important;
     aspect-ratio: 1 / 1;

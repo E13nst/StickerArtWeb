@@ -43,6 +43,9 @@ function applyTheme(theme: typeof lightTheme, scheme: 'light' | 'dark') {
   root.style.setProperty('--tg-theme-overlay-color', theme.overlay_color);
   body.style.backgroundColor = theme.bg_color;
   body.style.color = theme.text_color;
+  if (import.meta.env.DEV) {
+    console.log('[theme] body backgroundColor/color set — TelegramThemeToggle.applyTheme', { bg: theme.bg_color });
+  }
   if (scheme === 'dark') {
     root.classList.add('tg-dark-theme');
     root.classList.remove('tg-light-theme');

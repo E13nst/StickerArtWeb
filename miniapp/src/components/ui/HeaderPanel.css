@@ -19,10 +19,20 @@
   border-radius: 0 0 var(--component-header-panel-border-radius) var(--component-header-panel-border-radius);
   box-sizing: border-box;
   min-height: 0;
+  /* iOS/Safari: отдельный слой для полупрозрачности и blur, иначе не отображаются в WebView */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  isolation: isolate;
+  /* Обрезка по скруглённым углам (на iPhone иначе углы не видны) */
+  overflow: hidden;
 }
 
-/* Центрированный контейнер контента (ограниченная ширина на больших экранах) */
+/* Центрированный контейнер контента (ограниченная ширина на больших экранах).
+   position + z-index: контент (аватар и кнопки) рисуется поверх слоя backdrop в iOS WebView. */
 .header-panel__inner {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 402px;
   display: flex;

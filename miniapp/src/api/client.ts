@@ -87,6 +87,12 @@ interface TelegramApiUser {
   isPremium?: boolean;
 }
 
+export interface ReferralLinkResponse {
+  code: string;
+  startParam: string;
+  url: string;
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private language: string;
@@ -974,6 +980,12 @@ class ApiClient {
   // Получить raw ProfileResponse текущего пользователя (если нужен полный ответ)
   async getMyProfileRaw(): Promise<ProfileResponse> {
     const response = await this.client.get<ProfileResponse>('/profiles/me');
+    return response.data;
+  }
+
+  // Реферальная ссылка: GET /api/referrals/me/link
+  async getReferralLink(): Promise<ReferralLinkResponse> {
+    const response = await this.client.get<ReferralLinkResponse>('/referrals/me/link');
     return response.data;
   }
 
