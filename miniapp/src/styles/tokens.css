@@ -120,9 +120,9 @@
   --component-navbar-font-size: 8px;
   --component-navbar-active-color: var(--color-primary);
 
-  /* Taskbar (Figma: Navbar + Home Indicator area) + safe-area для кнопок Telegram */
+  /* Taskbar (Figma: Navbar + Home Indicator area). Без safe-area — единый отступ как в dev */
   --stixly-safe-area-bottom: var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-  --stixly-taskbar-height: calc(96.25px + var(--stixly-safe-area-bottom));
+  --stixly-taskbar-height: 96.25px;
   --stixly-home-indicator-height: 20px;
   --stixly-home-indicator-pill-height: 5px;
   --stixly-home-indicator-pill-width: 140px;

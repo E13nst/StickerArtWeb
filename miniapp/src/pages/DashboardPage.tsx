@@ -43,7 +43,7 @@ export const DashboardPage: FC = () => {
   const navigate = useNavigate();
   const { isInTelegramApp } = useTelegram();
   const { totalElements, stickerSets } = useStickerStore();
-  const { likes } = useLikesStore();
+  const { likes, initializeLikes } = useLikesStore();
   const { userInfo } = useProfileStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topAuthors, setTopAuthors] = useState<LeaderboardUser[]>([]);
@@ -305,6 +305,11 @@ export const DashboardPage: FC = () => {
         };
 
         setTopStickersByCategory(stickersByCategoryMap);
+
+        // Инициализируем store лайков данными из API, чтобы в карточках отображался корректный likesCount с первого входа
+        if (loadedStickerSets.length > 0) {
+          initializeLikes(loadedStickerSets, true);
+        }
 
         // Получаем топ-5 пользователей из лидерборда
         try {
