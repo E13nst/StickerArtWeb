@@ -189,6 +189,16 @@ export interface CreateStickerSetRequest {
   categoryKeys?: string[];
 }
 
+/** Запрос на POST /stickersets/create: создание нового стикерсета в Telegram и регистрация в БД */
+export interface CreateStickerSetCreateRequest {
+  /** UUID сгенерированного изображения — обязательно */
+  imageUuid: string;
+  /** Название набора (отображаемое) — обязательно */
+  title: string;
+  /** Техническое имя стикерсета (опционально). Если не указано: {username}by{botUsername} или user_{userId}by{botUsername} */
+  name?: string;
+}
+
 export interface CategorySuggestion {
   categoryKey: string;
   categoryName: string;

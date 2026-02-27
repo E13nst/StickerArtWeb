@@ -116,6 +116,8 @@
   align-items: center;
   justify-content: center;
   overflow: visible;
+  isolation: isolate;
+  z-index: 1;
 }
 
 /* Лайк внутри preview-wrap: сдвинут вверх, частично заходит на header */

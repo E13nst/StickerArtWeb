@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback, FC } from 'react';
-import { BottomSheet } from '@/components/ui/BottomSheet';
+import { useEffect, useState, useCallback, useRef, FC } from 'react';
+import { createPortal } from 'react-dom';
+import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { Button } from '@/components/ui/Button';
 import { apiClient } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -22,9 +23,18 @@ function getSetPreviewUrl(set: StickerSetResponse): string {
   return fileId ? getStickerThumbnailUrl(fileId, 80) : '';
 }
 
-function getStickerCount(set: StickerSetResponse): number {
-  return set.stickerCount ?? set.telegramStickerSetInfo?.stickers?.length ?? 0;
+function getVisibilityLabel(set: StickerSetResponse): 'Public' | 'Private' {
+  if (set.isPrivate === true) return 'Private';
+  if (set.isPublished === true) return 'Public';
+  if (set.visibility === 'PUBLIC' || set.visibility === 'VISIBLE') return 'Public';
+  if (set.visibility === 'PRIVATE' || set.visibility === 'HIDDEN') return 'Private';
+  if (set.isPublic === true) return 'Public';
+  if (set.isPublic === false) return 'Private';
+  return 'Private';
 }
+
+const DISMISS_THRESHOLD = 100;
+const DRAG_ANIMATION_MS = 200;
 
 export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   isOpen,
@@ -41,6 +51,10 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   const [createMode, setCreateMode] = useState(false);
   const [newSetName, setNewSetName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const isDraggingDownRef = useRef(false);
 
   const loadSets = useCallback(async () => {
     if (!userInfo?.id) return;
@@ -67,6 +81,89 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     }
   }, [isOpen, loadSets]);
 
+  // Drag-to-dismiss как у StickerSetDetail
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const modalElement = contentRef.current;
+    if (!modalElement) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (modalElement.scrollTop <= 0) {
+        touchStartYRef.current = e.touches[0].clientY;
+      } else {
+        touchStartYRef.current = null;
+      }
+      isDraggingDownRef.current = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (touchStartYRef.current === null) return;
+
+      const deltaY = e.touches[0].clientY - touchStartYRef.current;
+
+      if (deltaY > 5) {
+        isDraggingDownRef.current = true;
+        e.preventDefault();
+        modalElement.style.transition = 'none';
+        modalElement.style.transform = `translateY(${deltaY}px)`;
+        modalElement.classList.add('save-to-stickerset-modal__card--dragging');
+      } else if (deltaY < -5) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartYRef.current === null || !isDraggingDownRef.current) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+        return;
+      }
+
+      e.preventDefault();
+
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+      touchStartYRef.current = null;
+      isDraggingDownRef.current = false;
+
+      const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
+
+      if (deltaY > DISMISS_THRESHOLD) {
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(100vh)';
+
+        setTimeout(() => {
+          modalElement.classList.remove('save-to-stickerset-modal__card--dragging');
+          modalElement.classList.add('save-to-stickerset-modal__card--drag-dismissed');
+          if (backdrop && !backdrop.classList.contains('modal-backdrop--keep-navbar')) {
+            backdrop.classList.add('modal-backdrop--drag-dismissed');
+          }
+          onClose();
+        }, DRAG_ANIMATION_MS);
+      } else {
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+          modalElement.style.transition = '';
+          modalElement.style.transform = '';
+          modalElement.classList.remove('save-to-stickerset-modal__card--dragging');
+        }, DRAG_ANIMATION_MS);
+      }
+    };
+
+    modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    modalElement.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      modalElement.removeEventListener('touchstart', handleTouchStart);
+      modalElement.removeEventListener('touchmove', handleTouchMove);
+      modalElement.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isOpen, onClose]);
+
   const handleSelectSet = async (set: StickerSetResponse) => {
     if (!imageId || saving) return;
     setSaving(true);
@@ -87,24 +184,25 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   };
 
   const handleCreateAndSave = async () => {
-    const name = newSetName.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-    if (!name || !imageId || saving) {
+    const title = newSetName.trim();
+    if (!title || !imageId || saving) {
       setCreateError('Введите название набора');
       return;
     }
     setSaving(true);
     setCreateError(null);
     try {
-      const created = await apiClient.createStickerSet({
-        name: name.toLowerCase(),
-        title: newSetName.trim(),
-      });
-      const res = await apiClient.saveImageToStickerSet({
+      const created = await apiClient.createNewStickerSet({
         imageUuid: imageId,
-        stickerSetName: created.name,
-        emoji: '🎨',
+        title,
+        name: title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || undefined,
       });
-      onSaved(res.stickerFileId);
+      const stickerFileId =
+        (created as { stickerFileId?: string }).stickerFileId ??
+        created.telegramStickerSetInfo?.stickers?.[0]?.file_id;
+      if (stickerFileId) {
+        onSaved(stickerFileId);
+      }
       onClose();
     } catch (e: any) {
       setCreateError(e?.message ?? 'Не удалось создать набор');
@@ -115,88 +213,101 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Сохранить в пак" showCloseButton>
-      <div className="save-to-stickerset-modal">
-        {imageUrl && (
-          <div className="save-to-stickerset-modal__preview">
-            <img src={imageUrl} alt="Превью" />
-          </div>
-        )}
-
-        {!createMode ? (
-          <>
-            <div className="save-to-stickerset-modal__list">
-              {loading ? (
-                <p className="save-to-stickerset-modal__hint">Загрузка наборов...</p>
-              ) : sets.length === 0 ? (
-                <p className="save-to-stickerset-modal__hint">У вас пока нет наборов. Создайте новый.</p>
-              ) : (
-                <div className="save-to-stickerset-modal__list-inner">
-                  {sets.map((set, i) => (
-                    <button
-                      key={set.id}
-                      type="button"
-                      className="save-to-stickerset-modal__item"
-                      onClick={() => handleSelectSet(set)}
-                      disabled={saving}
-                    >
-                      <span className="save-to-stickerset-modal__num">{i + 1}</span>
-                      <div className="save-to-stickerset-modal__thumb">
-                        <img src={getSetPreviewUrl(set)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+  const modal = (
+    <ModalBackdrop open={isOpen} onClose={onClose} noBlur keepNavbarVisible>
+      <div
+        ref={contentRef}
+        data-modal-content
+        className="save-to-stickerset-modal__card"
+      >
+        <div className="save-to-stickerset-modal__handle" aria-hidden="true" />
+        <h2 className="save-to-stickerset-modal__header">Сохранить в пак</h2>
+        <div className="save-to-stickerset-modal">
+          {!createMode ? (
+            <>
+              <div className="save-to-stickerset-modal__list">
+                {loading ? (
+                  <div className="save-to-stickerset-modal__list-inner">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="save-to-stickerset-modal__item save-to-stickerset-modal__item--skeleton">
+                        <span className="save-to-stickerset-modal__num" />
+                        <div className="save-to-stickerset-modal__thumb" />
+                        <span className="save-to-stickerset-modal__title" />
+                        <span className="save-to-stickerset-modal__status" />
                       </div>
-                      <span className="save-to-stickerset-modal__title">{set.title || set.name}</span>
-                      <span className="save-to-stickerset-modal__count">
-                        {getStickerCount(set)} стикеров
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                ) : sets.length === 0 ? (
+                  <p className="save-to-stickerset-modal__hint">У вас пока нет наборов. Создайте новый.</p>
+                ) : (
+                  <div className="save-to-stickerset-modal__list-inner">
+                    {sets.map((set, i) => (
+                      <button
+                        key={set.id}
+                        type="button"
+                        className="save-to-stickerset-modal__item"
+                        onClick={() => handleSelectSet(set)}
+                        disabled={saving}
+                      >
+                        <span className="save-to-stickerset-modal__num">{i + 1}</span>
+                        <div className="save-to-stickerset-modal__thumb">
+                          <img src={getSetPreviewUrl(set)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        </div>
+                        <span className="save-to-stickerset-modal__title">{set.title || set.name}</span>
+                        <span className="save-to-stickerset-modal__status">
+                          {getVisibilityLabel(set)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-            {error && <p className="save-to-stickerset-modal__error">{error}</p>}
+              {error && <p className="save-to-stickerset-modal__error">{error}</p>}
 
-            <p className="save-to-stickerset-modal__hint">Выберите набор или создайте новый</p>
+              <p className="save-to-stickerset-modal__hint">Выберите набор или создайте новый</p>
 
-            <Button
-              variant="primary"
-              size="medium"
-              onClick={() => setCreateMode(true)}
-              disabled={saving}
-              className="save-to-stickerset-modal__create-btn"
-            >
-              Создать новый набор
-            </Button>
-          </>
-        ) : (
-          <div className="save-to-stickerset-modal__create">
-            <input
-              type="text"
-              className="save-to-stickerset-modal__input"
-              placeholder="Название набора"
-              value={newSetName}
-              onChange={(e) => setNewSetName(e.target.value)}
-              disabled={saving}
-            />
-            {createError && <p className="save-to-stickerset-modal__error">{createError}</p>}
-            <div className="save-to-stickerset-modal__create-actions">
-              <Button variant="secondary" size="medium" onClick={() => setCreateMode(false)} disabled={saving}>
-                Назад
-              </Button>
               <Button
                 variant="primary"
                 size="medium"
-                onClick={handleCreateAndSave}
-                loading={saving}
+                onClick={() => setCreateMode(true)}
                 disabled={saving}
+                className="save-to-stickerset-modal__create-btn"
               >
-                Создать и сохранить
+                Создать новый набор
               </Button>
+            </>
+          ) : (
+            <div className="save-to-stickerset-modal__create">
+              <input
+                type="text"
+                className="save-to-stickerset-modal__input"
+                placeholder="Название набора"
+                value={newSetName}
+                onChange={(e) => setNewSetName(e.target.value)}
+                disabled={saving}
+              />
+              {createError && <p className="save-to-stickerset-modal__error">{createError}</p>}
+              <div className="save-to-stickerset-modal__create-actions">
+                <Button variant="secondary" size="medium" onClick={() => setCreateMode(false)} disabled={saving}>
+                  Назад
+                </Button>
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onClick={handleCreateAndSave}
+                  loading={saving}
+                  disabled={saving}
+                >
+                  Создать и сохранить
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </BottomSheet>
+    </ModalBackdrop>
   );
+
+  return createPortal(modal, document.body);
 };

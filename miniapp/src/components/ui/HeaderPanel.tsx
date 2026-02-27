@@ -79,6 +79,7 @@ export const HeaderPanel: FC = () => {
 
   return (
     <header ref={headerRef} className="header-panel" role="banner">
+      <div className="header-panel__backdrop" aria-hidden="true" />
       <div className="header-panel__inner">
         <div className="header-panel__content">
           {/* Аватар: фото или иконка Account при отсутствии/ошибке загрузки */}

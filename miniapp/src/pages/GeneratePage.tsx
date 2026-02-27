@@ -6,7 +6,6 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import './GeneratePage.css';
 import { apiClient, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
-import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { useTelegram } from '@/hooks/useTelegram';
 import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
@@ -33,6 +32,9 @@ const MIN_PROMPT_LENGTH = 1;
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
+
+const stripPresetName = (name: string) =>
+  name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
 
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
@@ -78,7 +80,41 @@ export const GeneratePage: FC = () => {
   const pollingIntervalRef = useRef<number | null>(null);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const modelDropdownRef = useRef<HTMLDivElement | null>(null);
-  
+  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+  const styleDropdownRef = useRef<HTMLDivElement | null>(null);
+  const promptFocusTimeoutRef = useRef<number | null>(null);
+
+  // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
+  const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
+    if ((e.target as HTMLElement)?.classList?.contains?.('generate-input')) {
+      if (promptFocusTimeoutRef.current) {
+        clearTimeout(promptFocusTimeoutRef.current);
+        promptFocusTimeoutRef.current = null;
+      }
+      document.body.classList.add('generate-prompt-focused');
+    }
+  }, []);
+
+  const handlePromptFocusOut = useCallback((e: React.FocusEvent) => {
+    if ((e.target as HTMLElement)?.classList?.contains?.('generate-input')) {
+      promptFocusTimeoutRef.current && clearTimeout(promptFocusTimeoutRef.current);
+      promptFocusTimeoutRef.current = window.setTimeout(() => {
+        document.body.classList.remove('generate-prompt-focused');
+        promptFocusTimeoutRef.current = null;
+      }, 250);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (promptFocusTimeoutRef.current) {
+        clearTimeout(promptFocusTimeoutRef.current);
+        promptFocusTimeoutRef.current = null;
+      }
+      document.body.classList.remove('generate-prompt-focused');
+    };
+  }, []);
+
   // Извлечение параметров из URL при инициализации
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -405,6 +441,17 @@ export const GeneratePage: FC = () => {
     setSelectedStylePresetId(Number.isFinite(parsed) ? parsed : null);
   };
 
+  const handleStyleSelect = (presetId: number | null) => {
+    setSelectedStylePresetId(presetId);
+    setStyleDropdownOpen(false);
+    tg?.HapticFeedback?.impactOccurred('light');
+  };
+
+  const styleSelectOptions: Array<{ id: number | null; name: string }> = [
+    { id: null, name: 'Без стиля' },
+    ...stylePresets.map((p) => ({ id: p.id, name: stripPresetName(p.name) })),
+  ];
+
   useEffect(() => {
     if (!modelDropdownOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -418,6 +465,20 @@ export const GeneratePage: FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [modelDropdownOpen]);
+
+  useEffect(() => {
+    if (!styleDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (styleDropdownRef.current && !styleDropdownRef.current.contains(e.target as Node)) {
+        setStyleDropdownOpen(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [styleDropdownOpen]);
 
   const renderModelFileRow = (disabled: boolean) => {
     const selectedOption = modelOptions.find(o => o.id === selectedStylePresetId || (o.id == null && selectedStylePresetId == null))
@@ -460,6 +521,49 @@ export const GeneratePage: FC = () => {
     );
   };
 
+  const renderStyleSelect = (disabled: boolean) => {
+    const selectedStyle = styleSelectOptions.find(
+      (o) => o.id === selectedStylePresetId || (o.id == null && selectedStylePresetId == null)
+    ) ?? styleSelectOptions[0];
+    return (
+      <div ref={styleDropdownRef} className="generate-model-select-wrap">
+        <button
+          type="button"
+          className="generate-model-select-trigger"
+          onClick={() => !disabled && setStyleDropdownOpen((v) => !v)}
+          disabled={disabled}
+          aria-label="Выберите стиль"
+          aria-expanded={styleDropdownOpen}
+        >
+          <span className="generate-model-select-value">{selectedStyle.name}</span>
+          <KeyboardArrowDownIcon
+            size={14}
+            color="var(--color-text-secondary)"
+            style={{ transform: styleDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+          />
+        </button>
+        {styleDropdownOpen && (
+          <div className="generate-model-select-dropdown">
+            {styleSelectOptions.map((opt) => (
+              <button
+                key={opt.id ?? 'none'}
+                type="button"
+                className={cn(
+                  'generate-model-select-option',
+                  (opt.id === selectedStylePresetId || (opt.id == null && selectedStylePresetId == null)) &&
+                    'generate-model-select-option--selected'
+                )}
+                onClick={() => handleStyleSelect(opt.id)}
+              >
+                {opt.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderBrandBlock = () => (
     <div className="generate-brand" aria-hidden="true">
       <img
@@ -488,22 +592,17 @@ export const GeneratePage: FC = () => {
             readOnly
             value={prompt}
             maxLength={MAX_PROMPT_LENGTH}
+            onFocus={handlePromptFocusIn}
+            onBlur={handlePromptFocusOut}
           />
           <div className="generate-input-footer">
             {renderModelFileRow(true)}
+            {renderStyleSelect(true)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
               <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
             </label>
           </div>
-        </div>
-        <div className="generate-style-row">
-          <StylePresetStrip
-            presets={stylePresets}
-            selectedPresetId={selectedStylePresetId}
-            onPresetChange={() => {}}
-            disabled
-          />
         </div>
         <Button variant="primary" size="medium" onClick={handleReset} className="generate-button-cancel">
           Отменить
@@ -575,9 +674,12 @@ export const GeneratePage: FC = () => {
               onChange={(e) => handlePromptChange(e.target.value)}
               maxLength={MAX_PROMPT_LENGTH}
               disabled={isGenerating}
+              onFocus={handlePromptFocusIn}
+              onBlur={handlePromptFocusOut}
             />
             <div className="generate-input-footer">
               {renderModelFileRow(isGenerating)}
+              {renderStyleSelect(isGenerating)}
               <label className="generate-checkbox-label generate-checkbox-label--inline">
                 <span>Удалить фон</span>
                 <input
@@ -595,15 +697,6 @@ export const GeneratePage: FC = () => {
                 <span className="generate-error-text">{errorMessage}</span>
               </div>
             )}
-          </div>
-
-          <div className="generate-style-row">
-            <StylePresetStrip
-              presets={stylePresets}
-              selectedPresetId={selectedStylePresetId}
-              onPresetChange={setSelectedStylePresetId}
-              disabled={isGenerating}
-            />
           </div>
 
           <Button
@@ -648,9 +741,12 @@ export const GeneratePage: FC = () => {
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
+            onFocus={handlePromptFocusIn}
+            onBlur={handlePromptFocusOut}
           />
           <div className="generate-input-footer">
             {renderModelFileRow(false)}
+            {renderStyleSelect(false)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
               <input
@@ -667,14 +763,6 @@ export const GeneratePage: FC = () => {
               <span className="generate-error-text">{errorMessage}</span>
             </div>
           )}
-        </div>
-        <div className="generate-style-row">
-          <StylePresetStrip
-            presets={stylePresets}
-            selectedPresetId={selectedStylePresetId}
-            onPresetChange={setSelectedStylePresetId}
-            disabled={false}
-          />
         </div>
         <Button
           variant="primary"
@@ -705,9 +793,12 @@ export const GeneratePage: FC = () => {
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
             maxLength={MAX_PROMPT_LENGTH}
+            onFocus={handlePromptFocusIn}
+            onBlur={handlePromptFocusOut}
           />
           <div className="generate-input-footer">
             {renderModelFileRow(isGenerating)}
+            {renderStyleSelect(isGenerating)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
               <input
@@ -719,15 +810,6 @@ export const GeneratePage: FC = () => {
               />
             </label>
           </div>
-        </div>
-
-        <div className="generate-style-row">
-          <StylePresetStrip
-            presets={stylePresets}
-            selectedPresetId={selectedStylePresetId}
-            onPresetChange={setSelectedStylePresetId}
-            disabled={isGenerating}
-          />
         </div>
 
         <Button

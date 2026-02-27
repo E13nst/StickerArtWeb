@@ -4,6 +4,7 @@ import { StickerSetResponse } from '@/types/sticker';
 import { StickerSetDetail } from './StickerSetDetail';
 import { ModalBackdrop } from './ModalBackdrop';
 import { imageCache, animationCache, clearStickerBlobsExcept } from '@/utils/imageLoader';
+import { useLikesStore } from '@/store/useLikesStore';
 
 interface StickerPackModalProps {
   open: boolean;
@@ -25,6 +26,17 @@ export const StickerPackModal: FC<StickerPackModalProps> = ({
   onStickerSetUpdated
 }) => {
   const cleanupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setLike = useLikesStore((s) => s.setLike);
+
+  // Инициализируем лайки при открытии модалки данными из списка, чтобы InteractiveLikeCount сразу показывал корректное состояние
+  useEffect(() => {
+    if (open && stickerSet) {
+      const packId = stickerSet.id.toString();
+      const likesCount = stickerSet.likesCount ?? stickerSet.likes ?? 0;
+      const isLiked = stickerSet.isLikedByCurrentUser ?? stickerSet.isLiked ?? false;
+      setLike(packId, isLiked, likesCount);
+    }
+  }, [open, stickerSet?.id, stickerSet?.likesCount, stickerSet?.likes, stickerSet?.isLikedByCurrentUser, stickerSet?.isLiked, setLike]);
 
   // Сохраняем последний stickerSet, чтобы ModalBackdrop не размонтировался мгновенно
   // при onClose (родитель ставит stickerSet=null одновременно с open=false).

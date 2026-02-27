@@ -11,14 +11,40 @@
 .page-container .account-header,
 .account-header {
   width: 100%;
-  max-width: none;
+  max-width: var(--page-content-max-width);
   margin: 0 auto;
   margin-top: 0;
-  padding: 0;
+  padding: 0 var(--page-content-padding-x);
+  box-sizing: border-box;
 }
 
 .account-header--telegram {
-  max-width: none;
+  max-width: var(--page-content-max-width);
+}
+
+@media (max-width: 420px) {
+  .page-container .account-header,
+  .account-header {
+    max-width: 100%;
+    padding-left: var(--page-content-padding-x-sm);
+    padding-right: var(--page-content-padding-x-sm);
+  }
+}
+
+@media (max-width: 375px) {
+  .page-container .account-header,
+  .account-header {
+    padding-left: var(--page-content-padding-x-xs);
+    padding-right: var(--page-content-padding-x-xs);
+  }
+}
+
+@media (max-width: 360px) {
+  .page-container .account-header,
+  .account-header {
+    padding-left: var(--page-content-padding-x-2xs);
+    padding-right: var(--page-content-padding-x-2xs);
+  }
 }
 
 /* Вкладки Stickers | Art-points — между account-header и account-tabs-wrap */

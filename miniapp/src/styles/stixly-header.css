@@ -105,6 +105,7 @@ header.stixlytopheader > .stixly-top-header > * {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
   background-color: var(--page-bg-base);
   background-image: none;
 }

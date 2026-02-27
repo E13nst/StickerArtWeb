@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
+import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CreateStickerSetCreateRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
 import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
@@ -529,7 +529,7 @@ class ApiClient {
     );
   }
 
-  // Создание нового стикерсета
+  // Регистрация уже существующего стикерсета (POST /stickersets)
   async createStickerSet(payload: CreateStickerSetRequest): Promise<StickerSetResponse> {
     try {
       const response = await this.client.post<StickerSetResponse>('/stickersets', payload);
@@ -537,6 +537,23 @@ class ApiClient {
     } catch (error: any) {
       console.error('❌ Ошибка при создании стикерсета:', error);
       throw error;
+    }
+  }
+
+  // POST /stickersets/create — создаёт новый стикерсет в Telegram через Bot API и регистрирует в БД
+  async createNewStickerSet(payload: CreateStickerSetCreateRequest): Promise<StickerSetResponse> {
+    try {
+      const response = await this.client.post<StickerSetResponse>('/stickersets/create', payload);
+      return response.data;
+    } catch (error: any) {
+      const data = error?.response?.data;
+      console.error('❌ Ошибка при создании нового стикерсета:', data ?? error);
+      const validation = data?.validationErrors;
+      const validationMsg = validation && typeof validation === 'object'
+        ? Object.values(validation).flat().filter(Boolean).join('. ')
+        : null;
+      const msg = validationMsg ?? data?.message ?? data?.error ?? error?.message ?? 'Не удалось создать набор. Попробуйте позже.';
+      throw new Error(typeof msg === 'string' ? msg : String(msg));
     }
   }
 

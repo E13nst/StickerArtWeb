@@ -3,6 +3,7 @@
 
 .generate-page {
   position: relative;
+  overscroll-behavior: none;
   --page-dynamic-gradient:
     radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
@@ -196,7 +197,7 @@
   color: var(--color-text-secondary);
 }
 
-/* Model select — кастомный dropdown, стиль приложения */
+/* Model select / Style select — кастомные dropdown, одинаковый стиль */
 .generate-model-select-wrap {
   position: relative;
   display: inline-flex;
@@ -371,23 +372,6 @@
   cursor: not-allowed;
 }
 
-/* Style preset row — Figma: horizontal, 70×70 previews, 16px radius */
-.generate-style-row {
-  margin-top: 0;
-  width: 100%;
-  max-width: 370px;
-}
-
-.generate-style-row .style-preset-strip__scroll {
-  justify-content: space-between;
-  gap: 36px;
-  padding-bottom: 0;
-}
-
-.generate-style-row .style-preset-strip__card {
-  height: 96px;
-}
-
 /* Button Generate — Figma: 201×32 or 192×32, #ee449f, 16px radius, Bold 16px */
 .generate-button-submit,
 .generate-button-regenerate {
@@ -420,7 +404,7 @@
     width: min(402px, calc(100vw - 16px));
     height: auto;
     max-height: calc(100vh - 16px);
-    overflow-y: auto;
+    overflow: visible;
     justify-content: flex-start;
   }
 }
@@ -678,4 +662,11 @@
   color: var(--color-text-secondary);
   text-align: center;
   font-style: italic;
+}
+
+/* Клавиатура открыта (фокус на промпте): скрываем navbar — убирает сдвиг контента */
+body.generate-prompt-focused .navbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }

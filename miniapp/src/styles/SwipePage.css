@@ -13,12 +13,14 @@
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
-/* Внутренний контейнер: layout как раньше у .swipe-page */
+/* Внутренний контейнер: строго между header-panel и navbar.
+   Высота = viewport − header − taskbar. 100dvh для мобильных (адресная строка). */
 .swipe-page__inner {
+  --swipe-inner-h: calc(100vh - var(--stixly-header-height, 80px) - var(--stixly-taskbar-height, 96.25px));
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  max-height: 100vh;
+  min-height: var(--swipe-inner-h);
+  height: var(--swipe-inner-h);
   margin: 0;
   max-width: none;
   display: flex;
@@ -27,7 +29,7 @@
   touch-action: none;
   padding-top: 0;
   padding-inline: 16px;
-  padding-bottom: var(--stixly-taskbar-height, 90.25px);
+  padding-bottom: 0;
   box-sizing: border-box;
 }
 
@@ -67,32 +69,25 @@
 }
 
 /* ============================================
-   Cards Container — высота 61.8% viewport (золотое сечение)
+   Cards Container — строго между header и navbar.
+   top/bottom гарантируют, что карточка никогда не заходит под navbar.
+   Высота вычисляется автоматически из зоны; пропорции сохраняются через aspect-ratio.
    ============================================ */
 
 .swipe-page__cards {
   --swipe-stack-width: 370px;
-  --swipe-stack-height: 61.8vh;
-  --swipe-taskbar-h: var(--stixly-taskbar-height, 120px);
-  --swipe-available-h: calc(100vh - var(--swipe-taskbar-h));
-  --swipe-gap-top: 16px; /* минимальный отступ от header */
+  --swipe-gap-vertical: 16px; /* отступ сверху и снизу от границ зоны */
   position: absolute;
+  top: var(--swipe-gap-vertical);
+  bottom: var(--swipe-gap-vertical);
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
+  align-items: center;
   inline-size: var(--swipe-stack-width);
-  block-size: var(--swipe-stack-height);
   max-inline-size: 100%;
   margin-inline: auto;
-  /* Центр по вертикали, не прилипать к header и не заходить под bottom nav */
-  top: max(
-    var(--swipe-gap-top),
-    min(
-      calc((var(--swipe-available-h) - var(--swipe-stack-height)) / 2),
-      calc(100vh - var(--swipe-taskbar-h) - var(--swipe-stack-height))
-    )
-  );
   z-index: 2;
   box-sizing: border-box;
 }
@@ -433,13 +428,6 @@
    ============================================ */
 
 @media (max-width: 430px) {
-  .swipe-page__cards {
-    width: calc(100% - 32px);
-    left: 0;
-    right: 0;
-    margin-inline: auto;
-  }
-
   /* Карточка заполняет контейнер, контент масштабируется внутри */
   .swipe-card {
     width: 100%;

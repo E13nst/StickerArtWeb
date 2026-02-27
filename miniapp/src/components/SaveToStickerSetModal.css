@@ -1,34 +1,82 @@
-/* SaveToStickerSetModal — по Figma "Save generation" */
+/* SaveToStickerSetModal — стиль как StickerSetDetail: снизу, свайп для закрытия */
+
+.save-to-stickerset-modal__card {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-height: 78.6vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
+  z-index: calc(var(--z-modal, 1000) + 1);
+  animation: save-modal-slide-up 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.save-to-stickerset-modal__card--dragging {
+  animation: none !important;
+  will-change: transform;
+}
+
+.save-to-stickerset-modal__card--drag-dismissed {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translateY(100vh) !important;
+}
+
+@keyframes save-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.save-to-stickerset-modal__handle {
+  width: 34px;
+  height: 3px;
+  background-color: var(--color-text-secondary);
+  opacity: 0.4;
+  border-radius: 2px;
+  margin: 8px auto 12px;
+  flex-shrink: 0;
+}
+
+.save-to-stickerset-modal__header {
+  font-family: var(--font-family-base);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  margin: 0 0 16px;
+  padding: 0 16px;
+}
 
 .save-to-stickerset-modal {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding-bottom: var(--spacing-md);
-}
-
-.save-to-stickerset-modal__preview {
-  width: 200px;
-  height: 200px;
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--color-surface);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
-}
-
-.save-to-stickerset-modal__preview img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  padding: 0 16px 16px;
 }
 
 .save-to-stickerset-modal__list {
   width: 100%;
+  min-height: 168px;
   max-height: 168px;
   overflow-y: auto;
   background-color: #000000;
@@ -71,6 +119,53 @@
   opacity: 0.7;
 }
 
+.save-to-stickerset-modal__item--skeleton {
+  pointer-events: none;
+  cursor: default;
+}
+
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__num,
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__thumb,
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__title,
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__status {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.08) 75%
+  );
+  background-size: 200% 100%;
+  animation: save-to-stickerset-modal__skeleton-shimmer 1.2s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__num {
+  width: 20px;
+  height: 14px;
+}
+
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__title {
+  flex: 1;
+  height: 16px;
+  max-width: 120px;
+}
+
+.save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__status {
+  width: 50px;
+  height: 12px;
+}
+
+@keyframes save-to-stickerset-modal__skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .save-to-stickerset-modal__num {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
@@ -100,9 +195,11 @@
   white-space: nowrap;
 }
 
-.save-to-stickerset-modal__count {
-  font-size: 16px;
-  color: var(--color-success);
+.save-to-stickerset-modal__status {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .save-to-stickerset-modal__hint {

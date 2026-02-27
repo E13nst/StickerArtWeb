@@ -253,9 +253,9 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   const viewerRole = storeUserRole ?? userInfo?.role ?? null;
   const currentUserId = viewerUserId;
   const ownerId = useMemo(() => {
-    const primary = fullStickerSet?.authorId ?? stickerSet.authorId;
+    const primary = fullStickerSet?.userId ?? stickerSet.userId ?? fullStickerSet?.authorId ?? stickerSet.authorId;
     return primary ?? null;
-  }, [fullStickerSet?.authorId, stickerSet.authorId]);
+  }, [fullStickerSet?.userId, fullStickerSet?.authorId, stickerSet.userId, stickerSet.authorId]);
   const normalizedRole = (viewerRole ?? '').toUpperCase();
   const isAdmin = normalizedRole.includes('ADMIN');
   const isAuthor = currentUserId !== null && ownerId !== null && Number(currentUserId) === Number(ownerId);
@@ -280,18 +280,19 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     availableActions: effectiveStickerSet.availableActions
   });
 
-  // Fallback имени автора из полей самого stickerSet (доступны без доп. запроса)
+  // Fallback имени автора из полей stickerSet / effectiveStickerSet (доступны без доп. запроса)
   const stickerSetAuthorFallback = useMemo(() => {
-    const uname = stickerSet.username?.trim();
+    const src = effectiveStickerSet;
+    const uname = src.username?.trim();
     if (uname && uname.length > 0) return `@${uname}`;
-    const parts = [stickerSet.firstName, stickerSet.lastName].filter(Boolean).join(' ').trim();
+    const parts = [src.firstName, src.lastName].filter(Boolean).join(' ').trim();
     return parts || null;
-  }, [stickerSet.username, stickerSet.firstName, stickerSet.lastName]);
+  }, [effectiveStickerSet.username, effectiveStickerSet.firstName, effectiveStickerSet.lastName]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const targetAuthorId = stickerSet.authorId;
+    const targetAuthorId = effectiveStickerSet.userId ?? stickerSet.userId ?? effectiveStickerSet.authorId ?? stickerSet.authorId;
 
     if (!targetAuthorId) {
       setAuthorUsername(stickerSetAuthorFallback);
@@ -333,7 +334,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [stickerSet.authorId, stickerSetAuthorFallback, initData, user?.language_code]);
+  }, [effectiveStickerSet.userId, effectiveStickerSet.authorId, stickerSet.userId, stickerSet.authorId, stickerSetAuthorFallback, initData, user?.language_code]);
 
   
   // Загружаем текущий стикер и prefetch соседних при изменении activeIndex
@@ -830,32 +831,51 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
         >
           {displayTitle}
         </Text>
-        {infoVariant === 'default' && authorUsername && stickerSet.authorId && (
-          <Link
-            to={`/author/${stickerSet.authorId}`}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              textAlign: 'center',
-              textDecoration: 'none',
-              display: 'block',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        {infoVariant === 'default' && authorUsername && (
+          (effectiveStickerSet.userId ?? stickerSet.userId ?? effectiveStickerSet.authorId ?? stickerSet.authorId) ? (
+            <Link
+              to={`/author/${effectiveStickerSet.userId ?? stickerSet.userId ?? effectiveStickerSet.authorId ?? stickerSet.authorId}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                textAlign: 'center',
+                textDecoration: 'none',
+                display: 'block',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Text
+                variant="bodySmall"
+                weight="semibold"
+                align="center"
+                style={{
+                  color: 'var(--tg-theme-link-color)',
+                  fontSize: '13px',
+                  lineHeight: '1.25',
+                }}
+              >
+                {authorUsername}
+              </Text>
+            </Link>
+          ) : (
             <Text
               variant="bodySmall"
               weight="semibold"
               align="center"
               style={{
-                color: 'var(--tg-theme-link-color)',
+                color: 'var(--color-text-secondary)',
                 fontSize: '13px',
                 lineHeight: '1.25',
+                display: 'block',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
               {authorUsername}
             </Text>
-          </Link>
+          )
         )}
       </div>
       {stickerCount > 0 && (

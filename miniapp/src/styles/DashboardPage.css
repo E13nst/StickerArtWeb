@@ -273,6 +273,9 @@
   flex-shrink: 0;
   border-radius: 16px;
   overflow: visible;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
 }
 
 .dashboard-card-carousel .pack-card:hover,

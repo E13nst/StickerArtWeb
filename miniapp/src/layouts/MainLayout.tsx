@@ -59,7 +59,7 @@ export default function MainLayout({ children }: Props) {
           style={{
             position: 'relative',
             flex: '1 1 auto',
-            height: isSwipePage ? '100vh' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
+            height: isSwipePage ? 'calc(100vh - var(--stixly-header-height, 80px))' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
             overflowY: isSwipePage ? 'hidden' : 'auto',
             overflowX: 'hidden',
             paddingBottom: isSwipePage ? 0 : 'var(--stixly-taskbar-height, 90.25px)', // Taskbar: Navbar + Home Indicator (Figma)

@@ -14,20 +14,42 @@
    но переопределяет только специфичные настройки.
    ============================================ */
 
-/* На author-page account-header тоже полная ширина (как MyProfilePage) */
+/* account-header — та же ширина и отступы, что и optimized-gallery__row-grid */
 .author-page .account-header {
   width: 100%;
-  max-width: none;
+  max-width: var(--page-content-max-width);
   margin: 0 auto;
   margin-top: 0;
-  padding: 0;
+  padding: 0 var(--page-content-padding-x);
+  box-sizing: border-box;
   position: relative;
   z-index: 1;
 }
 
-/* Telegram-контекст: фиксируем поведение шапки без зависимости от загрузки MyProfilePage.css */
 .author-page .account-header--telegram {
-  max-width: none;
+  max-width: var(--page-content-max-width);
+}
+
+@media (max-width: 420px) {
+  .author-page .account-header {
+    max-width: 100%;
+    padding-left: var(--page-content-padding-x-sm);
+    padding-right: var(--page-content-padding-x-sm);
+  }
+}
+
+@media (max-width: 375px) {
+  .author-page .account-header {
+    padding-left: var(--page-content-padding-x-xs);
+    padding-right: var(--page-content-padding-x-xs);
+  }
+}
+
+@media (max-width: 360px) {
+  .author-page .account-header {
+    padding-left: var(--page-content-padding-x-2xs);
+    padding-right: var(--page-content-padding-x-2xs);
+  }
 }
 
 /* Карточка профиля автора — синхронизирована с MyProfilePage (Figma ACCOUNT), без wallet; отступ сверху как у error-box */
