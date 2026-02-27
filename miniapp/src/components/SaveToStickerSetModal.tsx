@@ -39,7 +39,6 @@ const DRAG_ANIMATION_MS = 200;
 export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   isOpen,
   onClose,
-  imageUrl,
   imageId,
   onSaved,
 }) => {
