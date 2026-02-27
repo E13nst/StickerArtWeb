@@ -369,6 +369,31 @@
   }
 }
 
+@keyframes swipe-skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.swipe-page__card-skeleton {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipe-card--skeleton {
+  pointer-events: none;
+  width: 100%;
+  max-width: var(--swipe-stack-width, 370px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
 /* ============================================
    Swipe Hello (Welcome Overlay)
    ============================================ */

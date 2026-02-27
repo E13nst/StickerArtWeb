@@ -60,10 +60,14 @@ export const useStickerSetData = ({
       if (cached && Date.now() - cached.timestamp < cached.ttl) {
         if (mounted) {
           setFullStickerSet(cached.data);
-          const apiLikesCount = cached.data.likesCount ?? cached.data.likes;
-          const apiIsLiked = cached.data.isLikedByCurrentUser ?? cached.data.isLiked;
-          if (apiLikesCount !== undefined && apiLikesCount >= 0) {
-            setLike(stickerSet.id.toString(), apiIsLiked ?? false, apiLikesCount);
+          const packId = stickerSet.id.toString();
+          const currentState = getLikeState(packId);
+          if (!currentState.syncing) {
+            const apiLikesCount = cached.data.likesCount ?? cached.data.likes;
+            const apiIsLiked = cached.data.isLikedByCurrentUser ?? (cached.data as any).liked ?? cached.data.isLiked;
+            const isLiked = apiIsLiked !== undefined ? apiIsLiked : currentState.isLiked;
+            const likesCount = (apiLikesCount !== undefined && apiLikesCount >= 0) ? apiLikesCount : currentState.likesCount;
+            setLike(packId, isLiked, likesCount);
           }
         }
         return;
@@ -91,17 +95,16 @@ export const useStickerSetData = ({
         if (mounted) {
           setFullStickerSet(fullData);
           
-          // Инициализируем лайки
-          const apiLikesCount = fullData.likesCount ?? fullData.likes;
-          const apiIsLiked = fullData.isLikedByCurrentUser ?? fullData.isLiked;
-          
-          if (apiLikesCount !== undefined && apiLikesCount >= 0) {
-            const currentState = getLikeState(stickerSet.id.toString());
-            setLike(
-              stickerSet.id.toString(), 
-              apiIsLiked ?? currentState.isLiked,
-              apiLikesCount
-            );
+          // Синхронизируем store с сервером только если по этому пеку не идёт синхронизация (toggle),
+          // иначе не перезаписываем оптимистичное состояние данными из getStickerSet
+          const packId = stickerSet.id.toString();
+          const currentState = getLikeState(packId);
+          if (!currentState.syncing) {
+            const apiLikesCount = fullData.likesCount ?? fullData.likes;
+            const apiIsLiked = fullData.isLikedByCurrentUser ?? (fullData as any).liked ?? fullData.isLiked;
+            const isLiked = apiIsLiked !== undefined ? apiIsLiked : currentState.isLiked;
+            const likesCount = (apiLikesCount !== undefined && apiLikesCount >= 0) ? apiLikesCount : currentState.likesCount;
+            setLike(packId, isLiked, likesCount);
           }
           
           // Предзагрузка стикеров

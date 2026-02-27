@@ -6,6 +6,7 @@ import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { apiClient } from '@/api/client';
+import { setInitData } from '@/utils/auth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 // 🔍 Импортируем animationMonitor для диагностики производительности
 import '@/utils/animationMonitor';
@@ -50,10 +51,12 @@ const App: FC = () => {
     // Иначе не перезаписываем defaults — интерцептор в client.ts возьмёт initData из getInitData() (Telegram.WebApp, URL, sessionStorage) на каждый запрос.
     const currentInitData = (initData || '').trim();
     if (!currentInitData) {
+      setInitData(null);
       return;
     }
 
     apiClient.setAuthHeaders(currentInitData, user?.language_code);
+    setInitData(currentInitData);
 
     if (import.meta.env.DEV) {
       const hasQueryId = currentInitData.includes('query_id=');
@@ -82,6 +85,24 @@ const App: FC = () => {
 
     initializeCurrentUser(user?.id ?? null).catch(() => undefined);
   }, [initData, user?.id, hasMyProfileLoaded, initializeCurrentUser]);
+
+  // Предзагрузка чанков страниц: переходы между страницами без задержки, подгружается только контент внутри
+  useEffect(() => {
+    const preload = () => {
+      Promise.all([
+        import('@/pages/GalleryPage2'),
+        import('@/pages/ProfilePage'),
+        import('@/pages/MyProfilePage'),
+        import('@/pages/DashboardPage'),
+        import('@/pages/AuthorPage'),
+        import('@/pages/SwipePage'),
+        import('@/pages/GeneratePage'),
+        import('@/pages/DesignSystemDemo'),
+      ]).catch(() => {});
+    };
+    const t = setTimeout(preload, 100);
+    return () => clearTimeout(t);
+  }, []);
 
   // ✅ FIX: Глобальная обработка ошибок загрузки blob URLs
   useEffect(() => {

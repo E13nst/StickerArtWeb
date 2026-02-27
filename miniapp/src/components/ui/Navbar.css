@@ -1,13 +1,13 @@
 /* Navbar — Figma spec */
 
 .navbar {
-  /* Auto layout — gap уменьшен, чтобы все 5 вкладок помещались в 370px */
+  /* Auto layout — компактные отступы, увеличенные шрифт и иконки */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 10px 8px;
-  gap: 4px;
+  padding: 10px 4px 2px 4px;
+  gap: 2px;
 
   /* Position: над областью Home Indicator (Taskbar 96.25px = Navbar 56px + область индикатора ~40px) */
   position: fixed;
@@ -35,12 +35,12 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 2px;
-  gap: 4px;
+  padding: 0 1px;
+  gap: 6px;
 
   margin: 0;
   min-width: 0;
-  height: 36px;
+  height: 40px;
   flex: 1 1 0;
 
   text-decoration: none;
@@ -68,8 +68,8 @@
   flex: none;
   order: 0;
   flex-grow: 0;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   color: inherit;
 }
 
@@ -85,7 +85,7 @@
 
   min-width: 0;
   max-width: 100%;
-  min-height: 12px;
+  min-height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,10 +94,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  font-family: 'Manrope', var(--font-family-base, sans-serif);
+  font-family: var(--font-family-base);
   font-style: normal;
   font-weight: 400;
-  font-size: 8px;
+  font-size: var(--typography-body-small-font-size, 12px);
   line-height: 1.2;
   color: inherit;
 }

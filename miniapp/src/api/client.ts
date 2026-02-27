@@ -6,6 +6,22 @@ import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { getInitData } from '../telegram/launchParams';
 
+/** Извлекает текст ошибки из ответа сервера (JSON или строка) для отображения пользователю */
+function getErrorMessage(error: any, fallback: string): string {
+  const data = error?.response?.data;
+  if (data == null) return fallback;
+  if (typeof data === 'string' && data.length > 0 && data.length < 500) return data;
+  if (typeof data === 'object') {
+    const msg = data.message ?? data.error ?? data.errorMessage;
+    if (typeof msg === 'string' && msg.length > 0) return msg;
+    const detail = data.detail;
+    if (typeof detail === 'string' && detail.length > 0) return detail;
+    if (Array.isArray(detail) && detail[0] && typeof detail[0] === 'object' && detail[0].message) return detail[0].message;
+    if (Array.isArray(detail) && detail[0] && typeof detail[0] === 'string') return detail[0];
+  }
+  return fallback;
+}
+
 // ============ ТИПЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
 
 export interface ArtTariffDebit {
@@ -831,18 +847,20 @@ class ApiClient {
 
   // Переключить лайк стикерсета (только для fallback-сценариев)
   // API endpoint: PUT /api/likes/stickersets/{stickerSetId}/toggle
-  // Если лайк есть - убирает, если нет - ставит
-  // Response: { isLiked: boolean, totalLikes: number }
+  // Сервер может вернуть { liked, totalLikes } или { isLiked, totalLikes } — нормализуем к isLiked
   async toggleLike(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }> {
     try {
-      const response = await this.client.put<{ isLiked: boolean; totalLikes: number }>(
+      const response = await this.client.put<{ isLiked?: boolean; liked?: boolean; totalLikes: number }>(
         `/likes/stickersets/${stickerSetId}/toggle`
       );
-      console.log(`✅ Лайк переключен для стикерсета ${stickerSetId}:`, response.data);
-      return response.data;
+      const data = response.data;
+      const isLiked = data.isLiked ?? data.liked ?? false;
+      return { isLiked, totalLikes: data.totalLikes ?? 0 };
     } catch (error: any) {
-      console.error(`❌ Ошибка при переключении лайка стикерсета ${stickerSetId}:`, error);
-      throw new Error('Не удалось изменить лайк. Попробуйте позже.');
+      const status = error.response?.status;
+      const msg = getErrorMessage(error, status === 500 ? 'Попробуйте позже.' : 'Не удалось изменить лайк. Попробуйте позже.');
+      console.error(`❌ Ошибка при переключении лайка стикерсета ${stickerSetId}:`, status, error.response?.data ?? error.message);
+      throw new Error(status === 500 ? `Сервер не смог обработать лайк. ${msg}` : msg);
     }
   }
 
@@ -850,14 +868,17 @@ class ApiClient {
   // API endpoint: POST /api/likes/stickersets/{stickerSetId}
   async likeStickerSet(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }> {
     try {
-      const response = await this.client.post<{ isLiked: boolean; totalLikes: number }>(
+      const response = await this.client.post<{ isLiked?: boolean; liked?: boolean; totalLikes: number }>(
         `/likes/stickersets/${stickerSetId}`
       );
-      console.log(`✅ Лайк установлен для стикерсета ${stickerSetId}:`, response.data);
-      return response.data;
+      const data = response.data;
+      const isLiked = data.isLiked ?? data.liked ?? true;
+      return { isLiked, totalLikes: data.totalLikes ?? 0 };
     } catch (error: any) {
-      console.error(`❌ Ошибка при установке лайка для стикерсета ${stickerSetId}:`, error);
-      throw new Error('Не удалось поставить лайк. Попробуйте позже.');
+      const status = error.response?.status;
+      const msg = getErrorMessage(error, 'Не удалось поставить лайк. Попробуйте позже.');
+      console.error(`❌ Ошибка при установке лайка для стикерсета ${stickerSetId}:`, status, error.response?.data ?? error.message);
+      throw new Error(status === 500 ? `Сервер не смог обработать лайк. ${msg}` : msg);
     }
   }
 
@@ -865,14 +886,17 @@ class ApiClient {
   // API endpoint: DELETE /api/likes/stickersets/{stickerSetId}
   async unlikeStickerSet(stickerSetId: number): Promise<{ isLiked: boolean; totalLikes: number }> {
     try {
-      const response = await this.client.delete<{ isLiked: boolean; totalLikes: number }>(
+      const response = await this.client.delete<{ isLiked?: boolean; liked?: boolean; totalLikes: number }>(
         `/likes/stickersets/${stickerSetId}`
       );
-      console.log(`✅ Лайк снят для стикерсета ${stickerSetId}:`, response.data);
-      return response.data;
+      const data = response.data;
+      const isLiked = data.isLiked ?? data.liked ?? false;
+      return { isLiked, totalLikes: data.totalLikes ?? 0 };
     } catch (error: any) {
-      console.error(`❌ Ошибка при снятии лайка для стикерсета ${stickerSetId}:`, error);
-      throw new Error('Не удалось убрать лайк. Попробуйте позже.');
+      const status = error.response?.status;
+      const msg = getErrorMessage(error, 'Не удалось убрать лайк. Попробуйте позже.');
+      console.error(`❌ Ошибка при снятии лайка для стикерсета ${stickerSetId}:`, status, error.response?.data ?? error.message);
+      throw new Error(status === 500 ? `Сервер не смог обработать лайк. ${msg}` : msg);
     }
   }
 

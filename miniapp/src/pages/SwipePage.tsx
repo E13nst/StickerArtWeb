@@ -7,7 +7,6 @@ import { useSwipeStickerFeed } from '@/hooks/useSwipeStickerFeed';
 import { SwipeCardStack, type SwipeCardActions } from '@/components/ui/SwipeCardStack';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { AnimatedSticker } from '@/components/AnimatedSticker';
 import { AuthorDisplay } from '@/components/AuthorDisplay';
 import { CloseIcon, FavoriteIcon } from '@/components/ui/Icons';
@@ -263,21 +262,7 @@ export const SwipePage: FC = () => {
     );
   }
 
-  if (isLoading && stickerSets.length === 0) {
-    return (
-      <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
-        <OtherAccountBackground />
-        <div className="swipe-page__inner">
-          <div className="swipe-page__loading">
-            <LoadingSpinner />
-            <Text variant="body" color="secondary">
-              Загружаем стикеры...
-            </Text>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const showCardSkeleton = isLoading && stickerSets.length === 0;
 
   if (error && stickerSets.length === 0) {
     return (
@@ -360,8 +345,20 @@ export const SwipePage: FC = () => {
         </div>
       )}
 
-      {/* SwipeCardStack Component */}
-      {visibleCards.length > 0 && (
+      {/* SwipeCardStack или скелетон карточки при подгрузке */}
+      {showCardSkeleton ? (
+        <div className="swipe-page__cards">
+          <div className="swipe-page__card-skeleton" aria-hidden="true">
+            <div className="swipe-card swipe-card--skeleton">
+              <div className="swipe-card__preview pack-card-skeleton" style={{ width: '100%', aspectRatio: '1', borderRadius: 12 }} />
+              <div className="swipe-card__footer" style={{ padding: 12 }}>
+                <div style={{ height: 14, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.12)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 12, width: '40%', borderRadius: 6, marginTop: 8, background: 'rgba(255,255,255,0.08)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : visibleCards.length > 0 ? (
         <div className="swipe-page__cards">
           <SwipeCardStack
             cards={visibleCards}
@@ -373,7 +370,7 @@ export const SwipePage: FC = () => {
             swipeThreshold={100}
           />
         </div>
-      )}
+      ) : null}
 
       {/* Loading Indicator */}
       {isLoading && stickerSets.length > 0 && (

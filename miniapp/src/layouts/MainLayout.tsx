@@ -1,4 +1,4 @@
-import { useEffect, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, useState, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { BottomNav } from '@/components/BottomNav';
@@ -17,13 +17,14 @@ export default function MainLayout({ children }: Props) {
   const hideHeaderPanel = pathname === '/profile' || pathname.startsWith('/author/');
   const { isReady } = useTelegram();
   const mainScrollRef = useRef<HTMLDivElement>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     if (mainScrollRef.current) {
       mainScrollRef.current.scrollTop = 0;
     }
   }, [location.pathname]);
-  
+
   // Не рендерим layout до стабильного viewport
   if (!isReady) {
     return (
@@ -52,9 +53,12 @@ export default function MainLayout({ children }: Props) {
       }}
     >
       {!hideHeaderPanel && <HeaderPanel />}
-      <ScrollProvider scrollElement={mainScrollRef.current}>
+      <ScrollProvider scrollElement={scrollElement}>
         <div
-          ref={mainScrollRef}
+          ref={(el) => {
+            (mainScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+            setScrollElement(el);
+          }}
           className={`stixly-main-scroll${pathname === '/profile' ? ' stixly-main-scroll--account' : ''}`}
           style={{
             position: 'relative',

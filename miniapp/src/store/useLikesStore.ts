@@ -148,8 +148,6 @@ export const useLikesStore = create<LikesStore>()(
         isLiked?: boolean;
         isLikedByCurrentUser?: boolean;
       }>, mergeMode: boolean = false) => {
-        console.log('🔍 initializeLikes: Получено стикерсетов:', stickerSets.length, 'mergeMode:', mergeMode);
-        
         set((state) => {
           const updates = new Map<string, LikeState>();
           const now = Date.now();
@@ -181,21 +179,6 @@ export const useLikesStore = create<LikesStore>()(
           });
           
           if (updates.size === 0) return state;
-          
-          // Логируем изменения
-          let changedCount = 0;
-          updates.forEach((newState, packId) => {
-            const oldState = state.likes[packId];
-            if (!oldState || 
-                oldState.isLiked !== newState.isLiked || 
-                oldState.likesCount !== newState.likesCount) {
-              changedCount++;
-            }
-          });
-          
-          if (changedCount > 0) {
-            console.log(`🔍 initializeLikes: Обновлено ${changedCount} стикерсетов`);
-          }
           
           return { likes: { ...state.likes, ...Object.fromEntries(updates) } };
         });

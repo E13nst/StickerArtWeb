@@ -564,7 +564,7 @@ export const MyProfilePage: FC = () => {
       }
       
       console.log('🔍 Загружаем стикерсеты пользователя...');
-      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true, true);
+      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true, false);
       console.log('✅ Ответ от API получен:', { 
         hasResponse: !!response, 
         contentLength: response?.content?.length || 0,
@@ -950,6 +950,12 @@ export const MyProfilePage: FC = () => {
     }
   });
 
+  // Пока профиль или стикерсеты грузятся — показываем загрузку контента, а не «У вас пока нет стикерсетов»
+  const contentLoading = isLoading || isUserLoading || isStickerSetsLoading;
+  const hasInitialLoadDoneRef = useRef(false);
+  if (!contentLoading) hasInitialLoadDoneRef.current = true;
+  const hasInitialLoadDone = hasInitialLoadDoneRef.current;
+
   // Основные ошибки (показываем только в Telegram приложении)
   if (error && isInTelegramApp) {
     return (
@@ -996,7 +1002,7 @@ export const MyProfilePage: FC = () => {
         className={cn('account-header', isInTelegramApp && 'account-header--telegram')}
         data-figma-block="Head account"
       >
-        {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
+        {/* Ошибка: только когда не грузим и нет userInfo */}
         {!isUserLoading && userError && !userInfo && (
           <div className="error-box">
             <ErrorDisplay 
@@ -1005,7 +1011,19 @@ export const MyProfilePage: FC = () => {
             />
           </div>
         )}
-        
+        {/* Скелетон шапки: пока нет userInfo и нет ошибки — макет без мерцания */}
+        {!userError && !userInfo && (
+          <div className="account-header__card account-header__skeleton" aria-hidden="true">
+            <div className="account-header__share-wrap" />
+            <div className="account-header__avatar account-header__skeleton-avatar" />
+            <div className="account-header__name account-header__skeleton-name" />
+            <div className="account-header__stats">
+              <div className="account-header__stat"><span className="account-header__skeleton-stat" /></div>
+              <div className="account-header__stat"><span className="account-header__skeleton-stat" /></div>
+            </div>
+            <div className="account-header__wallet"><div className="account-header__skeleton-wallet" /></div>
+          </div>
+        )}
         {userInfo && (
           <div className="account-header__card">
             {/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area */}
@@ -1111,11 +1129,6 @@ export const MyProfilePage: FC = () => {
                 </div>
               )}
             </div>
-            {walletLoading && !wallet && (
-              <Text variant="caption" className="my-profile-wallet-loading">
-                Загрузка...
-              </Text>
-            )}
             {walletError && (
               <div className="my-profile-wallet-error" role="alert">
                 <Text variant="bodySmall" color="default">{walletError}</Text>
@@ -1125,38 +1138,36 @@ export const MyProfilePage: FC = () => {
         )}
       </div>
 
-      {/* Вкладки Stickers | Art-points — между account-header и account-tabs-wrap */}
-      {userInfo && (
-        <div className="account-main-tabs-wrap">
-          <div role="tablist" className="account-main-tabs" aria-label="Stickers or Art-points">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mainTab === 0}
-              id="account-main-tab-stickers"
-              aria-controls="account-main-panel-stickers"
-              onClick={() => setMainTab(0)}
-              className={cn('account-main-tabs__tab', mainTab === 0 && 'account-main-tabs__tab--active')}
-            >
-              Stickers
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mainTab === 1}
-              id="account-main-tab-artpoints"
-              aria-controls="account-main-panel-artpoints"
-              onClick={() => setMainTab(1)}
-              className={cn('account-main-tabs__tab', mainTab === 1 && 'account-main-tabs__tab--active')}
-            >
-              Art-points
-            </button>
-          </div>
+      {/* Вкладки Stickers | Art-points — всегда показываем макет для отсутствия сдвигов */}
+      <div className="account-main-tabs-wrap">
+        <div role="tablist" className="account-main-tabs" aria-label="Stickers or Art-points">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mainTab === 0}
+            id="account-main-tab-stickers"
+            aria-controls="account-main-panel-stickers"
+            onClick={() => setMainTab(0)}
+            className={cn('account-main-tabs__tab', mainTab === 0 && 'account-main-tabs__tab--active')}
+          >
+            Stickers
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mainTab === 1}
+            id="account-main-tab-artpoints"
+            aria-controls="account-main-panel-artpoints"
+            onClick={() => setMainTab(1)}
+            className={cn('account-main-tabs__tab', mainTab === 1 && 'account-main-tabs__tab--active')}
+          >
+            Art-points
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Stickers: account-tabs-wrap (Create/Likes/Upload) + контент галерей */}
-      {userInfo && mainTab === 0 && (
+      {/* Stickers: account-tabs-wrap (Create/Likes/Upload) — всегда при mainTab 0 */}
+      {mainTab === 0 && (
         <div className="account-tabs-wrap">
           <ProfileTabs
             variant="account"
@@ -1196,14 +1207,18 @@ export const MyProfilePage: FC = () => {
                   onAddClick={() => setIsUploadModalOpen(true)}
                 />
               </div>
-              {isStickerSetsLoading ? (
-                <LoadingSpinner message="Загрузка стикерсетов..." />
+              {contentLoading ? (
+                <div className="my-profile-gallery-skeleton" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 177px)', gap: 16, justifyContent: 'center', padding: '16px 0' }}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="pack-card-skeleton" style={{ width: 177, height: 213 }} />
+                  ))}
+                </div>
               ) : stickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay
                   error={stickerSetsError}
                   onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)}
                 />
-              ) : filteredStickerSets.length === 0 ? (
+              ) : hasInitialLoadDone && filteredStickerSets.length === 0 ? (
                 <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
                   <Text variant="h3" className="my-profile-empty-state-title">
                     📁 У вас пока нет стикерсетов
@@ -1246,9 +1261,13 @@ export const MyProfilePage: FC = () => {
 
             {/* Tab 1: Likes — понравившиеся стикерсеты */}
             <TabPanel value={activeProfileTab} index={1}>
-              {isStickerSetsLoading ? (
-                <LoadingSpinner message="Загрузка..." />
-              ) : likedStickerSets.length === 0 ? (
+              {contentLoading ? (
+                <div className="my-profile-gallery-skeleton" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 177px)', gap: 16, justifyContent: 'center', padding: '16px 0' }}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="pack-card-skeleton" style={{ width: 177, height: 213 }} />
+                  ))}
+                </div>
+              ) : hasInitialLoadDone && likedStickerSets.length === 0 ? (
                 <EmptyState
                   title="❤️ Likes"
                   message="Like sticker packs in the gallery and they will appear here"
@@ -1293,14 +1312,18 @@ export const MyProfilePage: FC = () => {
                   onAddClick={() => setIsUploadModalOpen(true)}
                 />
               </div>
-              {isStickerSetsLoading ? (
-                <LoadingSpinner message="Загрузка стикерсетов..." />
+              {contentLoading ? (
+                <div className="my-profile-gallery-skeleton" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 177px)', gap: 16, justifyContent: 'center', padding: '16px 0' }}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="pack-card-skeleton" style={{ width: 177, height: 213 }} />
+                  ))}
+                </div>
               ) : stickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay
                   error={stickerSetsError}
                   onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)}
                 />
-              ) : filteredStickerSets.length === 0 ? (
+              ) : hasInitialLoadDone && filteredStickerSets.length === 0 ? (
                 <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
                   <Text variant="h3" className="my-profile-empty-state-title">
                     📁 У вас пока нет загруженных стикерсетов
@@ -1339,10 +1362,12 @@ export const MyProfilePage: FC = () => {
                   />
                 </div>
               )}
-              <AddStickerPackButton
-                variant="profile"
-                onClick={() => setIsUploadModalOpen(true)}
-              />
+              {!contentLoading && (
+                <AddStickerPackButton
+                  variant="profile"
+                  onClick={() => setIsUploadModalOpen(true)}
+                />
+              )}
             </TabPanel>
         </>
         ) : mainTab === 1 ? (

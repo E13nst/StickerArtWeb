@@ -95,18 +95,10 @@ export function syncLikeWithServer(
   debounceTimers[packId] = setTimeout(async () => {
     try {
       const response = await apiClient.toggleLike(parseInt(packId));
-
-      // Проверяем консистентность с сервером
-      const serverIsLiked = response.isLiked;
-      const finalIsLiked = serverIsLiked === newIsLiked ? serverIsLiked : newIsLiked;
-
-      if (serverIsLiked !== newIsLiked) {
-        console.warn(
-          `⚠️ Сервер вернул isLiked=${serverIsLiked} для ${packId}, ожидаем ${newIsLiked}. Сохраняем локальное значение для UX.`
-        );
-      }
-
-      onSuccess(finalIsLiked, Math.max(0, response.totalLikes));
+      // Всегда берём состояние с сервера — один источник правды для дашборда и модалки
+      const finalIsLiked = response.isLiked;
+      const totalLikes = Math.max(0, response.totalLikes);
+      onSuccess(finalIsLiked, totalLikes);
     } catch (error) {
       console.error(`❌ Ошибка синхронизации лайка для ${packId}:`, error);
 
@@ -220,19 +212,6 @@ export function logStateChange(
     oldState.likesCount !== newState.likesCount;
 
   if (!hasChanged) return;
-
-  const emoji = action === 'optimistic' ? '🔄' : action === 'sync' ? '✅' : '📝';
-  const message = `${emoji} [${packId}] ${action}:`;
-  
-  const logData: any = {
-    from: oldState ? { isLiked: oldState.isLiked, likesCount: oldState.likesCount } : 'new',
-    to: newState
-  };
-
-  if (additionalData) {
-    Object.assign(logData, additionalData);
-  }
-
-  console.log(message, logData);
+  // Логирование отключено для уменьшения шума; при отладке можно вернуть console.log
 }
 

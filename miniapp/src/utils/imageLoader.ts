@@ -1,4 +1,5 @@
 import { getStickerBaseUrl } from './stickerUtils';
+import { getInitData } from './auth';
 import { cacheManager } from './cacheManager';
 import type { ResourceType } from './cacheManager';
 
@@ -53,6 +54,22 @@ const STICKER_BASE_URL = getStickerBaseUrl();
 const STICKER_BASE_IS_ABSOLUTE = /^https?:\/\//i.test(STICKER_BASE_URL);
 
 const CURRENT_ORIGIN = typeof window !== 'undefined' ? window.location.origin : null;
+
+/** Опции fetch для запросов к sticker processor (unpublished и т.д. требуют X-Telegram-Init-Data). */
+function getStickerFetchOptions(url: string): RequestInit {
+  if (!url || url.startsWith('blob:') || url.startsWith('data:')) return {};
+  const init = getInitData();
+  if (!init || !init.trim()) return {};
+  const isInternal =
+    url.startsWith(STICKER_BASE_URL) ||
+    (url.startsWith('/') && CURRENT_ORIGIN) ||
+    (CURRENT_ORIGIN && url.startsWith(CURRENT_ORIGIN));
+  if (!isInternal) return {};
+  return {
+    headers: { 'X-Telegram-Init-Data': init },
+    credentials: 'include',
+  };
+}
 
 /**
  * 🔥 ОПТИМИЗАЦИЯ: Нормализация URL для устранения дубликатов
@@ -705,37 +722,42 @@ class ImageLoader {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        // Реальная загрузка изображения через браузер с timeout
+        const options = getStickerFetchOptions(normalizedUrl);
+        if (options.headers) {
+          const response = await fetch(normalizedUrl, options);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          try {
+            await cacheManager.set(fileId, objectUrl, 'image');
+          } catch (e) {
+            if (isDev) console.warn('Failed to cache image:', e);
+          }
+          return objectUrl;
+        }
+
+        // Реальная загрузка изображения через браузер с timeout (без заголовков auth)
         const result = await Promise.race([
           new Promise<string>((resolve, reject) => {
             const img = new Image();
             
             img.onload = async () => {
-              // Логируем только в dev режиме
               if (isDev) {
                 console.log(`✅ Image loaded for ${fileId}${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
               }
-              // Сохранить URL в кеш после успешной загрузки
               try {
                 await cacheManager.set(fileId, normalizedUrl, 'image');
               } catch (error) {
-                if (isDev) {
-                  console.warn('Failed to cache image:', error);
-                }
+                if (isDev) console.warn('Failed to cache image:', error);
               }
               resolve(normalizedUrl);
             };
             
-            img.onerror = () => {
-              reject(new Error(`Failed to load image: ${normalizedUrl}`));
-            };
-            
-            // Запускаем загрузку
+            img.onerror = () => reject(new Error(`Failed to load image: ${normalizedUrl}`));
             img.src = normalizedUrl;
           }),
-          // 🔥 ФИКС: Timeout для загрузки изображения
           new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Image load timeout')), 20000); // 🔥 УВЕЛИЧЕНО: с 8s до 20s
+            setTimeout(() => reject(new Error('Image load timeout')), 20000);
           })
         ]);
         
@@ -782,7 +804,7 @@ class ImageLoader {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await fetch(normalizedUrl);
+        const response = await fetch(normalizedUrl, getStickerFetchOptions(normalizedUrl));
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -872,7 +894,7 @@ class ImageLoader {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await fetch(normalizedUrl);
+        const response = await fetch(normalizedUrl, getStickerFetchOptions(normalizedUrl));
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }

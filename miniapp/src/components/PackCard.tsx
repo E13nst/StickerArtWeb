@@ -2,6 +2,7 @@ import { useCallback, memo, useState, useEffect, useRef, useMemo, FC } from 'rea
 import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
+import { useScrollElement } from '@/contexts/ScrollContext';
 import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
@@ -33,11 +34,13 @@ const PackCardComponent: FC<PackCardProps> = ({
   onClick,
   likeSize = 'medium'
 }) => {
-  // Используем react-intersection-observer для ленивой загрузки
+  const scrollElement = useScrollElement();
+  // root: скролл-контейнер страницы, чтобы карточки грузились при скролле внутри него (например на Profile), а не только при попадании в viewport
   const { ref, inView } = useInView({
     threshold: 0.1,
-    rootMargin: '200px', // Начинаем загрузку за 200px до появления
-    triggerOnce: false, // Позволяет паузить видео при выходе из viewport
+    rootMargin: '200px',
+    root: scrollElement || undefined,
+    triggerOnce: false,
   });
 
   const [currentStickerIndex, setCurrentStickerIndex] = useState(0);

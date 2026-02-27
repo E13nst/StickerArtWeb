@@ -69,7 +69,7 @@ export const Navbar: FC = () => {
             className={`navbar__tab ${active ? 'navbar__tab--active' : ''}`}
           >
             <span className="navbar__icon">
-              <Icon size={20} color="currentColor" />
+              <Icon size={24} color="currentColor" />
             </span>
             <span className="navbar__label">{item.label}</span>
           </NavLink>

@@ -5,7 +5,6 @@ import { useStickerStore } from '@/store/useStickerStore';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { apiClient, StatisticsResponse } from '@/api/client';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { TopUsers } from '@/components/TopUsers';
 import { TopAuthors } from '@/components/TopAuthors';
 import { PackCard } from '@/components/PackCard';
@@ -307,57 +306,73 @@ export const DashboardPage: FC = () => {
     <div className={cn('page-container', 'dashboard-page', 'account-page', 'page-container-full-height', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
       <StixlyPageContainer className="dashboard-container">
-        {isLoading ? (
-          <LoadingSpinner message="Загрузка статистики..." />
-        ) : stats ? (
-          <>
-            {/* Statistics Section — Figma Our Statistics */}
-            <div className="dashboard-stats-section-wrap">
-            <div className="dashboard-stats-section">
-              <h2 className="dashboard-stats-title">Our Statistics</h2>
-              <div className="dashboard-stats-content">
-                <div className="dashboard-stat-item">
-                  <span className="dashboard-stat-label">Likes</span>
-                  <div className="dashboard-stat-value-row">
-                    <span className="dashboard-stat-value">{stats.totalLikes}</span>
-                    <span className="dashboard-stat-trend">{stats.likesTodayTrend}</span>
-                  </div>
+        {/* Statistics Section — макет всегда, контент подгружается внутри */}
+        <div className="dashboard-stats-section-wrap">
+          <div className="dashboard-stats-section">
+            <h2 className="dashboard-stats-title">Our Statistics</h2>
+            <div className="dashboard-stats-content">
+              <div className="dashboard-stat-item">
+                <span className="dashboard-stat-label">Likes</span>
+                <div className="dashboard-stat-value-row">
+                  {isLoading ? (
+                    <span className="dashboard-stat-value dashboard-stat-value--skeleton" style={{ width: 48, height: 22, borderRadius: 6 }} />
+                  ) : (
+                    <span className="dashboard-stat-value">{stats?.totalLikes ?? '—'}</span>
+                  )}
+                  {!isLoading && stats && <span className="dashboard-stat-trend">{stats.likesTodayTrend}</span>}
                 </div>
-                <div className="dashboard-stat-item">
-                  <span className="dashboard-stat-label">Sticker Packs</span>
-                  <div className="dashboard-stat-value-row">
-                    <span className="dashboard-stat-value">{stats.totalStickerPacks}</span>
-                    <span className="dashboard-stat-trend">{stats.stickerPacksTrend}</span>
-                  </div>
+              </div>
+              <div className="dashboard-stat-item">
+                <span className="dashboard-stat-label">Sticker Packs</span>
+                <div className="dashboard-stat-value-row">
+                  {isLoading ? (
+                    <span className="dashboard-stat-value dashboard-stat-value--skeleton" style={{ width: 48, height: 22, borderRadius: 6 }} />
+                  ) : (
+                    <span className="dashboard-stat-value">{stats?.totalStickerPacks ?? '—'}</span>
+                  )}
+                  {!isLoading && stats && <span className="dashboard-stat-trend">{stats.stickerPacksTrend}</span>}
                 </div>
-                <div className="dashboard-stat-item">
-                  <span className="dashboard-stat-label">Artpoints</span>
-                  <div className="dashboard-stat-value-row">
+              </div>
+              <div className="dashboard-stat-item">
+                <span className="dashboard-stat-label">Artpoints</span>
+                <div className="dashboard-stat-value-row">
+                  {isLoading ? (
+                    <span className="dashboard-stat-value dashboard-stat-value--skeleton" style={{ width: 56, height: 22, borderRadius: 6 }} />
+                  ) : stats ? (
                     <span className="dashboard-stat-value">
-                      {stats.artEarnedTotal.toLocaleString('en-US', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 1,
-                      })}
+                      {stats.artEarnedTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}
                     </span>
-                    <span className="dashboard-stat-trend">{stats.artEarnedTrend}</span>
-                  </div>
+                  ) : (
+                    <span className="dashboard-stat-value">—</span>
+                  )}
+                  {!isLoading && stats && <span className="dashboard-stat-trend">{stats.artEarnedTrend}</span>}
                 </div>
               </div>
             </div>
-            </div>
+          </div>
+        </div>
 
-            {/* Top Stickers: Card Custom + Card Official — одна pack card, слайд-карусель */}
-            <div className="dashboard-category-section">
-              <div className="dashboard-category-cards-row">
-                <div className="dashboard-card dashboard-card-custom">
-                  <h2 className="dashboard-card-title">Top custom Stickers</h2>
-                  <div className="dashboard-card-carousel">
-                    <div
-                      className={cn('dashboard-card-carousel-track', userTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
-                      style={{
-                        transform: `translateX(-${carouselUserIndex * 209}px)`,
-                      }}
-                    >
+        {/* Top Stickers: контейнеры всегда, внутри — скелетоны или карточки */}
+        <div className="dashboard-category-section">
+          <div className="dashboard-category-cards-row">
+            <div className="dashboard-card dashboard-card-custom">
+              <h2 className="dashboard-card-title">Top custom Stickers</h2>
+              <div className="dashboard-card-carousel">
+                <div
+                  className={cn('dashboard-card-carousel-track', userTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
+                  style={{ transform: isLoading ? undefined : `translateX(-${carouselUserIndex * 209}px)` }}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="dashboard-card-carousel-slide">
+                        <div className="dashboard-card-carousel-skeleton pack-card-skeleton" />
+                      </div>
+                      <div className="dashboard-card-carousel-slide">
+                        <div className="dashboard-card-carousel-skeleton pack-card-skeleton" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
                       {userPacks.map((pack) => (
                         <div key={pack.id} className="dashboard-card-carousel-slide">
                           <PackCard pack={pack} onClick={handlePackClick} />
@@ -368,18 +383,29 @@ export const DashboardPage: FC = () => {
                           <PackCard pack={userPacks[0]} onClick={handlePackClick} />
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
-                <div className="dashboard-card dashboard-card-official">
-                  <h2 className="dashboard-card-title">Top official Stickers</h2>
-                  <div className="dashboard-card-carousel">
-                    <div
-                      className={cn('dashboard-card-carousel-track', officialTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
-                      style={{
-                        transform: `translateX(-${carouselOfficialIndex * 209}px)`,
-                      }}
-                    >
+              </div>
+            </div>
+            <div className="dashboard-card dashboard-card-official">
+              <h2 className="dashboard-card-title">Top official Stickers</h2>
+              <div className="dashboard-card-carousel">
+                <div
+                  className={cn('dashboard-card-carousel-track', officialTrackNoTransition && 'dashboard-card-carousel-track--no-transition')}
+                  style={{ transform: isLoading ? undefined : `translateX(-${carouselOfficialIndex * 209}px)` }}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="dashboard-card-carousel-slide">
+                        <div className="dashboard-card-carousel-skeleton pack-card-skeleton" />
+                      </div>
+                      <div className="dashboard-card-carousel-slide">
+                        <div className="dashboard-card-carousel-skeleton pack-card-skeleton" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
                       {officialPacks.map((pack) => (
                         <div key={pack.id} className="dashboard-card-carousel-slide">
                           <PackCard pack={pack} onClick={handlePackClick} />
@@ -390,30 +416,32 @@ export const DashboardPage: FC = () => {
                           <PackCard pack={officialPacks[0]} onClick={handlePackClick} />
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Кнопка генерации стикера — над секцией Earn ART */}
-            <div className="dashboard-quick-actions-container">
-              <div className="dashboard-quick-actions-background" />
-              <div className="dashboard-quick-actions-content">
-                <div className="dashboard-quick-actions-grid dashboard-quick-actions-grid--single">
-                  <button
-                    type="button"
-                    className="button-base button-rounded-lg dashboard-quick-action-button dashboard-quick-action-button--large"
-                    onClick={() => navigate('/generate')}
-                  >
-                    СГЕНЕРИРОВАТЬ СТИКЕР
-                  </button>
-                </div>
-              </div>
+        {/* Кнопка генерации — всегда в макете */}
+        <div className="dashboard-quick-actions-container">
+          <div className="dashboard-quick-actions-background" />
+          <div className="dashboard-quick-actions-content">
+            <div className="dashboard-quick-actions-grid dashboard-quick-actions-grid--single">
+              <button
+                type="button"
+                className="button-base button-rounded-lg dashboard-quick-action-button dashboard-quick-action-button--large"
+                onClick={() => navigate('/generate')}
+              >
+                СГЕНЕРИРОВАТЬ СТИКЕР
+              </button>
             </div>
+          </div>
+        </div>
 
-            {/* Earn ART — бывшие Daily activity */}
-            <div className="dashboard-daily-activity-section">
+        {/* Earn ART — всегда в макете */}
+        <div className="dashboard-daily-activity-section">
             <div className="dashboard-daily-activity">
               <div className="dashboard-daily-activity-header">
                 <h2 className="dashboard-daily-activity-title">Earn ART</h2>
@@ -461,48 +489,48 @@ export const DashboardPage: FC = () => {
                 </div>
               </div>
             </div>
-            </div>
+        </div>
 
-            {/* Top Users Section */}
-            <div className="dashboard-top-users-section">
-              {topAuthors.length > 0 ? (
-                <TopUsers authors={topAuthors} />
-              ) : (
-                <div className={cn('card-base', 'dashboard-top-users-card')}>
-                  <div className="dashboard-top-users-card-content">
-                    <Text variant="bodySmall" color="hint" className="dashboard-top-users-title">
-                      Топ пользователей
-                    </Text>
-                    <Text variant="bodySmall" color="hint" className="dashboard-top-users-text">
-                      Загрузка...
-                    </Text>
-                  </div>
-                </div>
-              )}
+        {/* Top Users — контейнер всегда, контент подгружается */}
+        <div className="dashboard-top-users-section">
+          {topAuthors.length > 0 ? (
+            <TopUsers authors={topAuthors} />
+          ) : (
+            <div className={cn('card-base', 'dashboard-top-users-card')}>
+              <div className="dashboard-top-users-card-content">
+                <Text variant="bodySmall" color="hint" className="dashboard-top-users-title">
+                  Топ пользователей
+                </Text>
+                <Text variant="bodySmall" color="hint" className="dashboard-top-users-text">
+                  {isLoading ? 'Загрузка...' : '—'}
+                </Text>
+              </div>
             </div>
+          )}
+        </div>
 
-            {/* Top Authors Section */}
-            <div className="dashboard-top-authors-section">
-              {topAuthorsList.length > 0 ? (
-                <TopAuthors authors={topAuthorsList} />
-              ) : (
-                <div className="card-base dashboard-top-authors-card">
-                  <div className="dashboard-top-authors-card-content">
-                    <Text variant="bodySmall" color="hint" className="dashboard-top-authors-title">
-                      Топ авторов стикерсетов
-                    </Text>
-                    <Text variant="bodySmall" color="hint" className="dashboard-top-authors-text">
-                      Загрузка...
-                    </Text>
-                  </div>
-                </div>
-              )}
+        {/* Top Authors — контейнер всегда, контент подгружается */}
+        <div className="dashboard-top-authors-section">
+          {topAuthorsList.length > 0 ? (
+            <TopAuthors authors={topAuthorsList} />
+          ) : (
+            <div className="card-base dashboard-top-authors-card">
+              <div className="dashboard-top-authors-card-content">
+                <Text variant="bodySmall" color="hint" className="dashboard-top-authors-title">
+                  Топ авторов стикерсетов
+                </Text>
+                <Text variant="bodySmall" color="hint" className="dashboard-top-authors-text">
+                  {isLoading ? 'Загрузка...' : '—'}
+                </Text>
+              </div>
             </div>
+          )}
+        </div>
 
-            {/* Bottom Spacing */}
-            <div className="dashboard-bottom-spacing" />
-          </>
-        ) : (
+        <div className="dashboard-bottom-spacing" />
+
+        {/* Ошибка — только после завершения загрузки */}
+        {!isLoading && !stats && (
           <div className={cn('flex-center', 'error-text-container')}>
             <Text variant="body" className="error-text">
               Не удалось загрузить статистику

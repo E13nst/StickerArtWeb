@@ -21,6 +21,7 @@ import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { DownloadIcon } from '@/components/ui/Icons';
 import { StickerSetEditOperations } from '@/types/sticker';
 import { DonateModal } from './DonateModal';
+import { LoadingSpinner } from './LoadingSpinner';
 import './StickerSetDetail.css';
 
 // Компонент для ленивой загрузки миниатюр
@@ -195,6 +196,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   const stickerCount = stickers.length;
   const {
     activeIndex,
+    setActiveIndex,
     setCurrentStickerLoading,
     isMainLoaded,
     setIsMainLoaded,
@@ -210,6 +212,21 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     previewRef
   } = useStickerNavigation({ stickerCount, isModal });
 
+  // При подгрузке полного стикерсета сохраняем текущее превью: ищем тот же file_id в новом списке
+  const prevStickersRef = useRef<typeof stickers>([]);
+  useEffect(() => {
+    if (stickers.length === 0) return;
+    const prev = prevStickersRef.current;
+    prevStickersRef.current = stickers;
+    if (prev.length > 0 && prev !== stickers) {
+      const prevFileId = prev[activeIndex]?.file_id;
+      if (prevFileId) {
+        const idx = stickers.findIndex((s: any) => s.file_id === prevFileId);
+        if (idx >= 0 && idx !== activeIndex) setActiveIndex(idx);
+      }
+    }
+  }, [stickers, activeIndex, setActiveIndex]);
+
   const [authorUsername, setAuthorUsername] = useState<string | null>(null);
   const [isCategoriesDialogOpen, setIsCategoriesDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
@@ -218,14 +235,6 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   // Режим просмотра/редактирования (только для автора)
   // mode может быть установлен в 'edit' только если isAuthor === true
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-  
-  // Отладочный лог для E2E тестов
-  console.log('🔵 StickerSetDetail render:', {
-    stickerSetId: effectiveStickerSet.id,
-    hasFullStickerSet: !!fullStickerSet,
-    availableActions: effectiveStickerSet.availableActions,
-    isBlocked: effectiveStickerSet.isBlocked
-  });
   
   const isStickerSetBlocked = Boolean(effectiveStickerSet?.isBlocked);
   const currentBlockReason = effectiveStickerSet?.blockReason;
@@ -360,11 +369,8 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     // Prefetch не гарантирует немедленную загрузку, а нам нужно показать стикер СЕЙЧАС
     setCurrentStickerLoading(true);
     
-    // 🔍 ДИАГНОСТИКА: Логируем данные стикера для отладки
     const isAnimated = currentSticker.is_animated || (currentSticker as any).isAnimated;
     const isVideo = currentSticker.is_video || (currentSticker as any).isVideo;
-    console.log(`🔍 [StickerSetDetail] Стикер ${activeIndex}: file_id=${currentSticker.file_id.slice(-8)}, is_animated=${currentSticker.is_animated}, isAnimated=${(currentSticker as any).isAnimated}, is_video=${currentSticker.is_video}, isVideo=${(currentSticker as any).isVideo}`);
-    
     const loadPromise = isAnimated
       ? imageLoader.loadAnimation(currentSticker.file_id, imageUrl, LoadPriority.TIER_0_MODAL)
       : isVideo
@@ -428,17 +434,6 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     }
   }, [activeIndex, stickers]);
   
-  // Отладочная информация (только в dev режиме)
-  if ((import.meta as any).env?.DEV) {
-    console.log('🎯 StickerSetDetail:', {
-      stickerSetId: stickerSet.id,
-      loading,
-      error,
-      fullStickerSet: !!fullStickerSet,
-      stickersCount: stickers.length
-    });
-  }
-
   const handleOpenCategoriesDialog = useCallback(() => {
     setIsCategoriesDialogOpen(true);
   }, []);
@@ -802,6 +797,9 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     );
   }
 
+  const showLoader = loading && stickers.length === 0;
+  const showEmpty = !loading && stickers.length === 0;
+
   // View-режим (обычный режим просмотра) — стили по Figma #Card
   return (
     <div
@@ -878,7 +876,12 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
           )
         )}
       </div>
-      {stickerCount > 0 && (
+      {showLoader && (
+        <div className="sticker-set-detail-card__loader" style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
+          <LoadingSpinner message="Загрузка..." />
+        </div>
+      )}
+      {!showLoader && stickerCount > 0 && (
         <div className="sticker-set-detail-card__main">
           <div className="sticker-set-detail-card__preview-wrap">
             <StickerPreview
@@ -922,37 +925,39 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
         </div>
       )}
 
-      <div className="sticker-set-detail-card__strip">
-        <div
-          ref={scrollerRef}
-          className="sticker-set-detail-card__strip-inner"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {stickers.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 72, padding: 5 }}>
-              <Text 
-                variant="bodySmall"
-                align="center"
-                color="secondary"
-              >
-                Нет стикеров для отображения
-              </Text>
-            </div>
-          ) : (
-            stickers.map((s, idx) => {
-              return (
-                <LazyThumbnail
-                  key={s.file_id}
-                  sticker={s}
-                  index={idx}
-                  activeIndex={activeIndex}
-                  onClick={handleStickerClick}
-                />
-              );
-            })
-          )}
+      {!showLoader && (
+        <div className="sticker-set-detail-card__strip">
+          <div
+            ref={scrollerRef}
+            className="sticker-set-detail-card__strip-inner"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {showEmpty ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 72, padding: 5 }}>
+                <Text 
+                  variant="bodySmall"
+                  align="center"
+                  color="secondary"
+                >
+                  Нет стикеров для отображения
+                </Text>
+              </div>
+            ) : (
+              stickers.map((s, idx) => {
+                return (
+                  <LazyThumbnail
+                    key={s.file_id}
+                    sticker={s}
+                    index={idx}
+                    activeIndex={activeIndex}
+                    onClick={handleStickerClick}
+                  />
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="sticker-set-detail-card__footer sticker-detail-info-card" onClick={(e) => e.stopPropagation()}>
         <div className="sticker-set-detail-card__footer-inner">

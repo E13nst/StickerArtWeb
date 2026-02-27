@@ -45,36 +45,6 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
     a.error === b.error
   );
   
-  // Логирование только при реальных изменениях
-  const prevStateRef = useRef<{ likesCount: number; isLiked: boolean; syncing: boolean; error?: string } | null>(null);
-  
-  useEffect(() => {
-    const currentState = { likesCount, isLiked, syncing, error };
-    const prevState = prevStateRef.current;
-    
-    // Логируем только если состояние действительно изменилось
-    if (prevState === null || 
-        prevState.likesCount !== currentState.likesCount || 
-        prevState.isLiked !== currentState.isLiked ||
-        prevState.syncing !== currentState.syncing ||
-        prevState.error !== currentState.error) {
-      console.log(`🔍 DEBUG InteractiveLikeCount [${packId}]:`, {
-        packId,
-        isLiked: currentState.isLiked,
-        likesCount: currentState.likesCount,
-        syncing: currentState.syncing,
-        error: currentState.error,
-        changed: prevState ? {
-          likesCount: prevState.likesCount !== currentState.likesCount,
-          isLiked: prevState.isLiked !== currentState.isLiked,
-          syncing: prevState.syncing !== currentState.syncing,
-          error: prevState.error !== currentState.error
-        } : 'initial'
-      });
-      prevStateRef.current = currentState;
-    }
-  }, [packId, likesCount, isLiked, syncing, error]);
-  
   const toggleLike = useLikesStore((state) => state.toggleLike);
 
   const sizeStyles = {

@@ -161,6 +161,44 @@
   border: none !important;
 }
 
+/* Скелетон шапки профиля — макет без мерцания при загрузке */
+.account-header__skeleton .account-header__share-wrap {
+  pointer-events: none;
+}
+.account-header__skeleton-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
+}
+.account-header__skeleton-name {
+  width: 120px;
+  height: 22px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
+}
+.account-header__skeleton-stat {
+  display: inline-block;
+  width: 48px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
+}
+.account-header__skeleton-wallet {
+  width: 140px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
+}
+@keyframes my-profile-skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 /* Кнопка "Поделиться" — верхняя часть карточки; небольшой отступ от края в стиле приложения (16px + safe area) */
 .account-header__share-wrap {
   position: absolute;
@@ -569,10 +607,6 @@
   color: rgba(255, 255, 255, 0.8) !important;
 }
 
-.account-page .my-profile-wallet-loading {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-
 /* Достижения — карточка в стиле ACCOUNT */
 .account-page .achievements-container,
 .account-page .achievements-title,
@@ -753,11 +787,6 @@
 .wallet-menu-item:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.my-profile-wallet-loading {
-  color: var(--tg-theme-hint-color);
-  font-size: 0.7rem;
 }
 
 .my-profile-wallet-error {
