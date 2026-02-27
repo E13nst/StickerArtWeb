@@ -1,21 +1,38 @@
-/* LeaderboardModal — Figma List */
+/* LeaderboardModal — по аналогии с SaveToStickerSetModal */
 
-.leaderboard-modal__content {
+.leaderboard-modal__card {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
+  bottom: 0;
   width: 100%;
-  height: auto;
-  max-height: min(612px, 85vh);
-  overflow: hidden;
+  max-width: var(--component-card-max-width, 402px);
+  margin-left: auto;
+  margin-right: auto;
+  max-height: 78.6vh;
   display: flex;
   flex-direction: column;
-  background: #262626;
-  border-radius: 16px 16px 0 0;
+  overflow: hidden;
   touch-action: pan-y;
-  z-index: var(--z-modal, 1000);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
+  z-index: calc(var(--z-modal, 1000) + 1);
   animation: leaderboardModalSlideUp 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.leaderboard-modal__card--dragging {
+  animation: none !important;
+  will-change: transform;
+}
+
+.leaderboard-modal__card--drag-dismissed {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translateY(100vh) !important;
 }
 
 @keyframes leaderboardModalSlideUp {
@@ -29,58 +46,35 @@
   }
 }
 
-/* Content — Figma: padding 40px 16px 0 */
-.leaderboard-modal__inner {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 40px 16px 0;
-  flex: 1;
-  min-height: 0;
-}
-
-/* Home Indicator / grab handle — Figma: 100px × 4px, top 10px */
-.leaderboard-modal__grab-handle {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 10px;
-  width: 100px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 2.5px;
+.leaderboard-modal__handle {
+  width: 34px;
+  height: 3px;
+  background-color: var(--color-text-secondary);
+  opacity: 0.4;
+  border-radius: 2px;
+  margin: 8px auto 12px;
   flex-shrink: 0;
 }
 
-/* Header — Figma: center, padding 0 0 32px, gap 10px */
-.leaderboard-modal__header {
+.leaderboard-modal__header-row {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 0 32px;
-  gap: 10px;
+  padding: 0 16px 12px;
   flex-shrink: 0;
-  position: relative;
 }
 
 .leaderboard-modal__title {
-  font-family: 'Manrope', sans-serif;
-  font-style: normal;
+  font-family: var(--font-family-base);
   font-weight: 700;
-  font-size: 24px;
+  font-size: 1rem;
   line-height: 22px;
-  text-align: center;
-  color: #ffffff;
+  color: var(--color-text);
   margin: 0;
 }
 
-/* Кнопка закрытия — зафиксирована в правом верхнем углу модалки */
 .leaderboard-modal__close-btn {
-  position: absolute;
-  right: 16px;
-  top: 16px;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,13 +83,18 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: #ffffff;
+  color: var(--color-text);
   cursor: pointer;
   border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .leaderboard-modal__close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-modal__close-btn:active {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Scroll area */
@@ -104,15 +103,17 @@
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
+  padding: 0 16px 16px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
 .leaderboard-modal__scroll::-webkit-scrollbar {
   display: none;
 }
 
-.leaderboard-modal__scroll {
-  scrollbar-width: none;
+.leaderboard-modal__loading {
+  padding: 32px 0;
 }
 
 /* List — Figma: rows with border-bottom, no gap */
@@ -134,6 +135,7 @@
   background: transparent;
   cursor: default;
   box-sizing: border-box;
+  color: var(--color-text);
 }
 
 .leaderboard-modal__user-item--clickable {

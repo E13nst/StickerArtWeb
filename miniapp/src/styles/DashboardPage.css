@@ -39,15 +39,16 @@
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  padding: 16px 16px 16px;
+  padding: 16px 16px 12px 16px;
   gap: 16px;
-  width: 100%;
-  max-width: 370px;
+  width: 370px;
+  max-width: 100%;
   min-height: 104px;
   box-sizing: border-box;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 16px;
+  border: none;
 }
 
 .dashboard-stats-title {
@@ -698,20 +699,21 @@
    Стили карточек
    ============================================ */
 
-/* Карточки Top Users — те же стили и высота, что у .top-authors-card (Топ авторов) */
+/* Карточки Top Users — стиль как у dashboard-daily-activity */
 .dashboard-top-users-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
+  padding: 16px 16px 12px 16px;
   gap: 16px;
-  width: 100%;
-  max-width: 370px;
+  width: 370px;
+  max-width: 100%;
   min-height: 228px;
   box-sizing: border-box;
-  border-radius: var(--border-radius-lg);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border: none;
 }
 
 .dashboard-top-users-card-content {
@@ -775,19 +777,20 @@
   width: 100%;
 }
 
-/* Плейсхолдер Топ авторов — те же стили, что у .top-authors-card */
+/* Плейсхолдер Топ авторов — стиль как у dashboard-daily-activity */
 .dashboard-top-authors-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 16px 16px;
+  padding: 16px 16px 12px 16px;
   gap: 16px;
-  width: 100%;
-  max-width: 370px;
+  width: 370px;
+  max-width: 100%;
   box-sizing: border-box;
   border-radius: 16px;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border: none;
   height: auto;
 }
 
@@ -838,4 +841,17 @@
   height: var(--stixly-taskbar-height, 90.25px);
   min-height: 90px;
   flex-shrink: 0;
+}
+
+/* Переопределение .account-page .card-base для dashboard — стиль как у Earn ART */
+.dashboard-page .dashboard-top-users-card,
+.dashboard-page .dashboard-top-authors-card,
+.dashboard-page .dashboard-stats-section,
+.dashboard-page .top-users-card,
+.dashboard-page .top-authors-card {
+  background: rgba(0, 0, 0, 0.5) !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
+  border-color: transparent !important;
 }

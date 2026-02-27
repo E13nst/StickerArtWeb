@@ -93,13 +93,10 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .swipe-card-stack__card {
-    background: var(--color-surface, #1e1e1e);
-  }
+.swipe-card-stack__card {
+  background: var(--color-surface, #1e1e1e);
+}
 
-  .swipe-card-stack__empty-message {
-    color: var(--color-text-secondary, #aaa);
-  }
+.swipe-card-stack__empty-message {
+  color: var(--color-text-secondary, #aaa);
 }

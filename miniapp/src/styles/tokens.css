@@ -138,13 +138,15 @@
   --component-header-panel-height: 172px;
   --component-header-panel-balance-background-color: #2f2f2f;
   --component-header-panel-balance-border-radius: 16px;
-  --component-header-panel-wallet-background-color: var(--color-secondary);
+  /* Синий для Wallet (не берём --tg-theme-link-color — на iPhone он может быть зелёным) */
+  --component-header-panel-wallet-background-color: #007aff;
   --component-header-panel-wallet-border-radius: 16px;
   
-  /* Card */
-  --component-card-background-color: var(--color-surface);
+  /* Card — как dashboard: полупрозрачный тёмный фон */
+  --component-card-background-color: rgba(0, 0, 0, 0.5);
   --component-card-border-radius: 16px;
   --component-card-width: 370px;
+  --component-card-max-width: 402px;
   --component-card-accent-color: rgba(238, 68, 159, 0.2);
   --component-card-button-success: var(--color-success);
   --component-card-button-error: var(--color-error);
@@ -176,37 +178,10 @@
   --component-button-circle-size: 56px;
 }
 
-/* Dark Theme Support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--tg-theme-bg-color, #191818);
-    --color-surface: var(--tg-theme-secondary-bg-color, #262626);
-    --color-text: var(--tg-theme-text-color, #ffffff);
-    --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
-  }
-}
-
-/* Light Theme Support */
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-background: var(--tg-theme-bg-color, #ffffff);
-    --color-surface: var(--tg-theme-secondary-bg-color, #f8f9fa);
-    --color-text: var(--tg-theme-text-color, #000000);
-    --color-text-secondary: var(--tg-theme-hint-color, #999999);
-  }
-}
-
-/* Data Theme Attribute Support */
-[data-theme="dark"] {
+/* Единая тёмная тема — без переключения light/dark */
+:root {
   --color-background: var(--tg-theme-bg-color, #191818);
   --color-surface: var(--tg-theme-secondary-bg-color, #262626);
   --color-text: var(--tg-theme-text-color, #ffffff);
   --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
-}
-
-[data-theme="light"] {
-  --color-background: var(--tg-theme-bg-color, #ffffff);
-  --color-surface: var(--tg-theme-secondary-bg-color, #f8f9fa);
-  --color-text: var(--tg-theme-text-color, #000000);
-  --color-text-secondary: var(--tg-theme-hint-color, #999999);
 }

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback, memo, FC } from 'react';
 import { SearchBar } from './SearchBar';
 import { CategoryFilter, Category } from './CategoryFilter';
 import { SortButton } from './SortButton';
-import { AddStickerPackButton } from './AddStickerPackButton';
 import { StickerTypeFilter } from './StickerTypeFilter';
 import { DateFilter } from './DateFilter';
 import { TuneIcon } from '@/components/ui/Icons';;
@@ -39,9 +38,6 @@ interface GalleryControlsBarProps {
   selectedDate: string | null;
   onDateChange: (dateId: string) => void;
   
-  // Add button
-  onAddClick: () => void;
-  
   // Scroll behavior
   scrollContainerRef?: React.RefObject<HTMLElement>;
 }
@@ -62,26 +58,22 @@ const GalleryControlsBarComponent: FC<GalleryControlsBarProps> = ({
   onStickerTypeToggle,
   selectedDate,
   onDateChange,
-  onAddClick,
   scrollContainerRef: _scrollContainerRef,
 }) => {
   const { tg } = useTelegram();
   const scrollElement = useScrollElement();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
   
   const [isHidden, setIsHidden] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>(null);
   const lastScrollTopRef = useRef(0);
   const controlsBarRef = useRef<HTMLDivElement>(null);
 
-  // Glass effect colors
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.28)' : 'rgba(88, 138, 255, 0.20)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.42)' : 'rgba(78, 132, 255, 0.20)';
-  const glassHover = isLight ? 'rgba(148, 198, 255, 0.38)' : 'rgba(98, 150, 255, 0.34)';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.52)' : 'rgba(118, 168, 255, 0.24)';
-  const bgColor = isLight ? 'rgba(248, 251, 255, 0.95)' : 'rgba(18, 22, 29, 0.95)';
+  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const glassBase = 'rgba(88, 138, 255, 0.20)';
+  const glassSolid = 'rgba(78, 132, 255, 0.20)';
+  const glassHover = 'rgba(98, 150, 255, 0.34)';
+  const borderColor = 'rgba(118, 168, 255, 0.24)';
+  const bgColor = 'rgba(18, 22, 29, 0.95)';
 
   // Throttled scroll handler
   const throttledScrollHandler = useCallback(
@@ -158,9 +150,7 @@ const GalleryControlsBarComponent: FC<GalleryControlsBarProps> = ({
         WebkitBackdropFilter: 'blur(12px) saturate(150%)',
         borderBottom: `1px solid ${borderColor}`,
         padding: '0.5rem 0.618rem',
-        boxShadow: isLight 
-          ? '0 2px 8px rgba(30, 72, 185, 0.08)' 
-          : '0 2px 8px rgba(0, 0, 0, 0.24)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.24)',
       }}
     >
       {/* Top row: Search + Filter + Sort */}
@@ -203,9 +193,7 @@ const GalleryControlsBarComponent: FC<GalleryControlsBarProps> = ({
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 outline: 'none',
                 border: `1px solid ${borderColor}`,
-                boxShadow: isLight 
-                  ? '0 4px 12px rgba(30, 72, 185, 0.10)' 
-                  : '0 4px 12px rgba(28, 48, 108, 0.20)',
+                boxShadow: '0 4px 12px rgba(28, 48, 108, 0.20)',
                 height: '2.2rem',
                 minWidth: '2.2rem',
                 userSelect: 'none',
@@ -259,9 +247,7 @@ const GalleryControlsBarComponent: FC<GalleryControlsBarProps> = ({
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             outline: 'none',
             border: `1px solid ${borderColor}`,
-            boxShadow: isLight 
-              ? '0 4px 12px rgba(30, 72, 185, 0.10)' 
-              : '0 4px 12px rgba(28, 48, 108, 0.20)',
+            boxShadow: '0 4px 12px rgba(28, 48, 108, 0.20)',
             height: '2.2rem',
             minWidth: '2.2rem',
             maxWidth: filterLabel ? '100%' : '2.2rem',
@@ -360,14 +346,6 @@ const GalleryControlsBarComponent: FC<GalleryControlsBarProps> = ({
           }
         }
       `}</style>
-
-      {/* Add button */}
-      <div style={{ marginBottom: '0' }}>
-        <AddStickerPackButton
-          variant="gallery"
-          onClick={onAddClick}
-        />
-      </div>
     </div>
   );
 };
@@ -422,8 +400,7 @@ const arePropsEqual = (
     prevProps.onCategoryToggle !== nextProps.onCategoryToggle ||
     prevProps.onSortToggle !== nextProps.onSortToggle ||
     prevProps.onStickerTypeToggle !== nextProps.onStickerTypeToggle ||
-    prevProps.onDateChange !== nextProps.onDateChange ||
-    prevProps.onAddClick !== nextProps.onAddClick
+    prevProps.onDateChange !== nextProps.onDateChange
   ) {
     return false;
   }

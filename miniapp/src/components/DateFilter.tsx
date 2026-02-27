@@ -22,14 +22,11 @@ export const DateFilter: FC<DateFilterProps> = ({
   compact = false,
 }) => {
   const { tg } = useTelegram();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
-  
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.32)' : 'rgba(88, 138, 255, 0.24)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
-  const glassHover = isLight ? 'rgba(148, 198, 255, 0.42)' : 'rgba(98, 150, 255, 0.38)';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
+  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const glassBase = 'rgba(88, 138, 255, 0.24)';
+  const glassSolid = 'rgba(78, 132, 255, 0.24)';
+  const glassHover = 'rgba(98, 150, 255, 0.38)';
+  const borderColor = 'rgba(118, 168, 255, 0.28)';
   
   const padding = compact ? '0.35rem 0.7rem' : '0.45rem 0.9rem';
   const fontSize = compact ? '0.75rem' : '0.8125rem';

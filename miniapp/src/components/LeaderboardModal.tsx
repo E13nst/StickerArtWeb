@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef, useCallback, FC, MouseEvent } from 'react';
+import { useEffect, useState, useRef, useCallback, FC } from 'react';
+import { createPortal } from 'react-dom';
 import { CloseIcon } from '@/components/ui/Icons';
 import { ModalBackdrop } from './ModalBackdrop';
 import { LeaderboardUser } from '@/types/sticker';
@@ -9,6 +10,9 @@ import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { Avatar } from '@/components/ui/Avatar';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import './LeaderboardModal.css';
+
+const DISMISS_THRESHOLD = 100;
+const DRAG_ANIMATION_MS = 200;
 
 interface LeaderboardModalProps {
   open: boolean;
@@ -33,9 +37,7 @@ const LeaderboardUserItem: FC<LeaderboardUserItemProps> = ({ user, index }) => {
     <div
       className={`leaderboard-modal__user-item ${isFirst ? 'leaderboard-modal__user-item--first' : ''}`}
     >
-      <div className="leaderboard-modal__user-item__place">
-        {index + 1}
-      </div>
+      <div className="leaderboard-modal__user-item__place">{index + 1}</div>
       <div className="leaderboard-modal__user-item__avatar-wrap">
         <Avatar
           src={avatarBlobUrl || undefined}
@@ -49,12 +51,8 @@ const LeaderboardUserItem: FC<LeaderboardUserItemProps> = ({ user, index }) => {
           {initials}
         </Avatar>
       </div>
-      <div className="leaderboard-modal__user-item__info">
-        {displayName}
-      </div>
-      <span className="leaderboard-modal__chip">
-        {user.publicCount}
-      </span>
+      <div className="leaderboard-modal__user-item__info">{displayName}</div>
+      <span className="leaderboard-modal__chip">{user.publicCount}</span>
     </div>
   );
 };
@@ -65,9 +63,10 @@ export const LeaderboardModal: FC<LeaderboardModalProps> = ({ open, onClose }) =
   const [error, setError] = useState<string | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const modalContentRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartYRef = useRef<number | null>(null);
+  const isDraggingDownRef = useRef(false);
   const hasLoadedRef = useRef<boolean>(false);
 
   const handleRetryAuth = useCallback(() => {
@@ -83,7 +82,8 @@ export const LeaderboardModal: FC<LeaderboardModalProps> = ({ open, onClose }) =
     setError(null);
     setAuthRequired(false);
 
-    apiClient.getUsersLeaderboard(0, 100)
+    apiClient
+      .getUsersLeaderboard(0, 100)
       .then((response) => {
         setUsers(response.content ?? []);
         setAuthRequired(!!response.authRequired);
@@ -100,90 +100,110 @@ export const LeaderboardModal: FC<LeaderboardModalProps> = ({ open, onClose }) =
   useEffect(() => {
     if (!open) return;
 
+    const modalElement = contentRef.current;
+    if (!modalElement) return;
+
     const handleTouchStart = (e: TouchEvent) => {
-      touchStartYRef.current = e.touches[0].clientY;
+      const scrollAtTop = scrollContainerRef.current?.scrollTop === 0;
+      if (scrollAtTop) {
+        touchStartYRef.current = e.touches[0].clientY;
+      } else {
+        touchStartYRef.current = null;
+      }
+      isDraggingDownRef.current = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStartYRef.current === null) return;
+
       const deltaY = e.touches[0].clientY - touchStartYRef.current;
-      const target = e.target as HTMLElement;
-      const isHeaderArea = target.closest('[data-modal-header]') !== null;
 
-      if (!isHeaderArea && scrollContainerRef.current) {
-        const scrollContainer = scrollContainerRef.current;
-        const isAtTop = scrollContainer.scrollTop === 0;
-        if (!isAtTop) return;
-      }
-
-      if (deltaY > 80) {
+      if (deltaY > 5) {
+        isDraggingDownRef.current = true;
         e.preventDefault();
-        e.stopPropagation();
-        onClose();
+        modalElement.style.transition = 'none';
+        modalElement.style.transform = `translateY(${deltaY}px)`;
+        modalElement.classList.add('leaderboard-modal__card--dragging');
+      } else if (deltaY < -5) {
         touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
       }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartYRef.current === null || !isDraggingDownRef.current) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+        return;
+      }
+
+      e.preventDefault();
+
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
       touchStartYRef.current = null;
+      isDraggingDownRef.current = false;
+
+      const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
+
+      if (deltaY > DISMISS_THRESHOLD) {
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(100vh)';
+
+        setTimeout(() => {
+          modalElement.classList.remove('leaderboard-modal__card--dragging');
+          modalElement.classList.add('leaderboard-modal__card--drag-dismissed');
+          if (backdrop && !backdrop.classList.contains('modal-backdrop--keep-navbar')) {
+            backdrop.classList.add('modal-backdrop--drag-dismissed');
+          }
+          onClose();
+        }, DRAG_ANIMATION_MS);
+      } else {
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+          modalElement.style.transition = '';
+          modalElement.style.transform = '';
+          modalElement.classList.remove('leaderboard-modal__card--dragging');
+        }, DRAG_ANIMATION_MS);
+      }
     };
 
-    const modalElement = modalContentRef.current;
-    if (modalElement) {
-      modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
-      modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-      modalElement.addEventListener('touchend', handleTouchEnd, { passive: true });
-    }
+    modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    modalElement.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
-      if (modalElement) {
-        modalElement.removeEventListener('touchstart', handleTouchStart);
-        modalElement.removeEventListener('touchmove', handleTouchMove);
-        modalElement.removeEventListener('touchend', handleTouchEnd);
-      }
+      modalElement.removeEventListener('touchstart', handleTouchStart);
+      modalElement.removeEventListener('touchmove', handleTouchMove);
+      modalElement.removeEventListener('touchend', handleTouchEnd);
     };
   }, [open, onClose]);
 
-  const handleOutsideClick = useCallback((event: MouseEvent) => {
-    const target = event.target as HTMLElement;
-    if (modalContentRef.current && !modalContentRef.current.contains(target)) {
-      onClose();
-    }
-  }, [onClose]);
-
   if (!open) return null;
 
-  return (
-    <ModalBackdrop open={open} onClose={onClose}>
-      <div
-        ref={modalContentRef}
-        data-modal-content
-        className="leaderboard-modal__content"
-        onClick={handleOutsideClick}
-      >
-        <div data-modal-header className="leaderboard-modal__grab-handle" />
-        <button
-          type="button"
-          className="leaderboard-modal__close-btn"
-          onClick={onClose}
-          aria-label="Закрыть"
-          data-modal-header
-        >
-          <CloseIcon />
-        </button>
-        <div className="leaderboard-modal__inner">
-          <div data-modal-header className="leaderboard-modal__header">
-            <h2 className="leaderboard-modal__title">
-              Топ пользователей по добавлениям
-            </h2>
-          </div>
-          <div
-            ref={scrollContainerRef}
-            className="leaderboard-modal__scroll"
-            onClick={(e) => e.stopPropagation()}
+  const modal = (
+    <ModalBackdrop open={open} onClose={onClose} noBlur keepNavbarVisible>
+      <div ref={contentRef} data-modal-content className="leaderboard-modal__card">
+        <div className="leaderboard-modal__handle" aria-hidden="true" />
+        <div className="leaderboard-modal__header-row">
+          <h2 className="leaderboard-modal__title">Топ пользователей по добавлениям</h2>
+          <button
+            type="button"
+            className="leaderboard-modal__close-btn"
+            onClick={onClose}
+            aria-label="Закрыть"
           >
+            <CloseIcon size={18} />
+          </button>
+        </div>
+        <div
+          ref={scrollContainerRef}
+          className="leaderboard-modal__scroll"
+          onClick={(e) => e.stopPropagation()}
+        >
           {loading ? (
-            <div style={{ padding: '32px 0' }}>
+            <div className="leaderboard-modal__loading">
               <LoadingSpinner message="" />
             </div>
           ) : authRequired ? (
@@ -206,9 +226,10 @@ export const LeaderboardModal: FC<LeaderboardModalProps> = ({ open, onClose }) =
               ))}
             </div>
           )}
-          </div>
         </div>
       </div>
     </ModalBackdrop>
   );
+
+  return createPortal(modal, document.body);
 };

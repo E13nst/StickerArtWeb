@@ -189,47 +189,6 @@ export const MyProfilePage: FC = () => {
     }
   }, [referralLink?.url, tg]);
 
-  // Определение темы для кнопки (как в AddStickerPackButton)
-  const computeIsLightTheme = useCallback(() => {
-    if (tg?.colorScheme === 'light') return true;
-    if (tg?.colorScheme === 'dark') return false;
-    if (typeof document !== 'undefined') {
-      if (document.documentElement.classList.contains('tg-light-theme')) return true;
-      if (document.documentElement.classList.contains('tg-dark-theme')) return false;
-      const themeAttr = document.documentElement.getAttribute('data-theme');
-      if (themeAttr === 'light') return true;
-      if (themeAttr === 'dark') return false;
-    }
-    if (typeof window !== 'undefined' && 'matchMedia' in window) {
-      return window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-    return true;
-  }, [tg]);
-  
-  const [isLightTheme, setIsLightTheme] = useState<boolean>(computeIsLightTheme);
-  
-  useEffect(() => {
-    setIsLightTheme(computeIsLightTheme());
-    const handleThemeChange = () => setIsLightTheme(computeIsLightTheme());
-    tg?.onEvent?.('themeChanged', handleThemeChange);
-    const observer = typeof MutationObserver !== 'undefined' && typeof document !== 'undefined'
-      ? new MutationObserver(handleThemeChange)
-      : null;
-    if (observer) {
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-    }
-    let mediaQuery: MediaQueryList | undefined;
-    const handleMediaQueryChange = (event: MediaQueryListEvent) => setIsLightTheme(event.matches);
-    if (typeof window !== 'undefined' && 'matchMedia' in window) {
-      mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-      mediaQuery.addEventListener('change', handleMediaQueryChange);
-    }
-    return () => {
-      tg?.offEvent?.('themeChanged', handleThemeChange);
-      observer?.disconnect();
-      mediaQuery?.removeEventListener('change', handleMediaQueryChange);
-    };
-  }, [tg, computeIsLightTheme]);
   // ✅ FIX: Отслеживаем текущий загружаемый fileId для предотвращения дублирования
   const loadingAvatarFileIdRef = useRef<string | null>(null);
   // ✅ FIX: Флаг для предотвращения повторных вызовов loadMyProfile из-за React.StrictMode
@@ -828,9 +787,9 @@ export const MyProfilePage: FC = () => {
   }, [likedIdsHash, activeProfileTab, isLikedListLoaded]);
 
 
-  const handleCreateSticker = () => {
+  const handleCreateSticker = useCallback(() => {
     setIsUploadModalOpen(true);
-  };
+  }, []);
 
   // Обработка поиска
   const handleSearchChange = (newSearchTerm: string) => {
@@ -1001,18 +960,18 @@ export const MyProfilePage: FC = () => {
         className={cn('account-header', isInTelegramApp && 'account-header--telegram')}
         data-figma-block="Head account"
       >
+        <div className={cn('account-header__card', !userInfo && !userError && 'account-header__skeleton')} aria-hidden={!userInfo && !userError ? true : undefined}>
         {/* Ошибка: только когда не грузим и нет userInfo */}
-        {!isUserLoading && userError && !userInfo && (
+        {!isUserLoading && userError && !userInfo ? (
           <div className="error-box">
             <ErrorDisplay 
               error={userError} 
               onRetry={() => loadMyProfile(true)}
             />
           </div>
-        )}
-        {/* Скелетон шапки: пока нет userInfo и нет ошибки — макет без мерцания */}
-        {!userError && !userInfo && (
-          <div className="account-header__card account-header__skeleton" aria-hidden="true">
+        ) : !userError && !userInfo ? (
+          /* Скелетон шапки: пока нет userInfo и нет ошибки — макет без мерцания */
+          <>
             <div className="account-header__share-wrap" />
             <div className="account-header__avatar account-header__skeleton-avatar" />
             <div className="account-header__name account-header__skeleton-name" />
@@ -1021,10 +980,9 @@ export const MyProfilePage: FC = () => {
               <div className="account-header__stat"><span className="account-header__skeleton-stat" /></div>
             </div>
             <div className="account-header__wallet"><div className="account-header__skeleton-wallet" /></div>
-          </div>
-        )}
-        {userInfo && (
-          <div className="account-header__card">
+          </>
+        ) : userInfo ? (
+          <>
             {/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area */}
             <div className="account-header__share-wrap">
               <button
@@ -1133,8 +1091,9 @@ export const MyProfilePage: FC = () => {
                 <Text variant="bodySmall" color="default">{walletError}</Text>
               </div>
             )}
-          </div>
-        )}
+          </>
+        ) : null}
+        </div>
       </div>
 
       {/* Вкладки Stickers | Art-points — всегда показываем макет для отсутствия сдвигов */}
@@ -1203,7 +1162,7 @@ export const MyProfilePage: FC = () => {
                   onStickerSetTypeToggle={() => {}}
                   selectedDate={null}
                   onDateChange={() => {}}
-                  onAddClick={() => setIsUploadModalOpen(true)}
+                  onAddClick={handleCreateSticker}
                 />
               </div>
               {contentLoading ? (
@@ -1225,23 +1184,6 @@ export const MyProfilePage: FC = () => {
                   <Text variant="bodySmall" className="my-profile-empty-state-message">
                     {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикер'}
                   </Text>
-                  <div className="my-profile-empty-state-button-container">
-                    <Button
-                      variant="primary"
-                      size="large"
-                      onClick={() => {
-                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                        handleCreateSticker();
-                      }}
-                      className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
-                    >
-                      <span className="button-icon">+</span>
-                      Добавьте стикерпак
-                      <span className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}>
-                        +10 ART
-                      </span>
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <div className="u-fade-in">
@@ -1308,7 +1250,7 @@ export const MyProfilePage: FC = () => {
                   onStickerSetTypeToggle={() => {}}
                   selectedDate={null}
                   onDateChange={() => {}}
-                  onAddClick={() => setIsUploadModalOpen(true)}
+                  onAddClick={handleCreateSticker}
                 />
               </div>
               {contentLoading ? (
@@ -1330,23 +1272,6 @@ export const MyProfilePage: FC = () => {
                   <Text variant="bodySmall" className="my-profile-empty-state-message">
                     {searchTerm ? 'По вашему запросу ничего не найдено' : 'Добавьте стикерпак'}
                   </Text>
-                  <div className="my-profile-empty-state-button-container">
-                    <Button
-                      variant="primary"
-                      size="large"
-                      onClick={() => {
-                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                        handleCreateSticker();
-                      }}
-                      className={cn('button-base button-rounded-md my-profile-add-button', isLightTheme ? 'light-theme' : 'dark-theme')}
-                    >
-                      <span className="button-icon">+</span>
-                      Добавьте стикерпак
-                      <span className={cn('my-profile-add-button-chip', isLightTheme ? 'light-theme' : 'dark-theme')}>
-                        +10 ART
-                      </span>
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <div className="u-fade-in">
@@ -1361,17 +1286,17 @@ export const MyProfilePage: FC = () => {
                   />
                 </div>
               )}
-              {!contentLoading && (
-                <AddStickerPackButton
-                  variant="profile"
-                  onClick={() => setIsUploadModalOpen(true)}
-                />
-              )}
             </TabPanel>
         </>
         ) : mainTab === 1 ? (
           /* Art-points: account-menu-content, конкретно account-quests-grid */
           <div className="account-menu-content" id="account-main-panel-artpoints" role="tabpanel" aria-labelledby="account-main-tab-artpoints">
+            <div className="account-main-panel-artpoints-add" style={{ marginBottom: 16 }}>
+              <AddStickerPackButton
+                variant="profile"
+                onClick={handleCreateSticker}
+              />
+            </div>
             <div className="account-quests-grid">
               <QuestStixlyCard
                 title="Quest Stixly"

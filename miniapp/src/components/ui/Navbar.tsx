@@ -43,8 +43,8 @@ const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Home', Icon: NavHomeIcon },
   { path: '/gallery', label: 'Gallery', Icon: NavGalleryIcon },
   { path: '/nft-soon', label: 'Swipe', Icon: NavLikeIcon },
-  { path: '/generate', label: 'Generation', Icon: NavArtIcon },
-  { path: '/profile', label: 'Account', Icon: NavAccountIcon },
+  { path: '/generate', label: 'Stixly AI', Icon: NavArtIcon },
+  { path: '/profile', label: 'Profile', Icon: NavAccountIcon },
 ];
 
 export const Navbar: FC = () => {

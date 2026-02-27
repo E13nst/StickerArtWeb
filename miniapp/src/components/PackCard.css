@@ -1,17 +1,17 @@
-/* PackCard — визуальный стиль StickerCard (design tokens), логика отображения без изменений */
+/* PackCard — простой стиль как у dashboard-карточек, без liquid glass */
 
 .pack-card {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1.618;
-  border-radius: var(--border-radius-lg);
+  border-radius: 16px;
   overflow: visible;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   touch-action: manipulation;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px var(--color-overlay-dark);
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 .pack-card:hover {
@@ -20,7 +20,7 @@
 
 .pack-card:focus,
 .pack-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid #ee449f;
   outline-offset: 2px;
 }
 
@@ -34,7 +34,7 @@
   height: 100%;
   position: relative;
   overflow: hidden;
-  border-radius: var(--border-radius-lg);
+  border-radius: 16px;
 }
 
 .pack-card__placeholder {
@@ -44,8 +44,8 @@
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  color: var(--color-text-secondary);
-  background: var(--color-surface);
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .pack-card__title-overlay {
@@ -53,17 +53,17 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, var(--color-overlay-dark));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
   color: #ffffff;
-  padding: var(--spacing-md) var(--spacing-sm) var(--spacing-sm);
-  font-size: var(--typography-body-small-font-size);
+  padding: 12px 9px 9px;
+  font-size: 12px;
   font-weight: 500;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-family-base);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  font-family: 'Manrope', sans-serif;
+  border-radius: 0 0 16px 16px;
 }
 
 .pack-card-animated-sticker,
@@ -74,7 +74,7 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: var(--border-radius-md);
+  border-radius: 12px;
 }
 
 .pack-card-video {
@@ -83,12 +83,12 @@
 
 .pack-card__badge-status {
   position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  background-color: var(--color-error);
+  top: 6px;
+  right: 6px;
+  background-color: #e03131;
   color: white;
   padding: 4px 8px;
-  border-radius: var(--border-radius-sm);
+  border-radius: 8px;
   font-size: 11px;
   font-weight: 600;
   z-index: 10;

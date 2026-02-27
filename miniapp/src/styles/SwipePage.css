@@ -59,11 +59,10 @@
   display: none;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius-md);
-  margin: var(--spacing-md);
-  backdrop-filter: blur(10px);
+  padding: 9px 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  margin: 12px;
   position: relative;
   z-index: 2;
 }
@@ -101,7 +100,6 @@
   --swipe-card-gap: 16px;
   --swipe-card-content-width: 338px; /* 370 - 32 */
   --swipe-card-radius: 16px;
-  --swipe-card-shadow: 0px 20px 25px 1px rgba(0, 0, 0, 0.4), 0px 10px 10px -5px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -110,12 +108,9 @@
   position: absolute;
   inset: 0;
   box-sizing: border-box;
-  /* Стеклянный стиль как у pack-card / панелей приложения */
-  background: rgba(38, 38, 38, 0.55);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: var(--swipe-card-shadow), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: var(--swipe-card-radius);
   overflow: hidden;
   cursor: pointer;
@@ -190,13 +185,24 @@
   max-block-size: 100%;
   border-radius: var(--swipe-card-radius);
   overflow: hidden;
-  background: rgba(26, 26, 26, 0.5);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.swipe-card__placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipe-card__placeholder-emoji {
+  font-size: 48px;
 }
 
 .swipe-card__image,
@@ -389,9 +395,13 @@
   max-width: var(--swipe-stack-width, 370px);
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 16px;
   overflow: hidden;
+}
+
+.swipe-card--skeleton .pack-card-skeleton {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================
@@ -404,13 +414,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: var(--spacing-lg);
+  padding: 18px;
 }
 
 .swipe-hello__content {
@@ -437,10 +446,9 @@
 }
 
 .swipe-hello__instruction {
-  padding: var(--spacing-md);
+  padding: 12px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--border-radius-md);
-  backdrop-filter: blur(5px);
+  border-radius: 12px;
   color: #FFFFFF;
 }
 

@@ -79,7 +79,7 @@
 /* error-box в тон страницы профиля (вид приложения) */
 .profile-page .error-box {
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: none;
   color: var(--color-text);
 }
 

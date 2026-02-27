@@ -6,10 +6,8 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background-color: var(--color-overlay-dark, rgba(0, 0, 0, 0.5));
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  will-change: opacity, backdrop-filter;
+  background-color: rgba(0, 0, 0, 0.5);
+  will-change: opacity;
   transform: translateZ(0);
   animation: dialogBackdropFadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -23,43 +21,25 @@
 }
 
 @keyframes dialogBackdropFadeIn {
-  0% {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
-  }
-  100% {
-    opacity: 1;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-  }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes dialogBackdropFadeOut {
-  0% {
-    opacity: 1;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-  }
-  100% {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
-  }
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .dialog-paper {
   width: 100%;
-  max-width: 400px;
+  max-width: min(402px, var(--component-card-max-width, 402px));
   max-height: calc(100vh - 32px);
   overflow: auto;
-  background: rgba(30, 30, 30, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: var(--color-text, #ffffff);
-  border-radius: var(--border-radius-lg, 12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 .dialog-title {

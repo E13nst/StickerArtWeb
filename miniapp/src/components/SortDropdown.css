@@ -54,19 +54,21 @@
   }
 }
 
-/* Панель снизу — те же стили, что у модалки (ModalBackdrop): появление снизу, 300ms ease, transform + opacity */
+/* Панель снизу — стиль как dashboard-stats-section, max-width как stixly-page-container */
 .sort-dropdown__panel {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   width: 100%;
+  max-width: var(--component-card-max-width, 402px);
+  margin-left: auto;
+  margin-right: auto;
   z-index: calc(var(--z-dropdown, 300) + 1);
-  background-color: var(--component-card-background-color);
-  border: 1px solid var(--color-border);
-  border-bottom: none;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
   border-radius: var(--component-card-border-radius) var(--component-card-border-radius) 0 0;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   overflow: hidden;
   will-change: transform, opacity;
   animation: filters-panel-slide-up 300ms ease;

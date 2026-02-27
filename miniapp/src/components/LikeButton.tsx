@@ -77,7 +77,7 @@ export const LikeButton: FC<LikeButtonProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         backdropFilter: 'blur(4px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: 'none',
         zIndex: 3,
         transition: 'all 0.3s ease',
         cursor: 'pointer',

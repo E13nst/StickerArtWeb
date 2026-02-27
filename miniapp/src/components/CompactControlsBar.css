@@ -50,7 +50,7 @@
   }
 }
 
-/* Search + filter — пилюля по Figma: #262626, тень, 30px высота, gap 16px */
+/* Search + filter — как dashboard-stats-section: полупрозрачный тёмный фон */
 .compact-controls-bar__row {
   display: flex;
   flex-direction: row;
@@ -60,9 +60,10 @@
   padding: 0 16px 0 4px;
   height: 30px;
   min-height: 30px;
-  background: #262626;
+  background: rgba(0, 0, 0, 0.5);
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 30px;
+  border: none;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -263,16 +264,15 @@
 }
 
 .compact-controls-bar__dropdown-panel {
-  background: var(--color-surface);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  padding: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  border: none;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  max-width: var(--component-card-max-width, 402px);
 }
 
 /* Search+filter по Figma всегда в тёмной панели #262626; переменные оставлены для dropdown и др. */

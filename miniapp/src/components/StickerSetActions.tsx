@@ -390,7 +390,7 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
                   rows={3}
                   value={dialogState.blockReason}
                   onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDialogState(prev => ({ ...prev, blockReason: e.target.value }))}
-                  style={{ width: '100%', padding: 12, color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '13px', border: '1px solid rgba(255,255,255,0.3)', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: 12, color: 'white', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '13px', border: 'none', boxSizing: 'border-box' }}
                 />
                 <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Опционально. Укажите причину, чтобы автору было понятно, что нужно исправить.</span>
               </div>
@@ -400,7 +400,7 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
             <IconButton
               onClick={handleCloseDialog}
               disabled={dialogState.loading}
-              style={{ width: '55px', height: '55px', backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white', borderRadius: 'var(--tg-radius-l)', border: '1px solid rgba(255, 255, 255, 0.3)' }}
+              style={{ width: '55px', height: '55px', backgroundColor: 'rgba(255, 255, 255, 0.2)', color: 'white', borderRadius: 'var(--tg-radius-l)', border: 'none' }}
             >
               <CloseIcon size={24} />
             </IconButton>

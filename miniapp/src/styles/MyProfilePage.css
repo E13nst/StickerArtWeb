@@ -138,21 +138,28 @@
   }
 }
 
-/* Карточка Head account — на всю ширину; отступ сверху как у error-box, чтобы кнопки UI Telegram были над карточкой */
+/* Карточка Head account — уменьшенная; отступ сверху = safe area + Telegram UI + share-wrap (36px) + отступ от края (16px) */
 .page-container .account-header__card,
 .account-header__card {
+  --account-card-share-height: 36px;
+  --account-card-edge-offset: 16px;
   position: relative;
   width: 100% !important;
   max-width: none !important;
-  min-height: 347px !important;
+  min-height: 280px !important;
   margin: 0 auto;
-  margin-top: var(--spacing-xl);
+  margin-top: calc(
+    var(--spacing-xl) +
+    var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+    var(--account-card-share-height) +
+    var(--account-card-edge-offset)
+  );
   box-sizing: border-box;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center;
   align-items: center;
-  padding: 108px 16px 16px !important;
+  padding: calc(var(--account-card-edge-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
   gap: 16px !important;
   background: #262626 !important;
   background-color: #262626 !important;
@@ -202,8 +209,8 @@
 /* Кнопка "Поделиться" — верхняя часть карточки; небольшой отступ от края в стиле приложения (16px + safe area) */
 .account-header__share-wrap {
   position: absolute;
-  top: calc(16px + var(--tg-content-safe-area-inset-top, 0px));
-  right: calc(16px + env(safe-area-inset-right, 0px));
+  top: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  right: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -368,11 +375,13 @@
 @media (max-width: 380px) {
   .page-container .account-header__card,
   .account-header__card {
-    padding: clamp(64px, 28vw, 108px) 12px 12px !important;
+    --account-card-edge-offset: 12px;
+    padding: calc(var(--account-card-edge-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
     gap: clamp(12px, 4vw, 16px) !important;
   }
   .account-header__share-wrap {
-    right: 12px;
+    right: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
+    top: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
   }
   .page-container .account-header__avatar,
   .account-header__avatar {
@@ -624,13 +633,19 @@
 /* Ошибки на странице аккаунта — в тон шапки (вид приложения) */
 .account-page .error-box {
   background-color: var(--account-surface) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   color: var(--account-text) !important;
 }
 
 .account-page .error-box .tg-error__button.button-primary {
   background-color: var(--tg-theme-button-color, var(--color-primary));
   color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+/* error-box внутри account-header__card — без лишнего отступа сверху */
+.account-header__card .error-box {
+  margin-top: 0;
+  width: 100%;
 }
 
 /* CompactControlsBar внутри account-page — вид как на галерее: один отступ 16px от краёв (контейнер уже даёт 16px, у бара — 0) */
@@ -648,7 +663,7 @@
 .account-page input[type="search"] {
   background: rgba(255, 255, 255, 0.1) !important;
   color: var(--account-text) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
 }
 
 /* ============================================

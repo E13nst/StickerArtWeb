@@ -82,7 +82,7 @@ export const BlockDialog: FC<BlockDialogProps> = ({
     WebkitBackdropFilter: 'blur(20px)',
     color: 'white',
     borderRadius: 21,
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    border: 'none',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
   };
 
@@ -121,7 +121,7 @@ export const BlockDialog: FC<BlockDialogProps> = ({
               color: 'white',
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               borderRadius: 13,
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              border: 'none',
               padding: 12,
               fontSize: 14,
               resize: 'vertical',
@@ -139,7 +139,7 @@ export const BlockDialog: FC<BlockDialogProps> = ({
               backgroundColor: 'rgba(255, 255, 255, 0.2)',
               color: 'white',
               borderRadius: 'var(--tg-radius-l)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              border: 'none',
               cursor: isBlocking ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',

@@ -34,14 +34,11 @@ const SearchBarComponent: FC<SearchBarProps> = ({
   disabled = false,
   compact = false
 }) => {
-  const { tg } = useTelegram();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
-
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const textColor = isLight ? 'rgba(13,27,42,0.64)' : 'var(--tg-theme-hint-color, rgba(255,255,255,0.64))';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
+  useTelegram();
+  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const textColor = 'var(--tg-theme-hint-color, rgba(255,255,255,0.64))';
+  const borderColor = 'rgba(118, 168, 255, 0.28)';
+  const glassSolid = 'rgba(78, 132, 255, 0.24)';
 
   const handleClear = () => {
     onChange('');

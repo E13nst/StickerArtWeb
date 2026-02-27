@@ -4,7 +4,7 @@
 .sticker-set-detail-card {
   position: relative;
   width: 100%;
-  max-width: min(100vw, var(--component-card-width, 370px));
+  max-width: min(100vw, var(--component-card-max-width, 402px));
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -16,10 +16,10 @@
   overflow: hidden;
   overflow-y: hidden;
   touch-action: pan-y;
-  background-color: var(--component-card-background-color);
+  background: rgba(0, 0, 0, 0.5);
   border-radius: var(--component-card-border-radius);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: none;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   box-sizing: border-box;
 }
 
@@ -30,7 +30,9 @@
   right: 0;
   bottom: 0;
   width: 100%;
-  max-width: 100%;
+  max-width: var(--component-card-max-width, 402px);
+  margin-left: auto;
+  margin-right: auto;
   height: 78.6vh;
   min-height: 78.6vh;
   max-height: 78.6vh;
@@ -39,10 +41,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid var(--color-border);
-  border-bottom: none;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
   border-radius: var(--component-card-border-radius) var(--component-card-border-radius) 0 0;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   padding-bottom: env(safe-area-inset-bottom, 0);
   box-sizing: border-box;
   z-index: calc(var(--z-modal, 1000) + 1);

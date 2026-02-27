@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, memo, FC } from 'react';
+import { memo, FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import './AddStickerPackButton.css';
 
@@ -11,61 +11,10 @@ const AddStickerPackButtonComponent: FC<AddStickerPackButtonProps> = ({ onClick,
   const { tg } = useTelegram();
   const handleClick = () => { tg?.HapticFeedback?.impactOccurred('light'); onClick(); };
 
-  const computeIsLightTheme = useCallback(() => {
-    if (tg?.colorScheme === 'light') return true;
-    if (tg?.colorScheme === 'dark') return false;
-    if (typeof document !== 'undefined') {
-      if (document.documentElement.classList.contains('tg-light-theme')) return true;
-      if (document.documentElement.classList.contains('tg-dark-theme')) return false;
-      const themeAttr = document.documentElement.getAttribute('data-theme');
-      if (themeAttr === 'light') return true;
-      if (themeAttr === 'dark') return false;
-    }
-    if (typeof window !== 'undefined' && 'matchMedia' in window) {
-      return window.matchMedia('(prefers-color-scheme: light)').matches;
-    }
-    return true;
-  }, [tg]);
-
-  const [isLightTheme, setIsLightTheme] = useState<boolean>(computeIsLightTheme);
-
-  useEffect(() => {
-    setIsLightTheme(computeIsLightTheme());
-
-    const handleThemeChange = () => setIsLightTheme(computeIsLightTheme());
-    tg?.onEvent?.('themeChanged', handleThemeChange);
-
-    const observer = typeof MutationObserver !== 'undefined' && typeof document !== 'undefined'
-      ? new MutationObserver(handleThemeChange)
-      : null;
-
-    if (observer) {
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-    }
-
-    let mediaQuery: MediaQueryList | undefined;
-    const handleMediaQueryChange = (event: MediaQueryListEvent) => setIsLightTheme(event.matches);
-
-    if (typeof window !== 'undefined' && 'matchMedia' in window) {
-      mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-      mediaQuery.addEventListener('change', handleMediaQueryChange);
-    }
-
-    return () => {
-      tg?.offEvent?.('themeChanged', handleThemeChange);
-      observer?.disconnect();
-      mediaQuery?.removeEventListener('change', handleMediaQueryChange);
-    };
-  }, [tg, computeIsLightTheme]);
-
-  const textColor = isLightTheme ? '#0D3B9D' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLightTheme
-    ? 'rgba(164, 206, 255, 0.32)'
-    : 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)';
-  const glassSolid = isLightTheme ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
-  const borderColor = isLightTheme ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
-
-  const textColorResolved = isLightTheme ? '#0D1B2A' : textColor;
+  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const glassBase = 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)';
+  const glassSolid = 'rgba(78, 132, 255, 0.24)';
+  const borderColor = 'rgba(118, 168, 255, 0.28)';
 
   if (variant === 'gallery') {
     return (
@@ -114,7 +63,7 @@ const AddStickerPackButtonComponent: FC<AddStickerPackButtonProps> = ({ onClick,
         <span 
           className="add-sticker-pack-button__badge"
           style={{
-            backgroundColor: isLightTheme ? 'rgba(186, 218, 255, 0.32)' : 'rgba(135, 182, 255, 0.24)',
+            backgroundColor: 'rgba(135, 182, 255, 0.24)',
           }}
         >
           +10 ART

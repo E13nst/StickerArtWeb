@@ -60,7 +60,9 @@ interface ProfileState {
   isStickerSetsLoading: boolean;
   isMyProfileLoading: boolean;
   hasMyProfileLoaded: boolean;
-  
+  /** true только когда профиль получен через /profiles/me (успешная авторизация). false при fallback/mock. */
+  isProfileFromAuthenticatedApi: boolean;
+
   // Данные
   userInfo: UserInfo | null;
   userStickerSets: StickerSetResponse[];
@@ -128,6 +130,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   isStickerSetsLoading: false,
   isMyProfileLoading: false,
   hasMyProfileLoaded: false,
+  isProfileFromAuthenticatedApi: false,
   userInfo: null,
   userStickerSets: [],
   currentPage: 0,
@@ -151,7 +154,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       currentUserId: userInfo?.telegramId ?? userInfo?.id ?? state.currentUserId,
       currentUserRole: userInfo?.role ?? state.currentUserRole,
     })),
-  clearUserInfo: () => set({ userInfo: null }),
+  clearUserInfo: () => set({ userInfo: null, isProfileFromAuthenticatedApi: false }),
   
   // Действия для стикерсетов
   setUserStickerSets: (userStickerSets: StickerSetResponse[]) => set({ userStickerSets }),
@@ -293,6 +296,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     isStickerSetsLoading: false,
     isMyProfileLoading: false,
     hasMyProfileLoaded: false,
+    isProfileFromAuthenticatedApi: false,
     userInfo: null,
     userStickerSets: [],
     currentPage: 0,
@@ -359,6 +363,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
               userInfo: userInfoWithPhoto,
               currentUserId: userInfoWithPhoto.telegramId ?? userInfoWithPhoto.id ?? fallbackId,
               currentUserRole: userInfoWithPhoto.role ?? currentUserRole ?? null,
+              isProfileFromAuthenticatedApi: false,
             });
           } catch (profileError) {
             console.warn('Не удалось загрузить профиль пользователя (fallback):', profileError);
@@ -372,6 +377,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         set({
           currentUserId: nextUserId,
           currentUserRole: nextRole,
+          isProfileFromAuthenticatedApi: true,
         });
 
         const needsFullProfile =
@@ -390,6 +396,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
               userInfo: userInfoWithPhoto,
               currentUserId: userInfoWithPhoto.telegramId ?? userInfoWithPhoto.id ?? nextUserId,
               currentUserRole: userInfoWithPhoto.role ?? nextRole ?? null,
+              isProfileFromAuthenticatedApi: true,
             });
           } catch (profileError) {
             console.warn('Не удалось загрузить полный профиль пользователя:', profileError);
@@ -398,9 +405,9 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           try {
             const photo = await apiClient.getUserPhoto(me.id).catch(() => null);
             const userInfoWithPhoto = mergeProfileWithPhoto(me, photo);
-            set({ userInfo: userInfoWithPhoto });
+            set({ userInfo: userInfoWithPhoto, isProfileFromAuthenticatedApi: true });
           } catch {
-            set({ userInfo: me });
+            set({ userInfo: me, isProfileFromAuthenticatedApi: true });
           }
         }
       }
@@ -422,6 +429,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
             userInfo: userInfoWithPhoto,
             currentUserId: userInfoWithPhoto.telegramId ?? userInfoWithPhoto.id ?? fallbackId,
             currentUserRole: userInfoWithPhoto.role ?? currentUserRole ?? null,
+            isProfileFromAuthenticatedApi: false,
           });
         } catch (profileError) {
           console.warn('Не удалось загрузить профиль пользователя после ошибки:', profileError);

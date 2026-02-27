@@ -13,7 +13,8 @@ import { CloseIcon, FavoriteIcon } from '@/components/ui/Icons';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
-import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
+import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '@/utils/imageLoader';
+import { VideoStickerPreview } from '@/components/VideoStickerPreview';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
@@ -161,18 +162,16 @@ export const SwipePage: FC = () => {
                     justifyContent: 'center'
                   }}
                 >
-                  <video
-                    src={videoBlobCache.get(previewSticker.file_id) || imageUrl}
-                    className="pack-card-video"
+                  <VideoStickerPreview
+                    fileId={previewSticker.file_id}
+                    url={imageUrl}
+                    emoji={previewSticker.emoji || '🎨'}
                     autoPlay={index === 0}
-                    loop
-                    muted
-                    playsInline
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
+                    packId={String(stickerSet.id)}
+                    imageIndex={0}
+                    priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
+                    className="pack-card-video"
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                   />
                 </div>
               ) : (
@@ -233,6 +232,20 @@ export const SwipePage: FC = () => {
       </div>
     );
   }, [handleDownload]);
+
+  // Предзагрузка webm для следующих карточек (чтобы при свайпе видео уже было в кэше)
+  useEffect(() => {
+    const toPreload = stickerSets.slice(currentIndex, currentIndex + 4);
+    toPreload.forEach((stickerSet, i) => {
+      const preview = stickerSet.telegramStickerSetInfo?.stickers?.[0];
+      if (!preview?.file_id) return;
+      const isVideo = Boolean(preview.is_video || stickerSet.telegramStickerSetInfo?.is_video);
+      if (!isVideo || videoBlobCache.has(preview.file_id)) return;
+      const url = getStickerImageUrl(preview.file_id);
+      const priority = i === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
+      imageLoader.loadVideo(preview.file_id, url, priority, String(stickerSet.id), 0).catch(() => {});
+    });
+  }, [stickerSets, currentIndex]);
 
   // Получаем видимые карточки для SwipeCardStack
   const visibleCards = useMemo(() => {
@@ -350,8 +363,16 @@ export const SwipePage: FC = () => {
         <div className="swipe-page__cards">
           <div className="swipe-page__card-skeleton" aria-hidden="true">
             <div className="swipe-card swipe-card--skeleton">
-              <div className="swipe-card__preview pack-card-skeleton" style={{ width: '100%', aspectRatio: '1', borderRadius: 12 }} />
-              <div className="swipe-card__footer" style={{ padding: 12 }}>
+              <div className="swipe-card__content" style={{ gap: 4 }}>
+                <div style={{ height: 44, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.12)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 23, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.08)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+              </div>
+              <div className="swipe-card__preview">
+                <div className="swipe-card__preview-inner">
+                  <div className="pack-card-skeleton" style={{ width: '100%', height: '100%', aspectRatio: '1', borderRadius: 12 }} />
+                </div>
+              </div>
+              <div className="swipe-card__footer">
                 <div style={{ height: 14, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.12)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
                 <div style={{ height: 12, width: '40%', borderRadius: 6, marginTop: 8, background: 'rgba(255,255,255,0.08)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
               </div>

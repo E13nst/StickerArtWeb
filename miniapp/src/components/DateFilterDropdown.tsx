@@ -40,17 +40,15 @@ export const DateFilterDropdown: FC<DateFilterDropdownProps> = ({
   disabled = false,
 }) => {
   const { tg } = useTelegram();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.32)' : 'rgba(88, 138, 255, 0.24)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.48)' : 'rgba(78, 132, 255, 0.24)';
-  const glassHover = isLight ? 'rgba(148, 198, 255, 0.42)' : 'rgba(98, 150, 255, 0.38)';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.58)' : 'rgba(118, 168, 255, 0.28)';
-  const bgColor = isLight ? 'rgba(248, 251, 255, 0.95)' : 'rgba(18, 22, 29, 0.95)';
+  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const glassBase = 'rgba(88, 138, 255, 0.24)';
+  const glassSolid = 'rgba(78, 132, 255, 0.24)';
+  const glassHover = 'rgba(98, 150, 255, 0.38)';
+  const borderColor = 'rgba(118, 168, 255, 0.28)';
+  const bgColor = 'rgba(18, 22, 29, 0.95)';
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -152,9 +150,7 @@ export const DateFilterDropdown: FC<DateFilterDropdownProps> = ({
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             borderRadius: '0.75rem',
             border: `1px solid ${borderColor}`,
-            boxShadow: isLight 
-              ? '0 8px 24px rgba(30, 72, 185, 0.15)' 
-              : '0 8px 24px rgba(0, 0, 0, 0.4)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
             overflow: 'hidden',
             animation: 'fadeSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           }}

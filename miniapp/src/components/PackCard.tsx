@@ -3,7 +3,7 @@ import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { useScrollElement } from '@/contexts/ScrollContext';
-import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
+import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
 
@@ -102,8 +102,23 @@ const PackCardComponent: FC<PackCardProps> = ({
     stickerShownAtRef.current = Date.now();
   }, [currentStickerIndex]);
 
-  // Пауза видео при выходе из viewport
+  // Предзагрузка webm в videoBlobCache (иначе превью не отображается)
   const isVideoSticker = activeSticker?.isVideo ?? (activeSticker as any)?.is_video;
+  const [videoBlobReady, setVideoBlobReady] = useState(false);
+  useEffect(() => {
+    if (!isVideoSticker || !activeSticker?.fileId || !activeSticker?.url) return;
+    setVideoBlobReady(false);
+    if (videoBlobCache.has(activeSticker.fileId)) {
+      setVideoBlobReady(true);
+      return;
+    }
+    const priority = inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
+    imageLoader.loadVideo(activeSticker.fileId, activeSticker.url, priority, pack.id, currentStickerIndex)
+      .then(() => setVideoBlobReady(true))
+      .catch(() => {});
+  }, [isVideoSticker, activeSticker?.fileId, activeSticker?.url, inView, pack.id, currentStickerIndex]);
+
+  // Пауза видео при выходе из viewport
   useEffect(() => {
     if (!videoRef.current || !isVideoSticker) return;
 
@@ -124,7 +139,6 @@ const PackCardComponent: FC<PackCardProps> = ({
       data-testid="pack-card"
       className={`pack-card ${isDimmed ? 'pack-card--dimmed' : ''}`}
       onClick={handleClick}
-      style={{ willChange: inView ? 'transform' : 'auto' }}
     >
       {/* Контент стикера — показываем сразу, как на Dashboard (AnimatedSticker/img грузят сами) */}
       <div className="pack-card__content">
@@ -153,6 +167,9 @@ const PackCardComponent: FC<PackCardProps> = ({
                   justifyContent: 'center'
                 }}
               >
+                {(!videoBlobCache.has(activeSticker.fileId) && !videoBlobReady) ? (
+                  <div className="pack-card__placeholder">{activeSticker.emoji || '🎨'}</div>
+                ) : (
                 <video
                   ref={videoRef}
                   src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
@@ -168,6 +185,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                     objectFit: 'contain'
                   }}
                 />
+                )}
               </div>
             ) : (
               <div

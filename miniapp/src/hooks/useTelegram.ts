@@ -496,7 +496,7 @@ export const useTelegram = () => {
         if (telegram.themeParams) {
           const root = document.documentElement;
           const body = document.body;
-          const isDark = telegram.colorScheme === 'dark';
+          const isDark = true; /* Единая тёмная тема */
           const bgColor = normalizedBgColor(
             telegram.themeParams.bg_color,
             isDark ? '#191818' : '#ffffff'
@@ -646,38 +646,8 @@ export const useTelegram = () => {
         root.classList.add('tg-dark-theme');
         root.classList.remove('tg-light-theme');
       } else if (savedTheme?.scheme === 'light') {
-        const root = document.documentElement;
-        const body = document.body;
-        const params = savedTheme.params || {
-          bg_color: '#ffffff',
-          text_color: '#000000',
-          hint_color: '#999999',
-          link_color: '#2481cc',
-          button_color: '#ee449f',
-          button_text_color: '#ffffff',
-          secondary_bg_color: '#f8f9fa',
-        };
-        root.style.setProperty('--tg-theme-bg-color', params.bg_color);
-        root.style.setProperty('--tg-theme-text-color', params.text_color);
-        root.style.setProperty('--tg-theme-hint-color', params.hint_color);
-        root.style.setProperty('--tg-theme-button-color', params.button_color);
-        root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
-        root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
-        root.style.setProperty('--tg-theme-link-color', params.link_color);
-        root.style.setProperty('--tg-theme-border-color', '#e0e0e0');
-        root.style.setProperty('--tg-theme-shadow-color', 'rgba(0, 0, 0, 0.1)');
-        root.style.setProperty('--tg-theme-overlay-color', 'rgba(0, 0, 0, 0.7)');
-        root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(params.bg_color));
-        root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(params.text_color));
-        root.style.setProperty('--tg-theme-button-color-rgb', hexToRgb(params.button_color));
-        root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54');
-        body.style.backgroundColor = params.bg_color;
-        body.style.color = params.text_color;
-        if (import.meta.env.DEV) {
-          console.log('[theme] body backgroundColor/color set — useTelegram.savedThemeLight', { bg: params.bg_color });
-        }
-        root.classList.add('tg-light-theme');
-        root.classList.remove('tg-dark-theme');
+        /* Всегда применяем тёмную тему */
+        applyTheme();
       } else {
         applyTheme();
       }

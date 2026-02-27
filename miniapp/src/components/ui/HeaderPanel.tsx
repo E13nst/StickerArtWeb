@@ -11,13 +11,13 @@ const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 
 /**
  * HeaderPanel — шапка с аватаром текущего пользователя, балансом ART и кнопками.
- * Аватар: photo_url из Telegram → blob из API (useUserAvatar) → userInfo.
- * При отсутствии пользователя/аватара или ошибке загрузки — иконка Account.
+ * Аватар только из профиля/API (blob, userInfo.avatarUrl). Сторонние URL (user.photo_url) не используются.
+ * При отсутствии профиля/аватара или ошибке загрузки — иконка Account.
  */
 export const HeaderPanel: FC = () => {
   const { pathname } = useLocation();
   const { user } = useTelegram();
-  const { userInfo, currentUserId } = useProfileStore();
+  const { userInfo, currentUserId, isProfileFromAuthenticatedApi } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
 
   // На /author/ и /profile/:id показываем placeholder — аватар автора не в шапке, а на странице
@@ -27,13 +27,11 @@ export const HeaderPanel: FC = () => {
 
   const avatarUrl = useMemo(() => {
     if (!user) return undefined;
-    if (!userInfo || isViewingOtherUser) {
-      return user.photo_url ?? undefined;
-    }
-    if (user.photo_url) return user.photo_url;
+    if (!isProfileFromAuthenticatedApi || !userInfo || isViewingOtherUser) return undefined;
     if (avatarBlobUrl) return avatarBlobUrl;
-    return userInfo.avatarUrl ?? getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 96);
-  }, [user, user?.photo_url, userInfo, avatarBlobUrl, isViewingOtherUser]);
+    if (userInfo.avatarUrl) return userInfo.avatarUrl;
+    return getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 96);
+  }, [user, isProfileFromAuthenticatedApi, userInfo, avatarBlobUrl, isViewingOtherUser]);
 
   const showAccountIcon = !user || !avatarUrl || avatarError;
 

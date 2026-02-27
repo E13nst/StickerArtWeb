@@ -6,9 +6,7 @@
   right: 0;
   bottom: 0;
   z-index: var(--z-modal, 1000);
-  background-color: var(--color-overlay-dark, rgba(0, 0, 0, 0.5));
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -28,8 +26,6 @@
 }
 
 .modal-backdrop--keep-navbar.modal-backdrop--no-blur {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   background: rgba(0, 0, 0, 0.5);
 }
 
@@ -53,11 +49,6 @@
   to {
     opacity: 1;
   }
-}
-
-.modal-backdrop--no-blur:not(.modal-backdrop--keep-navbar) {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .modal-backdrop--open {
@@ -98,17 +89,3 @@ body.modal-open .stixly-page-container {
 
 /* keep-navbar при свайпе не получает --drag-dismissed, исчезает через --closing (плавный fade) */
 
-/* Адаптивность для разных размеров экрана (blur только если не --no-blur) */
-@media (max-width: 480px) {
-  .modal-backdrop:not(.modal-backdrop--no-blur) {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-}
-
-/* Поддержка для устройств без backdrop-filter */
-@supports not (backdrop-filter: blur(15px)) {
-  .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.5);
-  }
-}

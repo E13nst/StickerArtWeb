@@ -1,4 +1,4 @@
-import { useState, FC } from 'react';
+import { FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
@@ -6,13 +6,6 @@ import '@/styles/common.css';
 import './DesignSystemDemo.css';
 
 export const DesignSystemDemo: FC = () => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-  };
 
   // Цвета из дизайн-системы
   const colors = [
@@ -66,7 +59,7 @@ export const DesignSystemDemo: FC = () => {
   ];
 
   return (
-    <div className="page-container" data-theme={theme}>
+    <div className="page-container">
       <OtherAccountBackground />
       <div style={{ padding: 'var(--spacing-md)' }}>
         {/* Header */}
@@ -74,17 +67,6 @@ export const DesignSystemDemo: FC = () => {
           <Text variant="h1" weight="bold" color="default">
             Design System Demo
           </Text>
-          <div className="flex-row-center" style={{ gap: 'var(--spacing-sm)' }}>
-            <Text variant="body" color="default">{theme === 'dark' ? 'Dark' : 'Light'}</Text>
-            <label className="theme-toggle">
-              <input 
-                type="checkbox" 
-                checked={theme === 'dark'} 
-                onChange={toggleTheme}
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
         </div>
 
         {/* Colors Section */}

@@ -72,7 +72,7 @@ export const StickerThumbnail: FC<StickerThumbnailProps> = ({
           fontSize: '24px',
           backgroundColor: 'transparent',
           borderRadius: '8px',
-          border: '1px solid rgba(255,255,255,0.2)'
+          border: 'none'
         }}
       >
         {emoji || '🎨'}

@@ -29,14 +29,15 @@
 .upload-modal {
   position: relative;
   width: 90%;
-  max-width: 400px;
-  background-color: var(--color-surface, #262626);
-  border-radius: var(--border-radius-lg, 16px);
+  max-width: min(402px, var(--component-card-max-width, 402px));
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+  border: none;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
   animation: upload-modal-scale-in 0.3s ease-out;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 @keyframes upload-modal-scale-in {

@@ -39,20 +39,7 @@ export const LikeCount: FC<LikeCountProps> = ({
 
   const currentSize = sizeStyles[size];
   
-  const getThemeColor = () => {
-    const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-bg-color').trim();
-    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-text-color').trim();
-    
-    if (bgColor && textColor) {
-      const isDark = bgColor.includes('#') ? 
-        parseInt(bgColor.replace('#', ''), 16) < 0x808080 : 
-        bgColor.includes('dark') || bgColor.includes('black');
-      
-      return isDark ? '#ffffff' : '#6b7280';
-    }
-    
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#ffffff' : '#6b7280';
-  };
+  const getThemeColor = () => '#ffffff';
 
   return (
     <div

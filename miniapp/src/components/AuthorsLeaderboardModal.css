@@ -1,23 +1,49 @@
-.authors-leaderboard-modal__panel.sort-dropdown__panel {
-  top: 50%;
-  bottom: auto;
-  left: 50%;
-  right: auto;
-  transform: translate(-50%, -50%);
-  width: min(402px, calc(100% - 32px));
-  max-height: 60vh;
-  height: auto;
-  background: var(--color-surface);
-  border-radius: 24px;
-  animation: modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1);
+/* AuthorsLeaderboardModal — по аналогии с SaveToStickerSetModal */
+
+.authors-leaderboard-modal__card {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: var(--component-card-max-width, 402px);
+  margin-left: auto;
+  margin-right: auto;
+  max-height: 78.6vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: pan-y;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
+  z-index: calc(var(--z-modal, 1000) + 1);
+  animation: authors-leaderboard-modal-slide-up 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.authors-leaderboard-modal__inner.sort-dropdown__inner {
-  align-items: stretch;
-  gap: 0;
-  padding: 0;
-  height: 100%;
-  max-height: 60vh;
+.authors-leaderboard-modal__card--dragging {
+  animation: none !important;
+  will-change: transform;
+}
+
+.authors-leaderboard-modal__card--drag-dismissed {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translateY(100vh) !important;
+}
+
+@keyframes authors-leaderboard-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .authors-leaderboard-modal__handle {
@@ -26,9 +52,7 @@
   background-color: var(--color-text-secondary);
   opacity: 0.4;
   border-radius: 2px;
-  margin-top: 3px;
-  margin-bottom: 3px;
-  align-self: center;
+  margin: 8px auto 12px;
   flex-shrink: 0;
 }
 
@@ -36,8 +60,39 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 0 16px 12px;
   flex-shrink: 0;
+}
+
+.authors-leaderboard-modal__title {
+  font-family: var(--font-family-base);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.authors-leaderboard-modal__close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.authors-leaderboard-modal__close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.authors-leaderboard-modal__close-btn:active {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .authors-leaderboard-modal__scroll {
@@ -47,4 +102,71 @@
   padding: 8px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+}
+
+.authors-leaderboard-modal__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.authors-leaderboard-modal__loading,
+.authors-leaderboard-modal__error,
+.authors-leaderboard-modal__empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 16px;
+}
+
+.authors-leaderboard-modal__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.authors-leaderboard-modal__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.authors-leaderboard-modal__item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.authors-leaderboard-modal__item-place {
+  min-width: 24px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.authors-leaderboard-modal__item-avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.authors-leaderboard-modal__item-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: #000;
+  border: 2px solid var(--color-surface);
+}
+
+.authors-leaderboard-modal__item-info {
+  flex: 1;
+  min-width: 0;
 }

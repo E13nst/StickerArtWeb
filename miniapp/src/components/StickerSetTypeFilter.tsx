@@ -30,13 +30,10 @@ export const StickerSetTypeFilter: FC<StickerSetTypeFilterProps> = ({
   disabled = false
 }) => {
   const { tg } = useTelegram();
-  const scheme = tg?.colorScheme;
-  const isLight = scheme ? scheme === 'light' : true;
-  
-  const textColorResolved = isLight ? '#0D1B2A' : 'var(--tg-theme-button-text-color, #ffffff)';
-  const glassBase = isLight ? 'rgba(164, 206, 255, 0.28)' : 'rgba(88, 138, 255, 0.20)';
-  const glassSolid = isLight ? 'rgba(164, 206, 255, 0.42)' : 'rgba(78, 132, 255, 0.20)';
-  const borderColor = isLight ? 'rgba(170, 210, 255, 0.52)' : 'rgba(118, 168, 255, 0.24)';
+  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const glassBase = 'rgba(88, 138, 255, 0.20)';
+  const glassSolid = 'rgba(78, 132, 255, 0.20)';
+  const borderColor = 'rgba(118, 168, 255, 0.24)';
 
   const types: { value: StickerSetType; label: string }[] = [
     { value: 'USER', label: 'Пользовательские' },
