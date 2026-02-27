@@ -146,7 +146,7 @@ export const MyProfilePage: FC = () => {
   const [likedTotalPages, setLikedTotalPages] = useState(1);
   const [isLikedLoadingMore, setIsLikedLoadingMore] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState(0); // 0: Create, 1: Likes, 2: Upload (Figma ACCOUNT)
-  // Верхний уровень: Stickers (0) — head-account-tabs-wrap; Art-points (1) — account-menu-content / account-quests-grid
+  // Верхний уровень: Stickers (0) — account-tabs-wrap; Art-points (1) — account-menu-content / account-quests-grid
   const [mainTab, setMainTab] = useState(0); // 0: Stickers, 1: Art-points
   const isLikesTab = activeProfileTab === 1;
 
@@ -993,7 +993,7 @@ export const MyProfilePage: FC = () => {
     <div className={cn('page-container', 'my-profile-page', 'account-page', isInTelegramApp && 'telegram-app')}>
       {/* Head account (Figma): шапка профиля без Header Panel */}
       <div
-        className={cn('head-account', isInTelegramApp && 'head-account--telegram')}
+        className={cn('account-header', isInTelegramApp && 'account-header--telegram')}
         data-figma-block="Head account"
       >
         {/* Если есть ошибка но нет загрузки - показываем блок с ошибкой */}
@@ -1007,13 +1007,13 @@ export const MyProfilePage: FC = () => {
         )}
         
         {userInfo && (
-          <div className="head-account__card">
+          <div className="account-header__card">
             {/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area */}
-            <div className="head-account__share-wrap">
+            <div className="account-header__share-wrap">
               <button
                 ref={shareButtonRef}
                 type="button"
-                className="head-account__share-btn"
+                className="account-header__share-btn"
                 onClick={handleShareReferral}
                 disabled={referralLinkLoading}
                 aria-label="Поделиться"
@@ -1021,13 +1021,13 @@ export const MyProfilePage: FC = () => {
                 <ShareIcon size={20} color="currentColor" style={referralLinkLoading ? { opacity: 0.6 } : undefined} />
               </button>
               {copySuccess && (
-                <div className="head-account__share-toast" role="status">
+                <div className="account-header__share-toast" role="status">
                   Ссылка скопирована
                 </div>
               )}
             </div>
             {/* Аватар 80×80 внутри карточки (Figma ACCOUNT) */}
-            <div className="head-account__avatar">
+            <div className="account-header__avatar">
               {userInfoWithAvatar?.avatarUrl ? (
                 <img src={userInfoWithAvatar.avatarUrl} alt="" />
               ) : (
@@ -1037,26 +1037,26 @@ export const MyProfilePage: FC = () => {
               )}
             </div>
             {/* Имя пользователя */}
-            <Text variant="h2" weight="bold" className="head-account__name" as="div">
+            <Text variant="h2" weight="bold" className="account-header__name" as="div">
               {userInfo?.username ? `@${userInfo.username}` : user?.username ? `@${user.username}` : '—'}
             </Text>
             {/* Статистика: 2 колонки (Наборов / ART) */}
-            <div className="head-account__info">
-              <div className="head-account__stat">
-                <span className="head-account__stat-value">{totalElements}</span>
-                <span className="head-account__stat-label">sticker packs</span>
+            <div className="account-header__stats">
+              <div className="account-header__stat">
+                <span className="account-header__stat-value">{totalElements}</span>
+                <span className="account-header__stat-label">sticker packs</span>
               </div>
-              <div className="head-account__stat">
-                <span className="head-account__stat-value">{userInfo.artBalance || 0}</span>
-                <span className="head-account__stat-label">Artpoints</span>
+              <div className="account-header__stat">
+                <span className="account-header__stat-value">{userInfo.artBalance || 0}</span>
+                <span className="account-header__stat-label">Artpoints</span>
               </div>
             </div>
             {/* Кошелёк: кнопка "Connect wallet" (Figma) или адрес */}
-            <div className="head-account__wallet">
+            <div className="account-header__wallet">
               {!wallet ? (
                 <button
                   type="button"
-                  className="head-account__connect-wallet-btn"
+                  className="account-header__connect-wallet-btn"
                   onClick={() => {
                     if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
                     tonConnectUI?.openModal?.();
@@ -1123,16 +1123,9 @@ export const MyProfilePage: FC = () => {
             )}
           </div>
         )}
-
-        {/* Ошибка пользователя */}
-        {userError && isInTelegramApp && (
-          <div className="error-alert-inline" role="alert">
-            <Text variant="body" color="default">{userError}</Text>
-          </div>
-        )}
       </div>
 
-      {/* Вкладки Stickers | Art-points — между head-account и head-account-tabs-wrap */}
+      {/* Вкладки Stickers | Art-points — между account-header и account-tabs-wrap */}
       {userInfo && (
         <div className="account-main-tabs-wrap">
           <div role="tablist" className="account-main-tabs" aria-label="Stickers or Art-points">
@@ -1162,9 +1155,9 @@ export const MyProfilePage: FC = () => {
         </div>
       )}
 
-      {/* Stickers: head-account-tabs-wrap (Create/Likes/Upload) + контент галерей */}
+      {/* Stickers: account-tabs-wrap (Create/Likes/Upload) + контент галерей */}
       {userInfo && mainTab === 0 && (
-        <div className="head-account-tabs-wrap">
+        <div className="account-tabs-wrap">
           <ProfileTabs
             variant="account"
             activeTab={activeProfileTab}
@@ -1237,7 +1230,7 @@ export const MyProfilePage: FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="fade-in">
+                <div className="u-fade-in">
                   <OptimizedGallery
                     variant="gallery"
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
@@ -1261,7 +1254,7 @@ export const MyProfilePage: FC = () => {
                   message="Like sticker packs in the gallery and they will appear here"
                 />
               ) : (
-                <div className="fade-in">
+                <div className="u-fade-in">
                   <OptimizedGallery
                     variant="gallery"
                     packs={adaptStickerSetsToGalleryPacks(likedStickerSets)}
@@ -1334,7 +1327,7 @@ export const MyProfilePage: FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="fade-in">
+                <div className="u-fade-in">
                   <OptimizedGallery
                     variant="gallery"
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}

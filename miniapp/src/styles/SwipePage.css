@@ -1,15 +1,20 @@
-/* Swipe Page — по макету Figma #Swipe */
+/* Swipe Page — по макету Figma #Swipe. Фон и header по аналогии с Gallery и Generation. */
 
-/* Убираем отступы по краям у page-container.swipe-page */
+@import './common.css';
+
+/* Фон как на Gallery/GeneratePage — через OtherAccountBackground и --page-dynamic-gradient */
 .page-container.swipe-page {
   margin: 0;
   max-width: none;
   padding-left: 0;
   padding-right: 0;
+  --page-dynamic-gradient:
+    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
+    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
-/* Контент Swipe уже под HeaderPanel (MainLayout), дополнительный отступ сверху не нужен */
-.swipe-page {
+/* Внутренний контейнер: layout как раньше у .swipe-page */
+.swipe-page__inner {
   position: relative;
   width: 100%;
   min-height: 100vh;
@@ -24,11 +29,6 @@
   padding-inline: 16px;
   padding-bottom: var(--stixly-taskbar-height, 90.25px);
   box-sizing: border-box;
-  /* Фон как на GeneratePage */
-  background:
-    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
-    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%),
-    var(--page-bg-base);
 }
 
 /* На Swipe кнопки всегда в фирменном pink, без Telegram-blue fallback */

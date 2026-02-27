@@ -19,6 +19,14 @@
   --page-dynamic-gradient:
     radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
+
+  /* Контентная зона страницы: макс. ширина и горизонтальные отступы для единообразия (Figma 402px). */
+  --page-content-max-width: 402px;
+  /* Горизонтальные отступы: базовый и для узких экранов (используются в media 420/375/360). */
+  --page-content-padding-x: 16px;
+  --page-content-padding-x-sm: 12px;   /* ≤420px */
+  --page-content-padding-x-xs: 10px;   /* ≤375px */
+  --page-content-padding-x-2xs: 8px;   /* ≤360px */
 }
 
 /* ============================================
@@ -325,6 +333,7 @@
   padding: var(--spacing-lg);
   text-align: center;
   background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
 }
 
@@ -533,6 +542,16 @@
 /* ============================================
    Утилиты
    ============================================ */
+
+/* Плавное появление контента (AuthorPage, MyProfilePage, ProfilePage, Gallery). Не путать с overlay/modal fade-in. */
+.u-fade-in {
+  animation: fadeInContent 0.3s ease-in;
+}
+
+@keyframes fadeInContent {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 .relative {
   position: relative;

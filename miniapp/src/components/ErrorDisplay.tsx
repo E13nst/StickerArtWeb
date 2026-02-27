@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
+import { Button } from './ui/Button';
 
 interface ErrorDisplayProps {
   error: string;
@@ -25,9 +26,14 @@ export const ErrorDisplay: FC<ErrorDisplayProps> = ({
       <h3 className="tg-error__title">Ошибка</h3>
       <p className="tg-error__message">{error}</p>
       {onRetry && (
-        <button className="tg-error__button" onClick={handleRetry}>
+        <Button
+          variant="primary"
+          size="medium"
+          className="tg-error__button"
+          onClick={handleRetry}
+        >
           Повторить
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -64,25 +70,9 @@ const styles = `
   line-height: 1.5;
 }
 
+/* Кнопка «Повторить» — использует компонент Button (стили приложения), только отступ */
 .tg-error__button {
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
-  border: none;
-  border-radius: var(--tg-radius-m);
-  padding: var(--tg-spacing-3) var(--tg-spacing-5);
-  font-size: var(--tg-font-size-m);
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.1s ease;
-  font-family: inherit;
-}
-
-.tg-error__button:active {
-  transform: scale(0.96);
-}
-
-.tg-error__button:hover {
-  opacity: 0.9;
+  margin-top: var(--spacing-md, 12px);
 }
 `;
 

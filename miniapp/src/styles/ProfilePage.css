@@ -73,10 +73,15 @@
 }
 
 /* ============================================
-   Стили алертов
+   Стили ошибок
    ============================================ */
 
-/* Использует .error-alert-inline из common.css */
+/* error-box в тон страницы профиля (вид приложения) */
+.profile-page .error-box {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
 
 /* ============================================
    Стили достижений
@@ -89,17 +94,4 @@
    ============================================ */
 
 /* Использует .page-container-no-padding-top из common.css */
-
-/* Fade-in анимация */
-.fade-in {
-  animation: fadeInContent 0.3s ease-in;
-}
-
-@keyframes fadeInContent {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
+/* Анимация появления: .u-fade-in в common.css */

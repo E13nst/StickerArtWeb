@@ -88,24 +88,7 @@
 
 /* PackCard стили — в common.css (.optimized-gallery) */
 
-/* ============================================
-   Fade-in Animation
-   ============================================ */
-
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Анимация появления: .u-fade-in в common.css */
 
 /* ============================================
    Responsive Adjustments (iPhone 11 Pro 375px и уже)

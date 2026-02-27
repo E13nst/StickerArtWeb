@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
+import { useTelegram } from '@/hooks/useTelegram';
 import { useSwipeStickerFeed } from '@/hooks/useSwipeStickerFeed';
 import { SwipeCardStack, type SwipeCardActions } from '@/components/ui/SwipeCardStack';
 import { Text } from '@/components/ui/Text';
@@ -10,13 +11,18 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { AnimatedSticker } from '@/components/AnimatedSticker';
 import { AuthorDisplay } from '@/components/AuthorDisplay';
 import { CloseIcon, FavoriteIcon } from '@/components/ui/Icons';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 
+const cn = (...classes: (string | boolean | undefined | null)[]): string =>
+  classes.filter(Boolean).join(' ');
+
 const SHOW_HELLO_KEY = 'swipe-hello-shown';
 
 export const SwipePage: FC = () => {
+  const { isInTelegramApp } = useTelegram();
   const [showHello, setShowHello] = useState(false);
   
   const {
@@ -237,8 +243,10 @@ export const SwipePage: FC = () => {
   // Состояния загрузки и ошибок
   if (isLimitReached && limitInfo) {
     return (
-      <div className="swipe-page">
-        <div className="swipe-page__empty">
+      <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+        <OtherAccountBackground />
+        <div className="swipe-page__inner">
+          <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">⛔</div>
           <Text variant="h2" weight="bold" align="center">
             Достигнут дневной лимит: {limitInfo.currentSwipes}/{limitInfo.dailyLimit}
@@ -250,18 +258,22 @@ export const SwipePage: FC = () => {
             Проверить снова
           </Button>
         </div>
+        </div>
       </div>
     );
   }
 
   if (isLoading && stickerSets.length === 0) {
     return (
-      <div className="swipe-page">
-        <div className="swipe-page__loading">
-          <LoadingSpinner />
-          <Text variant="body" color="secondary">
-            Загружаем стикеры...
-          </Text>
+      <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+        <OtherAccountBackground />
+        <div className="swipe-page__inner">
+          <div className="swipe-page__loading">
+            <LoadingSpinner />
+            <Text variant="body" color="secondary">
+              Загружаем стикеры...
+            </Text>
+          </div>
         </div>
       </div>
     );
@@ -269,8 +281,10 @@ export const SwipePage: FC = () => {
 
   if (error && stickerSets.length === 0) {
     return (
-      <div className="swipe-page">
-        <div className="swipe-page__empty">
+      <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+        <OtherAccountBackground />
+        <div className="swipe-page__inner">
+          <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">⚠️</div>
           <Text variant="h2" weight="bold" align="center">
             Не удалось загрузить стикеры
@@ -282,14 +296,17 @@ export const SwipePage: FC = () => {
             Попробовать снова
           </Button>
         </div>
+        </div>
       </div>
     );
   }
 
   if (emptyMessage && currentIndex >= stickerSets.length) {
     return (
-      <div className="swipe-page">
-        <div className="swipe-page__empty">
+      <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+        <OtherAccountBackground />
+        <div className="swipe-page__inner">
+          <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">🎉</div>
           <Text variant="h2" weight="bold" align="center">
             {emptyMessage}
@@ -298,14 +315,17 @@ export const SwipePage: FC = () => {
             Попробовать снова
           </Button>
         </div>
+        </div>
       </div>
     );
   }
 
   if (!hasMore && currentIndex >= stickerSets.length) {
     return (
-      <div className="swipe-page">
-        <div className="swipe-page__empty">
+      <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+        <OtherAccountBackground />
+        <div className="swipe-page__inner">
+          <div className="swipe-page__empty">
           <div className="swipe-page__empty-icon">🎉</div>
           <Text variant="h2" weight="bold" align="center">
             Вы просмотрели все стикеры!
@@ -317,12 +337,15 @@ export const SwipePage: FC = () => {
             Начать сначала
           </Button>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="swipe-page">
+    <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+      <OtherAccountBackground />
+      <div className="swipe-page__inner">
       {/* Swipe Stats */}
       {swipeStats && (
         <div className="swipe-page__stats">
@@ -336,14 +359,6 @@ export const SwipePage: FC = () => {
           </Text>
         </div>
       )}
-
-      {/* Background Pattern */}
-      <div className="swipe-page__background">
-        <div className="swipe-page__background-item" />
-        <div className="swipe-page__background-item" />
-        <div className="swipe-page__background-item" />
-        <div className="swipe-page__background-item" />
-      </div>
 
       {/* SwipeCardStack Component */}
       {visibleCards.length > 0 && (
@@ -415,6 +430,7 @@ export const SwipePage: FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 };

@@ -8,8 +8,8 @@
    ============================================ */
 
 /* Head account — на всю ширину */
-.page-container .head-account,
-.head-account {
+.page-container .account-header,
+.account-header {
   width: 100%;
   max-width: none;
   margin: 0 auto;
@@ -17,14 +17,14 @@
   padding: 0;
 }
 
-.head-account--telegram {
+.account-header--telegram {
   max-width: none;
 }
 
-/* Вкладки Stickers | Art-points — между head-account и head-account-tabs-wrap */
+/* Вкладки Stickers | Art-points — между account-header и account-tabs-wrap */
 .account-main-tabs-wrap {
   width: 100%;
-  max-width: 402px;
+  max-width: var(--page-content-max-width);
   margin: 0 auto;
   padding: 16px 16px 0;
   box-sizing: border-box;
@@ -78,9 +78,9 @@
 }
 
 /* Обёртка вкладок Create/Likes/Upload — только боковые отступы; вертикальный отступ у profile-tabs__panel */
-.head-account-tabs-wrap {
+.account-tabs-wrap {
   width: 100%;
-  max-width: 402px;
+  max-width: var(--page-content-max-width);
   margin: 0 auto;
   padding: 16px 16px 0;
   box-sizing: border-box;
@@ -89,37 +89,38 @@
 /* Контейнеры контента — адаптивные отступы на узких экранах (iPhone 11 Pro и уже) */
 @media (max-width: 420px) {
   .account-main-tabs-wrap,
-  .head-account-tabs-wrap {
+  .account-tabs-wrap {
     max-width: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: var(--page-content-padding-x-sm);
+    padding-right: var(--page-content-padding-x-sm);
   }
 }
 
 @media (max-width: 375px) {
   .account-main-tabs-wrap,
-  .head-account-tabs-wrap {
-    padding-left: 10px;
-    padding-right: 10px;
+  .account-tabs-wrap {
+    padding-left: var(--page-content-padding-x-xs);
+    padding-right: var(--page-content-padding-x-xs);
   }
 }
 
 @media (max-width: 360px) {
   .account-main-tabs-wrap,
-  .head-account-tabs-wrap {
-    padding-left: 8px;
-    padding-right: 8px;
+  .account-tabs-wrap {
+    padding-left: var(--page-content-padding-x-2xs);
+    padding-right: var(--page-content-padding-x-2xs);
   }
 }
 
-/* Карточка Head account — на всю ширину */
-.page-container .head-account__card,
-.head-account__card {
+/* Карточка Head account — на всю ширину; отступ сверху как у error-box, чтобы кнопки UI Telegram были над карточкой */
+.page-container .account-header__card,
+.account-header__card {
   position: relative;
   width: 100% !important;
   max-width: none !important;
   min-height: 347px !important;
   margin: 0 auto;
+  margin-top: var(--spacing-xl);
   box-sizing: border-box;
   display: flex !important;
   flex-direction: column !important;
@@ -134,10 +135,10 @@
   border: none !important;
 }
 
-/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area под кнопки Telegram */
-.head-account__share-wrap {
+/* Кнопка "Поделиться" — верхняя часть карточки; небольшой отступ от края в стиле приложения (16px + safe area) */
+.account-header__share-wrap {
   position: absolute;
-  top: calc(12px + var(--tg-content-safe-area-inset-top, 0px));
+  top: calc(16px + var(--tg-content-safe-area-inset-top, 0px));
   right: calc(16px + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
@@ -146,12 +147,7 @@
   z-index: 1;
 }
 
-/* В Telegram Mini App сдвигаем кнопку вниз, чтобы не перекрывалась UI (шапка/меню) */
-.head-account--telegram .head-account__share-wrap {
-  top: calc(12px + var(--tg-content-safe-area-inset-top, 0px) + 44px);
-}
-
-.head-account__share-btn {
+.account-header__share-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,17 +162,17 @@
   transition: background 0.2s ease, color 0.2s ease;
 }
 
-.head-account__share-btn:hover:not(:disabled) {
+.account-header__share-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.25);
   color: #fff;
 }
 
-.head-account__share-btn:disabled {
+.account-header__share-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.head-account__share-toast {
+.account-header__share-toast {
   padding: 6px 10px;
   font-family: var(--font-family-primary, 'Manrope', sans-serif);
   font-size: 12px;
@@ -185,10 +181,10 @@
   border-radius: 10px;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  animation: head-account-share-toast-in 0.2s ease;
+  animation: account-header-share-toast-in 0.2s ease;
 }
 
-@keyframes head-account-share-toast-in {
+@keyframes account-header-share-toast-in {
   from {
     opacity: 0;
     transform: translateY(-4px);
@@ -199,8 +195,8 @@
   }
 }
 
-.page-container .head-account__avatar,
-.head-account__avatar {
+.page-container .account-header__avatar,
+.account-header__avatar {
   width: 80px !important;
   height: 80px !important;
   border-radius: 50% !important;
@@ -214,14 +210,14 @@
   background: #333 !important;
 }
 
-.head-account__avatar img {
+.account-header__avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.page-container .head-account__name,
-.head-account__name {
+.page-container .account-header__name,
+.account-header__name {
   width: 370px;
   max-width: 100%;
   font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
@@ -232,8 +228,8 @@
   margin: 0;
 }
 
-.page-container .head-account__info,
-.head-account__info {
+.page-container .account-header__stats,
+.account-header__stats {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -242,8 +238,8 @@
   max-width: 100%;
 }
 
-.page-container .head-account__stat,
-.head-account__stat {
+.page-container .account-header__stat,
+.account-header__stat {
   width: 180px;
   display: flex;
   flex-direction: column;
@@ -251,24 +247,24 @@
   gap: 10px;
 }
 
-.page-container .head-account__stat-value,
-.head-account__stat-value {
+.page-container .account-header__stat-value,
+.account-header__stat-value {
   font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
   font-size: 16px !important;
   font-weight: 400 !important;
   color: #EE449F !important;
 }
 
-.page-container .head-account__stat-label,
-.head-account__stat-label {
+.page-container .account-header__stat-label,
+.account-header__stat-label {
   font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
   font-size: 16px !important;
   font-weight: 400 !important;
   color: #fff !important;
 }
 
-.page-container .head-account__wallet,
-.head-account__wallet {
+.page-container .account-header__wallet,
+.account-header__wallet {
   width: 370px;
   max-width: 100%;
   height: 45px !important;
@@ -286,7 +282,7 @@
 }
 
 /* Кнопка Connect wallet (Figma ACCOUNT) */
-.head-account__connect-wallet-btn {
+.account-header__connect-wallet-btn {
   width: 100%;
   height: 100%;
   background: transparent !important;
@@ -299,50 +295,50 @@
   padding: 0;
 }
 
-.head-account__connect-wallet-btn:disabled {
+.account-header__connect-wallet-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
 /* Адаптивность для узких экранов */
 @media (max-width: 380px) {
-  .page-container .head-account__card,
-  .head-account__card {
+  .page-container .account-header__card,
+  .account-header__card {
     padding: clamp(64px, 28vw, 108px) 12px 12px !important;
     gap: clamp(12px, 4vw, 16px) !important;
   }
-  .head-account__share-wrap {
+  .account-header__share-wrap {
     right: 12px;
   }
-  .page-container .head-account__avatar,
-  .head-account__avatar {
+  .page-container .account-header__avatar,
+  .account-header__avatar {
     width: clamp(64px, 21vw, 80px) !important;
     height: clamp(64px, 21vw, 80px) !important;
   }
-  .page-container .head-account__name,
-  .head-account__name {
+  .page-container .account-header__name,
+  .account-header__name {
     font-size: clamp(16px, 4.5vw, 20px) !important;
   }
-  .page-container .head-account__info,
-  .head-account__info {
+  .page-container .account-header__stats,
+  .account-header__stats {
     gap: 8px;
     width: 100%;
   }
-  .page-container .head-account__stat,
-  .head-account__stat {
+  .page-container .account-header__stat,
+  .account-header__stat {
     width: 50%;
     max-width: 180px;
   }
-  .page-container .head-account__stat-value,
-  .head-account__stat-value {
+  .page-container .account-header__stat-value,
+  .account-header__stat-value {
     font-size: 16px !important;
   }
-  .page-container .head-account__stat-label,
-  .head-account__stat-label {
+  .page-container .account-header__stat-label,
+  .account-header__stat-label {
     font-size: clamp(14px, 4vw, 16px) !important;
   }
-  .page-container .head-account__wallet,
-  .head-account__wallet {
+  .page-container .account-header__wallet,
+  .account-header__wallet {
     width: 100%;
     height: 44px !important;
     min-height: 44px !important;
@@ -565,12 +561,16 @@
   border-radius: 16px;
 }
 
-/* Ошибки и алерты на странице аккаунта */
-.account-page .error-box,
-.account-page .error-alert-inline {
+/* Ошибки на странице аккаунта — в тон шапки (вид приложения) */
+.account-page .error-box {
   background-color: var(--account-surface) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--account-text) !important;
+}
+
+.account-page .error-box .tg-error__button.button-primary {
+  background-color: var(--tg-theme-button-color, var(--color-primary));
+  color: var(--tg-theme-button-text-color, #ffffff);
 }
 
 /* CompactControlsBar внутри account-page — вид как на галерее: один отступ 16px от краёв (контейнер уже даёт 16px, у бара — 0) */
@@ -745,12 +745,6 @@
 }
 
 /* ============================================
-   Стили алертов
-   ============================================ */
-
-/* Использует .error-alert-inline из common.css */
-
-/* ============================================
    Стили вкладок
    ============================================ */
 
@@ -883,33 +877,33 @@
 
 /* Контейнер контента — ширина и отступы как на GalleryPage / AuthorPage */
 .account-page .stixly-page-container {
-  max-width: 402px;
+  max-width: var(--page-content-max-width);
   margin-left: auto;
   margin-right: auto;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: var(--page-content-padding-x);
+  padding-right: var(--page-content-padding-x);
   box-sizing: border-box;
 }
 
 @media (max-width: 420px) {
   .account-page .stixly-page-container {
     max-width: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: var(--page-content-padding-x-sm);
+    padding-right: var(--page-content-padding-x-sm);
   }
 }
 
 @media (max-width: 375px) {
   .account-page .stixly-page-container {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: var(--page-content-padding-x-xs);
+    padding-right: var(--page-content-padding-x-xs);
   }
 }
 
 @media (max-width: 360px) {
   .account-page .stixly-page-container {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--page-content-padding-x-2xs);
+    padding-right: var(--page-content-padding-x-2xs);
   }
 }
 
@@ -1036,18 +1030,5 @@
    ============================================ */
 
 /* Использует .page-container-no-padding-top из common.css */
-
-/* Fade-in анимация */
-.fade-in {
-  animation: fadeInContent 0.3s ease-in;
-}
-
-@keyframes fadeInContent {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
+/* Анимация появления: .u-fade-in в common.css */
 

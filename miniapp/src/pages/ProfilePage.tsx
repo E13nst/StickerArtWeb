@@ -491,10 +491,12 @@ export const ProfilePage: FC = () => {
           </>
         ) : null}
 
-        {/* Ошибка пользователя */}
-        {userError && (
-          <div className="error-alert-inline" role="alert">
-            <Text variant="body" color="default">{userError}</Text>
+        {!isUserLoading && userError && !userInfo && (
+          <div className="error-box">
+            <ErrorDisplay
+              error={userError}
+              onRetry={() => userIdNumber && loadUserInfo(userIdNumber)}
+            />
           </div>
         )}
 
@@ -539,7 +541,7 @@ export const ProfilePage: FC = () => {
                   onAction={handleCreateSticker}
                 />
               ) : (
-                <div className="fade-in">
+                <div className="u-fade-in">
                   <OptimizedGallery
                     packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
                     onPackClick={handleViewStickerSet}

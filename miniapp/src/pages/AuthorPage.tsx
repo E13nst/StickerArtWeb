@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 import { useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
 import { OptimizedGallery } from '../components/OptimizedGallery';
 import { StickerPackModal } from '../components/StickerPackModal';
@@ -186,6 +187,7 @@ export const AuthorPage: FC = () => {
 
   const [profile, setProfile] = useState<AuthorProfile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileRetryCount, setProfileRetryCount] = useState(0);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   const [stickerSets, setStickerSets] = useState<StickerSetResponse[]>([]);
@@ -401,7 +403,7 @@ export const AuthorPage: FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [authorId, effectiveInitData, user?.language_code]);
+  }, [authorId, effectiveInitData, user?.language_code, profileRetryCount]);
 
   // Загрузка аватара автора (blob)
   useEffect(() => {
@@ -564,23 +566,26 @@ export const AuthorPage: FC = () => {
   return (
     <div className={cn('page-container', 'author-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
-      {/* Шапка профиля автора — как head-account на MyProfilePage */}
+      {/* Шапка профиля автора — как account-header на MyProfilePage */}
       <div
-        className={cn('head-account', isInTelegramApp && 'head-account--telegram')}
+        className={cn('account-header', isInTelegramApp && 'account-header--telegram')}
         data-figma-block="OTHER ACCOUNT"
       >
-        {profileError && (
-          <div className="error-alert-inline" role="alert">
-            <Text variant="body" color="default">{profileError}</Text>
+        {profileError && !isProfileLoading && (
+          <div className="error-box">
+            <ErrorDisplay
+              error={profileError}
+              onRetry={() => setProfileRetryCount((c) => c + 1)}
+            />
           </div>
         )}
 
         {(isProfileLoading || (isSetsLoading && stickerSets.length === 0)) ? (
           <LoadingSpinner message="Загрузка..." />
         ) : shouldShowHeaderCard ? (
-          <div className="head-account__card">
+          <div className="account-header__card">
             {/* Аватар 80×80 внутри карточки (как на MyProfilePage) */}
-            <div className="head-account__avatar">
+            <div className="account-header__avatar">
               {resolvedAvatarUrl ? (
                 <img src={resolvedAvatarUrl} alt="" />
               ) : (
@@ -590,14 +595,14 @@ export const AuthorPage: FC = () => {
               )}
             </div>
             {/* Имя */}
-            <Text variant="h2" weight="bold" className="head-account__name" as="div">
+            <Text variant="h2" weight="bold" className="account-header__name" as="div">
               {resolvedDisplayName}
             </Text>
             {/* Статистика */}
-            <div className="head-account__info">
-              <div className="head-account__stat">
-                <span className="head-account__stat-value">{packCount}</span>
-                <span className="head-account__stat-label">sticker packs</span>
+            <div className="account-header__stats">
+              <div className="account-header__stat">
+                <span className="account-header__stat-value">{packCount}</span>
+                <span className="account-header__stat-label">sticker packs</span>
               </div>
             </div>
           </div>
@@ -631,8 +636,11 @@ export const AuthorPage: FC = () => {
         )}
 
         {setsError && !isSetsLoading && !isLoadingMore && (
-          <div className="error-alert-inline" role="alert">
-            <Text variant="body" color="default">{setsError}</Text>
+          <div className="error-box">
+            <ErrorDisplay
+              error={setsError}
+              onRetry={() => fetchStickerSets(0, false)}
+            />
           </div>
         )}
 
@@ -646,7 +654,7 @@ export const AuthorPage: FC = () => {
             }
           />
         ) : (
-          <div className="fade-in" style={{ position: 'relative', zIndex: 1 }}>
+          <div className="u-fade-in" style={{ position: 'relative', zIndex: 1 }}>
             <OptimizedGallery
               packs={packs}
               onPackClick={handlePackClick}

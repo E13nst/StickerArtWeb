@@ -413,7 +413,7 @@ export const GalleryPage2: FC = () => {
             />
           </div>
         ) : (
-          <div className="gallery-page__content fade-in">
+          <div className="gallery-page__content u-fade-in">
             <OptimizedGallery
               packs={galleryPacks}
               onPackClick={handleViewStickerSet}

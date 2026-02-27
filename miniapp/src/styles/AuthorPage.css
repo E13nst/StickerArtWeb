@@ -10,12 +10,12 @@
 }
 
 /* ============================================
-   Author page — использует head-account из MyProfilePage.css,
+   Author page — использует account-header из MyProfilePage.css,
    но переопределяет только специфичные настройки.
    ============================================ */
 
-/* На author-page head-account тоже полная ширина (как MyProfilePage) */
-.author-page .head-account {
+/* На author-page account-header тоже полная ширина (как MyProfilePage) */
+.author-page .account-header {
   width: 100%;
   max-width: none;
   margin: 0 auto;
@@ -26,16 +26,17 @@
 }
 
 /* Telegram-контекст: фиксируем поведение шапки без зависимости от загрузки MyProfilePage.css */
-.author-page .head-account--telegram {
+.author-page .account-header--telegram {
   max-width: none;
 }
 
-/* Карточка профиля автора — синхронизирована с MyProfilePage (Figma ACCOUNT), без wallet */
-.author-page .head-account__card {
+/* Карточка профиля автора — синхронизирована с MyProfilePage (Figma ACCOUNT), без wallet; отступ сверху как у error-box */
+.author-page .account-header__card {
   width: 100% !important;
   max-width: none !important;
   min-height: 347px !important;
   margin: 0 auto;
+  margin-top: var(--spacing-xl);
   box-sizing: border-box;
   display: flex !important;
   flex-direction: column !important;
@@ -53,7 +54,7 @@
 }
 
 /* Аватар */
-.author-page .head-account__avatar {
+.author-page .account-header__avatar {
   width: 80px !important;
   height: 80px !important;
   border-radius: 50% !important;
@@ -67,14 +68,14 @@
   background: #333 !important;
 }
 
-.author-page .head-account__avatar img {
+.author-page .account-header__avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 /* Имя автора */
-.author-page .head-account__name {
+.author-page .account-header__name {
   width: 370px;
   max-width: 100%;
   font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
@@ -86,7 +87,7 @@
 }
 
 /* Статистика */
-.author-page .head-account__info {
+.author-page .account-header__stats {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -95,7 +96,7 @@
   max-width: 100%;
 }
 
-.author-page .head-account__stat {
+.author-page .account-header__stat {
   width: 180px;
   display: flex;
   flex-direction: column;
@@ -103,18 +104,30 @@
   gap: 10px;
 }
 
-.author-page .head-account__stat-value {
+.author-page .account-header__stat-value {
   font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
   font-size: 16px !important;
   font-weight: 400 !important;
   color: #EE449F !important;
 }
 
-.author-page .head-account__stat-label {
+.author-page .account-header__stat-label {
   font-family: var(--font-family-primary, 'Manrope', sans-serif) !important;
   font-size: 16px !important;
   font-weight: 400 !important;
   color: #fff !important;
+}
+
+/* Ошибки — в тон страницы автора (вид приложения, как account-header__card) */
+.author-page .error-box {
+  background-color: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.author-page .error-box .tg-error__button.button-primary {
+  background-color: var(--tg-theme-button-color, #EE449F);
+  color: var(--tg-theme-button-text-color, #ffffff);
 }
 
 /* ============================================
@@ -122,11 +135,11 @@
    ============================================ */
 
 .author-page .stixly-page-container {
-  max-width: 402px;
+  max-width: var(--page-content-max-width);
   margin-left: auto;
   margin-right: auto;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: var(--page-content-padding-x);
+  padding-right: var(--page-content-padding-x);
   padding-top: var(--spacing-sm, 8px);
   box-sizing: border-box;
 }
@@ -148,22 +161,22 @@
 @media (max-width: 420px) {
   .author-page .stixly-page-container {
     max-width: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: var(--page-content-padding-x-sm);
+    padding-right: var(--page-content-padding-x-sm);
   }
 }
 
 @media (max-width: 375px) {
   .author-page .stixly-page-container {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: var(--page-content-padding-x-xs);
+    padding-right: var(--page-content-padding-x-xs);
   }
 }
 
 @media (max-width: 360px) {
   .author-page .stixly-page-container {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--page-content-padding-x-2xs);
+    padding-right: var(--page-content-padding-x-2xs);
   }
 }
 
@@ -172,29 +185,29 @@
    ============================================ */
 
 @media (max-width: 380px) {
-  .author-page .head-account__card {
+  .author-page .account-header__card {
     padding: clamp(64px, 28vw, 108px) 12px 12px !important;
     gap: clamp(12px, 4vw, 16px) !important;
   }
-  .author-page .head-account__avatar {
+  .author-page .account-header__avatar {
     width: clamp(64px, 21vw, 80px) !important;
     height: clamp(64px, 21vw, 80px) !important;
   }
-  .author-page .head-account__name {
+  .author-page .account-header__name {
     font-size: clamp(16px, 4.5vw, 20px) !important;
   }
-  .author-page .head-account__info {
+  .author-page .account-header__stats {
     gap: 8px;
     width: 100%;
   }
-  .author-page .head-account__stat {
+  .author-page .account-header__stat {
     width: 50%;
     max-width: 180px;
   }
-  .author-page .head-account__stat-value {
+  .author-page .account-header__stat-value {
     font-size: 16px !important;
   }
-  .author-page .head-account__stat-label {
+  .author-page .account-header__stat-label {
     font-size: clamp(14px, 4vw, 16px) !important;
   }
 }

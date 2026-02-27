@@ -324,7 +324,7 @@ export const DashboardPage: FC = () => {
                   </div>
                 </div>
                 <div className="dashboard-stat-item">
-                  <span className="dashboard-stat-label">Сreations</span>
+                  <span className="dashboard-stat-label">Sticker Packs</span>
                   <div className="dashboard-stat-value-row">
                     <span className="dashboard-stat-value">{stats.totalStickerPacks}</span>
                     <span className="dashboard-stat-trend">{stats.stickerPacksTrend}</span>
