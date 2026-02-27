@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef, CSSProperties, FC, MouseEvent } from 'react';
+import { useCallback, useState, CSSProperties, FC, MouseEvent } from 'react';
 import { FavoriteIcon } from '@/components/ui/Icons';
 import { useLikesStore } from '../store/useLikesStore';
 import { useTelegram } from '../hooks/useTelegram';
@@ -30,17 +30,17 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
   // Подписываемся на изменения конкретного лайка через селектор
   // Селектор возвращает только нужные поля для конкретного packId
   // Используем shallow сравнение, чтобы компонент обновлялся только при реальных изменениях
-  const { likesCount, isLiked, syncing, error } = useLikesStore((state) => {
+  const { likesCount, isLiked } = useLikesStore((state) => {
     const likeState = state.likes[packId] || { packId, isLiked: false, likesCount: 0, syncing: false };
-    return { 
-      likesCount: likeState.likesCount, 
+    return {
+      likesCount: likeState.likesCount,
       isLiked: likeState.isLiked,
       syncing: likeState.syncing || false,
       error: likeState.error
     };
-  }, (a, b) => 
-    a.likesCount === b.likesCount && 
-    a.isLiked === b.isLiked && 
+  }, (a, b) =>
+    a.likesCount === b.likesCount &&
+    a.isLiked === b.isLiked &&
     a.syncing === b.syncing &&
     a.error === b.error
   );

@@ -199,11 +199,11 @@ export function resolveLikeState(params: {
  * Логирует изменения состояния (только при наличии изменений)
  */
 export function logStateChange(
-  packId: string,
-  action: 'optimistic' | 'sync' | 'setLike' | 'init',
+  _packId: string,
+  _action: 'optimistic' | 'sync' | 'setLike' | 'init',
   oldState: LikeState | undefined,
   newState: { isLiked: boolean; likesCount: number },
-  additionalData?: any
+  _additionalData?: any
 ): void {
   // Проверяем, изменилось ли состояние
   const hasChanged =

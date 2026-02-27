@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/Button';
 import { ShareIcon } from '@/components/ui/Icons';
 
 // Компоненты
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { StickerPackModal } from '@/components/StickerPackModal';
