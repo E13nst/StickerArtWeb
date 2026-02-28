@@ -109,6 +109,36 @@ export interface ReferralLinkResponse {
   url: string;
 }
 
+/** Пакет покупки ART за Telegram Stars — GET /api/stars/packages */
+export interface StarsPackage {
+  id?: number;
+  code?: string;
+  name?: string;
+  description?: string;
+  artAmount: number;
+  starsPrice: number;
+  discountPercent?: number | null;
+  sortOrder?: number;
+  createdAt?: string;
+}
+
+/** Ответ POST /api/stars/create-invoice */
+export interface StarsInvoiceResponse {
+  invoiceUrl: string;
+  intentId: number;
+  starsPackage: StarsPackage;
+}
+
+/** Последняя покупка ART за Stars — GET /api/stars/purchases/recent */
+export interface StarsPurchaseRecent {
+  id: number;
+  packageCode: string;
+  packageName: string;
+  starsPaid: number;
+  artCredited: number;
+  createdAt: string;
+}
+
 /** Ответ GET /api/statistics — общая статистика платформы */
 export interface StatisticsResponse {
   stickerSets?: { total?: number; daily?: number };
@@ -1526,6 +1556,39 @@ class ApiClient {
   }
 
   // ============ МЕТОДЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
+
+  // Пакеты покупки ART за Telegram Stars
+  // API endpoint: GET /api/stars/packages
+  async getStarsPackages(): Promise<StarsPackage[]> {
+    try {
+      const response = await this.client.get<StarsPackage[]>('/stars/packages');
+      return response.data ?? [];
+    } catch (error: any) {
+      console.warn('⚠️ Не удалось загрузить пакеты Stars:', error);
+      return [];
+    }
+  }
+
+  // Создание invoice для оплаты ART за Stars
+  // API endpoint: POST /api/stars/create-invoice
+  async createStarsInvoice(packageCode: string): Promise<StarsInvoiceResponse> {
+    const response = await this.client.post<StarsInvoiceResponse>('/stars/create-invoice', {
+      packageCode
+    });
+    return response.data;
+  }
+
+  // Последняя покупка ART за Stars (для подтверждения после openInvoice)
+  // API endpoint: GET /api/stars/purchases/recent
+  async getStarsPurchasesRecent(): Promise<StarsPurchaseRecent | null> {
+    try {
+      const response = await this.client.get<StarsPurchaseRecent>('/stars/purchases/recent');
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) return null;
+      throw error;
+    }
+  }
 
   // Получение тарифов ART
   // API endpoint: GET /api/art-tariffs

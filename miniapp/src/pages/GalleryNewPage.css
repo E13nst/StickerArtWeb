@@ -1,0 +1,125 @@
+/* GalleryNewPage — верхняя панель и элементы в эталонном стекле с оттенком заливки */
+
+.gallery-page__top-panel {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 600px;
+  z-index: 200;
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.25) 50%, rgba(102, 126, 234, 0.2));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.gallery-page__banner {
+  padding: 1rem;
+  color: white;
+  text-align: center;
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.2) 40%, rgba(102, 126, 234, 0.35));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gallery-page__banner-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.gallery-page__banner-subtitle {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.gallery-page__search-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  align-items: center;
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.25) 55%, rgba(118, 75, 162, 0.12));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gallery-page__search-row > div:first-child {
+  flex: 1;
+}
+
+.gallery-page__add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0 0.9rem;
+  height: 2.2rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.25) 50%, rgba(102, 126, 234, 0.35));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--tg-theme-button-text-color, #ffffff);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.gallery-page__add-btn:hover {
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.3) 50%, rgba(102, 126, 234, 0.45));
+  transform: scale(1.02);
+}
+
+.gallery-page__categories-wrap {
+  padding: 0 0.75rem 0.75rem;
+  overflow-x: auto;
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.2) 55%, rgba(118, 75, 162, 0.1));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gallery-page__categories {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.gallery-page__category-chip {
+  padding: 0.4rem 0.8rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.25) 60%, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.95);
+  transition: all 0.2s ease;
+}
+
+.gallery-page__category-chip:hover {
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.3) 50%, rgba(255, 255, 255, 0.1));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.gallery-page__category-chip--selected {
+  background: color-mix(in srgb, rgba(102, 126, 234, 0.5) 70%, rgba(118, 75, 162, 0.4));
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.gallery-page__category-chip--selected:hover {
+  background: color-mix(in srgb, rgba(102, 126, 234, 0.6) 70%, rgba(118, 75, 162, 0.5));
+}

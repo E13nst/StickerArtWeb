@@ -1,5 +1,5 @@
 import { useState, useCallback, ReactNode, FC } from 'react';
-import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
+import { motion, PanInfo, useMotionValue, useTransform, useMotionValueEvent } from 'framer-motion';
 import { Toast } from './Toast';
 import './SwipeCardStack.css';
 
@@ -21,6 +21,8 @@ export interface SwipeCardStackProps {
   renderCard: (card: SwipeCard, index: number, actions?: SwipeCardActions) => ReactNode;
   maxVisibleCards?: number;
   swipeThreshold?: number;
+  /** Текущее смещение по Y при перетаскивании верхней карточки (для свечения по краям) */
+  onDragY?: (y: number) => void;
 }
 
 export const SwipeCardStack: FC<SwipeCardStackProps> = ({
@@ -31,6 +33,7 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   renderCard,
   maxVisibleCards = 4,
   swipeThreshold = 100,
+  onDragY,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<'up' | 'down' | null>(null);
@@ -46,6 +49,10 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
 
   const y = useMotionValue(0);
   const opacity = useTransform(y, [-200, -80, 0, 80, 200], [0, 1, 1, 1, 0]);
+
+  useMotionValueEvent(y, 'change', (latest) => {
+    onDragY?.(latest);
+  });
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToastState({

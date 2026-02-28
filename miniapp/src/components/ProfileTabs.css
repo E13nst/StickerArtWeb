@@ -99,7 +99,7 @@
    profile variant (menu / stickers / Artpoints) — Figma "menu"
    ============================================ */
 
-/* profile variant: те же стили, что Create/Likes/Upload (28px, контейнер 370px) */
+/* profile variant: те же стили, что Create/Likes/Upload (28px, контейнер 370px); список — стеклянный */
 .profile-tabs--profile {
   display: flex;
   flex-direction: row;
@@ -110,12 +110,13 @@
   max-width: 370px;
   height: 28px;
   margin: 0 auto;
-  background: #262626;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  background: transparent;
+  box-shadow: none;
   border-radius: 16px;
   overflow: hidden;
 }
 
+/* Тёмное стекло (не эталонное) */
 .profile-tabs--profile .profile-tabs__list {
   display: flex;
   flex-direction: row;
@@ -127,7 +128,12 @@
   min-height: 28px;
   height: 28px;
   max-height: 28px;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 .profile-tabs--profile .profile-tabs__tab {

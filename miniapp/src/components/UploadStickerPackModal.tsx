@@ -7,8 +7,8 @@ import { Alert } from '@/components/ui/Alert';
 import { Spinner } from '@/components/ui/Spinner';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Chip } from '@/components/ui/Chip';
-import { IconButton } from '@/components/ui/IconButton';
 import { ModalBackdrop } from './ModalBackdrop';
+import './UploadStickerPackModal.css';
 import { apiClient } from '@/api/client';
 import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
 import { imageLoader, getCachedStickerUrl, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
@@ -444,9 +444,12 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
 
   const renderLinkStep = () => (
     <form onSubmit={handleSubmitLink}>
-      <Text variant="h4" weight="bold" style={{ fontWeight: 600, marginBottom: '20px', color: 'var(--tg-theme-text-color, #000000)', textAlign: 'center' }}>
+      <Text variant="h4" weight="bold" style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--tg-theme-text-color, #ffffff)', textAlign: 'center' }}>
         Добавьте стикеры в Stixly
       </Text>
+      <p className="upload-sticker-pack-modal__hint">
+        Можно просто отправить стикер нашему боту в чат.
+      </p>
 
       <Input
         label="Ссылка или имя стикерсета"
@@ -757,42 +760,24 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
       {open && !isCreatedPackModalOpen && (
         <ModalBackdrop open={open} onClose={handleClose}>
           <div
-            style={{
-              width: '90%',
-              maxWidth: '440px',
-              maxHeight: 'calc(100vh - 32px)',
-              overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color, #ffffff)',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              animation: open ? 'modalSlideIn 0.3s ease-out' : 'modalSlideOut 0.2s ease-in'
-            }}
-            onClick={(event) => event.stopPropagation()}
+            className="upload-sticker-pack-modal"
+            data-modal-content
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ position: 'relative', width: '100%' }}>
-              <IconButton
-                aria-label="close"
-                onClick={handleClose}
-                disabled={isSubmittingLink || isApplyingCategories || (step === 'categories' && selectedCategories.length === 0)}
-                style={{
-                  position: 'absolute',
-                  top: -8,
-                  right: -8,
-                  zIndex: 1,
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px'}}
-              >
-                <CloseIcon size={18} />
-              </IconButton>
-              {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
+            <div className="upload-sticker-pack-modal__handle" aria-hidden />
+            <div className="upload-sticker-pack-modal__body">
+              <div className="upload-sticker-pack-modal__header">
+                <button
+                  type="button"
+                  className="upload-sticker-pack-modal__close-btn"
+                  aria-label="Закрыть"
+                  onClick={handleClose}
+                  disabled={isSubmittingLink || isApplyingCategories || (step === 'categories' && selectedCategories.length === 0)}
+                >
+                  <CloseIcon size={18} />
+                </button>
+                {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
+              </div>
             </div>
           </div>
         </ModalBackdrop>

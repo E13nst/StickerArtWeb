@@ -1,6 +1,5 @@
-/* HeaderPanel — шапка на всю ширину, полупрозрачная на всех страницах.
-   backdrop вынесен в отдельный слой: overflow:hidden + backdrop-filter на одном элементе ломают
-   друг друга в iOS Safari/WebView (WebKit bug 205019). */
+/* HeaderPanel — шапка на всю ширину. Эталонное стекло: rgba(0,0,0,0.25), blur(12px), border rgba(255,255,255,0.08).
+   backdrop вынесен в отдельный слой: overflow + backdrop-filter на одном элементе ломают друг друга в iOS (WebKit bug 205019). */
 
 .header-panel {
   position: relative;
@@ -16,26 +15,27 @@
   border-radius: 0 0 var(--component-header-panel-border-radius) var(--component-header-panel-border-radius);
   box-sizing: border-box;
   min-height: 0;
-  /* iOS: GPU-слой для стабильного рендеринга */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
-/* Слой размытия — без overflow, отдельно от контента. На iPhone работает корректно. */
+/* Слой размытия — эталонное стекло, без лишних тёмных overlay */
 .header-panel__backdrop {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--component-header-panel-background-color, rgba(0, 0, 0, 0.5));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
   pointer-events: none;
 }
 
-@supports not (backdrop-filter: blur(10px)) and not (-webkit-backdrop-filter: blur(10px)) {
+@supports not (backdrop-filter: blur(12px)) and not (-webkit-backdrop-filter: blur(12px)) {
   .header-panel__backdrop {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -83,7 +83,7 @@
   font-family: var(--font-family-base);
 }
 
-/* Balance section */
+/* Balance section — эталонное стекло, кликабелен → profile?tab=artpoints */
 .header-panel__balance {
   display: flex;
   justify-content: center;
@@ -91,11 +91,20 @@
   gap: 10px;
   height: 48px;
   padding: 8px;
-  background: var(--component-header-panel-balance-background-color);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   box-sizing: border-box;
   width: 140px;
   flex: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.header-panel__balance:hover {
+  opacity: 0.9;
 }
 
 .header-panel__balance-text {
@@ -107,8 +116,9 @@
   white-space: nowrap;
 }
 
-/* Plus button */
+/* Plus button — акцентный цвет, редкий перелив раз в 5 сек (виден на любом фоне) */
 .header-panel__plus-button {
+  position: relative;
   width: 32px;
   height: 32px;
   display: flex;
@@ -116,13 +126,53 @@
   justify-content: center;
   padding: 8px;
   box-sizing: border-box;
-  background: var(--color-text);
+  background: linear-gradient(135deg, #ee449f 0%, #d93d8f 100%);
   border: none;
   border-radius: var(--border-radius-sm);
-  color: var(--color-background);
+  color: #ffffff;
   cursor: pointer;
   transition: opacity 0.2s ease;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.header-panel__plus-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    transparent 30%,
+    rgba(255, 255, 255, 0.5) 45%,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0.5) 55%,
+    transparent 70%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-position: 220% 0;
+  pointer-events: none;
+  animation: header-plus-button-shimmer 5s ease-in-out infinite;
+}
+
+@keyframes header-plus-button-shimmer {
+  0%, 84% {
+    background-position: 220% 0;
+    opacity: 0;
+  }
+  86% {
+    opacity: 1;
+  }
+  90% {
+    background-position: -120% 0;
+    opacity: 1;
+  }
+  92%, 100% {
+    background-position: -120% 0;
+    opacity: 0;
+  }
 }
 
 .header-panel__plus-button:hover {

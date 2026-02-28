@@ -20,10 +20,12 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
 
 const SHOW_HELLO_KEY = 'swipe-hello-shown';
+const SWIPE_GLOW_THRESHOLD = 100;
 
 export const SwipePage: FC = () => {
   const { isInTelegramApp } = useTelegram();
   const [showHello, setShowHello] = useState(false);
+  const [dragY, setDragY] = useState(0);
   
   const {
     stickerSets,
@@ -252,6 +254,14 @@ export const SwipePage: FC = () => {
     return stickerSets.slice(currentIndex, currentIndex + 4);
   }, [stickerSets, currentIndex]);
 
+  const showCardSkeleton = isLoading && stickerSets.length === 0;
+
+  // Сброс свечения при отсутствии карточек или скелетоне
+  const showCards = !showCardSkeleton && visibleCards.length > 0;
+  useEffect(() => {
+    if (!showCards) setDragY(0);
+  }, [showCards]);
+
   // Состояния загрузки и ошибок
   if (isLimitReached && limitInfo) {
     return (
@@ -274,8 +284,6 @@ export const SwipePage: FC = () => {
       </div>
     );
   }
-
-  const showCardSkeleton = isLoading && stickerSets.length === 0;
 
   if (error && stickerSets.length === 0) {
     return (
@@ -343,7 +351,19 @@ export const SwipePage: FC = () => {
   return (
     <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
-      <div className="swipe-page__inner">
+      <div
+        className="swipe-page__inner"
+        style={
+          {
+            '--swipe-glow-top': dragY < 0 ? Math.min(Math.abs(dragY) / SWIPE_GLOW_THRESHOLD, 1) : 0,
+            '--swipe-glow-bottom': dragY > 0 ? Math.min(dragY / SWIPE_GLOW_THRESHOLD, 1) : 0,
+          } as React.CSSProperties
+        }
+      >
+      {/* Свечение по краям при свайпе: зелёный сверху (лайк), красный снизу (дизлайк) */}
+      <div className="swipe-page__glow swipe-page__glow--top" aria-hidden />
+      <div className="swipe-page__glow swipe-page__glow--bottom" aria-hidden />
+
       {/* Swipe Stats */}
       {swipeStats && (
         <div className="swipe-page__stats">
@@ -363,18 +383,18 @@ export const SwipePage: FC = () => {
         <div className="swipe-page__cards">
           <div className="swipe-page__card-skeleton" aria-hidden="true">
             <div className="swipe-card swipe-card--skeleton">
-              <div className="swipe-card__content" style={{ gap: 4 }}>
-                <div style={{ height: 44, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.28)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
-                <div style={{ height: 23, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.22)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+              <div className="swipe-card__content">
+                <div className="swipe-card-skeleton__title" />
+                <div className="swipe-card-skeleton__subtitle" />
               </div>
               <div className="swipe-card__preview">
                 <div className="swipe-card__preview-inner">
-                  <div className="pack-card-skeleton" style={{ width: '100%', height: '100%', aspectRatio: '1', borderRadius: 12 }} />
+                  <div className="pack-card-skeleton swipe-card-skeleton__preview" />
                 </div>
               </div>
               <div className="swipe-card__footer">
-                <div style={{ height: 14, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.28)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
-                <div style={{ height: 12, width: '40%', borderRadius: 6, marginTop: 8, background: 'rgba(255,255,255,0.22)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div className="swipe-card-skeleton__action" />
+                <div className="swipe-card-skeleton__action" />
               </div>
             </div>
           </div>
@@ -389,6 +409,7 @@ export const SwipePage: FC = () => {
             renderCard={renderCard}
             maxVisibleCards={4}
             swipeThreshold={100}
+            onDragY={setDragY}
           />
         </div>
       ) : null}

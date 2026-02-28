@@ -45,11 +45,11 @@ const PROFILE_TABS = [
   { index: 2, Icon: AccountBalanceWalletIcon, label: 'Artpoints' },
 ];
 
-/** Вкладки для своей страницы ACCOUNT (MyProfilePage): Create, Likes, Upload */
+/** Вкладки для своей страницы ACCOUNT (MyProfilePage): Created, Liked, Uploaded */
 const ACCOUNT_TABS = [
-  { index: 0, Icon: CollectionsIcon, label: 'Create' },
-  { index: 1, Icon: CollectionsIcon, label: 'Likes' },
-  { index: 2, Icon: CollectionsIcon, label: 'Upload' },
+  { index: 0, Icon: CollectionsIcon, label: 'Created' },
+  { index: 1, Icon: CollectionsIcon, label: 'Liked' },
+  { index: 2, Icon: CollectionsIcon, label: 'Uploaded' },
 ];
 
 export const ProfileTabs: FC<ProfileTabsProps> = ({
@@ -58,7 +58,7 @@ export const ProfileTabs: FC<ProfileTabsProps> = ({
   variant = 'profile'
 }) => {
   const tabs = variant === 'account' ? ACCOUNT_TABS : PROFILE_TABS;
-  const ariaLabel = variant === 'account' ? 'Create, Likes, Upload' : 'Account tabs';
+  const ariaLabel = variant === 'account' ? 'Created, Liked, Uploaded' : 'Account tabs';
   return (
     <div
       className={`profile-tabs ${variant === 'account' ? 'profile-tabs--account' : 'profile-tabs--profile'}`}

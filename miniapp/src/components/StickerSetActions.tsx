@@ -1,4 +1,5 @@
-import { useState, useCallback, ReactNode, CSSProperties, FC, MouseEvent, ChangeEvent } from 'react';
+import { useState, useCallback, useEffect, ReactNode, CSSProperties, FC, MouseEvent, ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { CloseIcon } from '@/components/ui/Icons';
 import { Dialog, DialogTitle, DialogContent, DialogActions } from '@/components/ui/Dialog';
 import { Text } from '@/components/ui/Text';
@@ -113,17 +114,22 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
     });
   }, []);
 
-  // Закрытие диалога
+  // Закрытие диалога — action оставляем до конца анимации, чтобы Dialog успел отыграть
+  const DIALOG_CLOSE_MS = 350;
   const handleCloseDialog = useCallback(() => {
-    if (dialogState.loading) return; // Не закрываем во время загрузки
-    setDialogState({
-      open: false,
-      action: null,
-      loading: false,
-      error: null,
-      blockReason: ''
-    });
+    if (dialogState.loading) return;
+    setDialogState(prev => ({ ...prev, open: false }));
   }, [dialogState.loading]);
+
+  // Сброс action после анимации закрытия (чтобы размонтировать portal)
+  useEffect(() => {
+    if (!dialogState.open && dialogState.action) {
+      const t = setTimeout(() => {
+        setDialogState(prev => ({ ...prev, action: null, loading: false, error: null, blockReason: '' }));
+      }, DIALOG_CLOSE_MS);
+      return () => clearTimeout(t);
+    }
+  }, [dialogState.open, dialogState.action]);
 
   // Выполнение действия
   const handleConfirmAction = useCallback(async () => {
@@ -186,17 +192,8 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
           break;
       }
 
-      // Уведомляем родительский компонент об успешном действии
       onActionComplete(dialogState.action, updatedData);
-
-      // Закрываем диалог
-      setDialogState({
-        open: false,
-        action: null,
-        loading: false,
-        error: null,
-        blockReason: ''
-      });
+      setDialogState(prev => ({ ...prev, open: false }));
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message ||
@@ -364,8 +361,8 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
         )}
       </div>
 
-      {/* Модальное окно подтверждения */}
-      {currentConfig && (
+      {/* Модальное окно подтверждения — в портал, чтобы открывалось над StickerSetDetail и было кликабельно */}
+      {currentConfig && typeof document !== 'undefined' && createPortal(
         <Dialog open={dialogState.open} onClose={handleCloseDialog}>
           <DialogTitle style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '24px 24px 16px' }}>
             <span style={{ fontSize: '32px' }}>{currentConfig.emoji}</span>
@@ -429,7 +426,8 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
               )}
             </IconButton>
           </DialogActions>
-        </Dialog>
+        </Dialog>,
+        document.body
       )}
     </>
   );

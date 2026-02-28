@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, FC } from 'react';
+import { createPortal } from 'react-dom';
 import { CloseIcon } from '@/components/ui/Icons';
 import { CategoryResponse } from '@/types/sticker';
 import { apiClient } from '@/api/client';
@@ -97,10 +98,11 @@ export const CategoriesDialog: FC<CategoriesDialogProps> = ({
 
   if (!open) return null;
 
-  return (
+  const dialogContent = (
     <ModalBackdrop open={open} onClose={handleClose}>
       <div
         className="categories-dialog"
+        data-modal-content
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -188,7 +190,7 @@ export const CategoriesDialog: FC<CategoriesDialogProps> = ({
                 disabled={isSavingCategories}
                 aria-label="Отмена"
               >
-                <CloseIcon size={24} />
+                Отмена
               </button>
               <button
                 type="button"
@@ -200,9 +202,7 @@ export const CategoriesDialog: FC<CategoriesDialogProps> = ({
                 {isSavingCategories ? (
                   <div className="categories-dialog__save-spinner" />
                 ) : (
-                  <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                  </svg>
+                  'Сохранить'
                 )}
               </button>
             </div>
@@ -211,4 +211,6 @@ export const CategoriesDialog: FC<CategoriesDialogProps> = ({
       </div>
     </ModalBackdrop>
   );
+
+  return createPortal(dialogContent, document.body);
 };

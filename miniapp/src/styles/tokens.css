@@ -144,6 +144,10 @@
   
   /* Card — как dashboard: полупрозрачный тёмный фон */
   --component-card-background-color: rgba(0, 0, 0, 0.5);
+
+  /* Модальные панели и бэкдропы — единая логика прозрачности (на 30% менее прозрачно) */
+  --component-modal-panel-bg: rgba(0, 0, 0, 0.85);
+  --component-modal-backdrop-bg: rgba(0, 0, 0, 0.65);
   --component-card-border-radius: 16px;
   --component-card-width: 370px;
   --component-card-max-width: 402px;

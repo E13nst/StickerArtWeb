@@ -23,8 +23,10 @@
   box-sizing: border-box;
 }
 
-/* Карточка в модалке: как панель фильтров — снизу viewport, поверх navbar (position: fixed, bottom: 0) */
-.sticker-set-detail-card--modal {
+/* Карточка в модалке: как панель фильтров — снизу viewport, поверх navbar (position: fixed, bottom: 0).
+   Специфичность .sticker-set-detail-card.sticker-set-detail-card--modal (0,2,0) выше, чем [data-modal-content]
+   из common.css (0,1,0), чтобы полупрозрачность всегда применялась и не перекрывалась var(--color-surface). */
+.sticker-set-detail-card.sticker-set-detail-card--modal {
   position: fixed;
   left: 0;
   right: 0;
@@ -41,7 +43,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
   border: none;
   border-radius: var(--component-card-border-radius) var(--component-card-border-radius) 0 0;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
@@ -61,6 +63,22 @@
 .sticker-set-detail-card--dragging {
   animation: none !important;
   will-change: transform;
+}
+
+/* Режим редактирования: скролл только в __main, ручка остаётся на месте, сворачивание по свайпу */
+.sticker-set-detail-card--edit {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sticker-set-detail-card--edit .sticker-set-detail-card__main--edit {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 
 /* Ручка для свайпа */
@@ -338,6 +356,83 @@
   justify-content: center;
   align-items: center;
   gap: 16px;
+}
+
+/* Layout модалки: toolbar + card как соседи в modal-backdrop-content */
+.sticker-set-detail-modal-layout {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: var(--component-card-max-width, 402px);
+  margin-left: auto;
+  margin-right: auto;
+  height: 78.6vh;
+  min-height: 78.6vh;
+  max-height: 78.6vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
+  border-radius: var(--component-card-border-radius) var(--component-card-border-radius) 0 0;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-sizing: border-box;
+  z-index: calc(var(--z-modal, 1000) + 1);
+}
+
+/* Карточка внутри layout: не fixed, занимает оставшееся место, скролл внутри */
+.sticker-set-detail-modal-layout .sticker-set-detail-card--modal {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  flex: 1;
+  margin: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sticky toolbar — без фона, прижат к левому краю в модалке */
+.sticker-set-detail-card__actions-toolbar {
+  background: none;
+}
+
+.sticker-set-detail-modal-layout .sticker-set-detail-card__actions-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: none;
+  pointer-events: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sticker-set-detail-card__actions-toolbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sticker-set-detail-modal-layout .sticker-set-detail-card__actions-toolbar-inner {
+  justify-content: flex-start;
+}
+
+.sticker-set-detail-card__actions-toolbar .sticker-set-detail-card__footer-actions,
+.sticker-set-detail-card__actions-toolbar .sticker-set-detail-card__actions-wrap {
+  margin-top: 0;
+  padding: 0;
 }
 
 .sticker-set-detail-card__divider {

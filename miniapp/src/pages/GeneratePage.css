@@ -106,6 +106,7 @@
   align-self: stretch;
 }
 
+/* Тёмное стекло (не эталонное) */
 .generate-input-wrapper {
   position: relative;
   display: flex;
@@ -116,7 +117,10 @@
   width: 100%;
   max-width: 370px;
   min-height: 99px;
-  background: #262626;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 16px;
   flex: none;
@@ -206,6 +210,7 @@
   box-sizing: border-box;
 }
 
+/* Триггер выбора модели — тёмное стекло */
 .generate-model-select-trigger {
   display: flex;
   align-items: center;
@@ -213,24 +218,27 @@
   gap: 8px;
   width: 100%;
   padding: 8px;
-  border: none;
   border-radius: 16px;
-  background: #262626;
-  box-shadow: none;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   color: var(--color-text-secondary);
   font-family: var(--font-family-base);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
   cursor: pointer;
-  transition: box-shadow 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   outline: none;
   text-align: left;
   box-sizing: border-box;
 }
 
 .generate-model-select-trigger:hover:not(:disabled) {
-  box-shadow: none;
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .generate-model-select-trigger:disabled {
@@ -243,15 +251,17 @@
   min-width: 0;
 }
 
-/* Dropdown panel — стиль как generate-input-wrapper */
+/* Dropdown panel — эталонное стекло (как sticker-set-detail, sort-dropdown) */
 .generate-model-select-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
   min-width: 100%;
-  background: #262626;
-  border: none;
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);

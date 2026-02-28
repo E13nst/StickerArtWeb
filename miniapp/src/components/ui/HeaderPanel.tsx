@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef, useState, FC } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -16,6 +16,7 @@ const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
  */
 export const HeaderPanel: FC = () => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { user } = useTelegram();
   const { userInfo, currentUserId, isProfileFromAuthenticatedApi } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
@@ -110,14 +111,23 @@ export const HeaderPanel: FC = () => {
             />
           )}
 
-          <div className="header-panel__balance">
-            <span className="header-panel__balance-text">
-              {formattedBalance} ART
-            </span>
+          <div
+            className="header-panel__balance"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/profile?tab=artpoints')}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/profile?tab=artpoints')}
+            aria-label="Перейти в ART-points"
+          >
             <button
+              type="button"
               className="header-panel__plus-button"
               aria-label="Пополнить баланс"
-              onClick={handlePlusClick}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handlePlusClick();
+              }}
             >
               <svg
                 width="16"
@@ -134,6 +144,9 @@ export const HeaderPanel: FC = () => {
                 />
               </svg>
             </button>
+            <span className="header-panel__balance-text">
+              {formattedBalance} ART
+            </span>
           </div>
 
           {/* Wallet button */}

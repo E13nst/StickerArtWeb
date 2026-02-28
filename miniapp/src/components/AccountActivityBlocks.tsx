@@ -8,7 +8,7 @@ export interface ActivityTask {
   progress: number;
   total: number;
   reward?: string;
-  status: 'claim' | 'go-up' | 'active';
+  status: 'claim' | 'go-up' | 'active' | 'upcoming';
   onAction?: () => void;
   actionLabel?: string;
 }
@@ -20,32 +20,42 @@ interface ActivityTaskItemProps {
 const ActivityTaskItem: FC<ActivityTaskItemProps> = ({ task }) => {
   const percent = task.total > 0 ? Math.min(100, (task.progress / task.total) * 100) : 0;
   const isComplete = task.progress >= task.total;
+  const isUpcoming = task.status === 'upcoming';
 
   return (
-    <div className="activity-task">
+    <div className={`activity-task ${isUpcoming ? 'activity-task--upcoming' : ''}`}>
       <div className="activity-task__header">
         <span className="activity-task__title">{task.title}</span>
-        {task.reward && (
+        {isUpcoming && (
+          <span className="activity-task__status">Upcoming</span>
+        )}
+        {task.reward && !isUpcoming && (
           <span className="activity-task__reward">{task.reward}</span>
         )}
       </div>
       <div className="activity-task__row">
-        <div className="activity-task__progress-wrap">
-          <div className="activity-task__progress-bg" />
-          <div
-            className="activity-task__progress-fill"
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-        <span className="activity-task__count">
-          {task.progress}/{task.total}
-        </span>
+        {!isUpcoming && (
+          <>
+            <div className="activity-task__progress-wrap">
+              <div className="activity-task__progress-bg" />
+              <div
+                className="activity-task__progress-fill"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <span className="activity-task__count">
+              {task.progress}/{task.total}
+            </span>
+          </>
+        )}
         <div
-          className={`activity-task__badge activity-task__badge--${task.status === 'claim' ? 'calm' : task.status} ${isComplete ? 'activity-task__badge--complete' : ''}`}
+          className={`activity-task__badge activity-task__badge--${task.status === 'claim' ? 'calm' : task.status} ${isComplete && !isUpcoming ? 'activity-task__badge--complete' : ''} ${isUpcoming ? 'activity-task__badge--disabled' : ''}`}
+          aria-disabled={isUpcoming}
         >
           {task.status === 'claim' && 'Claim'}
           {task.status === 'go-up' && 'Go Up'}
           {task.status === 'active' && 'Start'}
+          {task.status === 'upcoming' && 'Claim'}
         </div>
       </div>
     </div>
@@ -90,20 +100,22 @@ export const DailyActivityBlock: FC<DailyActivityBlockProps> = ({
   <div className="activity-block activity-block--daily">
     <h3 className="activity-block__title">Daily activity</h3>
     <div className="activity-block__progress-dots">
-      {Array.from({ length: 14 }).map((_, i) => (
+      {Array.from({ length: 10 }).map((_, i) => (
         <span
           key={i}
-          className={`activity-block__dot ${i < 9 ? 'activity-block__dot--filled' : ''}`}
+          className={`activity-block__dot ${i < 6 ? 'activity-block__dot--filled' : ''}`}
         />
       ))}
     </div>
     <div className="activity-block__tasks">
+      <ActivityTaskItem
+        key="daily-checkin"
+        task={{ id: 'daily-checkin', title: 'Daily Check-in', progress: 0, total: 1, status: 'upcoming' }}
+      />
       {tasks.map((task) => (
-        <ActivityTaskItem
-          key={task.id}
-          task={task}
-        />
+        <ActivityTaskItem key={task.id} task={task} />
       ))}
+      <span className="top-users-link activity-block__more">More soon</span>
     </div>
   </div>
 );
@@ -118,10 +130,23 @@ export const GlobalActivityBlock: FC<GlobalActivityBlockProps> = ({
 }) => (
   <div className="activity-block activity-block--global">
     <h3 className="activity-block__title">Global activity</h3>
+    <div className="activity-block__progress-dots">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <span
+          key={i}
+          className={`activity-block__dot ${i < 6 ? 'activity-block__dot--filled' : ''}`}
+        />
+      ))}
+    </div>
     <div className="activity-block__tasks">
+      <ActivityTaskItem
+        key="global-checkin"
+        task={{ id: 'global-checkin', title: 'Global Check-in', progress: 0, total: 1, status: 'upcoming' }}
+      />
       {tasks.map((task) => (
         <ActivityTaskItem key={task.id} task={task} />
       ))}
+      <span className="top-users-link activity-block__more">More soon</span>
     </div>
   </div>
 );

@@ -81,7 +81,7 @@ export const SwipeCard: FC<SwipeCardProps> = ({
     return 'rgba(255, 255, 255, 0)';
   });
 
-  // Box shadow с эффектом "сжигания" для дизлайка (вниз)
+  // Box shadow — свечение во время свайпа (меньший размер, в viewport)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const boxShadow = (useTransform as any)(
     [glowIntensity, glowColor, y],
@@ -91,11 +91,9 @@ export const SwipeCard: FC<SwipeCardProps> = ({
       const y = yValue;
       
       if (y > 0) {
-        // Дизлайк вниз: красное свечение + чёрная внутренняя тень (эффект сжигания)
-        return `0 0 ${i * 50}px ${i * 20}px ${c}, inset 0 0 ${i * 30}px rgba(0, 0, 0, ${i * 0.8})`;
+        return `0 0 ${i * 24}px ${i * 10}px ${c}, inset 0 0 ${i * 16}px rgba(0, 0, 0, ${i * 0.8})`;
       } else {
-        // Лайк вверх: розовое свечение
-        return `0 0 ${i * 40}px ${i * 15}px ${c}`;
+        return `0 0 ${i * 24}px ${i * 10}px ${c}`;
       }
     }
   );
@@ -273,7 +271,7 @@ export const SwipeCard: FC<SwipeCardProps> = ({
         setIsDragging(true);
       }}
       onDrag={(_, info) => {
-        // Небольшое горизонтальное смещение при вертикальном свайпе для эффекта
+        y.set(info.offset.y);
         x.set(info.offset.y * 0.1 * (info.offset.y > 0 ? -1 : 1));
       }}
       onDragEnd={handleDragEnd}

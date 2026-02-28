@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef, FC } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonAddress } from '@tonconnect/ui-react';
@@ -6,13 +7,13 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useWallet } from '@/hooks/useWallet';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
-import { apiClient, ReferralLinkResponse } from '@/api/client';
+import { apiClient, ReferralLinkResponse, StarsPackage } from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';
 
 // UI Компоненты
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { ShareIcon } from '@/components/ui/Icons';
+import { ShareIcon, ArrowBackIcon } from '@/components/ui/Icons';
 
 // Компоненты
 import { ErrorDisplay } from '@/components/ErrorDisplay';
@@ -25,11 +26,14 @@ import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
 import { AddStickerPackButton } from '@/components/AddStickerPackButton';
 import { CompactControlsBar } from '@/components/CompactControlsBar';
-import { QuestStixlyCard, DailyActivityBlock, GlobalActivityBlock } from '@/components/AccountActivityBlocks';
+import { DailyActivityBlock, GlobalActivityBlock } from '@/components/AccountActivityBlocks';
 import { Category } from '@/components/CategoryFilter';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import { OtherAccountBackground } from '@/components/OtherAccountBackground';
+import { usePurchaseStars } from '@/hooks/usePurchaseStars';
 import '@/styles/common.css';
+import '@/styles/DashboardPage.css';
 import '@/styles/MyProfilePage.css';
 
 // Утилита для объединения классов
@@ -165,7 +169,27 @@ export const MyProfilePage: FC = () => {
   const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(null);
   const [referralLinkLoading, setReferralLinkLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [starsPackages, setStarsPackages] = useState<StarsPackage[]>([]);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const loadMyProfileRef = useRef<((force?: boolean) => Promise<void>) | null>(null);
+
+  // Пакеты ART за Telegram Stars — загрузка при открытии вкладки Art-points
+  useEffect(() => {
+    if (mainTab !== 1) return;
+    apiClient.getStarsPackages().then(setStarsPackages);
+  }, [mainTab]);
+
+  /* На iOS clipboard.writeText работает только в контексте user gesture.
+     Если ссылка загружается асинхронно, await ломает этот контекст — первый клик не копирует.
+     Предзагружаем ссылку при появлении userInfo, чтобы первый клик уже имел URL. */
+  useEffect(() => {
+    if (!userInfo || referralLink?.url) return;
+    let cancelled = false;
+    apiClient.getReferralLink().then((data) => {
+      if (!cancelled) setReferralLink(data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [userInfo, referralLink?.url]);
 
   const handleShareReferral = useCallback(async () => {
     if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
@@ -354,6 +378,11 @@ export const MyProfilePage: FC = () => {
       setLoading(false);
     }
   };
+
+  loadMyProfileRef.current = loadMyProfile;
+  const { purchase, isPurchasing } = usePurchaseStars({
+    onPurchaseSuccess: useCallback(() => { loadMyProfileRef.current?.(true); }, [])
+  });
 
   // ✅ REFACTORED: Загрузка информации о текущем пользователе через /api/profiles/me
   const loadUserInfo = async () => {
@@ -955,6 +984,7 @@ export const MyProfilePage: FC = () => {
 
   return (
     <div className={cn('page-container', 'my-profile-page', 'account-page', isInTelegramApp && 'telegram-app')}>
+      <OtherAccountBackground />
       {/* Head account (Figma): шапка профиля без Header Panel */}
       <div
         className={cn('account-header', isInTelegramApp && 'account-header--telegram')}
@@ -972,6 +1002,9 @@ export const MyProfilePage: FC = () => {
         ) : !userError && !userInfo ? (
           /* Скелетон шапки: пока нет userInfo и нет ошибки — макет без мерцания */
           <>
+            <div className="account-header__balance-wrap account-header__balance-wrap--skeleton" aria-hidden>
+              <div className="account-header__balance account-header__balance--panel-style" />
+            </div>
             <div className="account-header__share-wrap" />
             <div className="account-header__avatar account-header__skeleton-avatar" />
             <div className="account-header__name account-header__skeleton-name" />
@@ -983,6 +1016,53 @@ export const MyProfilePage: FC = () => {
           </>
         ) : userInfo ? (
           <>
+            {/* Баланс ART — симметрично кнопке "Поделиться" (слева) */}
+            <div
+              role="button"
+              tabIndex={0}
+              id="account-header__balance-btn"
+              className={cn('account-header__balance-wrap', mainTab === 1 && 'account-header__balance-wrap--back')}
+              onClick={() => {
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                setMainTab((prev) => (prev === 0 ? 1 : 0));
+                navigate(mainTab === 0 ? '/profile?tab=artpoints' : '/profile');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLElement).click();
+                }
+              }}
+              aria-label={mainTab === 0 ? 'ART (переключить на Art-points)' : 'Назад к Stickers'}
+              aria-pressed={mainTab === 1}
+            >
+              <div className="account-header__balance account-header__balance--panel-style">
+                <button
+                  type="button"
+                  className="header-panel__plus-button"
+                  aria-label="Пополнить баланс"
+                  aria-hidden={mainTab === 1}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    setMainTab(1);
+                    navigate('/profile?tab=artpoints');
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </button>
+                {mainTab === 1 ? (
+                  <>
+                    <ArrowBackIcon size={18} color="currentColor" />
+                    <span className="account-header__balance-text"> Back</span>
+                  </>
+                ) : (
+                  <span className="account-header__balance-text">🎨ART</span>
+                )}
+              </div>
+            </div>
             {/* Кнопка "Поделиться" — верхняя часть карточки, с учётом safe area */}
             <div className="account-header__share-wrap">
               <button
@@ -1096,35 +1176,8 @@ export const MyProfilePage: FC = () => {
         </div>
       </div>
 
-      {/* Вкладки Stickers | Art-points — всегда показываем макет для отсутствия сдвигов */}
-      <div className="account-main-tabs-wrap">
-        <div role="tablist" className="account-main-tabs" aria-label="Stickers or Art-points">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 0}
-            id="account-main-tab-stickers"
-            aria-controls="account-main-panel-stickers"
-            onClick={() => setMainTab(0)}
-            className={cn('account-main-tabs__tab', mainTab === 0 && 'account-main-tabs__tab--active')}
-          >
-            Stickers
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 1}
-            id="account-main-tab-artpoints"
-            aria-controls="account-main-panel-artpoints"
-            onClick={() => setMainTab(1)}
-            className={cn('account-main-tabs__tab', mainTab === 1 && 'account-main-tabs__tab--active')}
-          >
-            Art-points
-          </button>
-        </div>
-      </div>
-
-      {/* Stickers: account-tabs-wrap (Create/Likes/Upload) — всегда при mainTab 0 */}
+      {/* Stickers по умолчанию; переключение на Art-points по кнопке 🎨ART */}
+      {/* Stickers: account-tabs-wrap (Create/Likes/Upload) — при mainTab 0 */}
       {mainTab === 0 && (
         <div className="account-tabs-wrap">
           <ProfileTabs
@@ -1136,9 +1189,18 @@ export const MyProfilePage: FC = () => {
         </div>
       )}
 
-      {/* Прокручиваемый контент: при Stickers — галереи; при Art-points — account-menu-content (quests) */}
+      {/* Прокручиваемый контент: при Stickers — галереи; при Art-points — account-menu-content (quests).
+          Закрытие Art-points — плавный slide вниз как у StickerSetDetail (300ms). */}
       <StixlyPageContainer className="page-container-no-padding-top">
+        <AnimatePresence mode="wait">
         {mainTab === 0 ? (
+        <motion.div
+          key="stickers"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
         <>
             {/* Tab 0: Create — стикеры, которые можно создать и загрузить (без quests сверху) */}
             <TabPanel value={activeProfileTab} index={0}>
@@ -1288,45 +1350,90 @@ export const MyProfilePage: FC = () => {
               )}
             </TabPanel>
         </>
-        ) : mainTab === 1 ? (
-          /* Art-points: account-menu-content, конкретно account-quests-grid */
-          <div className="account-menu-content" id="account-main-panel-artpoints" role="tabpanel" aria-labelledby="account-main-tab-artpoints">
-            <div className="account-main-panel-artpoints-add" style={{ marginBottom: 16 }}>
+        </motion.div>
+        ) : (
+          /* Art-points: slide снизу как StickerSetDetail, плавное закрытие вниз */
+          <motion.div
+            key="artpoints"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            className="account-menu-content"
+            id="account-main-panel-artpoints"
+            role="tabpanel"
+            aria-labelledby="account-header__balance-btn"
+            style={{ overflow: 'auto' }}
+          >
+            <div className="account-main-panel-artpoints-add">
               <AddStickerPackButton
                 variant="profile"
                 onClick={handleCreateSticker}
               />
             </div>
-            <div className="account-quests-grid">
-              <QuestStixlyCard
-                title="Quest Stixly"
-                description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris sed venenatis nibh."
-                onStart={() => {}}
-              />
-              <QuestStixlyCard
-                title="Quest Stixly 2"
-                description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris sed venenatis nibh."
-                onStart={() => {}}
-              />
+            <div className="dashboard-daily-activity-section">
+              <div className="dashboard-daily-activity">
+                <div className="dashboard-daily-activity-header">
+                  <h2 className="dashboard-daily-activity-title">Купить ART</h2>
+                </div>
+                <div className="dashboard-daily-activity-carousel">
+                  <div className="dashboard-daily-activity-pool account-topup-pool">
+                    {starsPackages.map((pkg, index) => {
+                      const packageCode = pkg.code ?? (pkg.id != null ? `PKG_${pkg.id}` : null);
+                      return packageCode ? (
+                        <button
+                          key={pkg.id ?? index}
+                          type="button"
+                          className="dashboard-daily-activity-task account-topup-task account-topup-task-btn"
+                          onClick={() => purchase(packageCode)}
+                          disabled={isPurchasing}
+                          aria-label={`Купить ${pkg.artAmount} ART за ${pkg.starsPrice} звёзд`}
+                        >
+                          <div className="account-topup-emoji-stack" aria-hidden>
+                            <span className="account-topup-emoji">🎨</span>
+                          </div>
+                          <div className="account-topup-main">
+                            <span className="account-topup-art">
+                              {pkg.artAmount.toLocaleString('ru-RU')} ART
+                            </span>
+                            {pkg.discountPercent != null && pkg.discountPercent > 0 && (
+                              <>
+                                <span className="account-topup-sep">·</span>
+                                <span className="account-topup-badge">-{pkg.discountPercent}%</span>
+                              </>
+                            )}
+                          </div>
+                          <span className="account-topup-price">★ {pkg.starsPrice.toLocaleString('ru-RU')}</span>
+                        </button>
+                      ) : (
+                        <div key={pkg.id ?? index} className="dashboard-daily-activity-task account-topup-task">
+                          <div className="account-topup-emoji-stack" aria-hidden>
+                            <span className="account-topup-emoji">🎨</span>
+                          </div>
+                          <div className="account-topup-main">
+                            <span className="account-topup-art">
+                              {pkg.artAmount.toLocaleString('ru-RU')} ART
+                            </span>
+                            {pkg.discountPercent != null && pkg.discountPercent > 0 && (
+                              <>
+                                <span className="account-topup-sep">·</span>
+                                <span className="account-topup-badge">-{pkg.discountPercent}%</span>
+                              </>
+                            )}
+                          </div>
+                          <span className="account-topup-price">★ {pkg.starsPrice.toLocaleString('ru-RU')}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
-            <DailyActivityBlock
-              tasks={[
-                { id: '1', title: 'Visit Project', progress: 1, total: 1, status: 'claim' },
-                { id: '2', title: 'Upgrade 10 ...', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
-                { id: '3', title: 'Share two Stickers', progress: 2, total: 2, status: 'claim' },
-                { id: '4', title: 'Visit Project', progress: 1, total: 1, status: 'claim' },
-              ]}
-            />
-            <GlobalActivityBlock
-              tasks={[
-                { id: 'g1', title: 'Connect TON', progress: 1, total: 1, reward: '1,000 ART', status: 'claim' },
-                { id: 'g2', title: 'Invite friends', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
-                { id: 'g3', title: 'Donate authors', progress: 1, total: 1, reward: '100 ART', status: 'claim' },
-                { id: 'g4', title: 'Like 10 stickers', progress: 5, total: 10, reward: '100 ART', status: 'go-up' },
-              ]}
-            />
-          </div>
-        ) : null}
+            <DailyActivityBlock tasks={[]} />
+            <GlobalActivityBlock tasks={[]} />
+          </motion.div>
+        )}
+        </AnimatePresence>
       </StixlyPageContainer>
 
       {/* Нижняя навигация */}

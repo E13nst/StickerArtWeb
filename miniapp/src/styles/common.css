@@ -456,20 +456,25 @@
    Исключение: Dashboard — свой стиль через .dashboard-card-carousel
    ============================================ */
 
-.optimized-gallery .pack-card,
-.optimized-gallery .pack-card__placeholder {
-  background: rgba(238, 68, 159, 0.2) !important;
-  background-color: rgba(238, 68, 159, 0.2) !important;
-}
-
 .optimized-gallery .pack-card {
+  background: rgba(0, 0, 0, 0.25) !important;
+  background-color: rgba(0, 0, 0, 0.25) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   width: 177px !important;
   height: 213px !important;
   aspect-ratio: auto !important;
   max-width: 177px;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 16px;
-  border: none;
+}
+
+.optimized-gallery .pack-card__placeholder {
+  background: rgba(0, 0, 0, 0.15) !important;
+  background-color: rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* Единый вид карточек: галерея, профиль, страница автора — заголовок под контентом */

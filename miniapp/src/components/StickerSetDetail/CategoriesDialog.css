@@ -12,14 +12,14 @@
   pointer-events: none;
 }
 
-/* Панель модального окна */
+/* Панель модального окна — как StickerSetDetail (темнее) */
 .categories-dialog__panel {
   position: relative;
   width: 100%;
   max-width: var(--component-card-max-width, 402px);
   height: 595px;
   max-height: calc(100vh - 40px);
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
   border: none;
   border-radius: 16px 16px 0 0;
   display: flex;
@@ -211,7 +211,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #ffffff;
+  border-top-color: var(--color-primary, #ee449f);
   border-radius: 50%;
   animation: categoriesDialogSpin 0.8s linear infinite;
   flex-shrink: 0;
@@ -258,10 +258,11 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* Футер */
+/* Футер — safe-area-inset-bottom, не выходит за viewport */
 .categories-dialog__footer {
   flex-shrink: 0;
-  padding: 12px 24px 24px;
+  padding: 12px 24px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -282,23 +283,27 @@
   justify-content: center;
 }
 
-/* Кнопка отмены */
+/* Кнопки — стиль приложения (как dashboard/button-base) */
 .categories-dialog__cancel-btn {
-  width: 55px;
-  height: 55px;
-  border-radius: var(--tg-radius-l, 14px);
-  background: rgba(255, 255, 255, 0.12);
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--tg-radius-l, 16px);
+  background: var(--color-surface, #262626);
   border: none;
-  color: #ffffff;
+  color: var(--color-text, #ffffff);
+  font-size: 14px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
   transition: background 150ms ease;
 }
 
 .categories-dialog__cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #333;
 }
 
 .categories-dialog__cancel-btn:disabled {
@@ -306,24 +311,27 @@
   cursor: not-allowed;
 }
 
-/* Кнопка сохранения */
+/* Кнопка сохранения — акцент primary */
 .categories-dialog__save-btn {
-  width: 55px;
-  height: 55px;
-  border-radius: var(--tg-radius-l, 14px);
-  background: rgba(76, 175, 80, 0.25);
-  border: 1px solid rgba(76, 175, 80, 0.45);
-  color: #4CAF50;
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--tg-radius-l, 16px);
+  background: var(--color-primary, #ee449f);
+  border: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms ease, opacity 150ms ease;
 }
 
 .categories-dialog__save-btn:hover {
-  background: rgba(76, 175, 80, 0.35);
-  border-color: rgba(76, 175, 80, 0.6);
+  background: #d93d8f;
 }
 
 .categories-dialog__save-btn:disabled {
@@ -332,10 +340,10 @@
 }
 
 .categories-dialog__save-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(76, 175, 80, 0.25);
-  border-top-color: #4CAF50;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--color-primary, #ee449f);
   border-radius: 50%;
   animation: categoriesDialogSpin 0.8s linear infinite;
 }
@@ -383,13 +391,13 @@
   }
 
   .categories-dialog__footer {
-    padding: 10px 20px 20px;
+    padding: 10px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
   }
 
   .categories-dialog__cancel-btn,
   .categories-dialog__save-btn {
-    width: 50px;
-    height: 50px;
+    min-height: 40px;
   }
 
   .categories-dialog__error {
@@ -437,14 +445,14 @@
   }
 
   .categories-dialog__footer {
-    padding: 8px 16px 16px;
+    padding: 8px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
     gap: 10px;
   }
 
   .categories-dialog__cancel-btn,
   .categories-dialog__save-btn {
-    width: 48px;
-    height: 48px;
+    min-height: 40px;
   }
 
   .categories-dialog__error {
@@ -477,8 +485,7 @@
 
   .categories-dialog__cancel-btn,
   .categories-dialog__save-btn {
-    width: 44px;
-    height: 44px;
+    min-height: 36px;
   }
 }
 
@@ -508,15 +515,4 @@
   }
 }
 
-/* safe-area-inset-bottom для устройств с нотчем */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .categories-dialog__footer {
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
-  }
-
-  @media (max-width: 480px) {
-    .categories-dialog__footer {
-      padding-bottom: calc(20px + env(safe-area-inset-bottom));
-    }
-  }
-}
+/* safe-area учтён в .categories-dialog__footer через max() */

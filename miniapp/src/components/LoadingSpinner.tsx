@@ -29,8 +29,8 @@ const styles = `
 .tg-spinner__loader {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--tg-theme-secondary-bg-color);
-  border-top-color: var(--tg-theme-button-color);
+  border: 3px solid var(--color-overlay-primary, rgba(238, 68, 159, 0.2));
+  border-top-color: var(--color-primary, #ee449f);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -38,7 +38,7 @@ const styles = `
 .tg-spinner__message {
   margin-top: var(--tg-spacing-3);
   font-size: var(--tg-font-size-m);
-  color: var(--tg-theme-hint-color);
+  color: var(--color-text-secondary);
   text-align: center;
 }
 

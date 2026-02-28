@@ -15,7 +15,7 @@ const LikeIcon: FC<{
   size: number;
   isLiked: boolean;
 }> = ({ size, isLiked }) => (
-  <FavoriteIcon size={size} color={isLiked ? '#ee449f' : '#2a2a2a'} />
+  <FavoriteIcon size={size} color={isLiked ? 'rgba(238, 68, 159, 0.82)' : 'rgba(42, 42, 42, 0.75)'} />
 );
 
 export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
@@ -67,7 +67,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
   const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize * 0.42;
   const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize * 0.75;
   
-  const getTextColor = () => isLiked ? '#ffffff' : '#ffffff';
+  const getTextColor = () => 'rgba(255, 255, 255, 0.92)';
 
   // Обработчик клика на лайк
   const handleLikeClick = useCallback(async (e: MouseEvent) => {
@@ -162,7 +162,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
           position: 'relative',
           fontSize: currentSize.fontSize,
           color: placement === 'bottom-center'
-            ? '#ffffff'
+            ? 'rgba(255, 255, 255, 0.92)'
             : getTextColor(),
           fontWeight: '600',
           lineHeight: 1,

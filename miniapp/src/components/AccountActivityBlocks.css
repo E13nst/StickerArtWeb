@@ -1,16 +1,20 @@
 /* Account Activity Blocks — Figma ACCOUNT */
 
-/* Quest Stixly Mini Card — 177×176px */
+/* Quest Stixly Mini Card — 177×176px; эталонное стекло */
 .quest-stixly-card {
   width: 177px;
   height: 176px;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 .quest-stixly-card__info {
@@ -70,12 +74,22 @@
   box-sizing: border-box;
 }
 
+/* Стекло с оттенком текущей заливки (розовый) */
 .activity-block--daily {
-  background: rgba(238, 68, 159, 0.2);
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.25) 55%, rgba(238, 68, 159, 0.28));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
+/* Стекло с оттенком текущей заливки (бирюзовый) */
 .activity-block--global {
-  background: rgba(57, 209, 227, 0.2);
+  background: color-mix(in srgb, rgba(0, 0, 0, 0.25) 55%, rgba(57, 209, 227, 0.28));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
 .activity-block__title {
@@ -101,20 +115,41 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
+  transition: background 0.3s ease;
 }
 
-.activity-block__dot--filled {
+.activity-block--daily .activity-block__dot--filled {
   background: #EE449F;
+  animation: activity-dots-color-daily 1.2s ease-in-out infinite;
 }
 
-.activity-block__dot:nth-child(1),
-.activity-block__dot:nth-child(5),
-.activity-block__dot:nth-child(9),
-.activity-block__dot:nth-child(14) {
-  width: 6px;
-  height: 6px;
+.activity-block--global .activity-block__dot--filled {
+  background: #39d1e3;
+  animation: activity-dots-color-global 1.2s ease-in-out infinite;
+}
+
+@keyframes activity-dots-color-daily {
+  0%, 100% { background-color: #EE449F; opacity: 1; }
+  50% { background-color: rgba(238, 68, 159, 0.5); opacity: 0.7; }
+}
+
+@keyframes activity-dots-color-global {
+  0%, 100% { background-color: #39d1e3; opacity: 1; }
+  50% { background-color: rgba(57, 209, 227, 0.5); opacity: 0.7; }
+}
+
+.activity-block__dot--filled:nth-child(1) { animation-delay: 0s; }
+.activity-block__dot--filled:nth-child(2) { animation-delay: 0.12s; }
+.activity-block__dot--filled:nth-child(3) { animation-delay: 0.24s; }
+.activity-block__dot--filled:nth-child(4) { animation-delay: 0.36s; }
+.activity-block__dot--filled:nth-child(5) { animation-delay: 0.48s; }
+.activity-block__dot--filled:nth-child(6) { animation-delay: 0.6s; }
+
+.activity-block__more {
+  display: block;
+  margin-top: 8px;
 }
 
 .activity-block__tasks {
@@ -126,13 +161,22 @@
 /* Activity Task Item */
 .activity-task {
   width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .activity-task__header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .activity-task__title {
@@ -151,11 +195,22 @@
   line-height: 22px;
 }
 
+.activity-task__status {
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 22px;
+  font-style: italic;
+}
+
 .activity-task__row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .activity-task__progress-wrap {
@@ -223,6 +278,13 @@
 .activity-task__badge--active {
   background: #EE449F;
   color: #fff;
+}
+
+.activity-task__badge--disabled {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Mini blocks grid */

@@ -1,4 +1,4 @@
-/* LeaderboardModal — по аналогии с SaveToStickerSetModal */
+/* LeaderboardModal — эталонное модальное окно как sticker-set-detail-card--modal */
 
 .leaderboard-modal__card {
   position: fixed;
@@ -9,14 +9,16 @@
   max-width: var(--component-card-max-width, 402px);
   margin-left: auto;
   margin-right: auto;
+  height: 78.6vh;
+  min-height: 78.6vh;
   max-height: 78.6vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   touch-action: pan-y;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
   border: none;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--component-card-border-radius, 16px) var(--component-card-border-radius, 16px) 0 0;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   padding-bottom: env(safe-area-inset-bottom, 0);
   box-sizing: border-box;

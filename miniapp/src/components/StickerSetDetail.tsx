@@ -635,7 +635,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     }
     
     // Не закрываем при клике по футеру (категории, кнопки, actions-wrap) — там свои действия
-    if (target.closest('.sticker-set-detail-card__footer') || target.closest('.sticker-set-detail-card__actions-wrap')) {
+    if (target.closest('.sticker-set-detail-card__footer') || target.closest('.sticker-set-detail-card__actions-wrap') || target.closest('.sticker-set-detail-card__actions-toolbar')) {
       return;
     }
 
@@ -743,55 +743,41 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
     };
   }, [isModal, onBack]);
 
-  // Условный рендеринг: edit-режим или view-режим
+  // Условный рендеринг: edit-режим — стеклянные кнопки ↑↓ сверху над карточкой, сворачивание по свайпу
   if (mode === 'edit' && isAuthor) {
     return (
-      <div 
+      <div
         ref={modalContentRef}
         data-modal-content
         style={{
-          position: isModal ? 'fixed' : 'relative',
-          top: isModal ? 'auto' : 'auto',
-          left: isModal ? 0 : 'auto',
-          right: isModal ? 0 : 'auto',
-          bottom: isModal ? 0 : 'auto',
-          width: '100%',
-          height: isModal ? 'auto' : '100vh',
-          maxHeight: isModal ? '100vh' : 'none',
-          minHeight: isModal ? 'auto' : 'none',
-          overflow: 'hidden',
-          overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'flex-start',
-          padding: '8px',
-          paddingTop: '5px',
-          backgroundColor: isModal ? 'var(--color-surface)' : 'transparent',
-          backdropFilter: isModal ? 'blur(15px)' : 'none',
-          WebkitBackdropFilter: isModal ? 'blur(15px)' : 'none',
-          borderTopLeftRadius: isModal ? '24px' : 0,
-          borderTopRightRadius: isModal ? '24px' : 0,
-          touchAction: 'pan-y',
-          zIndex: isModal ? 'var(--z-modal, 1000)' : 'auto',
-          animation: isModal ? 'modalSlideUpFromBottom 300ms cubic-bezier(0.4, 0, 0.2, 1)' : 'modalContentSlideIn 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          // '@keyframes modalSlideUpFromBottom': {
-          //   '0%': {
-          //     opacity: 0,
-          //     transform: 'translateY(100%)',
-          //   },
-          //   '100%': {
-          //               //     opacity: 1,
-          //     transform: 'translateY(0)',
-          //   },
-          // },
-          // '@keyframes modalContentSlideIn': { ... },
+          gap: '12px',
+          padding: '12px 16px 0',
+          ...(!isModal ? { position: 'relative' as const, height: '100vh', minHeight: '100vh' } : {})
         }}
       >
         <StickerSetDetailEdit
           stickerSet={fullStickerSet ?? stickerSet}
           onCancel={handleEditCancel}
           onDone={handleEditDone}
+          renderLayout={({ toolbar, content }) => (
+            <>
+              <div className="sticker-set-detail-edit__toolbar-wrap">
+                {toolbar}
+              </div>
+              <div
+                className="sticker-set-detail-card sticker-set-detail-card--modal sticker-set-detail-card--edit"
+                style={{ width: '100%', maxWidth: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+              >
+                <div className="sticker-set-detail-card__handle" />
+                <div className="sticker-set-detail-card__main sticker-set-detail-card__main--edit">
+                  {content}
+                </div>
+              </div>
+            </>
+          )}
         />
       </div>
     );
@@ -800,8 +786,26 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   const showLoader = loading && stickers.length === 0;
   const showEmpty = !loading && stickers.length === 0;
 
+  const actionsToolbar = isModal && effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 ? (
+    <div
+      className="sticker-set-detail-card__actions-toolbar"
+      data-modal-content
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="sticker-set-detail-card__actions-toolbar-inner">
+        <div className="sticker-set-detail-card__actions-wrap">
+          <StickerSetActions
+            stickerSet={effectiveStickerSet}
+            availableActions={effectiveStickerSet.availableActions}
+            onActionComplete={handleActionComplete}
+          />
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   // View-режим (обычный режим просмотра) — стили по Figma #Card
-  return (
+  const cardContent = (
     <div
       ref={modalContentRef}
       data-modal-content
@@ -961,6 +965,16 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
 
       <div className="sticker-set-detail-card__footer sticker-detail-info-card" onClick={(e) => e.stopPropagation()}>
         <div className="sticker-set-detail-card__footer-inner">
+          {canEditCategories && (
+            <button
+              type="button"
+              onClick={handleOpenCategoriesDialog}
+              title="Изменить категории"
+              className="sticker-set-detail-card__icon-btn sticker-set-detail-card__icon-btn--categories"
+            >
+              <EditIcon size={18} />
+            </button>
+          )}
           <div className="sticker-set-detail-card__categories">
             {displayedCategories.length > 0 ? (
               displayedCategories.map((category) => (
@@ -979,30 +993,17 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
               </Text>
             )}
           </div>
-          <div className="sticker-set-detail-card__footer-actions">
-              {/* Кнопка "Изменить" (только для автора, только в режиме view) */}
-              {isAuthor && mode === 'view' && (
-                <button
-                  type="button"
-                  onClick={() => isAuthor && setMode('edit')}
-                  title="Изменить стикерсет"
-                  className="sticker-set-detail-card__icon-btn sticker-set-detail-card__icon-btn--edit"
-                >
-                  <EditIcon size={18} />
-                </button>
-              )}
-              {canEditCategories && (
-                <button
-                  type="button"
-                  onClick={handleOpenCategoriesDialog}
-                  title="Изменить категории"
-                  className="sticker-set-detail-card__icon-btn sticker-set-detail-card__icon-btn--categories"
-                >
-                  <EditIcon size={18} />
-                </button>
-              )}
-            </div>
-          </div>
+          {isAuthor && mode === 'view' && (
+            <button
+              type="button"
+              onClick={() => isAuthor && setMode('edit')}
+              title="Изменить стикерсет"
+              className="sticker-set-detail-card__icon-btn sticker-set-detail-card__icon-btn--edit"
+            >
+              <EditIcon size={18} />
+            </button>
+          )}
+        </div>
           <div className="sticker-set-detail-card__divider" />
           {isStickerSetBlocked && (
             <div className="sticker-set-detail-card__alert">
@@ -1022,7 +1023,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
             </div>
           )}
 
-          {effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
+          {!isModal && effectiveStickerSet.availableActions && effectiveStickerSet.availableActions.length > 0 && (
             <div className="sticker-set-detail-card__actions-wrap">
               <StickerSetActions
                 stickerSet={effectiveStickerSet}
@@ -1060,5 +1061,12 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
       />
     </div>
   );
+
+  return isModal && actionsToolbar ? (
+    <div className="sticker-set-detail-modal-layout" data-modal-content>
+      {actionsToolbar}
+      {cardContent}
+    </div>
+  ) : cardContent;
 };
 

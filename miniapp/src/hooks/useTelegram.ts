@@ -161,7 +161,10 @@ const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWeb
     },
     openLink: (url: string) => window.open(url, '_blank'),
     openTelegramLink: (url: string) => console.log('🔧 Mock openTelegramLink:', url),
-    openInvoice: () => console.log('🔧 Mock openInvoice'),
+    openInvoice: (url: string, callback?: (status: string) => void) => {
+      console.log('🔧 Mock openInvoice', url);
+      callback?.('cancelled');
+    },
     showPopup: () => console.log('🔧 Mock showPopup'),
     showAlert: (message: string) => alert(message),
     showConfirm: (message: string) => confirm(message),

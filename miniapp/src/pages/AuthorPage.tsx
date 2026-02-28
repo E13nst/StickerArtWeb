@@ -350,13 +350,19 @@ export const AuthorPage: FC = () => {
           throw new Error('Invalid profile response payload');
         }
         const profileResponse = profileResponseRaw;
-        const photo = await fetchAuthorPhoto(profileResponse.userId);
+        let photo: Awaited<ReturnType<typeof fetchAuthorPhoto>> = null;
+        try {
+          photo = await fetchAuthorPhoto(profileResponse.userId);
+        } catch {
+          // Фото не критично: показываем профиль без аватара
+        }
         if (!cancelled) {
           setProfile({
             ...profileResponse,
             profilePhotoFileId: photo?.profilePhotoFileId,
             profilePhotos: photo?.profilePhotos
           });
+          setProfileError(null);
         }
       } catch (error) {
         // Fallback: /author/:id обычно содержит authorId, который может не совпадать с userId.
@@ -371,8 +377,12 @@ export const AuthorPage: FC = () => {
               throw new Error('Invalid fallback profile response payload');
             }
             const profileResponse = profileResponseRaw;
-            const photo = await fetchAuthorPhoto(profileResponse.userId);
-
+            let photo: Awaited<ReturnType<typeof fetchAuthorPhoto>> = null;
+            try {
+              photo = await fetchAuthorPhoto(profileResponse.userId);
+            } catch {
+              // Фото не критично
+            }
             if (!cancelled) {
               setProfile({
                 ...profileResponse,
@@ -571,7 +581,7 @@ export const AuthorPage: FC = () => {
         className={cn('account-header', isInTelegramApp && 'account-header--telegram')}
         data-figma-block="OTHER ACCOUNT"
       >
-        {profileError && !isProfileLoading && (
+        {profileError && !isProfileLoading && !(fallbackAuthor || stickerSets.length > 0) && (
           <div className="error-box">
             <ErrorDisplay
               error={profileError}

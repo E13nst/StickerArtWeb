@@ -1,4 +1,4 @@
-/* Navbar — Figma spec */
+/* Navbar — тёмное стекло, текст белый */
 
 .navbar {
   /* Auto layout — компактные отступы, увеличенные шрифт и иконки */
@@ -19,13 +19,15 @@
   height: 56px;
   box-sizing: border-box;
 
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: 16px;
 
   z-index: var(--z-header, 100);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
 }
 
 /* Tab (Home / Gallery / Swipe / Generation / Account) */
@@ -99,7 +101,7 @@
   font-weight: 400;
   font-size: var(--typography-body-small-font-size, 12px);
   line-height: 1.2;
-  color: inherit;
+  color: #ffffff;
 }
 
 .navbar__tab:hover {

@@ -20,6 +20,7 @@ import { Category } from '../components/CategoryFilter';
 import { UploadStickerPackModal } from '../components/UploadStickerPackModal';
 import { StixlyPageContainer } from '../components/layout/StixlyPageContainer';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
+import './GalleryNewPage.css';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -262,48 +263,15 @@ export const GalleryNewPage: FC = () => {
   return (
     <div className={cn('page-container', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
-      {/* Fixed top panel */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: '600px',
-          zIndex: 200,
-          backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        }}
-      >
-        {/* Header Banner */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '1rem',
-            color: 'white',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
-            🎨 Галерея Стикеров
-          </div>
-          <div style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '4px' }}>
-            Найдите и добавьте стикеры в Telegram
-          </div>
+      {/* Верхняя панель — эталонное стекло с оттенком заливки */}
+      <div className="gallery-page__top-panel">
+        <div className="gallery-page__banner">
+          <div className="gallery-page__banner-title">🎨 Галерея Стикеров</div>
+          <p className="gallery-page__banner-subtitle">Найдите и добавьте стикеры в Telegram</p>
         </div>
 
-        {/* Search and Add Button */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.5rem',
-            padding: '0.75rem',
-            alignItems: 'center',
-            backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-          }}
-        >
-          <div style={{ flex: 1 }}>
+        <div className="gallery-page__search-row">
+          <div>
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}
@@ -314,79 +282,34 @@ export const GalleryNewPage: FC = () => {
             />
           </div>
           <button
+            type="button"
+            className="gallery-page__add-btn"
             onClick={handleAddClick}
             aria-label="Добавить стикерпак"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              padding: '0 0.9rem',
-              height: '2.2rem',
-              borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg, rgba(88, 138, 255, 0.28), rgba(78, 132, 255, 0.24))',
-              color: 'var(--tg-theme-button-text-color, #ffffff)',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              border: '1px solid rgba(118, 168, 255, 0.3)',
-              boxShadow: '0 4px 12px rgba(28, 48, 108, 0.2)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
           >
             <AddIcon style={{ fontSize: '1rem' }} />
             <span>Добавить</span>
           </button>
         </div>
 
-        {/* Categories */}
         {categories.length > 0 && (
-          <div
-            style={{
-              padding: '0 0.75rem 0.75rem',
-              overflowX: 'auto',
-              backgroundColor: 'var(--tg-theme-bg-color, #ffffff)',
-              // '&::-webkit-scrollbar': { height: 0 },
-            }}
-          >
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
+          <div className="gallery-page__categories-wrap">
+            <div className="gallery-page__categories">
               {categories.map((category) => (
-                <div
+                <button
                   key={category.id}
+                  type="button"
+                  className={cn(
+                    'gallery-page__category-chip',
+                    selectedCategories.includes(category.id) && 'gallery-page__category-chip--selected'
+                  )}
                   onClick={() => {
                     tg?.HapticFeedback?.impactOccurred('light');
                     handleCategoryToggle(category.id);
                   }}
-                  style={{
-                    padding: '0.4rem 0.8rem',
-                    borderRadius: '1rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    whiteSpace: 'nowrap',
-                    backgroundColor: selectedCategories.includes(category.id)
-                      ? 'var(--tg-theme-button-color, #3390ec)'
-                      : 'var(--tg-theme-secondary-bg-color, #f1f1f1)',
-                    color: selectedCategories.includes(category.id)
-                      ? 'var(--tg-theme-button-text-color, #ffffff)'
-                      : 'var(--tg-theme-text-color, #000000)',
-                    transition: 'all 0.2s ease',
-                    // '&:hover': {
-                    //   opacity: 0.8,
-                    // },
-                  }}
                 >
                   {category.label}
-                </div>
+                </button>
               ))}
             </div>
           </div>

@@ -1,0 +1,137 @@
+/* StickerSetDetailEdit — редактор стикерсета; панель кнопок — стеклянная, у нижней границы viewport.
+   Эталонный стеклянный эффект: background rgba(0,0,0,0.25), blur(12px), border 1px solid rgba(255,255,255,0.08). */
+
+.sticker-set-detail-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+/* Обёртка toolbar над карточкой */
+.sticker-set-detail-edit__toolbar-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Панель кнопок ↑↓ — эталонное стекло */
+.sticker-set-detail-edit__toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  width: fit-content;
+  flex-shrink: 0;
+}
+
+.sticker-set-detail-edit__toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6));
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.sticker-set-detail-edit__toolbar-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--tg-theme-text-color, #ffffff);
+}
+
+.sticker-set-detail-edit__toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Стеклянная панель действий — закреплена у нижней границы viewport (как модальные окна) */
+.sticker-set-detail-edit__actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  max-width: min(100vw, var(--component-card-max-width, 402px));
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+/* Кнопки — дефолтные стили приложения (как categories-dialog) */
+.sticker-set-detail-edit__actions-cancel {
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: var(--tg-radius-l, 16px);
+  background: var(--color-surface, #262626);
+  border: none;
+  color: var(--color-text, #ffffff);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.sticker-set-detail-edit__actions-cancel:hover {
+  background: #333;
+}
+
+.sticker-set-detail-edit__actions-done {
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: var(--tg-radius-l, 16px);
+  background: var(--tg-theme-button-color, var(--color-primary, #ee449f));
+  border: none;
+  color: var(--tg-theme-button-text-color, #ffffff);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.sticker-set-detail-edit__actions-done:hover {
+  background: var(--color-primary-hover, #d93d8f);
+}
+
+@media (max-width: 380px) {
+  .sticker-set-detail-edit__actions {
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    gap: 12px;
+  }
+  .sticker-set-detail-edit__actions-cancel,
+  .sticker-set-detail-edit__actions-done {
+    min-height: 40px;
+    padding: 8px 16px;
+  }
+}

@@ -9,9 +9,11 @@
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   touch-action: manipulation;
-  background: rgba(0, 0, 0, 0.5);
-  border: none;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.2);
 }
 
 .pack-card:hover {
@@ -44,8 +46,10 @@
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .pack-card__title-overlay {
@@ -53,8 +57,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
-  color: #ffffff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.4));
+  color: rgba(255, 255, 255, 0.92);
   padding: 12px 9px 9px;
   font-size: 12px;
   font-weight: 500;
@@ -85,8 +89,8 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  background-color: #e03131;
-  color: white;
+  background-color: rgba(224, 49, 49, 0.88);
+  color: rgba(255, 255, 255, 0.95);
   padding: 4px 8px;
   border-radius: 8px;
   font-size: 11px;

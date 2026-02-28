@@ -1,0 +1,89 @@
+/* UploadStickerPackModal — bottom-sheet как StickerSetDetail / CategoriesDialog */
+
+.upload-sticker-pack-modal {
+  width: 100%;
+  max-width: var(--component-card-max-width, 402px);
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
+  border: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: uploadStickerPackModalSlideUp 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
+}
+
+@keyframes uploadStickerPackModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upload-sticker-pack-modal__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+.upload-sticker-pack-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 24px 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.upload-sticker-pack-modal__header {
+  position: relative;
+  width: 100%;
+}
+
+.upload-sticker-pack-modal__close-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.upload-sticker-pack-modal__close-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.upload-sticker-pack-modal__close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-sticker-pack-modal__hint {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0 0 8px 0;
+}
