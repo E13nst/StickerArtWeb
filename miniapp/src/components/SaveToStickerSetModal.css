@@ -128,9 +128,9 @@
 .save-to-stickerset-modal__item--skeleton .save-to-stickerset-modal__status {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.08) 25%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0.08) 75%
+    rgba(255, 255, 255, 0.22) 25%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.22) 75%
   );
   background-size: 200% 100%;
   animation: save-to-stickerset-modal__skeleton-shimmer 1.2s ease-in-out infinite;

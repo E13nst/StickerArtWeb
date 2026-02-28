@@ -93,8 +93,9 @@
   }
 }
 
+/* Фон прозрачен — swipe-card внутри даёт rgba(0,0,0,0.5), как у skeleton */
 .swipe-card-stack__card {
-  background: var(--color-surface, #1e1e1e);
+  background: transparent;
 }
 
 .swipe-card-stack__empty-message {

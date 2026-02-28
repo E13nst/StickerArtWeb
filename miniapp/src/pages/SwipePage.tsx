@@ -364,8 +364,8 @@ export const SwipePage: FC = () => {
           <div className="swipe-page__card-skeleton" aria-hidden="true">
             <div className="swipe-card swipe-card--skeleton">
               <div className="swipe-card__content" style={{ gap: 4 }}>
-                <div style={{ height: 44, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.12)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
-                <div style={{ height: 23, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.08)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 44, width: '100%', borderRadius: 8, background: 'rgba(255,255,255,0.28)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 23, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.22)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
               </div>
               <div className="swipe-card__preview">
                 <div className="swipe-card__preview-inner">
@@ -373,8 +373,8 @@ export const SwipePage: FC = () => {
                 </div>
               </div>
               <div className="swipe-card__footer">
-                <div style={{ height: 14, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.12)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
-                <div style={{ height: 12, width: '40%', borderRadius: 6, marginTop: 8, background: 'rgba(255,255,255,0.08)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 14, width: '60%', borderRadius: 6, background: 'rgba(255,255,255,0.28)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 12, width: '40%', borderRadius: 6, marginTop: 8, background: 'rgba(255,255,255,0.22)', animation: 'swipe-skeleton-pulse 1.5s ease-in-out infinite' }} />
               </div>
             </div>
           </div>

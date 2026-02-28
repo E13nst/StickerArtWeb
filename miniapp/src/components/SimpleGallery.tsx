@@ -535,7 +535,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                     height: '200px',
                     width: '100%',
                     borderRadius: '12px',
-                    background: `linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #ffffff) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%)`,
+                    background: 'linear-gradient(90deg, rgba(255,255,255,0.22) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.22) 75%)',
                     backgroundSize: '200% 100%',
                     animation: 'shimmer 1.5s infinite',
                     position: 'relative',
@@ -550,7 +550,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                     transform: 'translate(-50%, -50%)',
                     width: '60px',
                     height: '60px',
-                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
                     borderRadius: '50%',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -562,7 +562,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                     left: '8px',
                     right: '8px',
                     height: '16px',
-                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
                     borderRadius: '8px',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -687,7 +687,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                     height: '200px',
                     width: '100%',
                     borderRadius: '12px',
-                    background: `linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #ffffff) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%)`,
+                    background: 'linear-gradient(90deg, rgba(255,255,255,0.22) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.22) 75%)',
                     backgroundSize: '200% 100%',
                     animation: 'shimmer 1.5s infinite',
                     position: 'relative',
@@ -702,7 +702,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                     transform: 'translate(-50%, -50%)',
                     width: '60px',
                     height: '60px',
-                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
                     borderRadius: '50%',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -714,7 +714,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
                     left: '8px',
                     right: '8px',
                     height: '16px',
-                    backgroundColor: 'var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1))',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
                     borderRadius: '8px',
                     animation: 'pulse 2s infinite'
                   }} />
@@ -876,8 +876,8 @@ const skeletonStyles = `
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 /* Анимации для лайков */

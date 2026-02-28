@@ -376,7 +376,7 @@
 }
 
 @keyframes swipe-skeleton-pulse {
-  0%, 100% { opacity: 0.6; }
+  0%, 100% { opacity: 0.75; }
   50% { opacity: 1; }
 }
 
@@ -401,7 +401,7 @@
 }
 
 .swipe-card--skeleton .pack-card-skeleton {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* ============================================

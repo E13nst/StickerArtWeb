@@ -79,7 +79,7 @@ export const AnimatedPackCard: FC<AnimatedPackCardProps> = ({
               left: 0,
               right: 0,
               bottom: 0,
-              background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+              background: 'linear-gradient(90deg, rgba(255,255,255,0.22) 25%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.22) 75%)',
               backgroundSize: '200% 100%',
               animation: 'shimmer 1.5s infinite',
               zIndex: 1

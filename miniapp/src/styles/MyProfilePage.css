@@ -138,28 +138,27 @@
   }
 }
 
-/* Карточка Head account — уменьшенная; отступ сверху = safe area + Telegram UI + share-wrap (36px) + отступ от края (16px) */
+/* Карточка Head account; отступ Share = Connect wallet (8px); верхний отступ карточки в 2 раза меньше */
 .page-container .account-header__card,
 .account-header__card {
   --account-card-share-height: 36px;
   --account-card-edge-offset: 16px;
+  --account-card-share-offset: 8px; /* как у Connect wallet */
   position: relative;
   width: 100% !important;
   max-width: none !important;
   min-height: 280px !important;
   margin: 0 auto;
   margin-top: calc(
-    var(--spacing-xl) +
-    var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
-    var(--account-card-share-height) +
-    var(--account-card-edge-offset)
+    (var(--spacing-xl) + var(--account-card-share-height) + var(--account-card-edge-offset)) / 2 +
+    var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))
   );
   box-sizing: border-box;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center;
   align-items: center;
-  padding: calc(var(--account-card-edge-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
+  padding: calc(var(--account-card-share-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
   gap: 16px !important;
   background: #262626 !important;
   background-color: #262626 !important;
@@ -176,14 +175,14 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.28);
   animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
 }
 .account-header__skeleton-name {
   width: 120px;
   height: 22px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.28);
   animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
 }
 .account-header__skeleton-stat {
@@ -191,26 +190,26 @@
   width: 48px;
   height: 20px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.28);
   animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
 }
 .account-header__skeleton-wallet {
   width: 140px;
   height: 36px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.28);
   animation: my-profile-skeleton-pulse 1.5s ease-in-out infinite;
 }
 @keyframes my-profile-skeleton-pulse {
-  0%, 100% { opacity: 0.6; }
+  0%, 100% { opacity: 0.75; }
   50% { opacity: 1; }
 }
 
-/* Кнопка "Поделиться" — верхняя часть карточки; небольшой отступ от края в стиле приложения (16px + safe area) */
+/* Кнопка "Поделиться" — отступ как у Connect wallet (8px) */
 .account-header__share-wrap {
   position: absolute;
-  top: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
-  right: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
+  top: calc(var(--account-card-share-offset, 8px) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  right: calc(var(--account-card-share-offset, 8px) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -376,12 +375,13 @@
   .page-container .account-header__card,
   .account-header__card {
     --account-card-edge-offset: 12px;
-    padding: calc(var(--account-card-edge-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
+    --account-card-share-offset: 8px;
+    padding: calc(var(--account-card-share-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
     gap: clamp(12px, 4vw, 16px) !important;
   }
   .account-header__share-wrap {
-    right: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
-    top: calc(var(--account-card-edge-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
+    right: calc(var(--account-card-share-offset) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
+    top: calc(var(--account-card-share-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
   }
   .page-container .account-header__avatar,
   .account-header__avatar {
