@@ -258,7 +258,7 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'transparent'
+            backgroundColor: 'transparent'
           }}
         >
           <span style={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.45)' }}>{emoji}</span>
@@ -364,7 +364,6 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        background: 'transparent',
         backgroundColor: 'transparent'
       }}
     >
@@ -386,15 +385,15 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
       {emoji && !hidePlaceholder && !lottieReady && (
         <div
           className="pack-card__placeholder"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent',
-            pointerEvents: 'none'
-          }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'transparent',
+          pointerEvents: 'none'
+        }}
         >
           <span style={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.45)' }}>{emoji}</span>
         </div>
