@@ -224,7 +224,7 @@ body::-webkit-scrollbar {
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--tg-theme-bg-color, #ffffff);
+  background-color: var(--tg-theme-bg-color, transparent);
   color: var(--tg-theme-text-color, #000000);
   user-select: none;
   -webkit-user-select: none;

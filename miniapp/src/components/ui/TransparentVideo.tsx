@@ -39,6 +39,7 @@ export const TransparentVideo = forwardRef<
         loop
         muted
         playsInline
+        {...{ 'webkit-playsinline': '' }}
         {...videoProps}
         style={{
           backgroundColor: 'transparent',
@@ -60,6 +61,7 @@ export const TransparentVideo = forwardRef<
       loop
       muted
       playsInline
+      {...{ 'webkit-playsinline': '' }}
       {...videoProps}
       style={{
         backgroundColor: 'transparent',

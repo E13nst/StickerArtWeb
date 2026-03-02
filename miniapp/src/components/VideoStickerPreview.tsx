@@ -1,5 +1,4 @@
-import { useEffect, useState, FC } from 'react';
-import { videoBlobCache, imageLoader, LoadPriority } from '@/utils/imageLoader';
+import { FC } from 'react';
 import { TransparentVideo } from '@/components/ui/TransparentVideo';
 import { getStickerVideoUrlHevc } from '@/utils/stickerUtils';
 
@@ -26,25 +25,12 @@ export const VideoStickerPreview: FC<VideoStickerPreviewProps> = ({
   autoPlay = false,
   packId = '',
   imageIndex = 0,
-  priority = LoadPriority.TIER_1_VIEWPORT,
+  priority,
   className = 'pack-card-video',
   style = {},
 }) => {
-  const [blobReady, setBlobReady] = useState(() => videoBlobCache.has(fileId));
-
-  useEffect(() => {
-    if (!fileId || !url) return;
-    if (videoBlobCache.has(fileId)) {
-      setBlobReady(true);
-      return;
-    }
-    setBlobReady(false);
-    imageLoader.loadVideo(fileId, url, priority, packId, imageIndex)
-      .then(() => setBlobReady(true))
-      .catch(() => {});
-  }, [fileId, url, priority, packId, imageIndex]);
-
-  if (!blobReady && !videoBlobCache.has(fileId)) {
+  /* Временно отключено videoBlobCache для диагностики WebM alpha на iOS — используем прямой URL */
+  if (!url) {
     return (
       <div className="pack-card__placeholder" style={{ width: '100%', height: '100%', ...style }}>
         {emoji}
@@ -52,7 +38,7 @@ export const VideoStickerPreview: FC<VideoStickerPreviewProps> = ({
     );
   }
 
-  const webmSrc = videoBlobCache.get(fileId) || url;
+  const webmSrc = url;
   const hevcUrl = getStickerVideoUrlHevc(fileId);
 
   return (

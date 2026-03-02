@@ -34,9 +34,10 @@ const StickerPreviewVideo: FC<{
     [sticker.url, sticker.file_id]
   );
   
+  /* Временно отключено videoBlobCache для диагностики WebM alpha на iOS */
   const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
     fileId: sticker.file_id,
-    preferredSrc: videoBlobCache.get(sticker.file_id),
+    preferredSrc: undefined,
     fallbackSrc: fallbackVideoUrl,
     waitForPreferredMs: 100
   });
@@ -71,6 +72,7 @@ const StickerPreviewVideo: FC<{
       loop
       muted
       playsInline
+      {...{ 'webkit-playsinline': '' }}
       preload="auto"
       className={className}
       style={{

@@ -34,7 +34,8 @@
 
 .pattern-background__layer--secondary {
   transform: translate3d(0, calc(var(--pattern-offset-y-secondary, 0) * 1px), 0);
-  mix-blend-mode: soft-light;
+  /* Временно отключено для диагностики WebM alpha на iOS */
+  /* mix-blend-mode: soft-light; */
 }
 
 @media (prefers-reduced-motion: reduce) {

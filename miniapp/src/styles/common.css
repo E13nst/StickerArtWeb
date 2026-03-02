@@ -484,7 +484,7 @@
    ============================================ */
 
 .optimized-gallery .pack-card {
-  background-color: rgba(0, 0, 0, 0.25) !important;
+  background-color: transparent !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08) !important;

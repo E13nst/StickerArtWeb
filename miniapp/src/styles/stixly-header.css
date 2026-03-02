@@ -7,8 +7,9 @@
 }
 
 /* Единый фон приложения (fallback когда контент ещё не отрисован) */
+/* Временно transparent для диагностики WebM alpha на iOS */
 html, body {
-  background-color: var(--color-background);
+  background-color: transparent;
 }
 
 /* StixlyTopHeader - Fixed positioning with safe area support */

@@ -159,7 +159,8 @@ const PackCardComponent: FC<PackCardProps> = ({
                 priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
               />
             ) : (activeSticker.isVideo ?? (activeSticker as any).is_video) ? (
-              (!videoBlobCache.has(activeSticker.fileId) && !videoBlobReady) ? (
+              /* Временно отключён videoBlobCache — показываем видео по прямому URL */
+              !activeSticker.url ? (
                 <div className="pack-card__placeholder">{activeSticker.emoji || '🎨'}</div>
               ) : (
                 <div
@@ -174,12 +175,13 @@ const PackCardComponent: FC<PackCardProps> = ({
                 >
                   <video
                     ref={videoRef}
-                    src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                    src={activeSticker.url}
                     className="pack-card-video"
                     autoPlay={inView}
                     loop
                     muted
                     playsInline
+                    {...{ 'webkit-playsinline': '' }}
                     style={{
                       maxWidth: '100%',
                       maxHeight: '100%',
