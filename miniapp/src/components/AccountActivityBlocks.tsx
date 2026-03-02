@@ -140,8 +140,8 @@ export const GlobalActivityBlock: FC<GlobalActivityBlockProps> = ({
     </div>
     <div className="activity-block__tasks">
       <ActivityTaskItem
-        key="global-checkin"
-        task={{ id: 'global-checkin', title: 'Global Check-in', progress: 0, total: 1, status: 'upcoming' }}
+        key="connect-wallet"
+        task={{ id: 'connect-wallet', title: 'Connect Wallet', progress: 0, total: 1, status: 'upcoming' }}
       />
       {tasks.map((task) => (
         <ActivityTaskItem key={task.id} task={task} />

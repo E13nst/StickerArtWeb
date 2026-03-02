@@ -1,5 +1,6 @@
-import { useMemo, useEffect, useRef, useState, FC } from 'react';
+import { useMemo, useEffect, useRef, useState, FC, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { TouchEvent, MouseEvent } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -14,12 +15,16 @@ const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
  * Аватар только из профиля/API (blob, userInfo.avatarUrl). Сторонние URL (user.photo_url) не используются.
  * При отсутствии профиля/аватара или ошибке загрузки — иконка Account.
  */
+const DEBUG_PANEL_LONG_PRESS_MS = 3000;
+
 export const HeaderPanel: FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { user } = useTelegram();
+  const { user, tg } = useTelegram();
   const { userInfo, currentUserId, isProfileFromAuthenticatedApi } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
 
   // На /author/ и /profile/:id показываем placeholder — аватар автора не в шапке, а на странице
   const isViewingOtherUser = /\/author\/|\/profile\/[^/]+/.test(pathname);
@@ -76,40 +81,78 @@ export const HeaderPanel: FC = () => {
     console.log('Wallet button clicked - TON Connect');
   };
 
+  // Долгое нажатие на аватар (3 сек) — открытие Debug Panel
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressTriggeredRef.current = false;
+  }, []);
+
+  const handleAvatarTouchStart = useCallback((_e: TouchEvent | MouseEvent) => {
+    longPressTriggeredRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTimerRef.current = null;
+      longPressTriggeredRef.current = true;
+      window.dispatchEvent(new CustomEvent('stixly-open-debug-panel'));
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }, DEBUG_PANEL_LONG_PRESS_MS);
+  }, [tg]);
+
+  const handleAvatarTouchEnd = useCallback(() => {
+    clearLongPress();
+  }, [clearLongPress]);
+
+  useEffect(() => () => clearLongPress(), [clearLongPress]);
+
   return (
     <header ref={headerRef} className="header-panel" role="banner">
       <div className="header-panel__backdrop" aria-hidden="true" />
       <div className="header-panel__inner">
         <div className="header-panel__content">
-          {/* Аватар: фото или иконка Account при отсутствии/ошибке загрузки */}
-          {showAccountIcon ? (
-            <div className="header-panel__avatar header-panel__avatar--placeholder">
-              <span
-                style={{
-                  width: 28,
-                  height: 28,
-                  display: 'block',
-                  backgroundColor: 'currentColor',
-                  WebkitMaskImage: `url(${BASE}assets/account-icon.svg)`,
-                  maskImage: `url(${BASE}assets/account-icon.svg)`,
-                  WebkitMaskSize: 'contain',
-                  maskSize: 'contain',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskPosition: 'center',
-                  maskPosition: 'center',
-                }}
-                aria-hidden
+          {/* Аватар: фото или иконка Account; долгое нажатие 3 сек — Debug Panel */}
+          <div
+            className="header-panel__avatar-wrap"
+            role="button"
+            tabIndex={0}
+            aria-label="Аватар; удержание 3 сек — отладка"
+            onTouchStart={handleAvatarTouchStart}
+            onTouchEnd={handleAvatarTouchEnd}
+            onTouchCancel={handleAvatarTouchEnd}
+            onMouseDown={handleAvatarTouchStart}
+            onMouseUp={handleAvatarTouchEnd}
+            onMouseLeave={handleAvatarTouchEnd}
+          >
+            {showAccountIcon ? (
+              <div className="header-panel__avatar header-panel__avatar--placeholder">
+                <span
+                  style={{
+                    width: 28,
+                    height: 28,
+                    display: 'block',
+                    backgroundColor: 'currentColor',
+                    WebkitMaskImage: `url(${BASE}assets/account-icon.svg)`,
+                    maskImage: `url(${BASE}assets/account-icon.svg)`,
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                  }}
+                  aria-hidden
+                />
+              </div>
+            ) : (
+              <img
+                src={avatarUrl!}
+                alt={user?.first_name ?? 'Avatar'}
+                className="header-panel__avatar"
+                onError={() => setAvatarError(true)}
               />
-            </div>
-          ) : (
-            <img
-              src={avatarUrl!}
-              alt={user?.first_name ?? 'Avatar'}
-              className="header-panel__avatar"
-              onError={() => setAvatarError(true)}
-            />
-          )}
+            )}
+          </div>
 
           <div
             className="header-panel__balance"

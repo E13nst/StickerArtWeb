@@ -70,6 +70,15 @@
   box-sizing: border-box;
 }
 
+/* Обёртка аватара: долгое нажатие 3 сек открывает Debug Panel */
+.header-panel__avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Avatar */
 .header-panel__avatar {
   width: 46px;

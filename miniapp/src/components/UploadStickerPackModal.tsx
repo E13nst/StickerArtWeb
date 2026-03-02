@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, FC, FormEvent, KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback, FC, FormEvent, KeyboardEvent, MutableRefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { CloseIcon } from '@/components/ui/Icons';
 import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
@@ -134,6 +135,12 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
   const [linkErrorDetails, setLinkErrorDetails] = useState<string[]>([]);
   const [categoriesErrorDetails, setCategoriesErrorDetails] = useState<string[]>([]);
 
+  const contentRef = useRef<HTMLDivElement>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const isDraggingDownRef = useRef(false);
+  const swipeCleanupRef = useRef<(() => void) | null>(null);
+  const onCloseRef = useRef<() => void>(() => {});
+
   const resetState = () => {
     setStep('link');
     setLink('');
@@ -173,6 +180,10 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
     resetState();
     onClose();
   };
+
+  useEffect(() => {
+    onCloseRef.current = handleClose;
+  }, [handleClose]);
 
   const handleSubmitLink = async (event: FormEvent) => {
     event.preventDefault();
@@ -755,33 +766,134 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
     </>
   );
 
+  // Свайп вниз для закрытия: подписка через callback ref, чтобы элемент точно был в DOM (портал)
+  const DISMISS_THRESHOLD = 100;
+  const DRAG_ANIMATION_MS = 200;
+
+  const attachSwipeToModal = useCallback((modalElement: HTMLDivElement) => {
+    const scrollEl = modalElement.querySelector<HTMLElement>('.upload-sticker-pack-modal__body');
+    const handleEl = modalElement.querySelector<HTMLElement>('.upload-sticker-pack-modal__handle');
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const startedOnHandle = handleEl?.contains(e.target as Node);
+      const scrollAtTop = (scrollEl?.scrollTop ?? 0) <= 0;
+      if (startedOnHandle || scrollAtTop) {
+        touchStartYRef.current = e.touches[0].clientY;
+      } else {
+        touchStartYRef.current = null;
+      }
+      isDraggingDownRef.current = false;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (touchStartYRef.current === null) return;
+
+      const deltaY = e.touches[0].clientY - touchStartYRef.current;
+
+      if (deltaY > 5) {
+        isDraggingDownRef.current = true;
+        e.preventDefault();
+        modalElement.style.transition = 'none';
+        modalElement.style.transform = `translateY(${deltaY}px)`;
+        modalElement.classList.add('upload-sticker-pack-modal--dragging');
+      } else if (deltaY < -5) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartYRef.current === null || !isDraggingDownRef.current) {
+        touchStartYRef.current = null;
+        isDraggingDownRef.current = false;
+        return;
+      }
+
+      e.preventDefault();
+
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+      touchStartYRef.current = null;
+      isDraggingDownRef.current = false;
+
+      const backdrop = modalElement.closest('.modal-backdrop') as HTMLElement | null;
+
+      if (deltaY > DISMISS_THRESHOLD) {
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(100vh)';
+
+        setTimeout(() => {
+          modalElement.classList.remove('upload-sticker-pack-modal--dragging');
+          modalElement.classList.add('upload-sticker-pack-modal--drag-dismissed');
+          if (backdrop && !backdrop.classList.contains('modal-backdrop--keep-navbar')) {
+            backdrop.classList.add('modal-backdrop--drag-dismissed');
+          }
+          onCloseRef.current();
+        }, DRAG_ANIMATION_MS);
+      } else {
+        modalElement.style.transition = `transform ${DRAG_ANIMATION_MS}ms ease-out`;
+        modalElement.style.transform = 'translateY(0)';
+
+        setTimeout(() => {
+          modalElement.style.transition = '';
+          modalElement.style.transform = '';
+          modalElement.classList.remove('upload-sticker-pack-modal--dragging');
+        }, DRAG_ANIMATION_MS);
+      }
+    };
+
+    modalElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    modalElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+    modalElement.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      modalElement.removeEventListener('touchstart', handleTouchStart);
+      modalElement.removeEventListener('touchmove', handleTouchMove);
+      modalElement.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
+  const setModalRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      (contentRef as MutableRefObject<HTMLDivElement | null>).current = el;
+      swipeCleanupRef.current?.();
+      swipeCleanupRef.current = null;
+      if (el) {
+        swipeCleanupRef.current = attachSwipeToModal(el);
+      }
+    },
+    [attachSwipeToModal]
+  );
+
+  const uploadModalContent = open ? (
+    <ModalBackdrop open={open} onClose={handleClose} noBlur keepNavbarVisible>
+      <div
+        ref={setModalRef}
+        className="upload-sticker-pack-modal"
+        data-modal-content
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="upload-sticker-pack-modal__handle" aria-hidden />
+        <div className="upload-sticker-pack-modal__body">
+          <div className="upload-sticker-pack-modal__header">
+            <button
+              type="button"
+              className="upload-sticker-pack-modal__close-btn"
+              aria-label="Закрыть"
+              onClick={handleClose}
+              disabled={isSubmittingLink || isApplyingCategories || (step === 'categories' && selectedCategories.length === 0)}
+            >
+              <CloseIcon size={18} />
+            </button>
+            {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
+          </div>
+        </div>
+      </div>
+    </ModalBackdrop>
+  ) : null;
+
   return (
     <>
-      {open && !isCreatedPackModalOpen && (
-        <ModalBackdrop open={open} onClose={handleClose}>
-          <div
-            className="upload-sticker-pack-modal"
-            data-modal-content
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="upload-sticker-pack-modal__handle" aria-hidden />
-            <div className="upload-sticker-pack-modal__body">
-              <div className="upload-sticker-pack-modal__header">
-                <button
-                  type="button"
-                  className="upload-sticker-pack-modal__close-btn"
-                  aria-label="Закрыть"
-                  onClick={handleClose}
-                  disabled={isSubmittingLink || isApplyingCategories || (step === 'categories' && selectedCategories.length === 0)}
-                >
-                  <CloseIcon size={18} />
-                </button>
-                {step === 'link' ? renderLinkStep() : renderCategoriesStep()}
-              </div>
-            </div>
-          </div>
-        </ModalBackdrop>
-      )}
+      {typeof document !== 'undefined' && createPortal(uploadModalContent, document.body)}
 
       <StickerPackModal
         open={isPreviewModalOpen && Boolean(createdStickerSet)}

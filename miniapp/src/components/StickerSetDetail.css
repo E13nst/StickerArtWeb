@@ -23,9 +23,7 @@
   box-sizing: border-box;
 }
 
-/* Карточка в модалке: как панель фильтров — снизу viewport, поверх navbar (position: fixed, bottom: 0).
-   Специфичность .sticker-set-detail-card.sticker-set-detail-card--modal (0,2,0) выше, чем [data-modal-content]
-   из common.css (0,1,0), чтобы полупрозрачность всегда применялась и не перекрывалась var(--color-surface). */
+/* Карточка в модалке: как панель фильтров — снизу viewport, поверх navbar (position: fixed, bottom: 0). */
 .sticker-set-detail-card.sticker-set-detail-card--modal {
   position: fixed;
   left: 0;
@@ -400,9 +398,10 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Sticky toolbar — без фона, прижат к левому краю в модалке */
+/* Sticky toolbar — без фона */
 .sticker-set-detail-card__actions-toolbar {
-  background: none;
+  background: transparent;
+  background-color: transparent;
 }
 
 .sticker-set-detail-modal-layout .sticker-set-detail-card__actions-toolbar {
@@ -411,7 +410,8 @@
   z-index: 20;
   flex-shrink: 0;
   padding: 8px 12px;
-  background: none;
+  background: transparent;
+  background-color: transparent;
   pointer-events: auto;
   width: 100%;
   box-sizing: border-box;

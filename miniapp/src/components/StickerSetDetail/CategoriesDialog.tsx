@@ -149,7 +149,7 @@ export const CategoriesDialog: FC<CategoriesDialogProps> = ({
               </div>
             ) : categoriesLoadError ? (
               <div className="categories-dialog__load-error">
-                <span className="categories-dialog__load-error-text">{categoriesLoadError}</span>
+                <span className="tg-error__message">{categoriesLoadError}</span>
                 <button
                   type="button"
                   className="categories-dialog__retry-btn"

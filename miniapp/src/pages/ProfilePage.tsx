@@ -18,7 +18,6 @@ import { EmptyState } from '@/components/EmptyState';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { OptimizedGallery } from '@/components/OptimizedGallery';
-import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { useStickerFeed } from '@/hooks/useStickerFeed';
 import { useScrollElement } from '@/contexts/ScrollContext';
@@ -589,9 +588,6 @@ export const ProfilePage: FC = () => {
           </>
         ) : null}
       </StixlyPageContainer>
-
-      {/* Debug панель */}
-      <DebugPanel initData={initData} />
 
       {/* Модалка деталей стикерсета */}
       <StickerPackModal

@@ -23,7 +23,7 @@ const SHOW_HELLO_KEY = 'swipe-hello-shown';
 const SWIPE_GLOW_THRESHOLD = 100;
 
 export const SwipePage: FC = () => {
-  const { isInTelegramApp } = useTelegram();
+  const { isInTelegramApp, tg } = useTelegram();
   const [showHello, setShowHello] = useState(false);
   const [dragY, setDragY] = useState(0);
   
@@ -71,16 +71,18 @@ export const SwipePage: FC = () => {
     };
   }, []);
 
-  // Обработчики свайпа
+  // Обработчики свайпа (лёгкий тактильный отклик после свайпа)
   const handleSwipeLeft = useCallback((card: any) => {
     const stickerSet = card as StickerSetResponse;
     swipeDislike(stickerSet.id);
-  }, [swipeDislike]);
+    tg?.HapticFeedback?.impactOccurred('light');
+  }, [swipeDislike, tg]);
 
   const handleSwipeRight = useCallback(async (card: any) => {
     const stickerSet = card as StickerSetResponse;
     await swipeLike(stickerSet.id);
-  }, [swipeLike]);
+    tg?.HapticFeedback?.impactOccurred('light');
+  }, [swipeLike, tg]);
 
   const handleEnd = useCallback(() => {
     // Когда все карточки просмотрены

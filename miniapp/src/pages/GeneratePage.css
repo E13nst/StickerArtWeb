@@ -80,7 +80,7 @@
   margin: 0;
 }
 
-/* Header — Figma: "Generate a sticker with Stixly Generation", 16px center (gap from parent) */
+/* Header — "Создайте Стикер с" + селектор модели (Stixly) */
 .generate-header {
   font-family: var(--font-family-base);
   font-size: 16px;
@@ -88,12 +88,20 @@
   line-height: 16px;
   color: var(--color-text);
   width: 370px;
-  height: 16px;
+  min-height: 16px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   text-align: center;
   margin: 0;
+}
+
+.generate-header .generate-model-select-trigger {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
 }
 
 /* Input block (Inpit) — #262626, 16px radius, 370px, Figma gap 16px */
@@ -201,7 +209,7 @@
   color: var(--color-text-secondary);
 }
 
-/* Model select / Style select — кастомные dropdown, одинаковый стиль */
+/* Model select / Style select — единый стиль триггера и выпадающего меню */
 .generate-model-select-wrap {
   position: relative;
   display: inline-flex;
@@ -210,7 +218,16 @@
   box-sizing: border-box;
 }
 
-/* Триггер выбора модели — тёмное стекло */
+.generate-model-select-trigger,
+.generate-model-select-dropdown {
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+}
+
 .generate-model-select-trigger {
   display: flex;
   align-items: center;
@@ -218,26 +235,20 @@
   gap: 8px;
   width: 100%;
   padding: 8px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.48);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   color: var(--color-text-secondary);
   font-family: var(--font-family-base);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
   outline: none;
   text-align: left;
   box-sizing: border-box;
 }
 
 .generate-model-select-trigger:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.72);
   border-color: rgba(255, 255, 255, 0.12);
 }
 
@@ -251,21 +262,20 @@
   min-width: 0;
 }
 
-/* Dropdown panel — эталонное стекло (как sticker-set-detail, sort-dropdown) */
+/* Единый стиль для обоих выпадающих меню (модель в шапке и стиль в футере) */
 .generate-model-select-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
   min-width: 100%;
-  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.65));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   z-index: var(--z-dropdown, 300);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-text-secondary);
 }
 
 .generate-model-select-option {
@@ -645,14 +655,6 @@
   color: #FF4B4B;
   background-color: rgba(255, 75, 75, 0.18);
   flex-shrink: 0;
-}
-
-.generate-error-text {
-  font-family: var(--font-family-base);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.2;
-  color: #FF4B4B;
 }
 
 .generate-button-retry {

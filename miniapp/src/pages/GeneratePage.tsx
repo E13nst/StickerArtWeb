@@ -417,7 +417,14 @@ export const GeneratePage: FC = () => {
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
   const shouldShowGeneralError = errorMessage && errorKind !== 'prompt';
   const isCompactState = pageState !== 'success';
-  const createStickerTitle = t('generate.createStickerWithAI', user?.language_code);
+  const createStickerPrefix = t('generate.createStickerPrefix', user?.language_code);
+
+  const renderHeaderWithModel = (disabled: boolean) => (
+    <div className="generate-header">
+      <span>{createStickerPrefix}</span>
+      {renderModelFileRow(disabled)}
+    </div>
+  );
 
   const handlePromptChange = (value: string) => {
     setPrompt(value);
@@ -429,7 +436,7 @@ export const GeneratePage: FC = () => {
   };
 
   const modelOptions: Array<{ id: number | null; name: string }> = [
-    { id: null, name: 'Model 1' },
+    { id: null, name: 'Stixly' },
   ];
 
   const handleModelChange = (rawValue: string) => {
@@ -441,16 +448,15 @@ export const GeneratePage: FC = () => {
     setSelectedStylePresetId(Number.isFinite(parsed) ? parsed : null);
   };
 
-  const handleStyleSelect = (presetId: number | null) => {
-    setSelectedStylePresetId(presetId);
+  const handleStyleSelect = (presetId: number) => {
+    setSelectedStylePresetId((prev) => (prev === presetId ? null : presetId));
     setStyleDropdownOpen(false);
     tg?.HapticFeedback?.impactOccurred('light');
   };
 
-  const styleSelectOptions: Array<{ id: number | null; name: string }> = [
-    { id: null, name: 'Без стиля' },
-    ...stylePresets.map((p) => ({ id: p.id, name: stripPresetName(p.name) })),
-  ];
+  const styleSelectOptions = stylePresets.map((p) => ({ id: p.id, name: stripPresetName(p.name) }));
+  const selectedPreset = stylePresets.find((p) => p.id === selectedStylePresetId);
+  const styleButtonLabel = selectedPreset ? stripPresetName(selectedPreset.name) : 'Без стиля';
 
   useEffect(() => {
     if (!modelDropdownOpen) return;
@@ -521,48 +527,39 @@ export const GeneratePage: FC = () => {
     );
   };
 
-  const renderStyleSelect = (disabled: boolean) => {
-    const selectedStyle = styleSelectOptions.find(
-      (o) => o.id === selectedStylePresetId || (o.id == null && selectedStylePresetId == null)
-    ) ?? styleSelectOptions[0];
-    return (
-      <div ref={styleDropdownRef} className="generate-model-select-wrap">
-        <button
-          type="button"
-          className="generate-model-select-trigger"
-          onClick={() => !disabled && setStyleDropdownOpen((v) => !v)}
-          disabled={disabled}
-          aria-label="Выберите стиль"
-          aria-expanded={styleDropdownOpen}
-        >
-          <span className="generate-model-select-value">{selectedStyle.name}</span>
-          <KeyboardArrowDownIcon
-            size={14}
-            color="var(--color-text-secondary)"
-            style={{ transform: styleDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-          />
-        </button>
-        {styleDropdownOpen && (
-          <div className="generate-model-select-dropdown">
-            {styleSelectOptions.map((opt) => (
-              <button
-                key={opt.id ?? 'none'}
-                type="button"
-                className={cn(
-                  'generate-model-select-option',
-                  (opt.id === selectedStylePresetId || (opt.id == null && selectedStylePresetId == null)) &&
-                    'generate-model-select-option--selected'
-                )}
-                onClick={() => handleStyleSelect(opt.id)}
-              >
-                {opt.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  const renderStyleSelect = (disabled: boolean) => (
+    <div ref={styleDropdownRef} className="generate-model-select-wrap">
+      <button
+        type="button"
+        className="generate-model-select-trigger"
+        onClick={() => !disabled && setStyleDropdownOpen((v) => !v)}
+        disabled={disabled}
+        aria-label="Выберите стиль"
+        aria-expanded={styleDropdownOpen}
+      >
+        <span className="generate-model-select-value">{styleButtonLabel}</span>
+        <KeyboardArrowDownIcon
+          size={14}
+          color="var(--color-text-secondary)"
+          style={{ transform: styleDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+        />
+      </button>
+      {styleDropdownOpen && (
+        <div className="generate-model-select-dropdown">
+          {styleSelectOptions.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              className={cn('generate-model-select-option', opt.id === selectedStylePresetId && 'generate-model-select-option--selected')}
+              onClick={() => handleStyleSelect(opt.id)}
+            >
+              {opt.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const renderBrandBlock = () => (
     <div className="generate-brand" aria-hidden="true">
@@ -596,7 +593,6 @@ export const GeneratePage: FC = () => {
             onBlur={handlePromptFocusOut}
           />
           <div className="generate-input-footer">
-            {renderModelFileRow(true)}
             {renderStyleSelect(true)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
@@ -657,6 +653,7 @@ export const GeneratePage: FC = () => {
       </div>
 
       <div className="generate-success-section generate-new-request">
+        {renderHeaderWithModel(isGenerating)}
         <div className="generate-form-block">
           <div
             className={cn(
@@ -678,7 +675,6 @@ export const GeneratePage: FC = () => {
               onBlur={handlePromptFocusOut}
             />
             <div className="generate-input-footer">
-              {renderModelFileRow(isGenerating)}
               {renderStyleSelect(isGenerating)}
               <label className="generate-checkbox-label generate-checkbox-label--inline">
                 <span>Удалить фон</span>
@@ -694,7 +690,7 @@ export const GeneratePage: FC = () => {
             {shouldShowPromptError && (
               <div className="generate-error-inline">
                 <span className="generate-error-icon">!</span>
-                <span className="generate-error-text">{errorMessage}</span>
+                <span className="tg-error__message">{errorMessage}</span>
               </div>
             )}
           </div>
@@ -718,11 +714,11 @@ export const GeneratePage: FC = () => {
   const renderErrorState = () => (
     <div className="generate-error-container">
       {renderBrandBlock()}
-      <p className="generate-header">{createStickerTitle}</p>
+      {renderHeaderWithModel(false)}
       {shouldShowGeneralError && (
         <div className="generate-error-banner">
           <span className="generate-error-icon">!</span>
-          <span className="generate-error-text">{errorMessage}</span>
+          <span className="tg-error__message">{errorMessage}</span>
         </div>
       )}
       <div className="generate-form-block">
@@ -745,7 +741,6 @@ export const GeneratePage: FC = () => {
             onBlur={handlePromptFocusOut}
           />
           <div className="generate-input-footer">
-            {renderModelFileRow(false)}
             {renderStyleSelect(false)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
@@ -760,7 +755,7 @@ export const GeneratePage: FC = () => {
           {shouldShowPromptError && (
             <div className="generate-error-inline">
               <span className="generate-error-icon">!</span>
-              <span className="generate-error-text">{errorMessage}</span>
+              <span className="tg-error__message">{errorMessage}</span>
             </div>
           )}
         </div>
@@ -781,7 +776,7 @@ export const GeneratePage: FC = () => {
   const renderIdleState = () => (
     <>
       {renderBrandBlock()}
-      <p className="generate-header">{createStickerTitle}</p>
+      {renderHeaderWithModel(isGenerating)}
 
       <div className="generate-form-block">
         <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
@@ -797,7 +792,6 @@ export const GeneratePage: FC = () => {
             onBlur={handlePromptFocusOut}
           />
           <div className="generate-input-footer">
-            {renderModelFileRow(isGenerating)}
             {renderStyleSelect(isGenerating)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>

@@ -165,7 +165,8 @@
   flex-direction: column !important;
   justify-content: center;
   align-items: center;
-  padding: calc(var(--account-card-share-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
+  /* Верхний padding только под кнопки Share/Balance; safe-area не дублируем — карточка уже сдвинута margin-top */
+  padding: calc(var(--account-card-share-offset) + var(--account-card-share-height)) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
   gap: 16px !important;
   background: rgba(0, 0, 0, 0.48) !important;
   background-color: rgba(0, 0, 0, 0.48) !important;
@@ -557,7 +558,8 @@
   .account-header__card {
     --account-card-edge-offset: 12px;
     --account-card-share-offset: 8px;
-    padding: calc(var(--account-card-share-offset) + var(--account-card-share-height) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
+    /* Верхний padding только под кнопки Share/Balance; safe-area не дублируем — карточка уже сдвинута margin-top */
+  padding: calc(var(--account-card-share-offset) + var(--account-card-share-height)) var(--account-card-edge-offset) var(--account-card-edge-offset) !important;
     gap: clamp(12px, 4vw, 16px) !important;
   }
   .account-header__balance-wrap {

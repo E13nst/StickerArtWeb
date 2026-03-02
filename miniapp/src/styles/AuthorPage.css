@@ -52,7 +52,8 @@
   }
 }
 
-/* Карточка профиля автора — тёмное стекло, синхронизирована с MyProfilePage; без wallet */
+/* Карточка профиля автора — тёмное стекло, синхронизирована с MyProfilePage; без wallet.
+   Верхний padding без safe-area (как в MyProfilePage), чтобы на iPhone не было лишнего отступа. */
 .author-page .account-header__card {
   width: 100% !important;
   max-width: none !important;
@@ -64,7 +65,7 @@
   flex-direction: column !important;
   justify-content: center;
   align-items: center;
-  padding: 108px 16px 16px !important;
+  padding: 24px 16px 16px !important;
   gap: 16px !important;
   background: rgba(0, 0, 0, 0.48) !important;
   background-color: rgba(0, 0, 0, 0.48) !important;
@@ -200,7 +201,7 @@
 
 @media (max-width: 380px) {
   .author-page .account-header__card {
-    padding: clamp(64px, 28vw, 108px) 12px 12px !important;
+    padding: 20px 12px 12px !important;
     gap: clamp(12px, 4vw, 16px) !important;
   }
   .author-page .account-header__avatar {

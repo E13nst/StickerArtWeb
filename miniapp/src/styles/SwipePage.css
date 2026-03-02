@@ -46,15 +46,15 @@
   transition: opacity 0.12s ease-out;
 }
 
-/* Верхнее свечение — слой под header (z-index ниже хедера), от верха viewport */
+/* Верхнее свечение — только под контентом, не под header (чтобы не просвечивало сквозь шапку) */
 .swipe-page__glow--top {
   position: fixed;
-  top: 0;
+  top: var(--stixly-header-height, 80px);
   left: 0;
   right: 0;
   width: 100%;
-  height: calc(var(--stixly-header-height, 80px) + min(35vh, 180px));
-  z-index: calc(var(--z-header, 100) - 1);
+  height: min(35vh, 180px);
+  z-index: 1;
   background: linear-gradient(
     to bottom,
     rgba(34, 197, 94, 0.55),

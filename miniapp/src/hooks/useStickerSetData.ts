@@ -124,12 +124,28 @@ export const useStickerSetData = ({
             });
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         if (!mounted || abortController?.signal.aborted) return;
-        
-        console.warn('Ошибка загрузки полной информации о стикерсете:', err);
+
+        const status = err?.response?.status;
+        const is503 = status === 503;
+        const is502 = status === 502;
+        const is404 = status === 404;
+
+        if (is503 || is502) {
+          console.warn('Сервис временно недоступен (503/502). Проверьте, что бэкенд запущен:', err?.config?.url, err?.message);
+        } else {
+          console.warn('Ошибка загрузки полной информации о стикерсете:', err);
+        }
+
         if (mounted) {
-          setError('Не удалось загрузить полную информацию о стикерсете');
+          let message = 'Не удалось загрузить полную информацию о стикерсете';
+          if (is503 || is502) {
+            message = 'Сервис временно недоступен. Попробуйте позже.';
+          } else if (is404) {
+            message = 'Стикерсет не найден.';
+          }
+          setError(message);
           if (!fullStickerSet) {
             setFullStickerSet(stickerSet);
           }

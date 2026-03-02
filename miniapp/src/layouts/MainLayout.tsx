@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { BottomNav } from '@/components/BottomNav';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { DebugPanel } from '@/components/DebugPanel';
 import { useTelegram } from '@/hooks/useTelegram';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 
@@ -15,7 +16,7 @@ export default function MainLayout({ children }: Props) {
   const pathname = location.pathname;
   const isSwipePage = pathname.startsWith('/nft-soon');
   const hideHeaderPanel = pathname === '/profile' || pathname.startsWith('/author/');
-  const { isReady } = useTelegram();
+  const { isReady, initData } = useTelegram();
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
@@ -52,7 +53,21 @@ export default function MainLayout({ children }: Props) {
         overflowY: isSwipePage ? 'hidden' : 'visible',
       }}
     >
+      {/* Полноэкранный фон под хедером: градиент из :root, чтобы под header не было тёмного слоя body */}
+      {!hideHeaderPanel && (
+        <div
+          aria-hidden
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 0,
+            background: 'var(--page-dynamic-gradient), var(--page-bg-base)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       {!hideHeaderPanel && <HeaderPanel />}
+      <DebugPanel initData={initData ?? undefined} />
       <ScrollProvider scrollElement={scrollElement}>
         <div
           ref={(el) => {

@@ -20,7 +20,6 @@ import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { EmptyState } from '@/components/EmptyState';
 import { StickerPackModal } from '@/components/StickerPackModal';
 import { OptimizedGallery } from '@/components/OptimizedGallery';
-import { DebugPanel } from '@/components/DebugPanel';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { UploadStickerPackModal } from '@/components/UploadStickerPackModal';
@@ -1446,9 +1445,6 @@ export const MyProfilePage: FC = () => {
         onStickerSetUpdated={handleStickerSetUpdated}
         onCategoriesUpdated={handleStickerSetUpdated}
       />
-
-      {/* Debug панель */}
-      <DebugPanel initData={initData} />
 
       {/* Модальное окно загрузки стикерпака */}
       <UploadStickerPackModal

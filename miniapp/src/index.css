@@ -428,32 +428,20 @@ a {
   border-radius: var(--tg-radius-m);
 }
 
-/* Pack card skeleton */
+/* Pack card skeleton — один слой, пульсация opacity (дешевле чем shimmer по градиенту) */
+@keyframes pack-card-skeleton-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
 .pack-card-skeleton {
   width: 100%;
   aspect-ratio: 1 / 1.618; /* Золотое сечение */
   border-radius: var(--tg-radius-m);
-  position: relative;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.22);
   border: none;
-}
-
-.pack-card-skeleton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 25%,
-    rgba(255, 255, 255, 0.35) 50%,
-    transparent 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: pack-card-skeleton-pulse 1.8s ease-in-out infinite;
+  contain: layout style paint;
 }
 
 /* Image fade-in transition */

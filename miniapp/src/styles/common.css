@@ -66,13 +66,6 @@
   background-color: transparent !important;
 }
 
-/* Контент модалок — цвета приложения (surface, text); можно переопределять в компонентах */
-[data-modal-content] {
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-family: var(--font-family, 'Manrope', sans-serif);
-}
-
 /* ============================================
    Стили ошибок
    ============================================ */
@@ -325,23 +318,54 @@
 }
 
 /* ============================================
-   Стили error box — единый вид в цветах приложения (стекло + бордер, без сплошного фона)
+   Единые стили ошибок (error box, ErrorDisplay, тексты ошибок)
    ============================================ */
 
 .error-box {
   margin-top: var(--spacing-xl);
   padding: var(--spacing-lg);
   text-align: center;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Лёгкое стекло: на iPhone фон (например зелёный на Swipe) должен просвечивать */
+  background: rgba(0, 0, 0, 0.08);
   border-radius: var(--border-radius-lg);
   color: var(--color-text);
 }
 
-/* ============================================
-   Стили error контейнеров
-   ============================================ */
+/* Блок ошибки (ErrorDisplay и любой контент с тем же видом) */
+.tg-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--tg-spacing-6, 16px) var(--tg-spacing-4, 12px);
+  text-align: center;
+  min-height: 120px;
+}
 
+.tg-error__icon {
+  font-size: 48px;
+  margin-bottom: var(--tg-spacing-3, 8px);
+}
+
+.tg-error__title {
+  font-size: var(--tg-font-size-l, 1.125rem);
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 var(--tg-spacing-2, 6px) 0;
+}
+
+.tg-error__message {
+  font-size: var(--tg-font-size-m, 1rem);
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 var(--tg-spacing-4, 12px) 0;
+  line-height: 1.5;
+}
+
+.tg-error__button {
+  margin-top: var(--spacing-md, 12px);
+}
+
+/* Контейнеры и текст ошибки без блока (тот же стиль текста) */
 .error-text-container {
   text-align: center;
   padding-top: 2rem;
@@ -349,7 +373,9 @@
 }
 
 .error-text {
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--tg-font-size-m, 1rem);
+  line-height: 1.5;
 }
 
 /* ============================================

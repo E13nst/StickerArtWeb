@@ -1,15 +1,17 @@
 export type SupportedLocale = 'ru' | 'en';
 
-export type TranslationKey = 'generate.createStickerWithAI';
+export type TranslationKey = 'generate.createStickerWithAI' | 'generate.createStickerPrefix';
 
 type TranslationTable = Record<TranslationKey, string>;
 
 const TRANSLATIONS: Record<SupportedLocale, TranslationTable> = {
   ru: {
     'generate.createStickerWithAI': 'Создайте Стикер с ИИ',
+    'generate.createStickerPrefix': 'Создайте Стикер с ',
   },
   en: {
     'generate.createStickerWithAI': 'Create Sticker with AI',
+    'generate.createStickerPrefix': 'Create Sticker with ',
   },
 };
 
