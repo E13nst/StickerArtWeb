@@ -899,6 +899,7 @@ class ImageLoader {
           throw new Error(`HTTP ${response.status}`);
         }
         
+        // blob наследует Content-Type из response; на iOS для WebM+alpha при проблемах можно явно задать type: 'video/webm; codecs="vp9"'
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         
