@@ -322,7 +322,9 @@ export const GalleryNewPage: FC = () => {
           {isInitialLoading ? (
             <LoadingSpinner message="Загрузка стикеров..." />
           ) : error ? (
-            <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+            <div className="error-box">
+              <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
+            </div>
           ) : stickerSets.length === 0 ? (
             <EmptyState
               title="🎨 Стикеры не найдены"

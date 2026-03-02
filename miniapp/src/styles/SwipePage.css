@@ -13,10 +13,9 @@
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
-/* Внутренний контейнер: от header до navbar (на всю высоту зоны свайпа).
-   Высота = viewport − header − taskbar. 100dvh для мобильных (адресная строка). */
+/* Внутренний контейнер: от header до низа viewport (включая зону над navbar), чтобы свечение карточки было видно над navbar. */
 .swipe-page__inner {
-  --swipe-inner-h: calc(100dvh - var(--stixly-header-height, 80px) - var(--stixly-taskbar-height, 96.25px));
+  --swipe-inner-h: calc(100dvh - var(--stixly-header-height, 80px));
   --swipe-glow-top: 0;
   --swipe-glow-bottom: 0;
   position: relative;
@@ -47,10 +46,15 @@
   transition: opacity 0.12s ease-out;
 }
 
+/* Верхнее свечение — слой под header (z-index ниже хедера), от верха viewport */
 .swipe-page__glow--top {
+  position: fixed;
   top: 0;
-  height: 35%;
-  min-height: 140px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: calc(var(--stixly-header-height, 80px) + min(35vh, 180px));
+  z-index: calc(var(--z-header, 100) - 1);
   background: linear-gradient(
     to bottom,
     rgba(34, 197, 94, 0.55),

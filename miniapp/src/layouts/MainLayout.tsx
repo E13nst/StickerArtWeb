@@ -68,7 +68,8 @@ export default function MainLayout({ children }: Props) {
             overflowX: 'hidden',
             paddingBottom: isSwipePage ? 0 : 'var(--stixly-taskbar-height, 90.25px)', // Taskbar: Navbar + Home Indicator (Figma)
             WebkitOverflowScrolling: 'touch',
-            backgroundColor: '#191818',
+            /* Прозрачный фон: на iOS backdrop-filter хедера размывает этот слой; без сплошного #191818 под хедером виден градиент страницы (OtherAccountBackground). */
+            backgroundColor: 'transparent',
           }}
         >
           <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>

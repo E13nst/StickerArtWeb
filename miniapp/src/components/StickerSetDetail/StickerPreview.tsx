@@ -163,8 +163,8 @@ const renderStickerMedia = (
           style={{
             width: 40,
             height: 40,
-            border: '3px solid rgba(255,255,255,0.2)',
-            borderTopColor: 'var(--tg-theme-button-color, #2481cc)',
+            border: '3px solid var(--color-overlay-light, rgba(255,255,255,0.2))',
+            borderTopColor: 'var(--color-primary, var(--tg-theme-button-color))',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}
@@ -272,8 +272,8 @@ export const StickerPreview: FC<StickerPreviewProps> = ({
                 width: 48,
                 height: 48,
                 borderRadius: '50%',
-                border: '3px solid rgba(255,255,255,0.35)',
-                borderTopColor: 'rgba(255,255,255,0.9)',
+                border: '3px solid var(--color-overlay-light, rgba(255,255,255,0.2))',
+                borderTopColor: 'var(--color-primary, var(--tg-theme-button-color))',
                 animation: 'spin 1s linear infinite'
               }}
             />

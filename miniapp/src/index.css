@@ -515,6 +515,11 @@ a {
   max-height: 100%;
   object-fit: contain;
   display: block;
+  /* iOS Safari: отдельный композитный слой — убирает белый/синий фон вместо прозрачности */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .pack-card-video {

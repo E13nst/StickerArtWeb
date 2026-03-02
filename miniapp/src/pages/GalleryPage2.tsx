@@ -396,7 +396,7 @@ export const GalleryPage2: FC = () => {
             <LoadingSpinner message="Загрузка стикеров..." />
           </div>
         ) : error ? (
-          <div className="gallery-page__content-error">
+          <div className="error-box gallery-page__content-error">
             <ErrorDisplay error={error} onRetry={() => fetchStickerSets()} />
           </div>
         ) : galleryPacks.length === 0 ? (

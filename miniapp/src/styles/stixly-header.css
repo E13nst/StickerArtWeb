@@ -96,7 +96,7 @@ header.stixlytopheader > .stixly-top-header > * {
   }
 }
 
-/* Main scroll container — единый минималистичный фон */
+/* Main scroll container — фон задаётся инлайном в MainLayout (transparent), чтобы под хедером на iOS был виден градиент страницы; fallback для страниц без градиента */
 .stixly-main-scroll {
   flex: 1 1 auto;
   position: relative;
@@ -106,7 +106,7 @@ header.stixlytopheader > .stixly-top-header > * {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
-  background-color: var(--page-bg-base);
+  background-color: transparent;
   background-image: none;
 }
 

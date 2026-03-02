@@ -142,17 +142,7 @@
   color: #fff !important;
 }
 
-/* Ошибки — в тон страницы автора (вид приложения, как account-header__card) */
-.author-page .error-box {
-  background-color: #262626;
-  border: none;
-  color: #fff;
-}
-
-.author-page .error-box .tg-error__button.button-primary {
-  background-color: var(--tg-theme-button-color, #EE449F);
-  color: var(--tg-theme-button-text-color, #ffffff);
-}
+/* error-box использует общий стиль из common.css (стекло, цвета приложения) */
 
 /* ============================================
    Контент ниже карточки — подстраиваем под fixed controls bar

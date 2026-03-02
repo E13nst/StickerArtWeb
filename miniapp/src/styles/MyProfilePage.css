@@ -820,17 +820,7 @@
   border-radius: 16px;
 }
 
-/* Ошибки на странице аккаунта — в тон шапки (вид приложения) */
-.account-page .error-box {
-  background-color: var(--account-surface) !important;
-  border: none;
-  color: var(--account-text) !important;
-}
-
-.account-page .error-box .tg-error__button.button-primary {
-  background-color: var(--tg-theme-button-color, var(--color-primary));
-  color: var(--tg-theme-button-text-color, #ffffff);
-}
+/* error-box использует общий стиль из common.css (стекло, цвета приложения) */
 
 /* error-box внутри account-header__card — без лишнего отступа сверху */
 .account-header__card .error-box {

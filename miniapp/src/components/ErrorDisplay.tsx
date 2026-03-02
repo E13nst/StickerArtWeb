@@ -59,13 +59,13 @@ const styles = `
 .tg-error__title {
   font-size: var(--tg-font-size-l);
   font-weight: 600;
-  color: var(--tg-theme-text-color);
+  color: var(--color-text, var(--tg-theme-text-color));
   margin: 0 0 var(--tg-spacing-2) 0;
 }
 
 .tg-error__message {
   font-size: var(--tg-font-size-m);
-  color: var(--tg-theme-hint-color);
+  color: var(--color-text-secondary, var(--tg-theme-hint-color));
   margin: 0 0 var(--tg-spacing-4) 0;
   line-height: 1.5;
 }
