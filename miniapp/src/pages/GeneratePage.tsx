@@ -701,7 +701,7 @@ export const GeneratePage: FC = () => {
             onClick={handleGenerate}
             disabled={isDisabled}
             loading={isGenerating}
-            className="generate-button-regenerate"
+            className="generate-button-submit"
           >
             {generateLabel}
           </Button>

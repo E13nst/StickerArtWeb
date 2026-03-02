@@ -13,7 +13,7 @@
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
 }
 
-/* Внутренний контейнер: от header до низа viewport (включая зону над navbar), чтобы свечение карточки было видно над navbar. */
+/* Внутренний контейнер: весь viewport под header (как у Navbar — отступы 16px, ширина calc(100% - 32px) max 370px). */
 .swipe-page__inner {
   --swipe-inner-h: calc(100dvh - var(--stixly-header-height, 80px));
   --swipe-glow-top: 0;
@@ -29,7 +29,7 @@
   overflow: hidden;
   touch-action: none;
   padding-top: 0;
-  padding-inline: 16px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
   padding-bottom: 0;
   box-sizing: border-box;
 }
@@ -46,15 +46,15 @@
   transition: opacity 0.12s ease-out;
 }
 
-/* Верхнее свечение — только под контентом, не под header (чтобы не просвечивало сквозь шапку) */
+/* Верхнее свечение — слой под header (z-index ниже хедера), от верха viewport */
 .swipe-page__glow--top {
   position: fixed;
-  top: var(--stixly-header-height, 80px);
+  top: 0;
   left: 0;
   right: 0;
   width: 100%;
-  height: min(35vh, 180px);
-  z-index: 1;
+  height: calc(var(--stixly-header-height, 80px) + min(35vh, 180px));
+  z-index: calc(var(--z-header, 100) - 1);
   background: linear-gradient(
     to bottom,
     rgba(34, 197, 94, 0.55),
@@ -112,24 +112,23 @@
 }
 
 /* ============================================
-   Cards Container — строго между header и navbar.
-   top/bottom гарантируют, что карточка никогда не заходит под navbar.
-   Высота вычисляется автоматически из зоны; пропорции сохраняются через aspect-ratio.
+   Cards Container — ширина как у Navbar (calc(100% - 32px) max 370px).
+   Нижний отступ = taskbar, чтобы like/dislike не обрезались и не заходили под navbar.
    ============================================ */
 
 .swipe-page__cards {
-  --swipe-stack-width: 370px;
-  --swipe-gap-vertical: 16px; /* отступ сверху и снизу от границ зоны */
+  --swipe-stack-width: min(370px, 100%);
+  --swipe-gap-vertical: 16px;
   position: absolute;
   top: var(--swipe-gap-vertical);
-  bottom: var(--swipe-gap-vertical);
+  bottom: calc(var(--swipe-gap-vertical) + var(--stixly-taskbar-height, 90.25px));
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   inline-size: var(--swipe-stack-width);
-  max-inline-size: 100%;
+  max-inline-size: 370px;
   margin-inline: auto;
   z-index: 2;
   box-sizing: border-box;
@@ -231,7 +230,7 @@
   max-block-size: 100%;
   border-radius: var(--swipe-card-radius);
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.3);
+  background: transparent;
   border: none;
   display: flex;
   align-items: center;
@@ -262,8 +261,25 @@
   border-radius: var(--swipe-card-radius);
 }
 
-/* Footer — контейнер для кнопок, без фона */
+.swipe-card .pack-card-animated-sticker,
+.swipe-card [data-lottie-container="true"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Плейсхолдер без фона — только эмодзи до загрузки превью */
+.swipe-card .pack-card__placeholder {
+  background: transparent !important;
+  background-color: transparent !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Footer — контейнер для кнопок; слой выше, чтобы лайк/дизлайк всегда кликабельны */
 .swipe-card__footer {
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -401,9 +417,9 @@
 
 .swipe-page__loading-indicator {
   position: absolute;
-  bottom: var(--spacing-2xl);
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 10;
 }
 

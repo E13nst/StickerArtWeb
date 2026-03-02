@@ -19,6 +19,40 @@ import { VideoStickerPreview } from '@/components/VideoStickerPreview';
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
 
+/** Превью-картинка: эмодзи пока изображение не загружено */
+const ImageWithEmojiPlaceholder: FC<{
+  src: string;
+  alt: string;
+  emoji: string;
+  className?: string;
+  loading?: 'lazy' | 'eager';
+}> = ({ src, alt, emoji, className, loading = 'lazy' }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      {!loaded && (
+        <div className="pack-card__placeholder" style={{ position: 'absolute', inset: 0 }}>
+          <span className="swipe-card__placeholder-emoji" style={{ fontSize: 48 }}>{emoji}</span>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        loading={loading}
+        style={{
+          maxWidth: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain',
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 0.15s ease'
+        }}
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  );
+};
+
 const SHOW_HELLO_KEY = 'swipe-hello-shown';
 const SWIPE_GLOW_THRESHOLD = 100;
 
@@ -153,7 +187,7 @@ export const SwipePage: FC = () => {
                   imageUrl={imageUrl}
                   emoji={previewSticker.emoji || '🎨'}
                   className="pack-card-animated-sticker"
-                  hidePlaceholder={true}
+                  hidePlaceholder={false}
                   priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
                 />
               ) : isVideo ? (
@@ -179,27 +213,13 @@ export const SwipePage: FC = () => {
                   />
                 </div>
               ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <img
-                    src={imageCache.get(previewSticker.file_id) || imageUrl}
-                    alt={formatStickerTitle(stickerSet.title)}
-                    className="pack-card-image"
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
-                  />
-                </div>
+                <ImageWithEmojiPlaceholder
+                  src={imageCache.get(previewSticker.file_id) || imageUrl}
+                  alt={formatStickerTitle(stickerSet.title)}
+                  emoji={previewSticker.emoji || '🎨'}
+                  className="pack-card-image"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                />
               )
             ) : (
               <div className="swipe-card__placeholder">

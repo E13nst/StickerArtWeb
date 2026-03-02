@@ -498,10 +498,8 @@
 }
 
 .optimized-gallery .pack-card__placeholder {
-  background: rgba(0, 0, 0, 0.15) !important;
-  background-color: rgba(0, 0, 0, 0.15) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Единый вид карточек: галерея, профиль, страница автора — заголовок под контентом */
@@ -518,6 +516,8 @@
   flex: none;
   border-radius: 16px;
   overflow: hidden;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .optimized-gallery .pack-card__title-overlay {

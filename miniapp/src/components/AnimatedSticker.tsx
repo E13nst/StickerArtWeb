@@ -25,8 +25,21 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
   const [animationData, setAnimationData] = useState<any>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lottieReady, setLottieReady] = useState(false);
   const readyCalledRef = useRef(false);
-  
+
+  // Сброс «Lottie готов» при смене анимации — эмодзи показываем до отрисовки
+  useEffect(() => {
+    setLottieReady(false);
+  }, [fileId, animationData]);
+
+  // Резерв: если колбэк Lottie не сработал — скрываем эмодзи через 400ms (хук всегда вызывается)
+  useEffect(() => {
+    if (loading || !animationData) return;
+    const fallback = setTimeout(() => setLottieReady(true), 400);
+    return () => clearTimeout(fallback);
+  }, [loading, animationData]);
+
   // Refs для управления анимацией и IntersectionObserver
   const animationRef = useRef<LottieRefCurrentProps>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -233,6 +246,25 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
   }, [animationData, loading, onReady]);
 
   if (loading) {
+    /* До полной загрузки показываем эмодзи (если передан), иначе спиннер */
+    if (emoji && !hidePlaceholder) {
+      return (
+        <div
+          ref={containerRef}
+          className="pack-card__placeholder"
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent'
+          }}
+        >
+          <span style={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.45)' }}>{emoji}</span>
+        </div>
+      );
+    }
     return (
       <div 
         ref={containerRef}
@@ -243,7 +275,7 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
           justifyContent: 'center',
           width: '100%',
           height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          backgroundColor: 'transparent',
           borderRadius: '8px'
         }}
       >
@@ -312,16 +344,28 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
     );
   }
 
+  const handleLottieReady = () => {
+    const canvas = containerRef.current?.querySelector('canvas, svg');
+    if (canvas) {
+      canvas.setAttribute('data-lottie', 'true');
+    }
+    setLottieReady(true);
+  };
+
   return (
     <div
       ref={containerRef}
       data-lottie-container="true"
+      className={className}
       style={{
         width: '100%',
         height: '100%',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        position: 'relative',
+        background: 'transparent',
+        backgroundColor: 'transparent'
       }}
     >
       <Lottie
@@ -329,21 +373,32 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
         animationData={animationData}
         loop={true}
         autoplay={true}
-        className={className}
         style={{
           width: '100%',
           height: '100%',
           maxWidth: '100%',
           maxHeight: '100%'
         }}
-        // Добавляем атрибут для мониторинга
-        onLoadedData={() => {
-          const canvas = containerRef.current?.querySelector('canvas, svg');
-          if (canvas) {
-            canvas.setAttribute('data-lottie', 'true');
-          }
-        }}
+        onDOMLoaded={handleLottieReady}
+        onLoadedData={handleLottieReady}
       />
+      {/* Эмодзи до момента отрисовки Lottie — убирает «пустой» промежуток */}
+      {emoji && !hidePlaceholder && !lottieReady && (
+        <div
+          className="pack-card__placeholder"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent',
+            pointerEvents: 'none'
+          }}
+        >
+          <span style={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.45)' }}>{emoji}</span>
+        </div>
+      )}
     </div>
   );
 };

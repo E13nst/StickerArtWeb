@@ -321,6 +321,8 @@
   flex: none;
   border-radius: 16px;
   overflow: hidden;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .dashboard-card-carousel .pack-card-image,
@@ -332,6 +334,8 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: 16px;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* Название стикерсета ниже контента — ближе к блоку фото, Manrope 700, 16px */

@@ -1,6 +1,5 @@
 import { useState, useCallback, ReactNode, FC } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform, useMotionValueEvent } from 'framer-motion';
-import { Toast } from './Toast';
 import './SwipeCardStack.css';
 
 export interface SwipeCard {
@@ -37,15 +36,6 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<'up' | 'down' | null>(null);
-  const [toastState, setToastState] = useState<{
-    isVisible: boolean;
-    message: string;
-    type: 'success' | 'error';
-  }>({
-    isVisible: false,
-    message: '',
-    type: 'success',
-  });
 
   const y = useMotionValue(0);
   const opacity = useTransform(y, [-200, -80, 0, 80, 200], [0, 1, 1, 1, 0]);
@@ -54,28 +44,14 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
     onDragY?.(latest);
   });
 
-  const showToast = useCallback((message: string, type: 'success' | 'error') => {
-    setToastState({
-      isVisible: true,
-      message,
-      type,
-    });
-  }, []);
-
-  const hideToast = useCallback(() => {
-    setToastState((prev) => ({ ...prev, isVisible: false }));
-  }, []);
-
   const runSwipe = useCallback(
     (direction: 'up' | 'down') => {
       const currentCard = cards[currentIndex];
       setExitDirection(direction);
       if (direction === 'down') {
         onSwipeLeft(currentCard);
-        showToast('Skipped', 'error');
       } else {
         onSwipeRight(currentCard);
-        showToast('Liked', 'success');
       }
       setTimeout(() => {
         setCurrentIndex((prev) => prev + 1);
@@ -86,7 +62,7 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
         }
       }, 300);
     },
-    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, showToast, y]
+    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, y]
   );
 
   const triggerSwipeLeft = useCallback(() => runSwipe('down'), [runSwipe]);
@@ -182,13 +158,6 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
           );
         })}
       </div>
-
-      <Toast
-        message={toastState.message}
-        type={toastState.type}
-        isVisible={toastState.isVisible}
-        onClose={hideToast}
-      />
     </>
   );
 };
