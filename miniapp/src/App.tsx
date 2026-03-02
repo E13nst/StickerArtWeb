@@ -22,6 +22,7 @@ const AuthorPage = lazy(() => import('@/pages/AuthorPage').then(m => ({ default:
 const SwipePage = lazy(() => import('@/pages/SwipePage').then(m => ({ default: m.SwipePage })));
 const GeneratePage = lazy(() => import('@/pages/GeneratePage').then(m => ({ default: m.GeneratePage })));
 const DesignSystemDemo = lazy(() => import('@/pages/DesignSystemDemo').then(m => ({ default: m.DesignSystemDemo })));
+const VideoAlphaTestPage = lazy(() => import('@/pages/VideoAlphaTestPage').then(m => ({ default: m.VideoAlphaTestPage })));
 
 // TON Connect manifest URL (статический, так как MiniApp развёрнут на стабильном домене)
 const manifestUrl = 'https://sticker-art-e13nst.amvera.io/miniapp/tonconnect-manifest.json';
@@ -98,6 +99,7 @@ const App: FC = () => {
         import('@/pages/SwipePage'),
         import('@/pages/GeneratePage'),
         import('@/pages/DesignSystemDemo'),
+        import('@/pages/VideoAlphaTestPage'),
       ]).catch(() => {});
     };
     const t = setTimeout(preload, 100);
@@ -159,6 +161,7 @@ const App: FC = () => {
             <Route path="/nft-soon" element={<SwipePage />} />
             <Route path="/generate" element={<GeneratePage />} />
             <Route path="/design-system-demo" element={<DesignSystemDemo />} />
+            <Route path="/video-alpha-test" element={<VideoAlphaTestPage />} />
             {/* Fallback route */}
             <Route path="*" element={<DashboardPage />} />
           </Routes>

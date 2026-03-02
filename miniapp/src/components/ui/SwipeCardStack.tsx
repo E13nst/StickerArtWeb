@@ -1,4 +1,4 @@
-import { useState, useCallback, ReactNode, FC } from 'react';
+import { useState, useCallback, useRef, ReactNode, FC } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform, useMotionValueEvent } from 'framer-motion';
 import './SwipeCardStack.css';
 
@@ -10,6 +10,10 @@ export interface SwipeCard {
 export interface SwipeCardActions {
   triggerSwipeLeft: () => void;
   triggerSwipeRight: () => void;
+  /** Вызвать перед triggerSwipeRight при нажатии на кнопку like (для glow) */
+  onBeforeLike?: () => void;
+  /** Вызвать перед triggerSwipeLeft при нажатии на кнопку dislike (для glow) */
+  onBeforeDislike?: () => void;
 }
 
 export interface SwipeCardStackProps {
@@ -22,7 +26,15 @@ export interface SwipeCardStackProps {
   swipeThreshold?: number;
   /** Текущее смещение по Y при перетаскивании верхней карточки (для свечения по краям) */
   onDragY?: (y: number) => void;
+  /** Тактильный отклик при пересечении порога во время свайпа (вверх/вниз) */
+  onDragThresholdCrossed?: () => void;
+  /** Вызвать перед like при нажатии на кнопку (для glow) */
+  onBeforeLike?: () => void;
+  /** Вызвать перед dislike при нажатии на кнопку (для glow) */
+  onBeforeDislike?: () => void;
 }
+
+const DRAG_HAPTIC_THRESHOLD = 80;
 
 export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   cards,
@@ -33,15 +45,23 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   maxVisibleCards = 4,
   swipeThreshold = 100,
   onDragY,
+  onDragThresholdCrossed,
+  onBeforeLike,
+  onBeforeDislike,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<'up' | 'down' | null>(null);
+  const thresholdCrossedRef = useRef(false);
 
   const y = useMotionValue(0);
   const opacity = useTransform(y, [-200, -80, 0, 80, 200], [0, 1, 1, 1, 0]);
 
   useMotionValueEvent(y, 'change', (latest) => {
     onDragY?.(latest);
+    if (onDragThresholdCrossed && Math.abs(latest) >= DRAG_HAPTIC_THRESHOLD && !thresholdCrossedRef.current) {
+      thresholdCrossedRef.current = true;
+      onDragThresholdCrossed();
+    }
   });
 
   const runSwipe = useCallback(
@@ -68,9 +88,14 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   const triggerSwipeLeft = useCallback(() => runSwipe('down'), [runSwipe]);
   const triggerSwipeRight = useCallback(() => runSwipe('up'), [runSwipe]);
 
+  const handleDragStart = useCallback(() => {
+    thresholdCrossedRef.current = false;
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       void event;
+      thresholdCrossedRef.current = false;
       const swipeDistance = info.offset.y;
       const swipeVelocity = info.velocity.y;
 
@@ -115,6 +140,7 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
                 drag="y"
                 dragConstraints={{ top: 0, bottom: 0 }}
                 dragElastic={1}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 animate={
                   exitDirection
@@ -126,7 +152,12 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
                 }
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
-                {renderCard(card, cardIndex, { triggerSwipeLeft, triggerSwipeRight })}
+                {renderCard(card, cardIndex, {
+                  triggerSwipeLeft,
+                  triggerSwipeRight,
+                  onBeforeLike,
+                  onBeforeDislike,
+                })}
               </motion.div>
             );
           }

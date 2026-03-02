@@ -1,23 +1,22 @@
 /**
- * Поддержка форматов видео с альфа-каналом в браузерах.
+ * Поддержка форматов видео с прозрачностью (альфа-канал).
  *
- * Safari (и Telegram WebView на iOS) не поддерживает прозрачность в WebM/VP9.
- * Прозрачность на iOS возможна только через HEVC (H.265) с альфа-каналом в mp4 (codecs="hvc1").
- * Поэтому для прозрачного видео используем два источника: HEVC+alpha для Safari/iOS,
- * WebM (VP9+alpha) для остальных. Выбор делается через canPlayHevcAlpha() и порядок <source>.
+ * Safari (и Telegram WebView на iOS) не поддерживают прозрачность в WebM (VP9).
+ * Прозрачность через HEVC (H.265) с альфа-каналом уже поддерживается на iOS.
+ * Поэтому используем:
+ * - WebM VP9 для Android/desktop (Chrome, Firefox и др.)
+ * - HEVC+alpha (mp4) для Safari/iOS.
  *
- * Ограничения: при отсутствии HEVC-версии на бэкенде прозрачность на iOS недоступна.
- * Перекодирование: ProRes 4444 с альфой → HEVC+alpha (ffmpeg/After Effects);
- * путь к статическим файлам: public/assets/video/*-hevc-alpha.mp4;
- * бэкенд: .../stickers/{fileId}?format=hevc или отдельное поле hevc_alpha_url в API.
+ * @see https://caniuse.com/hevc
+ * @see https://developer.apple.com/documentation/avfoundation/media_reading_and_writing/creating_video_with_an_alpha_channel
  */
 
 let cachedHevcAlpha: boolean | null = null;
-let cachedVp9: boolean | null = null;
+let cachedVp9Alpha: boolean | null = null;
 
 /**
- * Проверяет, поддерживает ли браузер воспроизведение HEVC (H.265) с альфа-каналом (mp4; codecs="hvc1").
- * Safari на iOS/macOS поддерживает; Chrome/Firefox на десктопе — обычно нет.
+ * Проверяет поддержку HEVC с альфа-каналом (video/mp4; codecs="hvc1").
+ * Safari и iOS поддерживают прозрачное видео через этот формат.
  * Результат кешируется на время сессии.
  */
 export function canPlayHevcAlpha(): boolean {
@@ -39,13 +38,13 @@ export function canPlayHevcAlpha(): boolean {
 }
 
 /**
- * Проверяет поддержку WebM VP9 (в т.ч. с альфа-каналом, где браузер это поддерживает).
- * Используется для документации и при необходимости явного выбора формата.
- * Результат кешируется.
+ * Проверяет поддержку VP9 (video/webm; codecs="vp9").
+ * Chrome, Firefox и др. поддерживают прозрачность в WebM VP9.
+ * Safari/iOS — нет.
  */
 export function canPlayVp9Alpha(): boolean {
-  if (cachedVp9 !== null) {
-    return cachedVp9;
+  if (cachedVp9Alpha !== null) {
+    return cachedVp9Alpha;
   }
   if (typeof document === 'undefined') {
     return false;
@@ -53,10 +52,10 @@ export function canPlayVp9Alpha(): boolean {
   try {
     const video = document.createElement('video');
     const result = video.canPlayType('video/webm; codecs="vp9"');
-    cachedVp9 = result === 'probably' || result === 'maybe';
-    return cachedVp9;
+    cachedVp9Alpha = result === 'probably' || result === 'maybe';
+    return cachedVp9Alpha;
   } catch {
-    cachedVp9 = false;
+    cachedVp9Alpha = false;
     return false;
   }
 }

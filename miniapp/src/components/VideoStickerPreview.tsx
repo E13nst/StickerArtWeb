@@ -1,5 +1,7 @@
 import { useEffect, useState, FC } from 'react';
 import { videoBlobCache, imageLoader, LoadPriority } from '@/utils/imageLoader';
+import { TransparentVideo } from '@/components/ui/TransparentVideo';
+import { getStickerVideoUrlHevc } from '@/utils/stickerUtils';
 
 interface VideoStickerPreviewProps {
   fileId: string;
@@ -50,9 +52,13 @@ export const VideoStickerPreview: FC<VideoStickerPreviewProps> = ({
     );
   }
 
+  const webmSrc = videoBlobCache.get(fileId) || url;
+  const hevcUrl = getStickerVideoUrlHevc(fileId);
+
   return (
-    <video
-      src={videoBlobCache.get(fileId) || url}
+    <TransparentVideo
+      webmSrc={webmSrc}
+      hevcUrl={hevcUrl || undefined}
       className={className}
       autoPlay={autoPlay}
       loop

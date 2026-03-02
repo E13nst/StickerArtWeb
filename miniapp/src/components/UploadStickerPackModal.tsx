@@ -11,11 +11,12 @@ import { Chip } from '@/components/ui/Chip';
 import { ModalBackdrop } from './ModalBackdrop';
 import './UploadStickerPackModal.css';
 import { apiClient } from '@/api/client';
-import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
+import { getStickerThumbnailUrl, getStickerVideoUrlHevc } from '@/utils/stickerUtils';
 import { imageLoader, getCachedStickerUrl, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { StickerPackModal } from './StickerPackModal';
+import { TransparentVideo } from '@/components/ui/TransparentVideo';
 
 interface UploadStickerPackModalProps {
   open: boolean;
@@ -39,7 +40,7 @@ const normalizeStickerSetName = (raw: string): string => {
     .trim();
 };
 
-// Компонент для видео стикера с использованием useNonFlashingVideoSrc
+// Компонент для видео стикера с использованием useNonFlashingVideoSrc и TransparentVideo
 const PreviewStickerVideo: FC<{
   thumbFileId: string;
   fallbackUrl: string;
@@ -51,15 +52,19 @@ const PreviewStickerVideo: FC<{
     waitForPreferredMs: 100
   });
 
+  const hevcUrl = getStickerVideoUrlHevc(thumbFileId);
+
   return (
-    <video
-      src={src}
+    <TransparentVideo
+      webmSrc={src || fallbackUrl}
+      hevcUrl={hevcUrl || undefined}
       style={{ 
         width: '100%', 
         height: '100%', 
         objectFit: 'contain',
         opacity: isReady ? 1 : 0,
-        transition: 'opacity 120ms ease'
+        transition: 'opacity 120ms ease',
+        backgroundColor: 'transparent'
       }}
       autoPlay
       loop

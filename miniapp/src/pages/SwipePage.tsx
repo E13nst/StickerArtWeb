@@ -56,10 +56,13 @@ const ImageWithEmojiPlaceholder: FC<{
 const SHOW_HELLO_KEY = 'swipe-hello-shown';
 const SWIPE_GLOW_THRESHOLD = 100;
 
+const BUTTON_GLOW_DURATION_MS = 450;
+
 export const SwipePage: FC = () => {
   const { isInTelegramApp, tg } = useTelegram();
   const [showHello, setShowHello] = useState(false);
   const [dragY, setDragY] = useState(0);
+  const [buttonGlow, setButtonGlow] = useState<'like' | 'dislike' | null>(null);
   
   const {
     stickerSets,
@@ -91,6 +94,13 @@ export const SwipePage: FC = () => {
     setShowHello(false);
   }, []);
 
+  // Сброс glow после нажатия на кнопку
+  useEffect(() => {
+    if (!buttonGlow) return;
+    const t = setTimeout(() => setButtonGlow(null), BUTTON_GLOW_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [buttonGlow]);
+
   // Блокируем прокрутку страницы
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -121,6 +131,18 @@ export const SwipePage: FC = () => {
   const handleEnd = useCallback(() => {
     // Когда все карточки просмотрены
     console.log('All cards swiped!');
+  }, []);
+
+  const handleDragThresholdCrossed = useCallback(() => {
+    tg?.HapticFeedback?.impactOccurred('light');
+  }, [tg]);
+
+  const handleBeforeLike = useCallback(() => {
+    setButtonGlow('like');
+  }, []);
+
+  const handleBeforeDislike = useCallback(() => {
+    setButtonGlow('dislike');
   }, []);
 
   const handleDownload = useCallback((stickerSet: StickerSetResponse, fallbackUrl?: string) => {
@@ -197,7 +219,8 @@ export const SwipePage: FC = () => {
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    backgroundColor: 'transparent'
                   }}
                 >
                   <VideoStickerPreview
@@ -235,6 +258,7 @@ export const SwipePage: FC = () => {
             className="swipe-card__action swipe-card__action--dislike"
             onClick={(e) => {
               stopPropagation(e);
+              actions?.onBeforeDislike?.();
               actions?.triggerSwipeLeft?.();
             }}
             aria-label="Пропустить"
@@ -246,6 +270,7 @@ export const SwipePage: FC = () => {
             className="swipe-card__action swipe-card__action--like"
             onClick={(e) => {
               stopPropagation(e);
+              actions?.onBeforeLike?.();
               actions?.triggerSwipeRight?.();
             }}
             aria-label="Нравится"
@@ -371,20 +396,26 @@ export const SwipePage: FC = () => {
   }
 
   return (
-    <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
+    <div
+      className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}
+      style={
+        {
+          '--swipe-glow-top': Math.max(
+            dragY < 0 ? Math.min(Math.abs(dragY) / SWIPE_GLOW_THRESHOLD, 1) : 0,
+            buttonGlow === 'like' ? 1 : 0,
+          ),
+          '--swipe-glow-bottom': Math.max(
+            dragY > 0 ? Math.min(dragY / SWIPE_GLOW_THRESHOLD, 1) : 0,
+            buttonGlow === 'dislike' ? 1 : 0,
+          ),
+        } as React.CSSProperties
+      }
+    >
       <OtherAccountBackground />
-      <div
-        className="swipe-page__inner"
-        style={
-          {
-            '--swipe-glow-top': dragY < 0 ? Math.min(Math.abs(dragY) / SWIPE_GLOW_THRESHOLD, 1) : 0,
-            '--swipe-glow-bottom': dragY > 0 ? Math.min(dragY / SWIPE_GLOW_THRESHOLD, 1) : 0,
-          } as React.CSSProperties
-        }
-      >
-      {/* Свечение по краям при свайпе: зелёный сверху (лайк), красный снизу (дизлайк) */}
+      {/* Свечение по краям при свайпе: зелёный сверху (лайк), красный снизу (дизлайк). Вынесено из inner, чтобы не обрезалось overflow и было видно поверх header. */}
       <div className="swipe-page__glow swipe-page__glow--top" aria-hidden />
       <div className="swipe-page__glow swipe-page__glow--bottom" aria-hidden />
+      <div className="swipe-page__inner">
 
       {/* Swipe Stats */}
       {swipeStats && (
@@ -432,6 +463,9 @@ export const SwipePage: FC = () => {
             maxVisibleCards={4}
             swipeThreshold={100}
             onDragY={setDragY}
+            onDragThresholdCrossed={handleDragThresholdCrossed}
+            onBeforeLike={handleBeforeLike}
+            onBeforeDislike={handleBeforeDislike}
           />
         </div>
       ) : null}

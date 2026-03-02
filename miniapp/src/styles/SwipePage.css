@@ -43,10 +43,10 @@
   width: 100%;
   pointer-events: none;
   z-index: 1;
-  transition: opacity 0.12s ease-out;
+  transition: opacity 0.15s ease-out;
 }
 
-/* Верхнее свечение — слой под header (z-index ниже хедера), от верха viewport */
+/* Верхнее свечение — поверх header, от верха viewport (было под header и обрезалось overflow) */
 .swipe-page__glow--top {
   position: fixed;
   top: 0;
@@ -54,7 +54,7 @@
   right: 0;
   width: 100%;
   height: calc(var(--stixly-header-height, 80px) + min(35vh, 180px));
-  z-index: calc(var(--z-header, 100) - 1);
+  z-index: calc(var(--z-header, 100) + 1);
   background: linear-gradient(
     to bottom,
     rgba(34, 197, 94, 0.55),
@@ -262,7 +262,8 @@
 }
 
 .swipe-card .pack-card-animated-sticker,
-.swipe-card [data-lottie-container="true"] {
+.swipe-card [data-lottie-container="true"],
+.swipe-card .pack-card-video {
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -569,6 +570,11 @@
    ============================================ */
 
 @media (max-width: 430px) {
+  /* Доп. отступы слева/справа на узких экранах */
+  .swipe-page__cards {
+    padding-inline: 12px;
+  }
+
   /* Карточка заполняет контейнер, контент масштабируется внутри */
   .swipe-card {
     width: 100%;

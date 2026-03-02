@@ -4,48 +4,8 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '../utils/imageLoader';
-import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
-
-/** Видео в карточке: useNonFlashingVideoSrc устраняет белую вспышку, opacity до готовности, прозрачный фон */
-const PackCardVideo: FC<{
-  fileId: string;
-  url: string;
-  videoRef: React.RefObject<HTMLVideoElement>;
-  inView: boolean;
-}> = ({ fileId, url, videoRef, inView }) => {
-  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
-    fileId,
-    preferredSrc: videoBlobCache.get(fileId),
-    fallbackSrc: url,
-    waitForPreferredMs: 100
-  });
-
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      <video
-        ref={videoRef}
-        src={src}
-        className="pack-card-video"
-        autoPlay={inView}
-        loop
-        muted
-        playsInline
-        onError={onError}
-        onLoadedData={onLoadedData}
-        style={{
-          maxWidth: '100%',
-          maxHeight: '100%',
-          objectFit: 'contain',
-          opacity: isReady ? 1 : 0,
-          transition: 'opacity 120ms ease',
-          backgroundColor: 'transparent'
-        }}
-      />
-    </div>
-  );
-};
 
 interface Pack {
   id: string;
@@ -142,9 +102,10 @@ const PackCardComponent: FC<PackCardProps> = ({
     stickerShownAtRef.current = Date.now();
   }, [currentStickerIndex]);
 
-  // Предзагрузка webm в videoBlobCache (иначе превью не отображается)
   const isVideoSticker = activeSticker?.isVideo ?? (activeSticker as any)?.is_video;
   const [videoBlobReady, setVideoBlobReady] = useState(false);
+
+  // Предзагрузка webm в videoBlobCache (иначе превью не отображается)
   useEffect(() => {
     if (!isVideoSticker || !activeSticker?.fileId || !activeSticker?.url) return;
     setVideoBlobReady(false);
@@ -201,12 +162,30 @@ const PackCardComponent: FC<PackCardProps> = ({
               (!videoBlobCache.has(activeSticker.fileId) && !videoBlobReady) ? (
                 <div className="pack-card__placeholder">{activeSticker.emoji || '🎨'}</div>
               ) : (
-                <PackCardVideo
-                  fileId={activeSticker.fileId}
-                  url={activeSticker.url}
-                  videoRef={videoRef}
-                  inView={inView}
-                />
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <video
+                    ref={videoRef}
+                    src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                    className="pack-card-video"
+                    autoPlay={inView}
+                    loop
+                    muted
+                    playsInline
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
               )
             ) : (
               <div

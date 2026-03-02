@@ -5,7 +5,8 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { FavoriteIcon } from '@/components/ui/Icons';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
-import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
+import { getStickerImageUrl, getStickerVideoUrlHevc, formatStickerTitle } from '@/utils/stickerUtils';
+import { TransparentVideo } from '@/components/ui/TransparentVideo';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
 
 interface SwipeCardProps {
@@ -315,12 +316,14 @@ export const SwipeCard: FC<SwipeCardProps> = ({
                   height: '100%',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  backgroundColor: 'transparent'
                 }}
               >
-                <video
+                <TransparentVideo
                   ref={videoRef}
-                  src={videoBlobCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
+                  webmSrc={videoBlobCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
+                  hevcUrl={getStickerVideoUrlHevc(currentSticker.file_id) || undefined}
                   className="pack-card-video"
                   autoPlay={isTopCard}
                   loop
@@ -329,7 +332,8 @@ export const SwipeCard: FC<SwipeCardProps> = ({
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
-                    objectFit: 'contain'
+                    objectFit: 'contain',
+                    backgroundColor: 'transparent'
                   }}
                 />
               </div>

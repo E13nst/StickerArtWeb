@@ -174,6 +174,25 @@ export function getStickerVideoUrl(fileId: string): string {
 }
 
 /**
+ * Получить URL видео стикера в формате HEVC с альфа-каналом для iOS/Safari.
+ * Safari не поддерживает прозрачность в WebM; для iOS нужен HEVC+alpha (mp4).
+ *
+ * TODO: Бэкенд должен отдавать HEVC по отдельному URL (например, ?format=hevc или
+ * отдельное поле hevc_alpha_url). Путь: .../stickers/{fileId}?format=hevc
+ * Пайплайн: ProRes 4444 с альфой → ffmpeg → HEVC+alpha.
+ * Пока бэкенд не поддерживает — возвращаем пустую строку.
+ *
+ * @param fileId - Telegram file_id стикера
+ * @returns URL для HEVC-версии или '' если недоступно
+ */
+export function getStickerVideoUrlHevc(fileId: string): string {
+  if (!fileId) return '';
+  // TODO: Когда бэкенд добавит поддержку HEVC:
+  // return buildStickerUrl(fileId, { file: true, format: 'hevc' });
+  return '';
+}
+
+/**
  * Получить случайные стикеры из набора
  * @param stickers - Массив стикеров
  * @param count - Количество стикеров для выбора
