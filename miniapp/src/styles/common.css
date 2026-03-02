@@ -484,7 +484,6 @@
    ============================================ */
 
 .optimized-gallery .pack-card {
-  background: rgba(0, 0, 0, 0.25) !important;
   background-color: rgba(0, 0, 0, 0.25) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -493,12 +492,11 @@
   height: 213px !important;
   aspect-ratio: auto !important;
   max-width: 177px;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   border-radius: 16px;
 }
 
 .optimized-gallery .pack-card__placeholder {
-  background: transparent !important;
   background-color: transparent !important;
 }
 
@@ -516,14 +514,13 @@
   flex: none;
   border-radius: 16px;
   overflow: hidden;
-  background: transparent !important;
   background-color: transparent !important;
 }
 
 .optimized-gallery .pack-card__title-overlay {
   position: static !important;
   flex: none;
-  background: transparent !important;
+  background-color: transparent !important;
   box-shadow: none !important;
   font-family: 'Manrope', sans-serif !important;
   font-weight: 700;

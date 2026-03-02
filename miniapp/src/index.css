@@ -503,7 +503,6 @@ a {
   max-height: 100%;
   object-fit: contain;
   display: block;
-  background: transparent;
   background-color: transparent;
   /* iOS Safari: отдельный композитный слой — убирает белый/синий фон вместо прозрачности */
   transform: translateZ(0);
@@ -514,7 +513,6 @@ a {
 
 .pack-card-video {
   border-radius: var(--tg-radius-s);
-  background-color: transparent;
 }
 
 /* Отключаем стандартные стили Material-UI и применяем Telegram тему */

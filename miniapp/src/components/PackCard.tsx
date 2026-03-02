@@ -168,7 +168,8 @@ const PackCardComponent: FC<PackCardProps> = ({
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    backgroundColor: 'transparent'
                   }}
                 >
                   <video
@@ -182,7 +183,8 @@ const PackCardComponent: FC<PackCardProps> = ({
                     style={{
                       maxWidth: '100%',
                       maxHeight: '100%',
-                      objectFit: 'contain'
+                      objectFit: 'contain',
+                      backgroundColor: 'transparent'
                     }}
                   />
                 </div>

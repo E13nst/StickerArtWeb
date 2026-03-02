@@ -7,13 +7,13 @@
   border-radius: 16px;
   overflow: visible;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
   touch-action: manipulation;
   background: rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
   /* Стабильный слой — убирает мерцание в области отступов (backdrop-filter + subpixel) */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
@@ -42,7 +42,6 @@
   position: relative;
   overflow: hidden;
   border-radius: 16px;
-  background: transparent;
   background-color: transparent;
   /* Чёткая граница слоя — меньше мерцания по краям контента */
   transform: translateZ(0);
@@ -58,7 +57,7 @@
   justify-content: center;
   font-size: 48px;
   color: rgba(255, 255, 255, 0.45);
-  background: transparent;
+  background-color: transparent;
 }
 
 .pack-card__title-overlay {
@@ -66,7 +65,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.4));
+  background-color: transparent;
   color: rgba(255, 255, 255, 0.92);
   padding: 12px 9px 9px;
   font-size: 12px;
@@ -77,6 +76,8 @@
   white-space: nowrap;
   font-family: 'Manrope', sans-serif;
   border-radius: 0 0 16px 16px;
+  box-shadow: none;
+  text-shadow: none;
 }
 
 .pack-card-animated-sticker,
@@ -88,17 +89,12 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: 12px;
-  background: transparent;
   background-color: transparent;
   /* iOS Safari: отдельный композитный слой — корректный альфа-канал у PNG/WebP/видео */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-}
-
-.pack-card-video {
-  background-color: transparent;
 }
 
 .pack-card__badge-status {

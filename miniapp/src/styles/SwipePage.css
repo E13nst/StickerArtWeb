@@ -264,13 +264,11 @@
 .swipe-card .pack-card-animated-sticker,
 .swipe-card [data-lottie-container="true"],
 .swipe-card .pack-card-video {
-  background: transparent !important;
   background-color: transparent !important;
 }
 
 /* Плейсхолдер без фона — только эмодзи до загрузки превью */
 .swipe-card .pack-card__placeholder {
-  background: transparent !important;
   background-color: transparent !important;
   display: flex;
   align-items: center;

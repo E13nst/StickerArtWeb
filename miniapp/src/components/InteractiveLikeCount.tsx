@@ -132,7 +132,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
           ? `drop-shadow(0 4px 12px rgba(9, 14, 26, 0.55)) drop-shadow(0 18px 36px rgba(9, 14, 26, 0.62)) ${isAnimating ? 'brightness(1.18)' : 'brightness(1)'}`
           : isAnimating ? 'brightness(1.15)' : 'brightness(1)',
         boxShadow: 'none',
-        background: 'transparent',
+        backgroundColor: 'transparent',
         overflow: 'visible'
       }}
       title={isLiked ? `${likesCount} лайков (нажмите чтобы убрать)` : `${likesCount} лайков (нажмите чтобы лайкнуть)`}

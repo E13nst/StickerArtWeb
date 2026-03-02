@@ -269,7 +269,6 @@
 /* В карусели дашборда стиль карточки (фон, рамка, тень) не показываем — только контент и лайк */
 .dashboard-card-carousel .pack-card,
 .dashboard-card-carousel-slide .pack-card {
-  background: transparent !important;
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -277,7 +276,6 @@
 
 .dashboard-card-carousel .pack-card__placeholder,
 .dashboard-card-carousel-slide .pack-card__placeholder {
-  background: transparent !important;
   background-color: transparent !important;
 }
 
@@ -321,7 +319,6 @@
   flex: none;
   border-radius: 16px;
   overflow: hidden;
-  background: transparent !important;
   background-color: transparent !important;
 }
 
@@ -334,7 +331,6 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: 16px;
-  background: transparent !important;
   background-color: transparent !important;
 }
 
@@ -343,7 +339,7 @@
 .dashboard-card-carousel-slide .pack-card__title-overlay {
   position: static !important;
   flex: none;
-  background: transparent !important;
+  background-color: transparent !important;
   box-shadow: none !important;
   font-family: 'Manrope', sans-serif !important;
   font-weight: 700;
