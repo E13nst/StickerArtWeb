@@ -1,3 +1,4 @@
+// SwipeCard: vertical swipe (up=like, down=dislike), tap zones for sticker navigation
 import { useRef, useState, useCallback, useMemo, useEffect, CSSProperties, FC } from 'react';
 import { motion, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -8,6 +9,7 @@ import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 import { getStickerImageUrl, getStickerVideoUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
 
+// SwipeCard: вертикальный свайп для лайка/дизлайка
 interface SwipeCardProps {
   stickerSet: StickerSetResponse;
   onSwipeLeft: () => void;  // Свайп вниз = дизлайк
@@ -18,7 +20,7 @@ interface SwipeCardProps {
   priority?: LoadPriority;
 }
 
-const SWIPE_THRESHOLD = 150; // px для завершения вертикального свайпа
+const SWIPE_THRESHOLD = 150; // px для завершения вертикального свайпа (SwipeCard)
 const ROTATION_FACTOR = 10; // градусов на 100px вертикального смещения
 const TAP_ZONE_WIDTH = 0.3; // 30% ширины для зон тапа (левый/правый край)
 
