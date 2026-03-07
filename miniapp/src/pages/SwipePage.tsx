@@ -11,10 +11,9 @@ import { AnimatedSticker } from '@/components/AnimatedSticker';
 import { AuthorDisplay } from '@/components/AuthorDisplay';
 import { CloseIcon, FavoriteIcon } from '@/components/ui/Icons';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
-import { getStickerImageUrl, formatStickerTitle } from '@/utils/stickerUtils';
+import { getStickerImageUrl, getStickerVideoUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '@/utils/imageLoader';
-import { VideoStickerPreview } from '@/components/VideoStickerPreview';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
@@ -223,16 +222,14 @@ export const SwipePage: FC = () => {
                     backgroundColor: 'transparent'
                   }}
                 >
-                  <VideoStickerPreview
-                    fileId={previewSticker.file_id}
-                    url={imageUrl}
-                    emoji={previewSticker.emoji || '🎨'}
-                    autoPlay={index === 0}
-                    packId={String(stickerSet.id)}
-                    imageIndex={0}
-                    priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
+                  <video
+                    src={videoBlobCache.get(previewSticker.file_id) || getStickerVideoUrl(previewSticker.file_id)}
                     className="pack-card-video"
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                    autoPlay={index === 0}
+                    loop
+                    muted
+                    playsInline
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', backgroundColor: 'transparent' }}
                   />
                 </div>
               ) : (

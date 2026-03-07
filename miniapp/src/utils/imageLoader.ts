@@ -1,5 +1,4 @@
 import { getStickerBaseUrl } from './stickerUtils';
-import { getInitData } from './auth';
 import { cacheManager } from './cacheManager';
 import type { ResourceType } from './cacheManager';
 
@@ -54,22 +53,6 @@ const STICKER_BASE_URL = getStickerBaseUrl();
 const STICKER_BASE_IS_ABSOLUTE = /^https?:\/\//i.test(STICKER_BASE_URL);
 
 const CURRENT_ORIGIN = typeof window !== 'undefined' ? window.location.origin : null;
-
-/** Опции fetch для запросов к sticker processor (unpublished и т.д. требуют X-Telegram-Init-Data). */
-function getStickerFetchOptions(url: string): RequestInit {
-  if (!url || url.startsWith('blob:') || url.startsWith('data:')) return {};
-  const init = getInitData();
-  if (!init || !init.trim()) return {};
-  const isInternal =
-    url.startsWith(STICKER_BASE_URL) ||
-    (url.startsWith('/') && CURRENT_ORIGIN) ||
-    (CURRENT_ORIGIN && url.startsWith(CURRENT_ORIGIN));
-  if (!isInternal) return {};
-  return {
-    headers: { 'X-Telegram-Init-Data': init },
-    credentials: 'include',
-  };
-}
 
 /**
  * 🔥 ОПТИМИЗАЦИЯ: Нормализация URL для устранения дубликатов
@@ -151,7 +134,7 @@ class ImageLoader {
   private queue: LoaderQueue = {
     inFlight: new Map(),
     queue: [],
-    maxConcurrency: 12, // Умеренный параллелизм: не забиваем соединения фоновыми превью
+    maxConcurrency: 30, // 🔥 УВЕЛИЧЕНО: до 30 для поддержки 40 карточек одновременно
     activeCount: 0
   };
   
@@ -174,7 +157,7 @@ class ImageLoader {
   // Гарантируем минимум 6 слотов для высокого приоритета (TIER_0, TIER_1, TIER_2)
   // Низкоприоритетные (TIER_3, TIER_4) используют оставшиеся слоты
   private readonly HIGH_PRIORITY_MIN_SLOTS = 6;  // Минимум для высокого приоритета
-  private readonly LOW_PRIORITY_MAX_SLOTS = 4; // Не более 4 фоновых загрузок — оставляем соединения для API
+  private readonly LOW_PRIORITY_MAX_SLOTS = 18; // 🔥 УВЕЛИЧЕНО: с 12 до 18 для поддержки 40 карточек!
   private readonly HIGH_PRIORITY_THRESHOLD = LoadPriority.TIER_2_NEAR_VIEWPORT; // >= 3 = высокий приоритет
   
   constructor() {
@@ -193,7 +176,8 @@ class ImageLoader {
     const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
     
     if (!connection) {
-      return 12; // Нет API — умеренный лимит
+      // 🔥 ФИКС: Нет API - используем высокие значения для современных браузеров
+      return 30; // 🔥 УВЕЛИЧЕНО: до 30 для поддержки 40 карточек
     }
     
     const effectiveType = connection.effectiveType;
@@ -202,25 +186,25 @@ class ImageLoader {
     
     // Если включен режим экономии трафика - минимальная concurrency
     if (saveData) {
-      return 4;
+      return 15; // 🔥 УВЕЛИЧЕНО: даже в режиме экономии загружаем больше
     }
     
     // Определяем на основе типа сети
     if (effectiveType === 'slow-2g' || (rtt && rtt > 1000)) {
-      return 4;
+      return 10; // 🔥 УВЕЛИЧЕНО: для очень медленной сети
     }
     if (effectiveType === '2g' || (rtt && rtt > 500)) {
-      return 6;
+      return 15; // 🔥 УВЕЛИЧЕНО: для медленной сети
     }
     if (effectiveType === '3g' || (rtt && rtt > 200)) {
-      return 8;
+      return 25; // 🔥 УВЕЛИЧЕНО: для средней сети
     }
     if (effectiveType === '4g' || (rtt && rtt <= 200)) {
-      return 12;
+      return 30; // 🔥 УВЕЛИЧЕНО: для быстрой сети
     }
     
     // Default для неизвестных значений
-    return 12;
+    return 30; // 🔥 УВЕЛИЧЕНО: до 30
   }
   
   /**
@@ -722,42 +706,37 @@ class ImageLoader {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const options = getStickerFetchOptions(normalizedUrl);
-        if (options.headers) {
-          const response = await fetch(normalizedUrl, options);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          try {
-            await cacheManager.set(fileId, objectUrl, 'image');
-          } catch (e) {
-            if (isDev) console.warn('Failed to cache image:', e);
-          }
-          return objectUrl;
-        }
-
-        // Реальная загрузка изображения через браузер с timeout (без заголовков auth)
+        // Реальная загрузка изображения через браузер с timeout
         const result = await Promise.race([
           new Promise<string>((resolve, reject) => {
             const img = new Image();
             
             img.onload = async () => {
+              // Логируем только в dev режиме
               if (isDev) {
                 console.log(`✅ Image loaded for ${fileId}${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`);
               }
+              // Сохранить URL в кеш после успешной загрузки
               try {
                 await cacheManager.set(fileId, normalizedUrl, 'image');
               } catch (error) {
-                if (isDev) console.warn('Failed to cache image:', error);
+                if (isDev) {
+                  console.warn('Failed to cache image:', error);
+                }
               }
               resolve(normalizedUrl);
             };
             
-            img.onerror = () => reject(new Error(`Failed to load image: ${normalizedUrl}`));
+            img.onerror = () => {
+              reject(new Error(`Failed to load image: ${normalizedUrl}`));
+            };
+            
+            // Запускаем загрузку
             img.src = normalizedUrl;
           }),
+          // 🔥 ФИКС: Timeout для загрузки изображения
           new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Image load timeout')), 20000);
+            setTimeout(() => reject(new Error('Image load timeout')), 20000); // 🔥 УВЕЛИЧЕНО: с 8s до 20s
           })
         ]);
         
@@ -804,7 +783,7 @@ class ImageLoader {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await fetch(normalizedUrl, getStickerFetchOptions(normalizedUrl));
+        const response = await fetch(normalizedUrl);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -894,12 +873,11 @@ class ImageLoader {
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const response = await fetch(normalizedUrl, getStickerFetchOptions(normalizedUrl));
+        const response = await fetch(normalizedUrl);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
         
-        // blob наследует Content-Type из response; на iOS для WebM+alpha при проблемах можно явно задать type: 'video/webm; codecs="vp9"'
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         

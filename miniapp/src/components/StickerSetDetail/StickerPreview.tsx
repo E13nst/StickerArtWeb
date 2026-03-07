@@ -34,10 +34,9 @@ const StickerPreviewVideo: FC<{
     [sticker.url, sticker.file_id]
   );
   
-  /* Временно отключено videoBlobCache для диагностики WebM alpha на iOS */
   const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
     fileId: sticker.file_id,
-    preferredSrc: undefined,
+    preferredSrc: videoBlobCache.get(sticker.file_id),
     fallbackSrc: fallbackVideoUrl,
     waitForPreferredMs: 100
   });
@@ -72,7 +71,6 @@ const StickerPreviewVideo: FC<{
       loop
       muted
       playsInline
-      {...{ 'webkit-playsinline': '' }}
       preload="auto"
       className={className}
       style={{
@@ -165,8 +163,8 @@ const renderStickerMedia = (
           style={{
             width: 40,
             height: 40,
-            border: '3px solid var(--color-overlay-light, rgba(255,255,255,0.2))',
-            borderTopColor: 'var(--color-primary, var(--tg-theme-button-color))',
+            border: '3px solid rgba(255,255,255,0.2)',
+            borderTopColor: 'var(--tg-theme-button-color, #2481cc)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}
@@ -274,8 +272,8 @@ export const StickerPreview: FC<StickerPreviewProps> = ({
                 width: 48,
                 height: 48,
                 borderRadius: '50%',
-                border: '3px solid var(--color-overlay-light, rgba(255,255,255,0.2))',
-                borderTopColor: 'var(--color-primary, var(--tg-theme-button-color))',
+                border: '3px solid rgba(255,255,255,0.35)',
+                borderTopColor: 'rgba(255,255,255,0.9)',
                 animation: 'spin 1s linear infinite'
               }}
             />
@@ -291,4 +289,3 @@ export const StickerPreview: FC<StickerPreviewProps> = ({
     </div>
   );
 };
-

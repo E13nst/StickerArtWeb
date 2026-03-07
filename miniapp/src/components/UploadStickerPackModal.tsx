@@ -11,12 +11,11 @@ import { Chip } from '@/components/ui/Chip';
 import { ModalBackdrop } from './ModalBackdrop';
 import './UploadStickerPackModal.css';
 import { apiClient } from '@/api/client';
-import { getStickerThumbnailUrl, getStickerVideoUrlHevc } from '@/utils/stickerUtils';
+import { getStickerThumbnailUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
 import { imageLoader, getCachedStickerUrl, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import type { Sticker, StickerSetResponse, CategoryResponse } from '@/types/sticker';
 import { StickerPackModal } from './StickerPackModal';
-import { TransparentVideo } from '@/components/ui/TransparentVideo';
 
 interface UploadStickerPackModalProps {
   open: boolean;
@@ -40,11 +39,12 @@ const normalizeStickerSetName = (raw: string): string => {
     .trim();
 };
 
-// Компонент для видео стикера с использованием useNonFlashingVideoSrc и TransparentVideo
+// Компонент для видео стикера с использованием useNonFlashingVideoSrc (rollback к e63ba4b — без TransparentVideo)
 const PreviewStickerVideo: FC<{
   thumbFileId: string;
   fallbackUrl: string;
 }> = ({ thumbFileId, fallbackUrl }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
     fileId: thumbFileId,
     preferredSrc: videoBlobCache.get(thumbFileId),
@@ -52,26 +52,24 @@ const PreviewStickerVideo: FC<{
     waitForPreferredMs: 100
   });
 
-  const hevcUrl = getStickerVideoUrlHevc(thumbFileId);
-
   return (
-    <TransparentVideo
-      webmSrc={src || fallbackUrl}
-      hevcUrl={hevcUrl || undefined}
-      style={{ 
-        width: '100%', 
-        height: '100%', 
+    <video
+      ref={videoRef}
+      src={src || fallbackUrl}
+      autoPlay
+      loop
+      muted
+      playsInline
+      style={{
+        width: '100%',
+        height: '100%',
         objectFit: 'contain',
         opacity: isReady ? 1 : 0,
         transition: 'opacity 120ms ease',
         backgroundColor: 'transparent'
       }}
-      autoPlay
-      loop
-      muted
-      playsInline
-      onError={onError}
       onLoadedData={onLoadedData}
+      onError={onError}
     />
   );
 };
@@ -599,7 +597,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
                 {sticker.is_video ? (
                   <PreviewStickerVideo
                     thumbFileId={thumbFileId}
-                    fallbackUrl={thumbUrl}
+                    fallbackUrl={getStickerVideoUrl(thumbFileId)}
                   />
                 ) : (
                   <img

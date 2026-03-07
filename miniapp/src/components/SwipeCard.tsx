@@ -5,8 +5,7 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { FavoriteIcon } from '@/components/ui/Icons';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
-import { getStickerImageUrl, getStickerVideoUrl, getStickerVideoUrlHevc, formatStickerTitle } from '@/utils/stickerUtils';
-import { TransparentVideo } from '@/components/ui/TransparentVideo';
+import { getStickerImageUrl, getStickerVideoUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
 
 interface SwipeCardProps {
@@ -320,10 +319,9 @@ export const SwipeCard: FC<SwipeCardProps> = ({
                   backgroundColor: 'transparent'
                 }}
               >
-                <TransparentVideo
+                <video
                   ref={videoRef}
-                  webmSrc={currentSticker.url || getStickerVideoUrl(currentSticker.file_id)}
-                  hevcUrl={getStickerVideoUrlHevc(currentSticker.file_id) || undefined}
+                  src={videoBlobCache.get(currentSticker.file_id) || (currentSticker as { url?: string }).url || getStickerVideoUrl(currentSticker.file_id)}
                   className="pack-card-video"
                   autoPlay={isTopCard}
                   loop

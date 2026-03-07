@@ -174,25 +174,6 @@ export function getStickerVideoUrl(fileId: string): string {
 }
 
 /**
- * Получить URL видео стикера в формате HEVC с альфа-каналом для iOS/Safari.
- * Safari не поддерживает прозрачность в WebM; для iOS нужен HEVC+alpha (mp4).
- *
- * TODO: Бэкенд должен отдавать HEVC по отдельному URL (например, ?format=hevc или
- * отдельное поле hevc_alpha_url). Путь: .../stickers/{fileId}?format=hevc
- * Пайплайн: ProRes 4444 с альфой → ffmpeg → HEVC+alpha.
- * Пока бэкенд не поддерживает — возвращаем пустую строку.
- *
- * @param fileId - Telegram file_id стикера
- * @returns URL для HEVC-версии или '' если недоступно
- */
-export function getStickerVideoUrlHevc(fileId: string): string {
-  if (!fileId) return '';
-  // TODO: Когда бэкенд добавит поддержку HEVC:
-  // return buildStickerUrl(fileId, { file: true, format: 'hevc' });
-  return '';
-}
-
-/**
  * Получить случайные стикеры из набора
  * @param stickers - Массив стикеров
  * @param count - Количество стикеров для выбора
@@ -259,7 +240,6 @@ export function getRandomStickersFromSet<T>(
  * formatStickerTitle("@mention1 @mention2 text") // "text"
  * formatStickerTitle("text1 @mention1 text2 @mention2") // "text1 text2"
  * formatStickerTitle("Pepe the Frog") // "Pepe the Frog"
- * formatStickerTitle("by Author @bot") // "Author" (после удаления @ убираются ведущие "by", "от", "•", ":", "::")
  */
 export function formatStickerTitle(title: string | null | undefined): string {
   if (!title) {
@@ -332,38 +312,14 @@ export function formatStickerTitle(title: string | null | undefined): string {
   }
 
   // Если есть обычный текст (до или после упоминаний), возвращаем его
-  let result = textParts.filter(part => part.length > 0).join(' ').trim();
+  const result = textParts.filter(part => part.length > 0).join(' ').trim();
   if (result) {
-    return stripTitleDelimiters(result);
+    return result;
   }
 
   // Если был только текст до упоминаний, но он был пустым, или только упоминания
   // Возвращаем первое упоминание без @
-  return stripTitleDelimiters(firstMention);
-}
-
-/** Убирает ведущие/замыкающие "by", "от", "•", ":", "::", "(", ")", "-", запятую. "by" и "от" — только как отдельные слова. */
-const TITLE_DELIMITER_RE = /^\s*(?:by|от)(?=\s|$)\s*|\s*(?<=\s|^)(?:by|от)\s*$|,\s*(?:by|от)\s*$|^\s*(?:•|::|:|-|\(|\)|,)\s*|\s*(?:•|::|:|-|\(|\)|,)\s*$/gi;
-/** В середине строки: " (by ", "(by ". */
-const TITLE_BY_PAREN_RE = /\s*\(\s*by\s+/gi;
-
-function stripTitleDelimiters(s: string): string {
-  if (!s) return s;
-  let prev = '';
-  let current = s.trim();
-  while (prev !== current) {
-    prev = current;
-    // Удаляем "(by " и " (by "
-    current = current.replace(TITLE_BY_PAREN_RE, '').trim();
-    // Удаляем ", by" и ", by " (в конце или в середине), затем лишнюю запятую в конце
-    current = current.replace(/,\s*by\s*/gi, ',').trim();
-    // Удаляем отдельное слово " by " в середине
-    current = current.replace(/\s+by\s+/gi, ' ').trim();
-    current = current.replace(TITLE_DELIMITER_RE, '').trim();
-    // Убираем двойные пробелы и завершающую запятую
-    current = current.replace(/\s{2,}/g, ' ').replace(/,\s*$/, '').trim();
-  }
-  return current;
+  return firstMention;
 }
 
 /**
