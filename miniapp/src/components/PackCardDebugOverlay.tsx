@@ -22,7 +22,7 @@ export function PackCardDebugOverlay({ result, fileId }: PackCardDebugOverlayPro
     }
   }, [result]);
 
-  const { codecSupport, network, dom, playback, meta, hasFailed, failureReasons } = result;
+  const { codecSupport, network, dom, playback, context, events, meta, hasFailed, failureReasons } = result;
 
   return (
     <div className="pack-card-debug-overlay" role="status" aria-live="polite">
@@ -128,6 +128,19 @@ export function PackCardDebugOverlay({ result, fileId }: PackCardDebugOverlayPro
             {dom.width}×{dom.height} {dom.isVisible ? 'visible' : 'hidden'}
           </div>
         </div>
+        {context && (
+          <div className="pack-card-debug-overlay__section">
+            <div className="pack-card-debug-overlay__label">Context</div>
+            <div className="pack-card-debug-overlay__row">
+              {context.componentName ?? 'unknown'}
+              {context.inView != null && <span> inView:{context.inView ? 'Y' : 'N'}</span>}
+              {context.stickerIndex != null && <span> idx:{context.stickerIndex}</span>}
+            </div>
+            <div className="pack-card-debug-overlay__row">
+              pref:{context.preferredSrcPresent ? 'Y' : 'N'} strat:{context.srcStrategy ?? 'n/a'}
+            </div>
+          </div>
+        )}
         <div className="pack-card-debug-overlay__section">
           <div className="pack-card-debug-overlay__label">Playback</div>
           <div className="pack-card-debug-overlay__row">
@@ -154,7 +167,21 @@ export function PackCardDebugOverlay({ result, fileId }: PackCardDebugOverlayPro
               </span>
             )}
           </div>
+          <div className="pack-card-debug-overlay__row">
+            t={(playback.currentTime ?? 0).toFixed(2)} paused:{playback.paused ? 'Y' : 'N'} seek:{playback.seeking ? 'Y' : 'N'} end:{playback.ended ? 'Y' : 'N'}
+          </div>
+          <div className="pack-card-debug-overlay__row">
+            v={playback.videoWidth ?? 0}×{playback.videoHeight ?? 0} preload:{playback.preload ?? 'n/a'} auto:{playback.autoplay ? 'Y' : 'N'} inline:{playback.playsInline ? 'Y' : 'N'}
+          </div>
         </div>
+        {events.length > 0 && (
+          <div className="pack-card-debug-overlay__section">
+            <div className="pack-card-debug-overlay__label">Events</div>
+            <div className="pack-card-debug-overlay__row pack-card-debug-overlay__meta">
+              {events.map((event) => `${event.atMs}:${event.name}${event.detail ? `(${event.detail})` : ''}`).join(' | ')}
+            </div>
+          </div>
+        )}
         <div className="pack-card-debug-overlay__section">
           <div className="pack-card-debug-overlay__label">Meta</div>
           <div className="pack-card-debug-overlay__row pack-card-debug-overlay__meta">

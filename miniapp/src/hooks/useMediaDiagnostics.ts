@@ -1,6 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { videoBlobCache } from '../utils/imageLoader';
 
+export interface DiagnosticsEvent {
+  name: string;
+  atMs: number;
+  detail?: string;
+}
+
+export interface DiagnosticsContext {
+  componentName?: string;
+  inView?: boolean;
+  stickerIndex?: number;
+  preferredSrcPresent?: boolean;
+  srcStrategy?: string;
+}
+
 export interface DiagnosticsResult {
   codecSupport: { vp8: string; vp9: string; h264: string };
   network: {
@@ -22,7 +36,19 @@ export interface DiagnosticsResult {
     errorMessage?: string;
     duration?: number;
     blobCacheHit: boolean;
+    currentTime?: number;
+    paused?: boolean;
+    ended?: boolean;
+    seeking?: boolean;
+    videoWidth?: number;
+    videoHeight?: number;
+    preload?: string | null;
+    autoplay?: boolean;
+    muted?: boolean;
+    playsInline?: boolean;
   };
+  context?: DiagnosticsContext;
+  events: DiagnosticsEvent[];
   meta: { ua: string; isTelegramWebView: boolean; fileId: string; diagMs: number };
   hasFailed: boolean;
   failureReasons: string[];
@@ -35,7 +61,17 @@ interface StickerLike {
   is_video?: boolean;
 }
 
+interface UseMediaDiagnosticsOptions {
+  context?: DiagnosticsContext;
+}
+
+interface UseMediaDiagnosticsResult {
+  diagnostics: DiagnosticsResult | null;
+  reportEvent: (name: string, detail?: string) => void;
+}
+
 const DIAG_TIMEOUT_MS = 3000;
+const MAX_EVENTS = 20;
 
 function getCodecSupport(): { vp8: string; vp9: string; h264: string } {
   if (typeof document === 'undefined') return { vp8: '', vp9: '', h264: '' };
@@ -60,12 +96,55 @@ function getMeta(fileId: string, startedAt: number): DiagnosticsResult['meta'] {
   };
 }
 
+function pushEvent(
+  events: DiagnosticsEvent[],
+  startedAt: number,
+  name: string,
+  detail?: string
+): DiagnosticsEvent[] {
+  const atMs = Math.max(0, Math.round(Date.now() - startedAt));
+  return [...events, { name, atMs, detail }].slice(-MAX_EVENTS);
+}
+
+function getDomSnapshot(el: HTMLVideoElement) {
+  const rect = el.getBoundingClientRect();
+  const width = Math.round(rect.width);
+  const height = Math.round(rect.height);
+  return {
+    width,
+    height,
+    isVisible: width > 0 && height > 0,
+  };
+}
+
+function getPlaybackSnapshot(el: HTMLVideoElement, fileId: string): DiagnosticsResult['playback'] {
+  return {
+    readyState: el.readyState,
+    networkState: el.networkState,
+    errorCode: el.error?.code,
+    errorMessage: el.error?.message,
+    duration: el.duration,
+    blobCacheHit: videoBlobCache.get(fileId) !== null,
+    currentTime: el.currentTime,
+    paused: el.paused,
+    ended: el.ended,
+    seeking: el.seeking,
+    videoWidth: el.videoWidth,
+    videoHeight: el.videoHeight,
+    preload: el.getAttribute('preload'),
+    autoplay: el.autoplay,
+    muted: el.muted,
+    playsInline: (el as HTMLVideoElement & { playsInline?: boolean }).playsInline,
+  };
+}
+
 export function useMediaDiagnostics(
   sticker: StickerLike | null | undefined,
   videoRef: React.RefObject<HTMLVideoElement | null>,
   inView: boolean,
-  enabled: boolean
-): DiagnosticsResult | null {
+  enabled: boolean,
+  options?: UseMediaDiagnosticsOptions
+): UseMediaDiagnosticsResult {
   const [result, setResult] = useState<DiagnosticsResult | null>(null);
   const startedAtRef = useRef<number>(0);
   const attachedForFileIdRef = useRef<string | null>(null);
@@ -76,8 +155,8 @@ export function useMediaDiagnostics(
   const buildFailureReasons = useCallback(
     (
       codec: { vp8: string; vp9: string },
-      playback: { readyState: number; networkState: number; errorCode?: number; errorMessage?: string },
-      dom: { width: number; height: number }
+      playback: DiagnosticsResult['playback'],
+      dom: DiagnosticsResult['dom']
     ): string[] => {
       const reasons: string[] = [];
       if (codec.vp8 === '' && codec.vp9 === '') {
@@ -104,35 +183,78 @@ export function useMediaDiagnostics(
     []
   );
 
-  // Codec check and initial result (only for video, when enabled)
+  const reportEvent = useCallback((name: string, detail?: string) => {
+    setResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            events: pushEvent(prev.events, startedAtRef.current, name, detail),
+          }
+        : prev
+    );
+  }, []);
+
   useEffect(() => {
     if (!enabled || !sticker || !isVideo) {
       setResult(null);
       return;
     }
+
     startedAtRef.current = Date.now();
     const codecSupport = getCodecSupport();
     const meta = getMeta(sticker.fileId, startedAtRef.current);
     const blobCacheHit = videoBlobCache.get(sticker.fileId) !== null;
+    const dom = { width: 0, height: 0, isVisible: false };
+    const playback = {
+      readyState: 0,
+      networkState: 0,
+      blobCacheHit,
+      currentTime: 0,
+      paused: true,
+      ended: false,
+      seeking: false,
+      videoWidth: 0,
+      videoHeight: 0,
+      preload: null,
+      autoplay: false,
+      muted: true,
+      playsInline: false,
+    };
+    const failureReasons =
+      codecSupport.vp8 === '' && codecSupport.vp9 === ''
+        ? ['WebM codec not supported (iOS/Safari)']
+        : [];
+
     setResult({
       codecSupport,
       network: {
         srcUrl: sticker.url || '',
         isBlobUrl: (sticker.url || '').startsWith('blob:'),
       },
-      dom: { width: 0, height: 0, isVisible: false },
-      playback: { readyState: 0, networkState: 0, blobCacheHit },
+      dom,
+      playback,
+      context: options?.context,
+      events: [{ name: 'diag-init', atMs: 0 }],
       meta,
-      hasFailed: codecSupport.vp8 === '' && codecSupport.vp9 === '',
-      failureReasons:
-        codecSupport.vp8 === '' && codecSupport.vp9 === ''
-          ? ['WebM codec not supported (iOS/Safari)']
-          : [],
+      hasFailed: failureReasons.length > 0,
+      failureReasons,
     });
-    attachedForFileIdRef.current = null;
-  }, [enabled, sticker?.fileId, sticker?.url, isVideo]);
 
-  // Video event listeners (error, stalled, emptied) — attach once per fileId
+    attachedForFileIdRef.current = null;
+  }, [enabled, sticker?.fileId, sticker?.url, isVideo, buildFailureReasons, options?.context]);
+
+  useEffect(() => {
+    if (!enabled || !isVideo) return;
+    setResult((prev) =>
+      prev
+        ? {
+            ...prev,
+            context: options?.context,
+          }
+        : prev
+    );
+  }, [enabled, inView, isVideo, options?.context]);
+
   useEffect(() => {
     if (!enabled || !isVideo || !videoRef.current || !sticker?.fileId) return;
     if (attachedForFileIdRef.current === sticker.fileId) return;
@@ -140,54 +262,59 @@ export function useMediaDiagnostics(
     const el = videoRef.current;
     attachedForFileIdRef.current = sticker.fileId;
 
-    const onError = () => {
+    const track = (eventName: string) => {
       setResult((prev) => {
-        if (!prev || !el) return prev;
-        const errorCode = el.error?.code;
-        const errorMessage = el.error?.message;
+        if (!prev) return prev;
+        const playback = getPlaybackSnapshot(el, prev.meta.fileId);
+        const dom = getDomSnapshot(el);
         const actualSrc = el.currentSrc || el.src || undefined;
-        const playback = {
-          ...prev.playback,
-          readyState: el.readyState,
-          networkState: el.networkState,
-          errorCode,
-          errorMessage,
-          duration: el.duration,
-          blobCacheHit: videoBlobCache.get(prev.meta.fileId) !== null,
-        };
-        const reasons = buildFailureReasons(
-          prev.codecSupport,
-          playback,
-          prev.dom
-        );
+        const failureReasons = buildFailureReasons(prev.codecSupport, playback, dom);
         return {
           ...prev,
           network: { ...prev.network, actualSrc },
+          dom,
           playback,
-          hasFailed: reasons.length > 0,
-          failureReasons: reasons,
+          meta: getMeta(prev.meta.fileId, startedAtRef.current),
+          events: pushEvent(prev.events, startedAtRef.current, eventName),
+          hasFailed: failureReasons.length > 0,
+          failureReasons,
         };
       });
     };
 
-    const onStalled = () => onError();
-    const onEmptied = () => onError();
+    const eventNames = [
+      'loadstart',
+      'loadedmetadata',
+      'loadeddata',
+      'canplay',
+      'canplaythrough',
+      'play',
+      'playing',
+      'pause',
+      'waiting',
+      'stalled',
+      'suspend',
+      'emptied',
+      'durationchange',
+      'error',
+    ] as const;
 
-    el.addEventListener('error', onError);
-    el.addEventListener('stalled', onStalled);
-    el.addEventListener('emptied', onEmptied);
+    const handlers = eventNames.map((eventName) => {
+      const handler = () => track(eventName);
+      el.addEventListener(eventName, handler);
+      return { eventName, handler };
+    });
 
     return () => {
-      el.removeEventListener('error', onError);
-      el.removeEventListener('stalled', onStalled);
-      el.removeEventListener('emptied', onEmptied);
+      handlers.forEach(({ eventName, handler }) => {
+        el.removeEventListener(eventName, handler);
+      });
       if (attachedForFileIdRef.current === sticker.fileId) {
         attachedForFileIdRef.current = null;
       }
     };
-  }, [enabled, isVideo, sticker?.fileId, buildFailureReasons]);
+  }, [enabled, isVideo, sticker?.fileId, buildFailureReasons, videoRef]);
 
-  // HEAD request for non-blob URL (async, non-blocking)
   useEffect(() => {
     if (!enabled || !sticker?.url || !result) return;
     const url = sticker.url;
@@ -214,6 +341,7 @@ export function useMediaDiagnostics(
                   acceptRanges,
                   contentLength,
                 },
+                events: pushEvent(prev.events, startedAtRef.current, 'head-ok', String(res.status)),
               }
             : null
         );
@@ -228,6 +356,7 @@ export function useMediaDiagnostics(
                   ...prev.network,
                   error: err?.message || 'CORS or network error',
                 },
+                events: pushEvent(prev.events, startedAtRef.current, 'head-fail', err?.message || 'network'),
               }
             : null
         );
@@ -238,7 +367,6 @@ export function useMediaDiagnostics(
     };
   }, [enabled, sticker?.url, result?.meta.fileId]);
 
-  // Timeout check (3s after inView): readyState, networkState, getBoundingClientRect
   useEffect(() => {
     if (!enabled || !isVideo || !inView || !result) return;
 
@@ -246,44 +374,30 @@ export function useMediaDiagnostics(
       const el = videoRef.current;
       if (!el) return;
 
-      const rect = el.getBoundingClientRect();
-      const width = Math.round(rect.width);
-      const height = Math.round(rect.height);
-      const isVisible = width > 0 && height > 0;
-
       setResult((prev) => {
         if (!prev) return null;
-        const blobCacheHit = videoBlobCache.get(prev.meta.fileId) !== null;
+        const playback = getPlaybackSnapshot(el, prev.meta.fileId);
+        const dom = getDomSnapshot(el);
         const actualSrc = el.currentSrc || el.src || undefined;
-        const playback = {
-          readyState: el.readyState,
-          networkState: el.networkState,
-          errorCode: el.error?.code,
-          errorMessage: el.error?.message,
-          duration: el.duration,
-          blobCacheHit,
-        };
-        const dom = { width, height, isVisible };
-        const reasons = buildFailureReasons(
-          prev.codecSupport,
-          playback,
-          dom
-        );
-        const meta = getMeta(prev.meta.fileId, startedAtRef.current);
+        const failureReasons = buildFailureReasons(prev.codecSupport, playback, dom);
         return {
           ...prev,
           network: { ...prev.network, actualSrc },
           dom,
           playback,
-          meta,
-          hasFailed: reasons.length > 0,
-          failureReasons: reasons,
+          meta: getMeta(prev.meta.fileId, startedAtRef.current),
+          events: pushEvent(prev.events, startedAtRef.current, 'timeout-snapshot', `${playback.readyState}/${playback.networkState}`),
+          hasFailed: failureReasons.length > 0,
+          failureReasons,
         };
       });
     }, DIAG_TIMEOUT_MS);
 
     return () => clearTimeout(timer);
-  }, [enabled, isVideo, inView, result?.meta.fileId, buildFailureReasons]);
+  }, [enabled, isVideo, inView, result?.meta.fileId, buildFailureReasons, videoRef]);
 
-  return result;
+  return {
+    diagnostics: result,
+    reportEvent,
+  };
 }

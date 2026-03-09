@@ -57,13 +57,18 @@ const StickerPreviewVideo: FC<{
     
     // Пытаемся play() на случай, если autoplay не сработал (например, на iOS)
     // Ошибки игнорируем без логирования - это нормально, если браузер блокирует autoplay
+    reportEvent('play-called');
     const playPromise = video.play?.();
     if (playPromise && typeof (playPromise as any).catch === 'function') {
-      (playPromise as any).catch(() => {
-        // Намеренно игнорируем - не логируем в production, чтобы не засорять консоль
-      });
+      (playPromise as Promise<void>)
+        .then(() => {
+          reportEvent('play-resolved');
+        })
+        .catch((error) => {
+          reportEvent('play-rejected', error instanceof Error ? error.message : 'unknown');
+        });
     }
-  }, [isReady, src]);
+  }, [isReady, reportEvent, src]);
 
   // Диагностика для ADMIN: нормализуем sticker под интерфейс хука
   const currentUserRole = useProfileStore((s) => s.currentUserRole);
@@ -76,7 +81,27 @@ const StickerPreviewVideo: FC<{
     }),
     [sticker.file_id, fallbackVideoUrl]
   );
-  const diagnostics = useMediaDiagnostics(stickerForDiag, videoRef, true, isAdmin);
+  const diagnosticsContext = useMemo(
+    () => ({
+      componentName: 'StickerSetDetail',
+      inView: true,
+      preferredSrcPresent: Boolean(videoBlobCache.get(sticker.file_id)),
+      srcStrategy: src ? (src.startsWith('blob:') ? 'blob' : 'url') : 'unset',
+    }),
+    [sticker.file_id, src]
+  );
+  const { diagnostics, reportEvent } = useMediaDiagnostics(
+    stickerForDiag,
+    videoRef,
+    true,
+    isAdmin,
+    { context: diagnosticsContext }
+  );
+
+  useEffect(() => {
+    if (!src) return;
+    reportEvent('src-selected', src.startsWith('blob:') ? 'blob' : 'url');
+  }, [reportEvent, src]);
 
   return (
     <div style={{ position: 'relative', width, height }}>
@@ -98,8 +123,14 @@ const StickerPreviewVideo: FC<{
           transition: 'opacity 120ms ease',
           backgroundColor: 'transparent'
         }}
-        onLoadedData={handleLoadedData}
-        onError={onError}
+        onLoadedData={() => {
+          reportEvent('onLoadedData-prop');
+          handleLoadedData();
+        }}
+        onError={(event) => {
+          reportEvent('onError-prop');
+          onError(event);
+        }}
       />
       {isAdmin && diagnostics && (
         <PackCardDebugOverlay result={diagnostics} fileId={sticker.file_id} />

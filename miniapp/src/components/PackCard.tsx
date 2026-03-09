@@ -40,7 +40,8 @@ interface PackVideoSticker {
 const PackCardVideoPreview: FC<{
   sticker: PackVideoSticker;
   inView: boolean;
-}> = ({ sticker, inView }) => {
+  stickerIndex: number;
+}> = ({ sticker, inView, stickerIndex }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const preferredSrc = videoBlobCache.get(sticker.fileId) ?? undefined;
   const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
@@ -60,21 +61,40 @@ const PackCardVideoPreview: FC<{
     }),
     [sticker.fileId, sticker.url]
   );
-  const diagnostics = useMediaDiagnostics(diagnosticsSticker, videoRef, inView, isAdmin);
+  const diagnosticsContext = useMemo(
+    () => ({
+      componentName: 'PackCard',
+      inView,
+      stickerIndex,
+      preferredSrcPresent: Boolean(preferredSrc),
+      srcStrategy: src ? (src.startsWith('blob:') ? 'blob' : 'url') : 'unset',
+    }),
+    [inView, preferredSrc, src, stickerIndex]
+  );
+  const { diagnostics, reportEvent } = useMediaDiagnostics(
+    diagnosticsSticker,
+    videoRef,
+    inView,
+    isAdmin,
+    { context: diagnosticsContext }
+  );
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
+    reportEvent('src-selected', src.startsWith('blob:') ? 'blob' : 'url');
     // Safari/WKWebView надёжнее подхватывает новый источник после явного load().
+    reportEvent('load-called');
     video.load();
-  }, [src]);
+  }, [src, reportEvent]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (!inView) {
+      reportEvent('pause-out-of-view');
       video.pause();
       return;
     }
@@ -83,11 +103,18 @@ const PackCardVideoPreview: FC<{
       return;
     }
 
+    reportEvent('play-called');
     const playPromise = video.play?.();
     if (playPromise && typeof (playPromise as Promise<void>).catch === 'function') {
-      playPromise.catch(() => {});
+      playPromise
+        .then(() => {
+          reportEvent('play-resolved');
+        })
+        .catch((error) => {
+          reportEvent('play-rejected', error instanceof Error ? error.message : 'unknown');
+        });
     }
-  }, [inView, isReady]);
+  }, [inView, isReady, reportEvent]);
 
   return (
     <div
@@ -235,6 +262,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                     isVideo: true,
                   }}
                   inView={inView}
+                  stickerIndex={currentStickerIndex}
                 />
               </div>
             ) : (
