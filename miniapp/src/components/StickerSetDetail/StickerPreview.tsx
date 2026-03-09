@@ -49,27 +49,6 @@ const StickerPreviewVideo: FC<{
     onLoad?.();
   };
 
-  // Безопасный вызов play() только когда isReady стал true и src изменился
-  useEffect(() => {
-    if (!isReady) return;
-    const video = videoRef.current;
-    if (!video) return;
-    
-    // Пытаемся play() на случай, если autoplay не сработал (например, на iOS)
-    // Ошибки игнорируем без логирования - это нормально, если браузер блокирует autoplay
-    reportEvent('play-called');
-    const playPromise = video.play?.();
-    if (playPromise && typeof (playPromise as any).catch === 'function') {
-      (playPromise as Promise<void>)
-        .then(() => {
-          reportEvent('play-resolved');
-        })
-        .catch((error) => {
-          reportEvent('play-rejected', error instanceof Error ? error.message : 'unknown');
-        });
-    }
-  }, [isReady, reportEvent, src]);
-
   // Диагностика для ADMIN: нормализуем sticker под интерфейс хука
   const currentUserRole = useProfileStore((s) => s.currentUserRole);
   const isAdmin = (currentUserRole ?? '').toUpperCase().includes('ADMIN');
@@ -97,6 +76,27 @@ const StickerPreviewVideo: FC<{
     isAdmin,
     { context: diagnosticsContext }
   );
+
+  // Безопасный вызов play() только когда isReady стал true и src изменился
+  useEffect(() => {
+    if (!isReady) return;
+    const video = videoRef.current;
+    if (!video) return;
+    
+    // Пытаемся play() на случай, если autoplay не сработал (например, на iOS)
+    // Ошибки игнорируем без логирования - это нормально, если браузер блокирует autoplay
+    reportEvent('play-called');
+    const playPromise = video.play?.();
+    if (playPromise && typeof (playPromise as any).catch === 'function') {
+      (playPromise as Promise<void>)
+        .then(() => {
+          reportEvent('play-resolved');
+        })
+        .catch((error) => {
+          reportEvent('play-rejected', error instanceof Error ? error.message : 'unknown');
+        });
+    }
+  }, [isReady, reportEvent, src]);
 
   useEffect(() => {
     if (!src) return;
