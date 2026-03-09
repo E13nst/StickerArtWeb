@@ -9,6 +9,10 @@ interface UseNonFlashingVideoSrcOptions {
   preferredSrc: string | undefined; // blob URL
   fallbackSrc: string; // обычный URL (всегда video URL)
   waitForPreferredMs?: number; // по умолчанию 100ms (80-150ms)
+  resolvePreferredSrc?: () => string | null | undefined;
+  preferPreferredOnly?: boolean;
+  preferredPollMs?: number;
+  preferredMaxWaitMs?: number;
 }
 
 interface UseNonFlashingVideoSrcResult {
@@ -22,12 +26,18 @@ export function useNonFlashingVideoSrc({
   fileId,
   preferredSrc,
   fallbackSrc,
-  waitForPreferredMs = 100
+  waitForPreferredMs = 100,
+  resolvePreferredSrc,
+  preferPreferredOnly = false,
+  preferredPollMs = 100,
+  preferredMaxWaitMs = 2500
 }: UseNonFlashingVideoSrcOptions): UseNonFlashingVideoSrcResult {
   const [src, setSrc] = useState<string | undefined>(undefined);
   const [isReady, setIsReady] = useState(false);
   const currentFileIdRef = useRef<string>(fileId);
   const waitTimeoutRef = useRef<number | null>(null);
+  const preferredPollRef = useRef<number | null>(null);
+  const preferredWaitStartedAtRef = useRef<number | null>(null);
   const currentSrcRef = useRef<string | undefined>(undefined);
   const isReadyRef = useRef<boolean>(false); // Ref для проверки в таймере
 
@@ -57,6 +67,11 @@ export function useNonFlashingVideoSrc({
       clearTimeout(waitTimeoutRef.current);
       waitTimeoutRef.current = null;
     }
+    if (preferredPollRef.current !== null) {
+      clearInterval(preferredPollRef.current);
+      preferredPollRef.current = null;
+    }
+    preferredWaitStartedAtRef.current = null;
 
     // Если fileId в brokenPreferred → сразу fallbackSrc
     if (brokenPreferred.has(fileId)) {
@@ -76,6 +91,60 @@ export function useNonFlashingVideoSrc({
       setSrc(preferredSrc);
       currentSrcRef.current = preferredSrc;
       return;
+    }
+
+    if (preferPreferredOnly) {
+      if (isDev) {
+        console.log(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} preferred-only mode, waiting for blob`);
+      }
+
+      setSrc(undefined);
+      currentSrcRef.current = undefined;
+      preferredWaitStartedAtRef.current = Date.now();
+
+      preferredPollRef.current = window.setInterval(() => {
+        if (isReadyRef.current) {
+          if (preferredPollRef.current !== null) {
+            clearInterval(preferredPollRef.current);
+            preferredPollRef.current = null;
+          }
+          return;
+        }
+
+        const nextPreferred = resolvePreferredSrc?.() ?? preferredSrc;
+        if (nextPreferred) {
+          if (isDev) {
+            console.log(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} preferredSrc appeared during polling, using blob`);
+          }
+          setSrc(nextPreferred);
+          currentSrcRef.current = nextPreferred;
+          if (preferredPollRef.current !== null) {
+            clearInterval(preferredPollRef.current);
+            preferredPollRef.current = null;
+          }
+          return;
+        }
+
+        const waitedMs = Date.now() - (preferredWaitStartedAtRef.current ?? Date.now());
+        if (waitedMs >= preferredMaxWaitMs) {
+          if (isDev) {
+            console.log(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} preferred-only wait timed out after ${waitedMs}ms, using fallback`);
+          }
+          setSrc(fallbackSrc);
+          currentSrcRef.current = fallbackSrc;
+          if (preferredPollRef.current !== null) {
+            clearInterval(preferredPollRef.current);
+            preferredPollRef.current = null;
+          }
+        }
+      }, preferredPollMs);
+
+      return () => {
+        if (preferredPollRef.current !== null) {
+          clearInterval(preferredPollRef.current);
+          preferredPollRef.current = null;
+        }
+      };
     }
 
     // Иначе → запускаем короткое окно ожидания
@@ -113,7 +182,17 @@ export function useNonFlashingVideoSrc({
         waitTimeoutRef.current = null;
       }
     };
-  }, [fileId, preferredSrc, fallbackSrc, waitForPreferredMs, isDev]);
+  }, [
+    fileId,
+    preferredSrc,
+    fallbackSrc,
+    waitForPreferredMs,
+    isDev,
+    preferPreferredOnly,
+    preferredPollMs,
+    preferredMaxWaitMs,
+    resolvePreferredSrc,
+  ]);
 
   // Отдельный эффект для отслеживания появления preferredSrc после начала ожидания
   useEffect(() => {
