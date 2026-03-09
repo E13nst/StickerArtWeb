@@ -1,5 +1,8 @@
 import { useRef, useEffect, useMemo, FC, MouseEvent, TouchEvent } from 'react';
 import { AnimatedSticker } from '../AnimatedSticker';
+import { PackCardDebugOverlay } from '../PackCardDebugOverlay';
+import { useMediaDiagnostics } from '@/hooks/useMediaDiagnostics';
+import { useProfileStore } from '@/store/useProfileStore';
 import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache } from '@/utils/imageLoader';
 import { getStickerImageUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
@@ -62,28 +65,46 @@ const StickerPreviewVideo: FC<{
     }
   }, [isReady, src]);
 
+  // Диагностика для ADMIN: нормализуем sticker под интерфейс хука
+  const currentUserRole = useProfileStore((s) => s.currentUserRole);
+  const isAdmin = (currentUserRole ?? '').toUpperCase().includes('ADMIN');
+  const stickerForDiag = useMemo(
+    () => ({
+      fileId: sticker.file_id,
+      url: fallbackVideoUrl,
+      isVideo: true as const,
+    }),
+    [sticker.file_id, fallbackVideoUrl]
+  );
+  const diagnostics = useMediaDiagnostics(stickerForDiag, videoRef, true, isAdmin);
+
   return (
-    <video
-      ref={videoRef}
-      key={sticker.file_id}
-      src={src}
-      autoPlay
-      loop
-      muted
-      playsInline
-      preload="auto"
-      className={className}
-      style={{
-        width,
-        height,
-        objectFit: 'contain',
-        opacity: isReady ? 1 : 0,
-        transition: 'opacity 120ms ease',
-        backgroundColor: 'transparent'
-      }}
-      onLoadedData={handleLoadedData}
-      onError={onError}
-    />
+    <div style={{ position: 'relative', width, height }}>
+      <video
+        ref={videoRef}
+        key={sticker.file_id}
+        src={src}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className={className}
+        style={{
+          width,
+          height,
+          objectFit: 'contain',
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 120ms ease',
+          backgroundColor: 'transparent'
+        }}
+        onLoadedData={handleLoadedData}
+        onError={onError}
+      />
+      {isAdmin && diagnostics && (
+        <PackCardDebugOverlay result={diagnostics} fileId={sticker.file_id} />
+      )}
+    </div>
   );
 };
 
