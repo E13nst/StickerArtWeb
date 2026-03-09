@@ -81,6 +81,19 @@ export function PackCardDebugOverlay({ result, fileId }: PackCardDebugOverlayPro
               </>
             )}
           </div>
+          {network.actualSrc && (
+            <div className="pack-card-debug-overlay__row pack-card-debug-overlay__meta">
+              <span
+                className={
+                  network.actualSrc.startsWith('blob:')
+                    ? 'pack-card-debug-overlay__err'
+                    : undefined
+                }
+              >
+                src:{network.actualSrc.slice(0, 40)}{network.actualSrc.length > 40 ? '…' : ''}
+              </span>
+            </div>
+          )}
           {(network.contentType || network.acceptRanges != null || network.contentLength) && (
             <div className="pack-card-debug-overlay__row">
               {network.contentType && (

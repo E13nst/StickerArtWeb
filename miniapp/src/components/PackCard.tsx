@@ -9,6 +9,19 @@ import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
 
+// iOS WKWebView (Telegram) отвергает blob: URL для <video> с errorCode 4.
+// Вычисляем один раз при загрузке модуля.
+const isIosWKWebView: boolean =
+  typeof navigator !== 'undefined' &&
+  typeof window !== 'undefined' &&
+  /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+  !!(window as any).Telegram?.WebApp;
+
+function getVideoSrc(fileId: string, fallbackUrl: string): string {
+  if (isIosWKWebView) return fallbackUrl;
+  return videoBlobCache.get(fileId) || fallbackUrl;
+}
+
 interface Pack {
   id: string;
   title: string;
@@ -146,7 +159,7 @@ const PackCardComponent: FC<PackCardProps> = ({
               >
                 <video
                   ref={videoRef}
-                  src={videoBlobCache.get(activeSticker.fileId) || activeSticker.url}
+                  src={getVideoSrc(activeSticker.fileId, activeSticker.url)}
                   className="pack-card-video"
                   autoPlay={inView}
                   loop

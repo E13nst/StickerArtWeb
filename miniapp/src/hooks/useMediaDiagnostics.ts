@@ -6,6 +6,7 @@ export interface DiagnosticsResult {
   network: {
     srcUrl: string;
     isBlobUrl: boolean;
+    actualSrc?: string;
     httpStatus?: number;
     fetchMs?: number;
     error?: string;
@@ -144,6 +145,7 @@ export function useMediaDiagnostics(
         if (!prev || !el) return prev;
         const errorCode = el.error?.code;
         const errorMessage = el.error?.message;
+        const actualSrc = el.currentSrc || el.src || undefined;
         const playback = {
           ...prev.playback,
           readyState: el.readyState,
@@ -160,6 +162,7 @@ export function useMediaDiagnostics(
         );
         return {
           ...prev,
+          network: { ...prev.network, actualSrc },
           playback,
           hasFailed: reasons.length > 0,
           failureReasons: reasons,
@@ -251,6 +254,7 @@ export function useMediaDiagnostics(
       setResult((prev) => {
         if (!prev) return null;
         const blobCacheHit = videoBlobCache.get(prev.meta.fileId) !== null;
+        const actualSrc = el.currentSrc || el.src || undefined;
         const playback = {
           readyState: el.readyState,
           networkState: el.networkState,
@@ -268,6 +272,7 @@ export function useMediaDiagnostics(
         const meta = getMeta(prev.meta.fileId, startedAtRef.current);
         return {
           ...prev,
+          network: { ...prev.network, actualSrc },
           dom,
           playback,
           meta,
