@@ -1254,6 +1254,13 @@ function isValidBlobUrlFormat(blobUrl: string | null | undefined): boolean {
 }
 
 export const videoBlobCache = {
+  /**
+   * Подписка на появление/обновление blob URL для конкретного fileId.
+   * Используется useSyncExternalStore в useVideoBlobUrl.
+   */
+  subscribe: (fileId: string, callback: () => void): (() => void) =>
+    cacheManager.subscribeToType('video', fileId, callback),
+
   get: (fileId: string) => {
     const blobUrl = cacheManager.getSync(fileId, 'video');
     // ✅ FIX: Проверяем формат blob URL (синхронная проверка)

@@ -60,6 +60,30 @@ class CacheManager {
   private cacheApiAvailable: boolean;
   private initialized = false;
 
+  // Pub/sub: уведомляем подписчиков когда запись в syncCache обновляется.
+  // Ключ: `${type}:${fileId}`. Используется useSyncExternalStore в хуках.
+  private listeners = new Map<string, Set<() => void>>();
+
+  subscribeToType(type: ResourceType, fileId: string, callback: () => void): () => void {
+    const key = `${type}:${fileId}`;
+    if (!this.listeners.has(key)) {
+      this.listeners.set(key, new Set());
+    }
+    this.listeners.get(key)!.add(callback);
+    return () => {
+      const set = this.listeners.get(key);
+      if (set) {
+        set.delete(callback);
+        if (set.size === 0) this.listeners.delete(key);
+      }
+    };
+  }
+
+  private notifyListeners(fileId: string, type: ResourceType): void {
+    const key = `${type}:${fileId}`;
+    this.listeners.get(key)?.forEach(cb => cb());
+  }
+
   constructor() {
     this.cacheApiAvailable = 'caches' in window;
   }
@@ -123,7 +147,9 @@ class CacheManager {
     // 🔥 КРИТИЧНО: Сохраняем в syncCache СРАЗУ для немедленного доступа
     const map = this.syncCache[`${type}s` as 'images' | 'animations' | 'videos'];
     map.set(fileId, data);
-    
+    // Уведомляем подписчиков синхронно — до async Cache API операций
+    this.notifyListeners(fileId, type);
+
     const cacheKey = this.createCacheKey(fileId, type);
     const metadata: CacheMetadata = {
       fileId,

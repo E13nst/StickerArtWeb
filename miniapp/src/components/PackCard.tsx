@@ -4,23 +4,11 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { PackCardDebugOverlay } from './PackCardDebugOverlay';
 import { useMediaDiagnostics } from '../hooks/useMediaDiagnostics';
+import { useVideoBlobUrl } from '../hooks/useVideoBlobUrl';
 import { useProfileStore } from '../store/useProfileStore';
-import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
+import { imageCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
-
-// iOS WKWebView (Telegram) отвергает blob: URL для <video> с errorCode 4.
-// Вычисляем один раз при загрузке модуля.
-const isIosWKWebView: boolean =
-  typeof navigator !== 'undefined' &&
-  typeof window !== 'undefined' &&
-  /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
-  !!(window as any).Telegram?.WebApp;
-
-function getVideoSrc(fileId: string, fallbackUrl: string): string {
-  if (isIosWKWebView) return fallbackUrl;
-  return videoBlobCache.get(fileId) || fallbackUrl;
-}
 
 interface Pack {
   id: string;
@@ -64,6 +52,11 @@ const PackCardComponent: FC<PackCardProps> = ({
   const currentUserRole = useProfileStore((s) => s.currentUserRole);
   const isAdmin = (currentUserRole ?? '').toUpperCase().includes('ADMIN');
   const diagnostics = useMediaDiagnostics(activeSticker, videoRef, inView, isAdmin);
+
+  // Реактивный blob URL: автоматически обновляется когда imageLoader завершает загрузку.
+  // useSyncExternalStore подписывается на videoBlobCache — нет polling, нет лишних рендеров.
+  const isVideoSticker = activeSticker?.isVideo ?? (activeSticker as any)?.is_video ?? false;
+  const videoBlobUrl = useVideoBlobUrl(isVideoSticker ? activeSticker?.fileId : null);
 
   // Форматируем заголовок один раз при изменении pack.title
   const formattedTitle = useMemo(() => {
@@ -147,7 +140,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                 hidePlaceholder={true}
                 priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
               />
-            ) : (activeSticker.isVideo ?? (activeSticker as any).is_video) ? (
+            ) : isVideoSticker ? (
               <div
                 style={{
                   width: '100%',
@@ -159,12 +152,18 @@ const PackCardComponent: FC<PackCardProps> = ({
               >
                 <video
                   ref={videoRef}
-                  src={getVideoSrc(activeSticker.fileId, activeSticker.url)}
+                  // videoBlobUrl реактивен: undefined → компонент не загружает ничего,
+                  // как только blob готов — src обновляется и видео воспроизводится.
+                  src={videoBlobUrl ?? undefined}
                   className="pack-card-video"
                   autoPlay={inView}
                   loop
                   muted
                   playsInline
+                  preload="auto"
+                  onLoadedData={() => {
+                    if (inView) videoRef.current?.play().catch(() => {});
+                  }}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
