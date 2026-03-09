@@ -1,4 +1,4 @@
-import { useCallback, memo, useState, useEffect, useRef, useMemo, FC } from 'react';
+import { useCallback, memo, useEffect, useRef, useMemo, FC } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
@@ -183,12 +183,8 @@ const PackCardComponent: FC<PackCardProps> = ({
     triggerOnce: false, // Позволяет паузить видео при выходе из viewport
   });
 
-  const [currentStickerIndex, setCurrentStickerIndex] = useState(0);
-  const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const stickerShownAtRef = useRef<number>(Date.now());
-
   const isDimmed = pack.isBlocked || pack.isDeleted;
-  const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
+  const activeSticker = pack.previewStickers[0];
 
   // Форматируем заголовок один раз при изменении pack.title
   const formattedTitle = useMemo(() => {
@@ -199,42 +195,6 @@ const PackCardComponent: FC<PackCardProps> = ({
       return pack.title || '';
     }
   }, [pack.title]);
-
-  // Упрощенная ротация стикеров только для видимых карточек
-  useEffect(() => {
-    if (!inView || pack.previewStickers.length <= 1) {
-      if (rotationTimerRef.current) {
-        clearInterval(rotationTimerRef.current);
-        rotationTimerRef.current = null;
-      }
-      return;
-    }
-
-    // Проверяем, прошло ли минимальное время показа (2 секунды)
-    const checkAndRotate = () => {
-      const timeShown = Date.now() - stickerShownAtRef.current;
-      if (timeShown >= 2000) {
-        setCurrentStickerIndex(prev => {
-          const nextIndex = (prev + 1) % pack.previewStickers.length;
-          stickerShownAtRef.current = Date.now();
-          return nextIndex;
-        });
-      }
-    };
-
-    rotationTimerRef.current = setInterval(checkAndRotate, 500); // Проверяем каждые 500ms
-
-    return () => {
-      if (rotationTimerRef.current) {
-        clearInterval(rotationTimerRef.current);
-      }
-    };
-  }, [inView, pack.previewStickers.length]);
-
-  // Обновляем время показа при изменении индекса
-  useEffect(() => {
-    stickerShownAtRef.current = Date.now();
-  }, [currentStickerIndex]);
 
   const handleClick = useCallback(() => {
     onClick?.(pack.id);
@@ -280,7 +240,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                     isVideo: true,
                   }}
                   inView={inView}
-                  stickerIndex={currentStickerIndex}
+                  stickerIndex={0}
                 />
               </div>
             ) : (
