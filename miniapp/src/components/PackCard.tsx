@@ -2,6 +2,9 @@ import { useCallback, memo, useState, useEffect, useRef, useMemo, FC } from 'rea
 import { useInView } from 'react-intersection-observer';
 import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
+import { PackCardDebugOverlay } from './PackCardDebugOverlay';
+import { useMediaDiagnostics } from '../hooks/useMediaDiagnostics';
+import { useProfileStore } from '../store/useProfileStore';
 import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
@@ -44,7 +47,11 @@ const PackCardComponent: FC<PackCardProps> = ({
 
   const isDimmed = pack.isBlocked || pack.isDeleted;
   const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
-  
+
+  const currentUserRole = useProfileStore((s) => s.currentUserRole);
+  const isAdmin = (currentUserRole ?? '').toUpperCase().includes('ADMIN');
+  const diagnostics = useMediaDiagnostics(activeSticker, videoRef, inView, isAdmin);
+
   // Форматируем заголовок один раз при изменении pack.title
   const formattedTitle = useMemo(() => {
     try {
@@ -194,6 +201,10 @@ const PackCardComponent: FC<PackCardProps> = ({
         size="medium"
         placement="top-right"
       />
+
+      {isAdmin && diagnostics && (
+        <PackCardDebugOverlay result={diagnostics} fileId={activeSticker?.fileId ?? ''} />
+      )}
 
       {/* Бейдж статуса */}
       {isDimmed && (
