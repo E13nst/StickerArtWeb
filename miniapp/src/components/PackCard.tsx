@@ -4,9 +4,9 @@ import { AnimatedSticker } from './AnimatedSticker';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { PackCardDebugOverlay } from './PackCardDebugOverlay';
 import { useMediaDiagnostics } from '../hooks/useMediaDiagnostics';
-import { useVideoBlobUrl } from '../hooks/useVideoBlobUrl';
+import { useNonFlashingVideoSrc } from '../hooks/useNonFlashingVideoSrc';
 import { useProfileStore } from '../store/useProfileStore';
-import { imageCache, LoadPriority } from '../utils/imageLoader';
+import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
 
@@ -30,6 +30,103 @@ interface PackCardProps {
   onClick?: (packId: string) => void;
 }
 
+interface PackVideoSticker {
+  fileId: string;
+  url: string;
+  emoji: string;
+  isVideo: boolean;
+}
+
+const PackCardVideoPreview: FC<{
+  sticker: PackVideoSticker;
+  inView: boolean;
+}> = ({ sticker, inView }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const preferredSrc = videoBlobCache.get(sticker.fileId) ?? undefined;
+  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
+    fileId: sticker.fileId,
+    preferredSrc,
+    fallbackSrc: sticker.url,
+    waitForPreferredMs: 100
+  });
+
+  const currentUserRole = useProfileStore((s) => s.currentUserRole);
+  const isAdmin = (currentUserRole ?? '').toUpperCase().includes('ADMIN');
+  const diagnosticsSticker = useMemo(
+    () => ({
+      fileId: sticker.fileId,
+      url: sticker.url,
+      isVideo: true as const,
+    }),
+    [sticker.fileId, sticker.url]
+  );
+  const diagnostics = useMediaDiagnostics(diagnosticsSticker, videoRef, inView, isAdmin);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    // Safari/WKWebView надёжнее подхватывает новый источник после явного load().
+    video.load();
+  }, [src]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!inView) {
+      video.pause();
+      return;
+    }
+
+    if (!isReady) {
+      return;
+    }
+
+    const playPromise = video.play?.();
+    if (playPromise && typeof (playPromise as Promise<void>).catch === 'function') {
+      playPromise.catch(() => {});
+    }
+  }, [inView, isReady]);
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      <video
+        key={sticker.fileId}
+        ref={videoRef}
+        src={src}
+        className="pack-card-video"
+        autoPlay={inView}
+        loop
+        muted
+        playsInline
+        preload="auto"
+        style={{
+          maxWidth: '100%',
+          maxHeight: '100%',
+          objectFit: 'contain',
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 120ms ease'
+        }}
+        onLoadedData={onLoadedData}
+        onError={onError}
+      />
+      {isAdmin && diagnostics && (
+        <PackCardDebugOverlay result={diagnostics} fileId={sticker.fileId} />
+      )}
+    </div>
+  );
+};
+
 const PackCardComponent: FC<PackCardProps> = ({ 
   pack, 
   onClick
@@ -42,21 +139,11 @@ const PackCardComponent: FC<PackCardProps> = ({
   });
 
   const [currentStickerIndex, setCurrentStickerIndex] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const rotationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stickerShownAtRef = useRef<number>(Date.now());
 
   const isDimmed = pack.isBlocked || pack.isDeleted;
   const activeSticker = pack.previewStickers[currentStickerIndex] || pack.previewStickers[0];
-
-  const currentUserRole = useProfileStore((s) => s.currentUserRole);
-  const isAdmin = (currentUserRole ?? '').toUpperCase().includes('ADMIN');
-  const diagnostics = useMediaDiagnostics(activeSticker, videoRef, inView, isAdmin);
-
-  // Реактивный blob URL: автоматически обновляется когда imageLoader завершает загрузку.
-  // useSyncExternalStore подписывается на videoBlobCache — нет polling, нет лишних рендеров.
-  const isVideoSticker = activeSticker?.isVideo ?? (activeSticker as any)?.is_video ?? false;
-  const videoBlobUrl = useVideoBlobUrl(isVideoSticker ? activeSticker?.fileId : null);
 
   // Форматируем заголовок один раз при изменении pack.title
   const formattedTitle = useMemo(() => {
@@ -104,17 +191,6 @@ const PackCardComponent: FC<PackCardProps> = ({
     stickerShownAtRef.current = Date.now();
   }, [currentStickerIndex]);
 
-  // Пауза видео при выходе из viewport
-  useEffect(() => {
-    if (!videoRef.current || !(activeSticker?.isVideo ?? (activeSticker as any).is_video)) return;
-
-    if (inView) {
-      videoRef.current.play().catch(() => {});
-    } else {
-      videoRef.current.pause();
-    }
-  }, [inView, activeSticker?.isVideo ?? (activeSticker as any).is_video]);
-
   const handleClick = useCallback(() => {
     onClick?.(pack.id);
   }, [onClick, pack.id]);
@@ -140,7 +216,7 @@ const PackCardComponent: FC<PackCardProps> = ({
                 hidePlaceholder={true}
                 priority={inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
               />
-            ) : isVideoSticker ? (
+            ) : (activeSticker.isVideo ?? (activeSticker as any).is_video) ? (
               <div
                 style={{
                   width: '100%',
@@ -150,25 +226,15 @@ const PackCardComponent: FC<PackCardProps> = ({
                   justifyContent: 'center'
                 }}
               >
-                <video
-                  ref={videoRef}
-                  // videoBlobUrl реактивен: undefined → компонент не загружает ничего,
-                  // как только blob готов — src обновляется и видео воспроизводится.
-                  src={videoBlobUrl ?? undefined}
-                  className="pack-card-video"
-                  autoPlay={inView}
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  onLoadedData={() => {
-                    if (inView) videoRef.current?.play().catch(() => {});
+                <PackCardVideoPreview
+                  key={activeSticker.fileId}
+                  sticker={{
+                    fileId: activeSticker.fileId,
+                    url: activeSticker.url,
+                    emoji: activeSticker.emoji,
+                    isVideo: true,
                   }}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain'
-                  }}
+                  inView={inView}
                 />
               </div>
             ) : (
@@ -213,10 +279,6 @@ const PackCardComponent: FC<PackCardProps> = ({
         size="medium"
         placement="top-right"
       />
-
-      {isAdmin && diagnostics && (
-        <PackCardDebugOverlay result={diagnostics} fileId={activeSticker?.fileId ?? ''} />
-      )}
 
       {/* Бейдж статуса */}
       {isDimmed && (
