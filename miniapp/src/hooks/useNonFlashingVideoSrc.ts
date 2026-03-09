@@ -13,6 +13,7 @@ interface UseNonFlashingVideoSrcOptions {
   preferPreferredOnly?: boolean;
   preferredPollMs?: number;
   preferredMaxWaitMs?: number;
+  fallbackOnPreferredError?: boolean;
 }
 
 interface UseNonFlashingVideoSrcResult {
@@ -30,7 +31,8 @@ export function useNonFlashingVideoSrc({
   resolvePreferredSrc,
   preferPreferredOnly = false,
   preferredPollMs = 100,
-  preferredMaxWaitMs = 2500
+  preferredMaxWaitMs = 2500,
+  fallbackOnPreferredError = true
 }: UseNonFlashingVideoSrcOptions): UseNonFlashingVideoSrcResult {
   const [src, setSrc] = useState<string | undefined>(undefined);
   const [isReady, setIsReady] = useState(false);
@@ -74,7 +76,8 @@ export function useNonFlashingVideoSrc({
     preferredWaitStartedAtRef.current = null;
 
     // Если fileId в brokenPreferred → сразу fallbackSrc
-    if (brokenPreferred.has(fileId)) {
+    // Но в preferred-only режиме не даем session-level флагу отравлять другие компоненты.
+    if (!preferPreferredOnly && brokenPreferred.has(fileId)) {
       if (isDev) {
         console.log(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} in brokenPreferred, using fallback immediately`);
       }
@@ -223,6 +226,13 @@ export function useNonFlashingVideoSrc({
 
     // Если текущий src === preferredSrc (blob) → один раз переключить на fallbackSrc
     if (currentSrc === preferredSrc) {
+      if (!fallbackOnPreferredError) {
+        if (isDev) {
+          console.warn(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} preferred failed, fallback disabled`);
+        }
+        setIsReady(false);
+        return;
+      }
       if (isDev) {
         console.log(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} blob failed, switching to fallback`);
       }
@@ -239,7 +249,7 @@ export function useNonFlashingVideoSrc({
         console.warn(`[useNonFlashingVideoSrc] ${fileId.slice(-8)} fallback also failed, no further action`);
       }
     }
-  }, [fileId, preferredSrc, fallbackSrc, isDev]);
+  }, [fileId, preferredSrc, fallbackSrc, fallbackOnPreferredError, isDev]);
 
   // Готовность видео
   const onLoadedData = useCallback(() => {

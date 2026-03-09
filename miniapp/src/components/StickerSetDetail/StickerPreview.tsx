@@ -30,6 +30,11 @@ const StickerPreviewVideo: FC<{
   onLoad?: () => void;
 }> = ({ sticker, width, height, className, onLoad }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isIosTelegramWebView =
+    typeof navigator !== 'undefined' &&
+    typeof window !== 'undefined' &&
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+    Boolean((window as any).Telegram?.WebApp);
   
   // Мемоизируем fallbackVideoUrl, чтобы не пересоздавать хук при каждом рендере
   const fallbackVideoUrl = useMemo(
@@ -41,7 +46,12 @@ const StickerPreviewVideo: FC<{
     fileId: sticker.file_id,
     preferredSrc: videoBlobCache.get(sticker.file_id),
     fallbackSrc: fallbackVideoUrl,
-    waitForPreferredMs: 100
+    waitForPreferredMs: 100,
+    resolvePreferredSrc: () => videoBlobCache.get(sticker.file_id),
+    preferPreferredOnly: isIosTelegramWebView,
+    preferredPollMs: 100,
+    preferredMaxWaitMs: 2500,
+    fallbackOnPreferredError: !isIosTelegramWebView,
   });
 
   const handleLoadedData = () => {

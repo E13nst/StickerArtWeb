@@ -10,12 +10,6 @@ import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
 
-const isIosTelegramWebView =
-  typeof navigator !== 'undefined' &&
-  typeof window !== 'undefined' &&
-  /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
-  Boolean((window as any).Telegram?.WebApp);
-
 interface Pack {
   id: string;
   title: string;
@@ -49,6 +43,11 @@ const PackCardVideoPreview: FC<{
   stickerIndex: number;
 }> = ({ sticker, inView, stickerIndex }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isIosTelegramWebView =
+    typeof navigator !== 'undefined' &&
+    typeof window !== 'undefined' &&
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+    Boolean((window as any).Telegram?.WebApp);
   const preferredSrc = videoBlobCache.get(sticker.fileId) ?? undefined;
   const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
     fileId: sticker.fileId,
@@ -59,6 +58,7 @@ const PackCardVideoPreview: FC<{
     preferPreferredOnly: isIosTelegramWebView,
     preferredPollMs: 100,
     preferredMaxWaitMs: 2500,
+    fallbackOnPreferredError: !isIosTelegramWebView,
   });
 
   const currentUserRole = useProfileStore((s) => s.currentUserRole);
