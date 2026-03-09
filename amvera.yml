@@ -1,0 +1,9 @@
+meta:
+  environment: docker
+
+build:
+  dockerfile: Dockerfile
+  context: .
+
+run:
+  containerPort: 80
