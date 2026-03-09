@@ -1,14 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { videoBlobCache } from '../utils/imageLoader';
 
 export interface DiagnosticsResult {
   codecSupport: { vp8: string; vp9: string; h264: string };
-  network: { srcUrl: string; isBlobUrl: boolean; httpStatus?: number; fetchMs?: number; error?: string };
+  network: {
+    srcUrl: string;
+    isBlobUrl: boolean;
+    httpStatus?: number;
+    fetchMs?: number;
+    error?: string;
+    contentType?: string;
+    acceptRanges?: string;
+    contentLength?: string;
+  };
   dom: { width: number; height: number; isVisible: boolean };
   playback: {
     readyState: number;
     networkState: number;
     errorCode?: number;
     errorMessage?: string;
+    duration?: number;
+    blobCacheHit: boolean;
   };
   meta: { ua: string; isTelegramWebView: boolean; fileId: string; diagMs: number };
   hasFailed: boolean;
@@ -100,6 +112,7 @@ export function useMediaDiagnostics(
     startedAtRef.current = Date.now();
     const codecSupport = getCodecSupport();
     const meta = getMeta(sticker.fileId, startedAtRef.current);
+    const blobCacheHit = videoBlobCache.get(sticker.fileId) !== null;
     setResult({
       codecSupport,
       network: {
@@ -107,7 +120,7 @@ export function useMediaDiagnostics(
         isBlobUrl: (sticker.url || '').startsWith('blob:'),
       },
       dom: { width: 0, height: 0, isVisible: false },
-      playback: { readyState: 0, networkState: 0 },
+      playback: { readyState: 0, networkState: 0, blobCacheHit },
       meta,
       hasFailed: codecSupport.vp8 === '' && codecSupport.vp9 === '',
       failureReasons:
@@ -137,6 +150,8 @@ export function useMediaDiagnostics(
           networkState: el.networkState,
           errorCode,
           errorMessage,
+          duration: el.duration,
+          blobCacheHit: videoBlobCache.get(prev.meta.fileId) !== null,
         };
         const reasons = buildFailureReasons(
           prev.codecSupport,
@@ -181,6 +196,9 @@ export function useMediaDiagnostics(
       .then((res) => {
         if (cancelled) return;
         const fetchMs = Date.now() - start;
+        const contentType = res.headers.get('content-type') ?? undefined;
+        const acceptRanges = res.headers.get('accept-ranges') ?? undefined;
+        const contentLength = res.headers.get('content-length') ?? undefined;
         setResult((prev) =>
           prev
             ? {
@@ -189,6 +207,9 @@ export function useMediaDiagnostics(
                   ...prev.network,
                   httpStatus: res.status,
                   fetchMs,
+                  contentType,
+                  acceptRanges,
+                  contentLength,
                 },
               }
             : null
@@ -229,11 +250,14 @@ export function useMediaDiagnostics(
 
       setResult((prev) => {
         if (!prev) return null;
+        const blobCacheHit = videoBlobCache.get(prev.meta.fileId) !== null;
         const playback = {
           readyState: el.readyState,
           networkState: el.networkState,
           errorCode: el.error?.code,
           errorMessage: el.error?.message,
+          duration: el.duration,
+          blobCacheHit,
         };
         const dom = { width, height, isVisible };
         const reasons = buildFailureReasons(

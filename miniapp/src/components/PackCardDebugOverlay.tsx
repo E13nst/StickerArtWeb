@@ -81,6 +81,33 @@ export function PackCardDebugOverlay({ result, fileId }: PackCardDebugOverlayPro
               </>
             )}
           </div>
+          {(network.contentType || network.acceptRanges != null || network.contentLength) && (
+            <div className="pack-card-debug-overlay__row">
+              {network.contentType && (
+                <span
+                  className={
+                    network.contentType.includes('video')
+                      ? 'pack-card-debug-overlay__codec-ok'
+                      : 'pack-card-debug-overlay__err'
+                  }
+                >
+                  {network.contentType}
+                </span>
+              )}
+              {network.acceptRanges != null && (
+                <span
+                  className={
+                    network.acceptRanges === 'bytes'
+                      ? 'pack-card-debug-overlay__codec-ok'
+                      : 'pack-card-debug-overlay__err'
+                  }
+                >
+                  {' '}ranges:{network.acceptRanges || 'none'}
+                </span>
+              )}
+              {network.contentLength && <span> {Math.round(Number(network.contentLength) / 1024)}KB</span>}
+            </div>
+          )}
         </div>
         <div className="pack-card-debug-overlay__section">
           <div className="pack-card-debug-overlay__label">DOM</div>
@@ -91,11 +118,26 @@ export function PackCardDebugOverlay({ result, fileId }: PackCardDebugOverlayPro
         <div className="pack-card-debug-overlay__section">
           <div className="pack-card-debug-overlay__label">Playback</div>
           <div className="pack-card-debug-overlay__row">
-            readyState={playback.readyState} networkState={playback.networkState}
+            readyState={playback.readyState} netState={playback.networkState}
+            {playback.duration != null && (
+              <span
+                className={
+                  isNaN(playback.duration)
+                    ? 'pack-card-debug-overlay__err'
+                    : 'pack-card-debug-overlay__codec-ok'
+                }
+              >
+                {' '}dur={isNaN(playback.duration) ? 'NaN' : `${playback.duration.toFixed(1)}s`}
+              </span>
+            )}
+            {' '}blob:{playback.blobCacheHit ? (
+              <span className="pack-card-debug-overlay__codec-ok">Y</span>
+            ) : (
+              <span className="pack-card-debug-overlay__err">N</span>
+            )}
             {playback.errorCode != null && playback.errorCode !== 0 && (
               <span className="pack-card-debug-overlay__err">
-                {' '}
-                err={playback.errorCode} {playback.errorMessage ?? ''}
+                {' '}err={playback.errorCode} {playback.errorMessage ?? ''}
               </span>
             )}
           </div>
