@@ -6,7 +6,7 @@ import { PackCardDebugOverlay } from './PackCardDebugOverlay';
 import { useMediaDiagnostics } from '../hooks/useMediaDiagnostics';
 import { useNonFlashingVideoSrc } from '../hooks/useNonFlashingVideoSrc';
 import { useProfileStore } from '../store/useProfileStore';
-import { imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
+import { imageLoader, imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
 
@@ -88,6 +88,20 @@ const PackCardVideoPreview: FC<{
     isAdmin,
     { context: diagnosticsContext }
   );
+
+  useEffect(() => {
+    const priority = inView ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT;
+
+    reportEvent('prefetch-requested', String(priority));
+    imageLoader
+      .loadVideo(sticker.fileId, sticker.url, priority, sticker.fileId, stickerIndex)
+      .then(() => {
+        reportEvent('prefetch-resolved');
+      })
+      .catch((error) => {
+        reportEvent('prefetch-failed', error instanceof Error ? error.message : 'unknown');
+      });
+  }, [inView, reportEvent, sticker.fileId, sticker.url, stickerIndex]);
 
   useEffect(() => {
     const video = videoRef.current;
