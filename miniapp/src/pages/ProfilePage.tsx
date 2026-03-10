@@ -81,6 +81,22 @@ export const ProfilePage: FC = () => {
   // Локальные переменные для синхронизации с хуком (объявляем до использования)
   const searchTermRef = useRef('');
   const sortByLikesRef = useRef(false);
+  // Сохраняем позицию скролла для каждой вкладки
+  const tabScrollOffsets = useRef<Record<number, number>>({});
+  const prevActiveProfileTabRef = useRef(activeProfileTab);
+
+  // Сохраняем и восстанавливаем позицию скролла при смене вкладки
+  useEffect(() => {
+    const prevTab = prevActiveProfileTabRef.current;
+    if (prevTab === activeProfileTab) return;
+
+    if (scrollElement) {
+      tabScrollOffsets.current[prevTab] = scrollElement.scrollTop;
+      const savedOffset = tabScrollOffsets.current[activeProfileTab] ?? 0;
+      scrollElement.scrollTop = savedOffset;
+    }
+    prevActiveProfileTabRef.current = activeProfileTab;
+  }, [activeProfileTab, scrollElement]);
 
   // Загрузка информации о пользователе
   const loadUserInfo = useCallback(async (id: number) => {

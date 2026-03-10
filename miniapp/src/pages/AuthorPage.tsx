@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, FC } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { EmptyState } from '../components/EmptyState';
@@ -181,6 +181,7 @@ const fetchAuthorPhoto = async (userId: number) => {
 
 export const AuthorPage: FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const scrollElement = useScrollElement();
   const authorId = id ? Number(id) : null;
   const { tg, initData, user, isInTelegramApp } = useTelegram();
@@ -306,12 +307,20 @@ export const AuthorPage: FC = () => {
     [authorId, effectiveInitData, sortByLikes, user?.language_code]
   );
 
+  const handleBack = useCallback(() => {
+    if (isModalOpen) {
+      setIsModalOpen(false);
+      setSelectedStickerSet(null);
+    } else {
+      navigate('/');
+    }
+  }, [isModalOpen, navigate]);
+
   useEffect(() => {
     if (!tg?.BackButton) {
       return;
     }
 
-    const handleBack = () => window.history.back();
     tg.BackButton.onClick(handleBack);
     tg.BackButton.show();
 
@@ -320,7 +329,7 @@ export const AuthorPage: FC = () => {
         tg.BackButton.hide();
       }
     };
-  }, [tg]);
+  }, [tg, handleBack]);
 
   // Загрузка профиля автора
   useEffect(() => {

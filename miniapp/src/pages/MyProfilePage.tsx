@@ -227,6 +227,9 @@ export const MyProfilePage: FC = () => {
   const loadingAvatarFileIdRef = useRef<string | null>(null);
   // ✅ FIX: Флаг для предотвращения повторных вызовов loadMyProfile из-за React.StrictMode
   const isProfileLoadingRef = useRef(false);
+  // Сохраняем позицию скролла для каждой вкладки (0=Created, 1=Likes, 2=Uploaded)
+  const tabScrollOffsets = useRef<Record<number, number>>({});
+  const prevActiveProfileTabRef = useRef(activeProfileTab);
   // Ref для измерения высоты элементов перед CompactControlsBar
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -907,6 +910,21 @@ export const MyProfilePage: FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [likedIdsHash, activeProfileTab, isLikedListLoaded]);
+
+  // Сохраняем позицию скролла при смене вкладки и восстанавливаем при возврате
+  useEffect(() => {
+    const prevTab = prevActiveProfileTabRef.current;
+    if (prevTab === activeProfileTab) return;
+
+    if (scrollElement) {
+      // Сохраняем позицию скролла покидаемой вкладки
+      tabScrollOffsets.current[prevTab] = scrollElement.scrollTop;
+      // Восстанавливаем позицию скролла новой вкладки (0 при первом открытии)
+      const savedOffset = tabScrollOffsets.current[activeProfileTab] ?? 0;
+      scrollElement.scrollTop = savedOffset;
+    }
+    prevActiveProfileTabRef.current = activeProfileTab;
+  }, [activeProfileTab, scrollElement]);
 
   // Загружаем Uploaded при первом открытии вкладки Upload (Tab 2)
   // Намеренно НЕ используем isStickerSetsLoading (Zustand) — это вызывает гонку состояний.

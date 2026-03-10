@@ -1,4 +1,4 @@
-import { useRef, useMemo, useCallback, useEffect, useState, FC } from 'react';
+import { useRef, useMemo, useCallback, useEffect, useState, startTransition, FC } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { PackCard } from './PackCard';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -129,7 +129,7 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
     count: rows.length,
     getScrollElement: () => scrollElement || parentRef.current,
     estimateSize: estimateRowHeight,
-    overscan: 3, // Рендерим 3 строки за пределами viewport
+    overscan: 8, // 8 строк буфера — предотвращает белые блоки при быстром iOS-свайпе
     ...(isAccountVariant ? {} : {
       measureElement: (element) => {
         return element?.getBoundingClientRect().height ?? estimateRowHeight();
@@ -150,7 +150,10 @@ export const OptimizedGallery: FC<OptimizedGalleryProps> = ({
         const [entry] = entries;
         if (entry.isIntersecting && hasNextPage && !isLoadingMore && !loadMoreCalledRef.current) {
           loadMoreCalledRef.current = true;
-          onLoadMore();
+          // startTransition: помечаем подгрузку как некритичную — не блокирует анимации и жесты
+          startTransition(() => {
+            onLoadMore();
+          });
         }
       },
       {
