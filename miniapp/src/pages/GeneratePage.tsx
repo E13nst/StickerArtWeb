@@ -15,15 +15,6 @@ import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 type PageState = 'idle' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
-const STATUS_MESSAGES: Record<GenerationStatus, string> = {
-  PROCESSING_PROMPT: 'Улучшаем описание...',
-  PENDING: 'Ожидание...',
-  GENERATING: 'Генерируем изображение...',
-  REMOVING_BACKGROUND: 'Удаляем фон...',
-  COMPLETED: 'Готово!',
-  FAILED: 'Ошибка генерации',
-  TIMEOUT: 'Превышено время ожидания'
-};
 
 /** Сообщение для tg-spinner__message: сначала "Улучшаем промпт", потом "Создаем шедевр" */
 const getGeneratingSpinnerMessage = (status: GenerationStatus | null): string => {
@@ -341,27 +332,6 @@ export const GeneratePage: FC = () => {
     }
   };
 
-  // Сброс и повторная попытка
-  const handleReset = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    
-    setPageState('idle');
-    setCurrentStatus(null);
-    setTaskId(null);
-    setResultImageUrl(null);
-    setImageId(null);
-    setFileId(null);
-    setStickerSaved(false);
-    setSaveError(null);
-    setErrorMessage(null);
-    setErrorKind(null);
-    setIsSendingToChat(false);
-    // Не очищаем prompt чтобы пользователь мог повторить с тем же текстом
-    // Не очищаем inlineQueryId и userId - они нужны для повторной отправки
-  };
 
   const handleSavedFromModal = useCallback((stickerFileId: string) => {
     setFileId(stickerFileId);
