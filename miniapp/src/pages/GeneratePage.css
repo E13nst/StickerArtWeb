@@ -151,6 +151,70 @@
   filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%); /* #8A8A8A в стиле приложения */
 }
 
+.generate-input-wrapper__pictures-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.generate-input-wrapper__pictures-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.generate-input-wrapper__pictures-button .generate-input-wrapper__pictures-icon {
+  position: static;
+  pointer-events: none;
+}
+
+.generate-source-image-preview {
+  position: absolute;
+  top: 12px;
+  right: 44px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.generate-source-image-preview__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.generate-source-image-preview__remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 11px;
+  line-height: 14px;
+  cursor: pointer;
+}
+
+.generate-source-image-preview__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .generate-input-footer {
   display: flex;
   flex-direction: row;

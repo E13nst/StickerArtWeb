@@ -53,6 +53,19 @@ export interface GenerateRequest {
   removeBackground?: boolean;
 }
 
+export type GenerateModelType = 'flux-schnell' | 'nanabanana';
+
+export interface GenerateRequestV2 {
+  prompt: string;
+  model: GenerateModelType;
+  stylePresetId?: number | null;
+  seed?: number | null;
+  remove_background?: boolean;
+  source_image_url?: string;
+  source_image_base64?: string;
+  image?: string;
+}
+
 export interface GenerateResponse {
   taskId: string;
 }
@@ -92,6 +105,24 @@ export interface SaveImageResponse {
   stickerIndex: number;
   stickerFileId: string;
   title: string;
+}
+
+export interface SaveToSetV2Request {
+  taskId: string;
+  userId: number;
+  name: string;
+  title: string;
+  emoji?: string;
+  wait_timeout_sec?: number;
+}
+
+export interface SaveToSetV2Response {
+  operation?: string | null;
+  stickerFileId?: string;
+  telegramFileId?: string | null;
+  stickerSetName?: string;
+  title?: string;
+  status?: string;
 }
 
 interface TelegramApiUser {
@@ -1661,6 +1692,32 @@ class ApiClient {
     }
   }
 
+  // Запуск генерации стикера через STICKER_PROCESSOR
+  // API endpoint: POST /api/generation/v2/generate
+  async generateStickerV2(request: GenerateRequestV2): Promise<GenerateResponse> {
+    try {
+      const response = await this.client.post<GenerateResponse>('/generation/v2/generate', request);
+      console.log('✅ V2 генерация запущена:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка запуска v2 генерации:', error);
+
+      const status = error?.response?.status;
+
+      if (status === 402) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+      if (status === 400) {
+        throw new Error('INVALID_PROMPT');
+      }
+      if (status === 401) {
+        throw new Error('UNAUTHORIZED');
+      }
+
+      throw new Error(getErrorMessage(error, 'Не удалось запустить генерацию. Попробуйте позже.'));
+    }
+  }
+
   // Получение статуса генерации
   // API endpoint: GET /api/generation/status/{taskId}
   async getGenerationStatus(taskId: string): Promise<GenerationStatusResponse> {
@@ -1669,6 +1726,18 @@ class ApiClient {
       return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка получения статуса генерации:', error);
+      throw error;
+    }
+  }
+
+  // Получение статуса v2 генерации
+  // API endpoint: GET /api/generation/v2/status/{taskId}
+  async getGenerationStatusV2(taskId: string): Promise<GenerationStatusResponse> {
+    try {
+      const response = await this.client.get<GenerationStatusResponse>(`/generation/v2/status/${taskId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Ошибка получения статуса v2 генерации:', error);
       throw error;
     }
   }
@@ -1720,6 +1789,45 @@ class ApiClient {
                           error?.message || 
                           'Не удалось сохранить стикер. Попробуйте позже.';
       throw new Error(errorMessage);
+    }
+  }
+
+  // Сохранение сгенерированного v2-стикера в Telegram set через STICKER_PROCESSOR
+  // API endpoint: POST /api/generation/v2/save-to-set
+  async saveToStickerSetV2(request: SaveToSetV2Request): Promise<SaveToSetV2Response> {
+    try {
+      const response = await this.client.post<SaveToSetV2Response | string>('/generation/v2/save-to-set', request);
+      const responseData = typeof response.data === 'object' && response.data !== null ? response.data : {};
+      if (!responseData.stickerFileId && responseData.telegramFileId) {
+        responseData.stickerFileId = responseData.telegramFileId;
+      }
+      if (!responseData.status) {
+        responseData.status = String(response.status);
+      }
+      console.log('✅ V2 стикер сохранён в набор:', responseData);
+      return responseData;
+    } catch (error: any) {
+      console.error('❌ Ошибка сохранения v2-стикера в набор:', error);
+
+      const status = error?.response?.status;
+
+      if (status === 401) {
+        throw new Error('Требуется авторизация');
+      }
+      if (status === 404) {
+        throw new Error('Задача генерации не найдена');
+      }
+      if (status === 410) {
+        throw new Error('Результат генерации больше недоступен');
+      }
+      if (status === 422) {
+        throw new Error(getErrorMessage(error, 'Стикер не удалось сохранить в набор'));
+      }
+      if (status === 424) {
+        throw new Error(getErrorMessage(error, 'Ошибка upstream при сохранении стикера'));
+      }
+
+      throw new Error(getErrorMessage(error, 'Не удалось сохранить стикер. Попробуйте позже.'));
     }
   }
 }

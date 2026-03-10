@@ -13,7 +13,20 @@ export interface SaveToStickerSetModalProps {
   onClose: () => void;
   imageUrl: string | null;
   imageId: string | null;
-  onSaved: (stickerFileId: string) => void;
+  taskId: string | null;
+  userId: number | null;
+  onSaved: (stickerFileId?: string | null) => void;
+}
+
+function buildStickerSetName(title: string): string {
+  const normalized = title
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return normalized || 'my_pack';
 }
 
 function getSetPreviewUrl(set: StickerSetResponse): string {
@@ -40,6 +53,8 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   isOpen,
   onClose,
   imageId,
+  taskId,
+  userId,
   onSaved,
 }) => {
   const userInfo = useProfileStore((state) => state.userInfo);
@@ -164,16 +179,42 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   }, [isOpen, onClose]);
 
   const handleSelectSet = async (set: StickerSetResponse) => {
-    if (!imageId || saving) return;
+    if ((!imageId && !taskId) || saving) return;
     setSaving(true);
     setError(null);
     try {
-      const res = await apiClient.saveImageToStickerSet({
-        imageUuid: imageId,
-        stickerSetName: set.name,
-        emoji: '🎨',
-      });
-      onSaved(res.stickerFileId);
+      let stickerFileId: string | undefined;
+
+      if (taskId && userId) {
+        const response = await apiClient.saveToStickerSetV2({
+          taskId,
+          userId,
+          name: set.name,
+          title: set.title || set.name,
+          emoji: '🎨',
+        });
+        if (response.status === '202' || response.status === 'PENDING') {
+          throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
+        }
+        stickerFileId = response.stickerFileId;
+        if (!stickerFileId && response.status !== '200') {
+          const status = await apiClient.getGenerationStatusV2(taskId);
+          stickerFileId = status.telegramSticker?.fileId;
+        }
+      } else if (imageId) {
+        const res = await apiClient.saveImageToStickerSet({
+          imageUuid: imageId,
+          stickerSetName: set.name,
+          emoji: '🎨',
+        });
+        stickerFileId = res.stickerFileId;
+      }
+
+      if (!stickerFileId && !taskId) {
+        throw new Error('Стикер сохранён, но fileId пока недоступен. Попробуйте снова через пару секунд.');
+      }
+
+      onSaved(stickerFileId ?? null);
       onClose();
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось сохранить');
@@ -184,23 +225,48 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
 
   const handleCreateAndSave = async () => {
     const title = newSetName.trim();
-    if (!title || !imageId || saving) {
+    if (!title || (!imageId && !taskId) || saving) {
       setCreateError('Введите название набора');
       return;
     }
     setSaving(true);
     setCreateError(null);
     try {
-      const created = await apiClient.createNewStickerSet({
-        imageUuid: imageId,
-        title,
-        name: title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() || undefined,
-      });
-      const stickerFileId =
-        (created as { stickerFileId?: string }).stickerFileId ??
-        created.telegramStickerSetInfo?.stickers?.[0]?.file_id;
+      let stickerFileId: string | undefined;
+
+      if (taskId && userId) {
+        const response = await apiClient.saveToStickerSetV2({
+          taskId,
+          userId,
+          name: buildStickerSetName(title),
+          title,
+          emoji: '🎨',
+        });
+        if (response.status === '202' || response.status === 'PENDING') {
+          throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
+        }
+        stickerFileId = response.stickerFileId;
+        if (!stickerFileId && response.status !== '200') {
+          const status = await apiClient.getGenerationStatusV2(taskId);
+          stickerFileId = status.telegramSticker?.fileId;
+        }
+      } else if (imageId) {
+        const created = await apiClient.createNewStickerSet({
+          imageUuid: imageId,
+          title,
+          name: buildStickerSetName(title) || undefined,
+        });
+        stickerFileId =
+          (created as { stickerFileId?: string }).stickerFileId ??
+          created.telegramStickerSetInfo?.stickers?.[0]?.file_id;
+      }
+
       if (stickerFileId) {
         onSaved(stickerFileId);
+      } else if (taskId) {
+        onSaved(null);
+      } else {
+        throw new Error('Стикер сохранён, но fileId пока недоступен. Попробуйте снова через пару секунд.');
       }
       onClose();
     } catch (e: any) {
