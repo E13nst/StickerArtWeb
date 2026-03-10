@@ -142,7 +142,7 @@ const StickerPreviewVideo: FC<{
           onError(event);
         }}
       />
-      {isAdmin && diagnostics && (
+      {isAdmin && diagnostics?.hasFailed && (
         <PackCardDebugOverlay result={diagnostics} fileId={sticker.file_id} />
       )}
     </div>

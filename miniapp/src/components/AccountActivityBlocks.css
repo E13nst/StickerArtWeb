@@ -120,32 +120,42 @@
   transition: background 0.3s ease;
 }
 
-.activity-block--daily .activity-block__dot--filled {
+.activity-block--daily .activity-block__dot {
   background: #EE449F;
-  animation: activity-dots-color-daily 1.2s ease-in-out infinite;
 }
 
-.activity-block--global .activity-block__dot--filled {
+.activity-block--global .activity-block__dot {
   background: #39d1e3;
-  animation: activity-dots-color-global 1.2s ease-in-out infinite;
 }
 
-@keyframes activity-dots-color-daily {
-  0%, 100% { background-color: #EE449F; opacity: 1; }
-  50% { background-color: rgba(238, 68, 159, 0.5); opacity: 0.7; }
+.activity-block--daily .activity-block__dot {
+  animation: activity-dots-wave-daily 1.2s ease-in-out infinite;
 }
 
-@keyframes activity-dots-color-global {
-  0%, 100% { background-color: #39d1e3; opacity: 1; }
-  50% { background-color: rgba(57, 209, 227, 0.5); opacity: 0.7; }
+.activity-block--global .activity-block__dot {
+  animation: activity-dots-wave-global 1.2s ease-in-out infinite;
 }
 
-.activity-block__dot--filled:nth-child(1) { animation-delay: 0s; }
-.activity-block__dot--filled:nth-child(2) { animation-delay: 0.12s; }
-.activity-block__dot--filled:nth-child(3) { animation-delay: 0.24s; }
-.activity-block__dot--filled:nth-child(4) { animation-delay: 0.36s; }
-.activity-block__dot--filled:nth-child(5) { animation-delay: 0.48s; }
-.activity-block__dot--filled:nth-child(6) { animation-delay: 0.6s; }
+@keyframes activity-dots-wave-daily {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+@keyframes activity-dots-wave-global {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+.activity-block__dot:nth-child(1)  { animation-delay: 0s; }
+.activity-block__dot:nth-child(2)  { animation-delay: 0.12s; }
+.activity-block__dot:nth-child(3)  { animation-delay: 0.24s; }
+.activity-block__dot:nth-child(4)  { animation-delay: 0.36s; }
+.activity-block__dot:nth-child(5)  { animation-delay: 0.48s; }
+.activity-block__dot:nth-child(6)  { animation-delay: 0.6s; }
+.activity-block__dot:nth-child(7)  { animation-delay: 0.72s; }
+.activity-block__dot:nth-child(8)  { animation-delay: 0.84s; }
+.activity-block__dot:nth-child(9)  { animation-delay: 0.96s; }
+.activity-block__dot:nth-child(10) { animation-delay: 1.08s; }
 
 .activity-block__more {
   display: block;

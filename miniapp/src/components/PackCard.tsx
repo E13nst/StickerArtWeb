@@ -179,7 +179,7 @@ const PackCardVideoPreview: FC<{
         onLoadedData={onLoadedData}
         onError={onError}
       />
-      {isAdmin && diagnostics && (
+      {isAdmin && diagnostics?.hasFailed && (
         <PackCardDebugOverlay result={diagnostics} fileId={sticker.fileId} />
       )}
     </div>

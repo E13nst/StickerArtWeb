@@ -442,51 +442,39 @@ export const DashboardPage: FC = () => {
 
         {/* Earn ART — всегда в макете */}
         <div className="dashboard-daily-activity-section">
-            <div className="dashboard-daily-activity">
-              <div className="dashboard-daily-activity-header">
-                <h2 className="dashboard-daily-activity-title">Earn ART</h2>
+            <div className="activity-block activity-block--global">
+              <h3 className="activity-block__title">Earn ART</h3>
+              <div className="activity-block__progress-dots">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <span key={i} className={`activity-block__dot ${i < 6 ? 'activity-block__dot--filled' : ''}`} />
+                ))}
+              </div>
+              <div className="activity-block__tasks">
+                <div className="activity-task activity-task--upcoming">
+                  <div className="activity-task__header">
+                    <span className="activity-task__title">Swipe 50 cards</span>
+                    <span className="activity-task__status">Upcoming</span>
+                  </div>
+                  <div className="activity-task__row">
+                    <div className="activity-task__badge activity-task__badge--disabled">Claim</div>
+                  </div>
+                </div>
+                <div className="activity-task activity-task--upcoming">
+                  <div className="activity-task__header">
+                    <span className="activity-task__title">Create 5 stickers</span>
+                    <span className="activity-task__status">Upcoming</span>
+                  </div>
+                  <div className="activity-task__row">
+                    <div className="activity-task__badge activity-task__badge--disabled">Claim</div>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  className="top-users-link"
+                  className="top-users-link activity-block__more"
                   onClick={() => navigate('/profile?tab=artpoints')}
                 >
                   Check all
                 </button>
-              </div>
-              <div className="dashboard-daily-activity-carousel">
-                <div className="dashboard-daily-activity-pool">
-                  <div className="dashboard-daily-activity-task">
-                    <div className="dashboard-daily-activity-task__ico" aria-hidden>
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="dashboard-daily-activity-task__ico-svg">
-                        <path d="M14 10H6M10 14l-4-4 4-4" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div className="dashboard-daily-activity-task__info">
-                      <span className="dashboard-daily-activity-task__title">Swipe 50 cards</span>
-                      <span className="dashboard-daily-activity-task__reward">1,000 ART</span>
-                    </div>
-                    <button type="button" className="dashboard-daily-activity-task__btn">
-                      Start
-                    </button>
-                  </div>
-                  <div className="dashboard-daily-activity-task">
-                    <div className="dashboard-daily-activity-task__ico" aria-hidden>
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="dashboard-daily-activity-task__ico-svg">
-                        <rect x="2" y="2" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
-                        <rect x="12" y="2" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
-                        <rect x="2" y="12" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
-                        <rect x="12" y="12" width="6" height="6" rx="1" stroke="#FFFFFF" strokeWidth="1.25"/>
-                      </svg>
-                    </div>
-                    <div className="dashboard-daily-activity-task__info">
-                      <span className="dashboard-daily-activity-task__title">Create 5 stickers</span>
-                      <span className="dashboard-daily-activity-task__reward">100 ART</span>
-                    </div>
-                    <button type="button" className="dashboard-daily-activity-task__btn dashboard-daily-activity-task__btn--calm">
-                      Claim
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
         </div>
