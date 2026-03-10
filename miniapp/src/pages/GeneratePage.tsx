@@ -368,14 +368,28 @@ export const GeneratePage: FC = () => {
   const openChatPicker = useCallback((stickerFileId: string) => {
     const query = buildSwitchInlineQuery(stickerFileId);
     const fallbackUrl = buildFallbackShareUrl(stickerFileId);
+
+    const isIos = tg?.platform === 'ios' || tg?.platform === 'iphone' || tg?.platform === 'ipad';
+
     if (tg?.switchInlineQuery) {
       if (tg.initDataUnsafe?.chat) {
+        // Уже в чате — переключаем inline query в текущем чате
         tg.switchInlineQuery(query);
-      } else {
-        tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
+        return;
       }
+      if (isIos) {
+        // iOS: switchInlineQuery с choose_chat ненадёжен до mid-2025 версий Telegram
+        // openTelegramLink надёжно открывает нативный шаринг внутри приложения
+        if (tg.openTelegramLink) {
+          tg.openTelegramLink(fallbackUrl);
+          return;
+        }
+      }
+      // Desktop и Android: нативный пикер чатов через switchInlineQuery
+      tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
       return;
     }
+
     if (tg?.openTelegramLink) {
       tg.openTelegramLink(fallbackUrl);
       return;
