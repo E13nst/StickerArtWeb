@@ -100,31 +100,30 @@
 24. MetricCard.tsx
 25. AuthStatus.tsx
 26. TelegramAuthButton.tsx
-27. TelegramThemeToggle.tsx
-28. LazyImage.tsx
+27. LazyImage.tsx
 
 ### StickerSetDetail подкомпоненты:
-29. StickerSetDetail/StickerPreview.tsx
-30. StickerSetDetail/StickerSetDetailEdit.tsx
-31. StickerSetDetail/StickerSetActionsBar.tsx
-32. StickerSetDetail/CategoriesDialog.tsx
-33. StickerSetDetail/BlockDialog.tsx
+28. StickerSetDetail/StickerPreview.tsx
+29. StickerSetDetail/StickerSetDetailEdit.tsx
+30. StickerSetDetail/StickerSetActionsBar.tsx
+31. StickerSetDetail/CategoriesDialog.tsx
+32. StickerSetDetail/BlockDialog.tsx
 
 ### Фильтры:
-34. StickerSetTypeFilter.tsx
-35. DateFilterDropdown.tsx (частично)
-36. SortDropdown.tsx (частично)
-37. StickerTypeDropdown.tsx (частично)
+33. StickerSetTypeFilter.tsx
+34. DateFilterDropdown.tsx (частично)
+35. SortDropdown.tsx (частично)
+36. StickerTypeDropdown.tsx (частично)
 
 ### Страницы:
-38. pages/GalleryNewPage.tsx
-39. pages/AuthorPage.tsx
+37. pages/GalleryNewPage.tsx
+38. pages/AuthorPage.tsx
 
 ### Хуки:
-40. hooks/useStickerFeed.tsx
+39. hooks/useStickerFeed.tsx
 
 ### Layout:
-41. layout/StixlyPageContainer.tsx
+40. layout/StixlyPageContainer.tsx
 
 ## Изменения в package.json
 

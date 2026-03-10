@@ -114,10 +114,9 @@
 46. `miniapp/src/components/MetricCard.tsx`
 47. `miniapp/src/components/AuthStatus.tsx`
 48. `miniapp/src/components/TelegramAuthButton.tsx`
-49. `miniapp/src/components/TelegramThemeToggle.tsx`
-50. `miniapp/src/components/LazyImage.tsx`
-51. `miniapp/src/components/StixlyTopHeader.tsx`
-52. `miniapp/src/hooks/useStickerFeed.tsx`
+49. `miniapp/src/components/LazyImage.tsx`
+50. `miniapp/src/components/StixlyTopHeader.tsx`
+51. `miniapp/src/hooks/useStickerFeed.tsx`
 
 ## Рекомендации по замене компонентов
 

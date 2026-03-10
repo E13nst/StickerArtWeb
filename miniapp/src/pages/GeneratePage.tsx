@@ -25,6 +25,12 @@ const STATUS_MESSAGES: Record<GenerationStatus, string> = {
   TIMEOUT: 'Превышено время ожидания'
 };
 
+/** Сообщение для tg-spinner__message: сначала "Улучшаем промпт", потом "Создаем шедевр" */
+const getGeneratingSpinnerMessage = (status: GenerationStatus | null): string => {
+  if (status === 'GENERATING' || status === 'REMOVING_BACKGROUND') return 'Создаем шедевр';
+  return 'Улучшаем промпт'; // PROCESSING_PROMPT, PENDING, null и остальные
+};
+
 const POLLING_INTERVAL = 2500; // 2.5 секунды
 const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
@@ -587,13 +593,12 @@ export const GeneratePage: FC = () => {
     </div>
   );
 
-  // Рендер состояния генерации (Figma: "Please wait..." + форма readonly + CANCEL)
+  // Рендер состояния генерации: спиннер с сообщением "Подождите", форма readonly, кнопка в стиле submit с текстом "Подождите"
   const renderGeneratingState = () => (
     <>
       <div className="generate-status-container">
-        <LoadingSpinner message={currentStatus ? STATUS_MESSAGES[currentStatus] : 'Идет генерация...'} />
+        <LoadingSpinner message={getGeneratingSpinnerMessage(currentStatus)} />
       </div>
-      <p className="generate-status-header">Пожалуйста, подождите...</p>
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
           <img src={`${BASE}assets/pictures-icon.svg`} alt="" className="generate-input-wrapper__pictures-icon" aria-hidden="true" />
@@ -614,8 +619,8 @@ export const GeneratePage: FC = () => {
             </label>
           </div>
         </div>
-        <Button variant="primary" size="medium" onClick={handleReset} className="generate-button-cancel">
-          Отменить
+        <Button variant="primary" size="medium" disabled className="generate-button-submit">
+          Подождите
         </Button>
       </div>
     </>
@@ -661,7 +666,7 @@ export const GeneratePage: FC = () => {
             loading={isSavingAndSharing}
             className="generate-action-button share"
           >
-            {isSavingAndSharing ? 'Сохраняем...' : 'Сохранить и поделиться'}
+            {isSavingAndSharing ? 'Сохраняем...' : 'Поделиться'}
           </Button>
         </div>
       </div>

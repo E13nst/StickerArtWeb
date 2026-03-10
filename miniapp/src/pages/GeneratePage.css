@@ -182,6 +182,7 @@
   height: auto;
   min-height: 0;
   padding: 0;
+  padding-right: 36px; /* не заходить под .generate-input-wrapper__pictures-icon (12px + 24px) */
   padding-bottom: 0;
   background-color: transparent;
   border: none;
@@ -265,12 +266,14 @@
 /* Единый стиль для обоих выпадающих меню (модель в шапке и стиль в футере) */
 .generate-model-select-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  bottom: calc(100% + 4px);
+  top: auto;
   left: 0;
   right: 0;
   min-width: 100%;
   overflow: hidden;
-  z-index: var(--z-dropdown, 300);
+  z-index: 1000;
+  pointer-events: auto;
   font-family: var(--font-family-base);
   font-size: 12px;
   font-weight: 600;
@@ -284,11 +287,8 @@
   padding: 8px 10px;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary);
-  font-family: var(--font-family-base);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 16px;
+  font: inherit;
+  color: inherit;
   text-align: left;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -300,8 +300,7 @@
 }
 
 .generate-model-select-option--selected {
-  color: var(--color-text);
-  background-color: rgba(255, 255, 255, 0.06);
+  /* Визуально идентичен .generate-model-select-option */
 }
 
 /* Checkbox — inline in input, compact size */

@@ -28,7 +28,6 @@
 
 :root {
   color-scheme: dark;
-  /* Telegram цвета будут установлены через useTelegram hook */
   --tg-spacing-1: 3px; /* минимальные отступы по золотым пропорциям */
   --tg-spacing-2: 6px;
   --tg-spacing-3: 9px;

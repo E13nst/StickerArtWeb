@@ -85,18 +85,13 @@ const createMockTelegramEnv = (realInitData?: string | null): TelegramWebApp => 
   } as unknown as TelegramWebApp;
 };
 
-// Базовая конфигурация mock Telegram окружения
+// Базовая конфигурация mock Telegram окружения (единый вид на всех устройствах)
 const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWebApp> => {
-
-  // Определяем тему на основе системных настроек
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const colorScheme = isDarkMode ? 'dark' : 'light';
-
   return {
     version: '7.0',
     platform: 'web',
-    colorScheme: colorScheme,
-    themeParams: isDarkMode ? {
+    colorScheme: 'dark',
+    themeParams: {
       bg_color: '#191818',
       text_color: '#ffffff',
       hint_color: '#708499',
@@ -104,14 +99,6 @@ const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWeb
       button_color: '#5288c1',
       button_text_color: '#ffffff',
       secondary_bg_color: '#131415',
-    } : {
-      bg_color: '#ffffff',
-      text_color: '#000000',
-      hint_color: '#999999',
-      link_color: '#2481cc',
-      button_color: '#ee449f',
-      button_text_color: '#ffffff',
-      secondary_bg_color: '#f8f9fa',
     },
     isExpanded: true,
     viewportHeight: 600,
@@ -221,9 +208,6 @@ export const useTelegram = () => {
   const [isBaseReady, setIsBaseReady] = useState(false);
   const [isViewportReady, setIsViewportReady] = useState(false);
   const [isMockMode, setIsMockMode] = useState(false);
-  
-  // Слушатель изменений системной темы
-  const systemThemeListenerRef = useRef<((e: MediaQueryListEvent) => void) | null>(null);
   
   // Храним ссылки на telegram и viewportChangedHandler для cleanup
   const telegramRef = useRef<TelegramWebApp | null>(null);
@@ -452,241 +436,27 @@ export const useTelegram = () => {
       // Убрано: expand() из scroll-логики и viewportChanged handlers
       // expand() вызывается только один раз при инициализации в setupTelegramViewportSafe()
       
-      // Устанавливаем цвета header и bottom bar в соответствии с темой
-      // Проверяем версию: setHeaderColor и setBackgroundColor доступны с версии 7.0+
+      // Устанавливаем цвета header и фона (единый вид на всех устройствах)
       const supportsColorMethods = isVersionSupported(version, '7.0');
-      
-      // Вызываем методы цвета только если версия поддерживает (>= 7.0)
       if (supportsColorMethods) {
         const tgAny = telegram as { setHeaderColor?: (c: string) => void; setBackgroundColor?: (c: string) => void };
+        const bgColor = '#191818';
         if (typeof tgAny.setHeaderColor === 'function') {
           try {
-            tgAny.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
+            tgAny.setHeaderColor('bg_color');
           } catch (e) {
-            // Игнорируем ошибки если метод не поддерживается
-            if (import.meta.env.DEV) {
-              console.warn('⚠️ setHeaderColor вызвал ошибку:', e);
-            }
+            if (import.meta.env.DEV) console.warn('⚠️ setHeaderColor:', e);
           }
         }
-        
         if (typeof tgAny.setBackgroundColor === 'function') {
           try {
-            tgAny.setBackgroundColor(telegram.themeParams?.bg_color || '#ffffff');
+            tgAny.setBackgroundColor(bgColor);
           } catch (e) {
-            // Игнорируем ошибки если метод не поддерживается
-            if (import.meta.env.DEV) {
-              console.warn('⚠️ setBackgroundColor вызвал ошибку:', e);
-            }
+            if (import.meta.env.DEV) console.warn('⚠️ setBackgroundColor:', e);
           }
         }
-      } else if (import.meta.env.DEV) {
-        console.log(`ℹ️ Методы цвета пропущены - требуется версия >= 7.0, текущая: ${version}`);
       }
-      
-      // Функция для конвертации hex в RGB (используется в applyTheme и при загрузке сохраненной темы)
-      const hexToRgb = (hex: string): string => {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 0, 0';
-      };
 
-      // Нормализуем устаревший bg_color #18222d -> #191818
-      const normalizedBgColor = (c: string | undefined, darkFallback: string) =>
-        !c ? darkFallback : (c === '#18222d' || c.toLowerCase() === '#18222d' ? '#191818' : c);
-
-      // Функция применения темы
-      const applyTheme = () => {
-        if (telegram.themeParams) {
-          const root = document.documentElement;
-          const body = document.body;
-          const isDark = true; /* Единая тёмная тема */
-          const bgColor = normalizedBgColor(
-            telegram.themeParams.bg_color,
-            isDark ? '#191818' : '#ffffff'
-          );
-
-          // CSS переменные для темы
-          root.style.setProperty('--tg-theme-bg-color', bgColor);
-          root.style.setProperty('--tg-theme-text-color', telegram.themeParams.text_color || '#000000');
-          root.style.setProperty('--tg-theme-hint-color', telegram.themeParams.hint_color || '#999999');
-          root.style.setProperty('--tg-theme-button-color', telegram.themeParams.button_color || '#ee449f');
-          root.style.setProperty('--tg-theme-button-text-color', telegram.themeParams.button_text_color || '#ffffff');
-          root.style.setProperty('--tg-theme-secondary-bg-color', telegram.themeParams.secondary_bg_color || '#f8f9fa');
-          root.style.setProperty('--tg-theme-link-color', telegram.themeParams.link_color || '#2481cc');
-          
-          // Дополнительные переменные для лучшей поддержки тем
-          root.style.setProperty('--tg-theme-border-color', isDark ? '#2a3441' : '#e0e0e0');
-          root.style.setProperty('--tg-theme-shadow-color', isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)');
-          root.style.setProperty('--tg-theme-overlay-color', isDark ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)');
-          
-          // RGB-переменные для rgba() использования
-          const textColor = telegram.themeParams.text_color || (isDark ? '#ffffff' : '#000000');
-          const buttonColor = telegram.themeParams.button_color || '#ee449f';
-          
-          root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(bgColor));
-          root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(textColor));
-          root.style.setProperty('--tg-theme-button-color-rgb', hexToRgb(buttonColor));
-          root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54'); // Фиксированный цвет ошибки
-          
-          // Применяем тему к body
-          body.style.backgroundColor = bgColor;
-          body.style.color = telegram.themeParams.text_color || '#000000';
-          if (import.meta.env.DEV) {
-            console.log('[theme] body backgroundColor/color set — useTelegram.applyTheme', { bgColor });
-          }
-          // Устанавливаем класс для темной темы
-          if (isDark) {
-            root.classList.add('tg-dark-theme');
-            root.classList.remove('tg-light-theme');
-          } else {
-            root.classList.add('tg-light-theme');
-            root.classList.remove('tg-dark-theme');
-          }
-          
-          // Сохраняем тему в localStorage (с нормализованным bg_color)
-          try {
-            const paramsToSave = { ...telegram.themeParams, bg_color: bgColor };
-            localStorage.setItem('stixly_tg_theme', JSON.stringify({
-              scheme: telegram.colorScheme,
-              params: paramsToSave
-            }));
-          } catch (error) {
-            console.warn('Не удалось сохранить тему в localStorage:', error);
-          }
-          
-          // Обновляем цвета header и bottom bar при изменении темы
-          // Проверяем версию перед вызовом методов (только >= 7.0)
-          const currentVersion = telegram.version || '6.0';
-          const supportsColorMethods = isVersionSupported(currentVersion, '7.0');
-          
-          // Вызываем методы только если версия поддерживает
-          if (supportsColorMethods) {
-            const tgAny = telegram as { setHeaderColor?: (c: string) => void; setBackgroundColor?: (c: string) => void };
-            if (typeof tgAny.setHeaderColor === 'function') {
-              try {
-                tgAny.setHeaderColor(telegram.colorScheme === 'dark' ? 'bg_color' : 'bg_color');
-              } catch (e) {
-                // Игнорируем ошибки если метод не поддерживается
-                if (import.meta.env.DEV) {
-                  console.warn('⚠️ setHeaderColor в applyTheme вызвал ошибку:', e);
-                }
-              }
-            }
-            
-            if (typeof tgAny.setBackgroundColor === 'function') {
-              try {
-                tgAny.setBackgroundColor(bgColor);
-              } catch (e) {
-                // Игнорируем ошибки если метод не поддерживается
-                if (import.meta.env.DEV) {
-                  console.warn('⚠️ setBackgroundColor в applyTheme вызвал ошибку:', e);
-                }
-              }
-            }
-          }
-          // Если версия < 7.0, просто не вызываем методы - это нормально
-          
-          if (import.meta.env.DEV) {
-            console.log('🎨 Тема применена:', telegram.colorScheme);
-          }
-        }
-      };
-      
-      // Миграция: заменяем устаревший #18222d на базовый #191818
-      const migrateBgColor = (p: { bg_color?: string } | null | undefined) => {
-        if (!p?.bg_color) return p;
-        if (p.bg_color === '#18222d' || p.bg_color.toLowerCase() === '#18222d') {
-          return { ...p, bg_color: '#191818' };
-        }
-        return p;
-      };
-
-      // Применяем тему: сначала проверяем локально сохранённую
-      const savedTheme = (() => {
-        try {
-          const raw = localStorage.getItem('stixly_tg_theme');
-          const parsed = raw ? JSON.parse(raw) : null;
-          if (parsed?.params) {
-            parsed.params = migrateBgColor(parsed.params);
-          }
-          return parsed;
-        } catch {
-          return null;
-        }
-      })();
-
-      if (savedTheme?.scheme === 'dark') {
-        const root = document.documentElement;
-        const body = document.body;
-        const params = savedTheme.params || {
-          bg_color: '#191818',
-          text_color: '#ffffff',
-          hint_color: '#708499',
-          link_color: '#6ab2f2',
-          button_color: '#5288c1',
-          button_text_color: '#ffffff',
-          secondary_bg_color: '#131415',
-        };
-        root.style.setProperty('--tg-theme-bg-color', params.bg_color);
-        root.style.setProperty('--tg-theme-text-color', params.text_color);
-        root.style.setProperty('--tg-theme-hint-color', params.hint_color);
-        root.style.setProperty('--tg-theme-button-color', params.button_color);
-        root.style.setProperty('--tg-theme-button-text-color', params.button_text_color);
-        root.style.setProperty('--tg-theme-secondary-bg-color', params.secondary_bg_color);
-        root.style.setProperty('--tg-theme-link-color', params.link_color);
-        root.style.setProperty('--tg-theme-border-color', '#2a3441');
-        root.style.setProperty('--tg-theme-shadow-color', 'rgba(0, 0, 0, 0.3)');
-        root.style.setProperty('--tg-theme-overlay-color', 'rgba(0, 0, 0, 0.8)');
-        root.style.setProperty('--tg-theme-bg-color-rgb', hexToRgb(params.bg_color));
-        root.style.setProperty('--tg-theme-text-color-rgb', hexToRgb(params.text_color));
-        root.style.setProperty('--tg-theme-button-color-rgb', hexToRgb(params.button_color));
-        root.style.setProperty('--tg-theme-error-color-rgb', '244, 67, 54');
-        body.style.backgroundColor = params.bg_color;
-        body.style.color = params.text_color;
-        if (import.meta.env.DEV) {
-          console.log('[theme] body backgroundColor/color set — useTelegram.savedThemeDark', { bg: params.bg_color });
-        }
-        root.classList.add('tg-dark-theme');
-        root.classList.remove('tg-light-theme');
-      } else if (savedTheme?.scheme === 'light') {
-        /* Всегда применяем тёмную тему */
-        applyTheme();
-      } else {
-        applyTheme();
-      }
-      
-      // Подписываемся на изменения темы
-      if (typeof telegram.onEvent === 'function') {
-        telegram.onEvent('themeChanged', () => {
-          const justClosed = (window as Window & { __stixlyModalJustClosed?: number }).__stixlyModalJustClosed;
-          const guardMs = 450;
-          if (justClosed != null && Date.now() - justClosed < guardMs) {
-            if (import.meta.env.DEV) {
-              console.log('🎨 themeChanged отложен (модалка только что закрылась)');
-            }
-            return;
-          }
-          if (import.meta.env.DEV) {
-            console.log('🎨 Тема изменилась на:', telegram.colorScheme);
-          }
-          applyTheme();
-        });
-      }
-      
-      // Слушаем изменения системной темы
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      systemThemeListenerRef.current = (e: MediaQueryListEvent) => {
-        if (!localStorage.getItem('stixly_tg_theme')) {
-          // Применяем системную тему только если пользователь не выбрал принудительную
-          if (import.meta.env.DEV) {
-            console.log('🎨 Системная тема изменилась на:', e.matches ? 'dark' : 'light');
-          }
-          applyTheme();
-        }
-      };
-      
-      mediaQuery.addEventListener('change', systemThemeListenerRef.current);
-      
       // Логируем только в dev режиме
       if (import.meta.env.DEV) {
         console.log('🔍 Telegram Web App данные:');
@@ -729,11 +499,6 @@ export const useTelegram = () => {
     
     // Cleanup функция
     return () => {
-      if (systemThemeListenerRef.current) {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.removeEventListener('change', systemThemeListenerRef.current);
-      }
-      
       // Отписываемся от viewportChanged
       const handler = viewportChangedHandlerRef.current;
       const telegram = telegramRef.current;

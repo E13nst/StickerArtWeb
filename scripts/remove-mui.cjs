@@ -44,7 +44,6 @@ const filesToProcess = [
   './miniapp/src/components/MetricCard.tsx',
   './miniapp/src/components/AuthStatus.tsx',
   './miniapp/src/components/TelegramAuthButton.tsx',
-  './miniapp/src/components/TelegramThemeToggle.tsx',
   './miniapp/src/components/LazyImage.tsx',
 ];
 
