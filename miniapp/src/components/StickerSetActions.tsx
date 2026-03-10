@@ -291,7 +291,7 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
                 color: 'white'
               }}
             >
-              ❌
+              🗑️
             </IconButton>
           </span>
         )}
@@ -415,13 +415,13 @@ export const StickerSetActions: FC<StickerSetActionsProps> = ({
             >
               {dialogState.loading ? (
                 <Spinner size={24} style={{ color: currentConfig.confirmColor === 'error' ? '#f44336' : currentConfig.confirmColor === 'success' ? '#4CAF50' : currentConfig.confirmColor === 'warning' ? '#ff9800' : '#2196F3' }} />
+              ) : dialogState.action === 'DELETE' ? (
+                <span style={{ fontSize: '22px', lineHeight: 1 }}>🗑️</span>
+              ) : dialogState.action === 'BLOCK' ? (
+                <span style={{ fontSize: '22px', lineHeight: 1 }}>🚫</span>
               ) : (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  {currentConfig.confirmColor === 'error' ? (
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 11c-.55 0-1-.45-1-1V8c0-.55.45-1 1-1s1 .45 1 1v4c0 .55-.45 1-1 1zm1 4h-2v-2h2v2z" />
-                  ) : (
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                  )}
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                 </svg>
               )}
             </IconButton>

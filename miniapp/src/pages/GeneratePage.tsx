@@ -62,7 +62,6 @@ export const GeneratePage: FC = () => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
-  const [, setIsSendingToChat] = useState(false);
   
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);

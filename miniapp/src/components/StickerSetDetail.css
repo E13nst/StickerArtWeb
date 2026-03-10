@@ -283,20 +283,13 @@
   flex-shrink: 0;
   transition: background-color 150ms ease, color 150ms ease;
 }
-.sticker-set-detail-card__icon-btn--edit {
+.sticker-set-detail-card__icon-btn--categories {
   background: transparent;
   color: var(--color-primary);
 }
-.sticker-set-detail-card__icon-btn--edit:hover {
-  background: rgba(36, 129, 204, 0.1);
-}
-.sticker-set-detail-card__icon-btn--categories {
-  background: transparent;
-  color: var(--color-text-secondary);
-}
 .sticker-set-detail-card__icon-btn--categories:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-text);
+  background: rgba(36, 129, 204, 0.1);
+  color: var(--color-primary);
 }
 @media (max-width: 400px) {
   .sticker-set-detail-card__icon-btn {
