@@ -218,8 +218,8 @@
 /* Баланс ART — симметрично кнопке "Поделиться" (слева сверху) */
 .account-header__balance-wrap {
   position: absolute;
-  top: calc(var(--account-card-share-offset, 8px) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
-  left: calc(var(--account-card-share-offset, 8px) + var(--tg-content-safe-area-inset-left, env(safe-area-inset-left, 0px)));
+  top: var(--account-card-share-offset, 8px);
+  left: var(--account-card-share-offset, 8px);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -382,8 +382,8 @@
 /* Кнопка "Поделиться" — отступ как у Connect wallet (8px), стеклянная */
 .account-header__share-wrap {
   position: absolute;
-  top: calc(var(--account-card-share-offset, 8px) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
-  right: calc(var(--account-card-share-offset, 8px) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
+  top: var(--account-card-share-offset, 8px);
+  right: var(--account-card-share-offset, 8px);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -563,12 +563,12 @@
     gap: clamp(12px, 4vw, 16px) !important;
   }
   .account-header__balance-wrap {
-    left: calc(var(--account-card-share-offset) + var(--tg-content-safe-area-inset-left, env(safe-area-inset-left, 0px)));
-    top: calc(var(--account-card-share-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
+    left: var(--account-card-share-offset);
+    top: var(--account-card-share-offset);
   }
   .account-header__share-wrap {
-    right: calc(var(--account-card-share-offset) + var(--tg-content-safe-area-inset-right, env(safe-area-inset-right, 0px)));
-    top: calc(var(--account-card-share-offset) + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
+    right: var(--account-card-share-offset);
+    top: var(--account-card-share-offset);
   }
   .page-container .account-header__avatar,
   .account-header__avatar {

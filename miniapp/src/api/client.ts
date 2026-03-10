@@ -1319,7 +1319,11 @@ class ApiClient {
     sort: 'createdAt' | 'title' | 'name' = 'createdAt',
     direction: 'ASC' | 'DESC' = 'DESC',
     preview?: boolean,
-    shortInfo?: boolean
+    shortInfo?: boolean,
+    isVerified?: boolean,
+    type?: 'USER' | 'OFFICIAL',
+    visibility?: string,
+    likedOnly?: boolean
   ): Promise<StickerSetListResponse> {
     // ✅ FIX: Дедупликация запросов для предотвращения множественных вызовов
     return requestDeduplicator.fetch(
@@ -1332,6 +1336,18 @@ class ApiClient {
           }
           if (typeof shortInfo === 'boolean') {
             params.shortInfo = shortInfo;
+          }
+          if (typeof isVerified === 'boolean') {
+            params.isVerified = isVerified;
+          }
+          if (type) {
+            params.type = type;
+          }
+          if (visibility) {
+            params.visibility = visibility;
+          }
+          if (typeof likedOnly === 'boolean') {
+            params.likedOnly = likedOnly;
           }
           const response = await this.client.get<StickerSetListResponse>(`/stickersets/user/${userId}`, {
             params
@@ -1354,7 +1370,7 @@ class ApiClient {
           };
         }
       },
-      { userId, page, size, sort, direction, preview, shortInfo }, // Параметры для ключа кэша
+      { userId, page, size, sort, direction, preview, shortInfo, isVerified, type, visibility, likedOnly }, // Параметры для ключа кэша
       { skipCache: false } // Кэшируем на 5 минут
     );
   }

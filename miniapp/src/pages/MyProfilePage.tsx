@@ -164,6 +164,17 @@ export const MyProfilePage: FC = () => {
   const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
   // Отдельное состояние для загрузки следующей страницы "Мои" (аналогично GalleryPage)
   const [isLoadingMorePublished, setIsLoadingMorePublished] = useState(false);
+  // Общий счётчик стикерпаков для стата (type=USER, isVerified=false, visibility=PUBLIC)
+  const [totalUserPacksCount, setTotalUserPacksCount] = useState<number | null>(null);
+  // Состояние для вкладки Uploaded (Tab 2)
+  const [uploadedStickerSets, setUploadedStickerSets] = useState<any[]>([]);
+  const [uploadedCurrentPage, setUploadedCurrentPage] = useState(0);
+  const [uploadedTotalPages, setUploadedTotalPages] = useState(1);
+  const [isLoadingMoreUploaded, setIsLoadingMoreUploaded] = useState(false);
+  // Локальный флаг начальной загрузки Uploaded (не Zustand!) — предотвращает гонку состояний
+  const [isUploadedLoading, setIsUploadedLoading] = useState(false);
+  const [isUploadedListLoaded, setIsUploadedListLoaded] = useState(false);
+  const [uploadedStickerSetsError, setUploadedStickerSetsError] = useState<string | null>(null);
   // Реферальная ссылка: кэш и тултип "Ссылка скопирована"
   const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(null);
   const [referralLinkLoading, setReferralLinkLoading] = useState(false);
@@ -348,12 +359,22 @@ export const MyProfilePage: FC = () => {
         return;
       }
 
-      // Загружаем стикерсеты пользователя
+      // Загружаем стикерсеты пользователя (Created, isVerified=true)
       try {
         await loadUserStickerSets(loadedProfile.id, undefined, 0, false, sortByLikes);
       } catch (stickerError) {
         console.error('Ошибка загрузки стикерсетов:', stickerError);
-        // Не показываем ошибку пользователю - профиль загружен, просто нет стикерсетов
+      }
+
+      // Загружаем общий счётчик стикерпаков (type=USER, isVerified=false, visibility=PUBLIC, size=1)
+      try {
+        const countResponse = await apiClient.getUserStickerSets(
+          loadedProfile.id, 0, 1, 'createdAt', 'DESC',
+          undefined, true, false, 'USER', 'PUBLIC', false
+        );
+        setTotalUserPacksCount(countResponse.totalElements ?? 0);
+      } catch (countError) {
+        console.warn('⚠️ Не удалось загрузить счётчик стикерпаков:', countError);
       }
 
       const currentUserInfo = useProfileStore.getState().userInfo;
@@ -496,20 +517,39 @@ export const MyProfilePage: FC = () => {
   }, []); // Не добавляем avatarBlobUrl в зависимости, используем ref для отслеживания
 
   // Загрузка стикерсетов пользователя
-  const loadUserStickerSets = async (userIdParam: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean) => {
+  // tabType: 'created' — вкладка Created (isVerified=true), 'uploaded' — вкладка Uploaded (type=USER)
+  const loadUserStickerSets = async (userIdParam: number, searchQuery?: string, page: number = 0, append: boolean = false, sortByLikesParam?: boolean, tabType: 'created' | 'uploaded' = 'created') => {
     if (append) {
-      setIsLoadingMorePublished(true);
+      if (tabType === 'uploaded') {
+        setIsLoadingMoreUploaded(true);
+      } else {
+        setIsLoadingMorePublished(true);
+      }
     } else {
-      setStickerSetsLoading(true);
+      if (tabType === 'uploaded') {
+        setIsUploadedLoading(true);
+      } else {
+        setStickerSetsLoading(true);
+      }
     }
-    setStickerSetsError(null);
+    if (tabType === 'uploaded') {
+      setUploadedStickerSetsError(null);
+    } else {
+      setStickerSetsError(null);
+    }
 
     // ✅ Проверяем что userId валидный
     if (typeof userIdParam !== 'number' || Number.isNaN(userIdParam)) {
       console.error('❌ Невалидный userId:', userIdParam);
-      setStickerSetsError('Невозможно загрузить стикерсеты: не указан ID пользователя');
+      if (tabType === 'uploaded') {
+        setUploadedStickerSetsError('Невозможно загрузить стикерсеты: не указан ID пользователя');
+      } else {
+        setStickerSetsError('Невозможно загрузить стикерсеты: не указан ID пользователя');
+      }
       if (!append) {
         setStickerSetsLoading(false);
+      } else if (tabType === 'uploaded') {
+        setIsLoadingMoreUploaded(false);
       } else {
         setIsLoadingMorePublished(false);
       }
@@ -523,39 +563,52 @@ export const MyProfilePage: FC = () => {
       if (searchQuery && searchQuery.trim()) {
         console.log('🔍 Выполняем поиск стикерсетов...');
         const response = await apiClient.searchUserStickerSets(userIdParam, searchQuery, page, 20, true);
-        console.log('✅ Поиск завершен:', { count: response.content?.length || 0, page: response.number, totalPages: response.totalPages });
+        console.log('✅ Поиск завершен:', { count: response.content?.length || 0, page: response.number, totalPages: response.totalPages, tabType });
         const filteredContent = response.content || [];
-        
-        if (append) {
-          // Добавляем новые стикерсеты к существующим (как в GalleryPage)
-          addUserStickerSets(filteredContent);
+
+        if (tabType === 'uploaded') {
+          if (append) {
+            setUploadedStickerSets(prev => {
+              const existingIds = new Set(prev.map((s: any) => String(s.id)));
+              const unique = filteredContent.filter((s: any) => !existingIds.has(String(s.id)));
+              return [...prev, ...unique];
+            });
+          } else {
+            setUploadedStickerSets(filteredContent);
+          }
+          setUploadedCurrentPage(response.number ?? page);
+          setUploadedTotalPages(response.totalPages ?? 0);
         } else {
-          // Заменяем все стикерсеты
-          setUserStickerSets(filteredContent);
+          if (append) {
+            addUserStickerSets(filteredContent);
+          } else {
+            setUserStickerSets(filteredContent);
+          }
+          setPagination(
+            response.number ?? page,
+            response.totalPages ?? 0,
+            response.totalElements ?? 0
+          );
         }
         
-        // Инициализируем лайки из API данных (как в GalleryPage)
         if (filteredContent.length > 0) {
           initializeLikes(filteredContent, append);
         }
-        
-        // Обновляем информацию о пагинации (как в GalleryPage)
-        setPagination(
-          response.number ?? page,
-          response.totalPages ?? 0,
-          response.totalElements ?? 0
-        );
         console.log('✅ Поиск стикерсетов успешно завершен');
         return;
       }
       
-      console.log('🔍 Загружаем стикерсеты пользователя...');
-      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true, false);
+      console.log('🔍 Загружаем стикерсеты пользователя...', { tabType });
+      // Created: isVerified=true, Uploaded: type=USER
+      const isVerifiedParam = tabType === 'created' ? true : undefined;
+      const typeParam = tabType === 'uploaded' ? 'USER' as const : undefined;
+      const response = await apiClient.getUserStickerSets(userIdParam, page, 20, 'createdAt', 'DESC', true, false, isVerifiedParam, typeParam);
       console.log('✅ Ответ от API получен:', { 
         hasResponse: !!response, 
         contentLength: response?.content?.length || 0,
         page: response?.number,
-        totalPages: response?.totalPages 
+        totalPages: response?.totalPages,
+        tabType
       });
       const filteredContent = response.content || [];
       
@@ -565,7 +618,8 @@ export const MyProfilePage: FC = () => {
         totalPages: response.totalPages,
         totalElements: response.totalElements,
         append,
-        hasNextPage: response.number < response.totalPages - 1
+        hasNextPage: response.number < response.totalPages - 1,
+        tabType
       });
       
       // Инициализируем лайки из API данных
@@ -583,22 +637,34 @@ export const MyProfilePage: FC = () => {
         });
       }
       
-      if (append) {
-        // Добавляем новые стикерсеты к существующим (как в GalleryPage)
-        addUserStickerSets(finalContent);
+      if (tabType === 'uploaded') {
+        // Обновляем состояние вкладки Uploaded
+        if (append) {
+          setUploadedStickerSets(prev => {
+            const existingIds = new Set(prev.map((s: any) => String(s.id)));
+            const unique = finalContent.filter((s: any) => !existingIds.has(String(s.id)));
+            return [...prev, ...unique];
+          });
+        } else {
+          setUploadedStickerSets(finalContent);
+          setIsUploadedListLoaded(true);
+        }
+        setUploadedCurrentPage(response.number ?? page);
+        setUploadedTotalPages(response.totalPages ?? 0);
       } else {
-        // Заменяем все стикерсеты
-        setUserStickerSets(finalContent);
+        // Обновляем состояние вкладки Created
+        if (append) {
+          addUserStickerSets(finalContent);
+        } else {
+          setUserStickerSets(finalContent);
+        }
+        setPagination(
+          response.number ?? page,
+          response.totalPages ?? 0,
+          response.totalElements ?? 0
+        );
       }
-      
-      // Обновляем информацию о пагинации (как в GalleryPage)
-      setPagination(
-        response.number ?? page,
-        response.totalPages ?? 0,
-        response.totalElements ?? 0
-      );
     } catch (error: any) {
-      // ✅ Показываем ошибку вместо моковых данных
       const errorMessage = error?.response?.status === 401
         ? 'Ошибка аутентификации. Попробуйте перезапустить приложение.'
         : error instanceof Error 
@@ -610,23 +676,38 @@ export const MyProfilePage: FC = () => {
         message: error?.message,
         response: error?.response,
         status: error?.response?.status,
-        data: error?.response?.data
+        data: error?.response?.data,
+        tabType
       });
-      setStickerSetsError(errorMessage);
-      
-      // Очищаем список стикерсетов при ошибке
-      if (!append) {
-        setUserStickerSets([]);
-        setPagination(0, 1, 0);
+
+      if (tabType === 'uploaded') {
+        setUploadedStickerSetsError(errorMessage);
+        if (!append) {
+          setUploadedStickerSets([]);
+          setUploadedCurrentPage(0);
+          setUploadedTotalPages(1);
+        }
+      } else {
+        setStickerSetsError(errorMessage);
+        if (!append) {
+          setUserStickerSets([]);
+          setPagination(0, 1, 0);
+        }
       }
     } finally {
-      console.log('🔄 Сбрасываем состояние загрузки:', { append, isLoadingMorePublished, isStickerSetsLoading });
       if (append) {
-        setIsLoadingMorePublished(false);
+        if (tabType === 'uploaded') {
+          setIsLoadingMoreUploaded(false);
+        } else {
+          setIsLoadingMorePublished(false);
+        }
       } else {
-        setStickerSetsLoading(false);
+        if (tabType === 'uploaded') {
+          setIsUploadedLoading(false);
+        } else {
+          setStickerSetsLoading(false);
+        }
       }
-      console.log('✅ Состояние загрузки сброшено');
     }
   };
 
@@ -640,8 +721,15 @@ export const MyProfilePage: FC = () => {
   };
 
   const handleViewStickerSet = (packId: string) => {
-    const source = isLikesTab ? likedStickerSets : userStickerSets;
-    const stickerSet = source.find(s => s.id.toString() === packId);
+    let source: any[];
+    if (isLikesTab) {
+      source = likedStickerSets;
+    } else if (activeProfileTab === 2) {
+      source = uploadedStickerSets;
+    } else {
+      source = userStickerSets;
+    }
+    const stickerSet = source.find((s: any) => s.id.toString() === packId);
     if (stickerSet) {
       setSelectedStickerSet(stickerSet);
       setIsModalOpen(true);
@@ -795,6 +883,12 @@ export const MyProfilePage: FC = () => {
     setOriginalLikedSetIds(new Set());
     setLikedCurrentPage(0);
     setLikedTotalPages(1);
+    setIsUploadedListLoaded(false);
+    setIsUploadedLoading(false);
+    setUploadedStickerSets([]);
+    setUploadedCurrentPage(0);
+    setUploadedTotalPages(1);
+    setTotalUserPacksCount(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId]);
   
@@ -814,6 +908,16 @@ export const MyProfilePage: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [likedIdsHash, activeProfileTab, isLikedListLoaded]);
 
+  // Загружаем Uploaded при первом открытии вкладки Upload (Tab 2)
+  // Намеренно НЕ используем isStickerSetsLoading (Zustand) — это вызывает гонку состояний.
+  // isUploadedLoading — локальный флаг, обновляется синхронно с isUploadedListLoaded.
+  useEffect(() => {
+    if (activeProfileTab === 2 && !isUploadedListLoaded && !isUploadedLoading && currentUserId) {
+      loadUserStickerSets(currentUserId, undefined, 0, false, sortByLikes, 'uploaded');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProfileTab, isUploadedListLoaded, isUploadedLoading, currentUserId]);
+
 
   const handleCreateSticker = useCallback(() => {
     setIsUploadModalOpen(true);
@@ -828,11 +932,11 @@ export const MyProfilePage: FC = () => {
   const handleSearch = (searchTermValue: string) => {
     const userId = currentUserId;
     if (!userId) return;
-    
+    const tabType = activeProfileTab === 2 ? 'uploaded' : 'created';
     if (searchTermValue.trim()) {
-      loadUserStickerSets(userId, searchTermValue, 0, false, sortByLikes);
+      loadUserStickerSets(userId, searchTermValue, 0, false, sortByLikes, tabType);
     } else {
-      loadUserStickerSets(userId, undefined, 0, false, sortByLikes);
+      loadUserStickerSets(userId, undefined, 0, false, sortByLikes, tabType);
     }
   };
 
@@ -842,7 +946,8 @@ export const MyProfilePage: FC = () => {
     setSortByLikes(newSortByLikes);
     const userId = currentUserId;
     if (userId) {
-      loadUserStickerSets(userId, searchTerm || undefined, 0, false, newSortByLikes);
+      const tabType = activeProfileTab === 2 ? 'uploaded' : 'created';
+      loadUserStickerSets(userId, searchTerm || undefined, 0, false, newSortByLikes, tabType);
     }
   };
 
@@ -893,6 +998,17 @@ export const MyProfilePage: FC = () => {
       });
     }
   }, [likedCurrentPage, likedTotalPages, isLikedLoadingMore, loadLikedStickerSets]);
+
+  const handleLoadMoreUploaded = useCallback(() => {
+    if (searchTerm && searchTerm.trim()) {
+      console.log('⏸️ Пагинация Uploaded отключена при поиске');
+      return;
+    }
+    if (currentUserId && !isLoadingMoreUploaded && uploadedCurrentPage < uploadedTotalPages - 1) {
+      const nextPage = uploadedCurrentPage + 1;
+      loadUserStickerSets(currentUserId, undefined, nextPage, true, sortByLikes, 'uploaded');
+    }
+  }, [currentUserId, uploadedCurrentPage, uploadedTotalPages, sortByLikes, isLoadingMoreUploaded, searchTerm]);
 
   // Фильтрация стикерсетов (при поиске данные уже отфильтрованы на сервере)
   const filteredStickerSets = userStickerSets;
@@ -1097,7 +1213,7 @@ export const MyProfilePage: FC = () => {
             {/* Статистика: 2 колонки (Наборов / ART) */}
             <div className="account-header__stats">
               <div className="account-header__stat">
-                <span className="account-header__stat-value">{totalElements}</span>
+                <span className="account-header__stat-value">{totalUserPacksCount ?? totalElements}</span>
                 <span className="account-header__stat-label">sticker packs</span>
               </div>
               <div className="account-header__stat">
@@ -1289,7 +1405,7 @@ export const MyProfilePage: FC = () => {
               )}
             </TabPanel>
 
-            {/* Tab 2: Upload — загруженные пользователем стикерсеты */}
+            {/* Tab 2: Upload — загруженные пользователем стикерсеты (type=USER) */}
             <TabPanel value={activeProfileTab} index={2}>
               <div ref={tabsContainerRef} className="my-profile-tabs-container">
                 <CompactControlsBar
@@ -1314,18 +1430,18 @@ export const MyProfilePage: FC = () => {
                   onAddClick={handleCreateSticker}
                 />
               </div>
-              {contentLoading ? (
+              {isUploadedLoading ? (
                 <div className="my-profile-gallery-skeleton" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 177px)', gap: 16, justifyContent: 'center', padding: '16px 0' }}>
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className="pack-card-skeleton" style={{ width: 177, height: 213 }} />
                   ))}
                 </div>
-              ) : stickerSetsError && isInTelegramApp ? (
+              ) : uploadedStickerSetsError && isInTelegramApp ? (
                 <ErrorDisplay
-                  error={stickerSetsError}
-                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes)}
+                  error={uploadedStickerSetsError}
+                  onRetry={() => currentUserId && loadUserStickerSets(currentUserId, searchTerm || undefined, 0, false, sortByLikes, 'uploaded')}
                 />
-              ) : hasInitialLoadDone && filteredStickerSets.length === 0 ? (
+              ) : isUploadedListLoaded && uploadedStickerSets.length === 0 ? (
                 <div className="flex-column-center py-3 px-1 my-profile-empty-state-container">
                   <Text variant="h3" className="my-profile-empty-state-title">
                     📁 У вас пока нет загруженных стикерсетов
@@ -1338,11 +1454,11 @@ export const MyProfilePage: FC = () => {
                 <div className="u-fade-in">
                   <OptimizedGallery
                     variant="gallery"
-                    packs={adaptStickerSetsToGalleryPacks(filteredStickerSets)}
+                    packs={adaptStickerSetsToGalleryPacks(uploadedStickerSets)}
                     onPackClick={handleViewStickerSet}
-                    hasNextPage={!searchTerm && currentPage < totalPages - 1}
-                    isLoadingMore={isLoadingMorePublished}
-                    onLoadMore={handleLoadMorePublished}
+                    hasNextPage={!searchTerm && uploadedCurrentPage < uploadedTotalPages - 1}
+                    isLoadingMore={isLoadingMoreUploaded}
+                    onLoadMore={handleLoadMoreUploaded}
                     scrollElement={scrollElement}
                   />
                 </div>
@@ -1451,11 +1567,10 @@ export const MyProfilePage: FC = () => {
         open={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onComplete={async () => {
-          // ✅ REFACTORED: Обновляем профиль без параметров
           await loadMyProfile(true);
           const refreshedUserId = useProfileStore.getState().userInfo?.id;
           if (refreshedUserId) {
-            await loadUserStickerSets(refreshedUserId, searchTerm || undefined, 0, false, sortByLikes);
+            await loadUserStickerSets(refreshedUserId, searchTerm || undefined, 0, false, sortByLikes, 'uploaded');
           }
         }}
       />
