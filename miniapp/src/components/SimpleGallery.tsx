@@ -820,7 +820,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
           display: 'flex',
           justifyContent: 'center',
           padding: '8px 0',
-          color: 'var(--tg-theme-hint-color)'
+          color: 'var(--color-text-secondary)'
         }}>
           Загружено {visibleCount} из {packs.length} паков
         </div>
@@ -843,7 +843,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
         >
           {isLoadingMore && (
             <div style={{
-              color: 'var(--tg-theme-hint-color)',
+              color: 'var(--color-text-secondary)',
               fontSize: '14px',
               display: 'flex',
               alignItems: 'center',
@@ -852,7 +852,7 @@ const SimpleGalleryComponent: FC<SimpleGalleryProps> = ({
               <div style={{
                 width: '16px',
                 height: '16px',
-                border: '2px solid var(--tg-theme-hint-color)',
+                border: '2px solid var(--color-text-secondary)',
                 borderTop: '2px solid transparent',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'

@@ -86,7 +86,7 @@
   font-size: 16px;
   font-weight: 400;
   line-height: 16px;
-  color: var(--color-text);
+  color: #ffffff;
   width: 370px;
   min-height: 16px;
   display: flex;
@@ -139,29 +139,25 @@
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.generate-input-wrapper__pictures-icon {
+.generate-input-wrapper__pictures-slot {
   position: absolute;
   top: 12px;
   right: 12px;
   width: 24px;
   height: 24px;
-  pointer-events: none;
-  opacity: 0.85;
-  object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%); /* #8A8A8A в стиле приложения */
+  z-index: 2;
 }
 
 .generate-input-wrapper__pictures-button {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  position: relative;
   width: 24px;
   height: 24px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  z-index: 2;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .generate-input-wrapper__pictures-button:disabled {
@@ -169,9 +165,22 @@
   opacity: 0.7;
 }
 
-.generate-input-wrapper__pictures-button .generate-input-wrapper__pictures-icon {
-  position: static;
+.generate-input-wrapper__pictures-icon,
+.generate-input-wrapper__pictures-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.generate-input-wrapper__pictures-icon {
   pointer-events: none;
+  opacity: 0.85;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%); /* #8A8A8A в стиле приложения */
+}
+
+.generate-input-wrapper__pictures-preview {
+  object-fit: cover;
 }
 
 .generate-source-image-preview {
@@ -196,8 +205,8 @@
 
 .generate-source-image-preview__remove {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -4px;
+  right: -4px;
   width: 14px;
   height: 14px;
   padding: 0;
@@ -251,7 +260,7 @@
   background-color: transparent;
   border: none;
   border-radius: 0;
-  color: var(--color-text);
+  color: #ffffff;
   font-size: 12px;
   font-family: var(--font-family-base);
   line-height: 12px;
@@ -367,6 +376,15 @@
   /* Визуально идентичен .generate-model-select-option */
 }
 
+.generate-model-select-option--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.generate-model-select-option--disabled:hover {
+  background-color: transparent;
+}
+
 /* Checkbox — inline in input, compact size */
 .generate-checkbox-label {
   display: flex;
@@ -472,7 +490,7 @@
   line-height: 16px !important;
   border-radius: 16px !important;
   background-color: var(--color-primary) !important;
-  color: var(--color-text) !important;
+  color: #ffffff !important;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
@@ -538,7 +556,7 @@
   font-size: 16px;
   font-weight: 400;
   line-height: 16px;
-  color: var(--color-text);
+  color: #ffffff;
   text-align: center;
   margin-bottom: var(--spacing-md);
 }
@@ -555,7 +573,7 @@
   font-weight: 700 !important;
   border-radius: 16px !important;
   background-color: var(--color-surface) !important;
-  color: var(--color-text) !important;
+  color: #ffffff !important;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   align-self: center;
 }
@@ -602,7 +620,7 @@
 
 .generate-action-button.share {
   background-color: var(--color-primary) !important;
-  color: var(--color-text) !important;
+  color: #ffffff !important;
 }
 
 .generate-new-request {
@@ -656,7 +674,7 @@
 /* Save button — цвет чёрный, форма общая с .generate-actions .generate-action-button */
 .generate-action-button.save {
   background-color: #000000 !important;
-  color: var(--color-text) !important;
+  color: #ffffff !important;
 }
 
 .generate-actions {

@@ -4,8 +4,8 @@
   justify-content: center;
   border-radius: 50%;
   overflow: hidden;
-  background-color: var(--tg-theme-button-color, #3390ec);
-  color: var(--tg-theme-button-text-color, #ffffff);
+  background-color: var(--color-button);
+  color: var(--color-button-text);
   font-weight: 500;
   position: relative;
 }

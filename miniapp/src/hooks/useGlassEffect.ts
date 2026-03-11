@@ -15,8 +15,8 @@ export interface GlassEffectTokens {
 export const useGlassEffect = (): GlassEffectTokens => {
   return useMemo(
     () => ({
-      textColor: 'var(--tg-theme-button-text-color, #ffffff)',
-      textColorResolved: 'var(--tg-theme-button-text-color, #ffffff)',
+      textColor: 'var(--color-button-text)',
+      textColorResolved: 'var(--color-button-text)',
       glassBase: 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)',
       glassSolid: 'rgba(78, 132, 255, 0.24)',
       glassHover: 'color-mix(in srgb, rgba(98, 150, 255, 0.44) 74%, transparent)',

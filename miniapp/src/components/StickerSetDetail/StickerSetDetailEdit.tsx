@@ -195,7 +195,7 @@ export const StickerSetDetailEdit: FC<StickerSetDetailEditProps> = ({
         variant="h4"
         weight="bold"
         style={{
-          color: 'var(--tg-theme-text-color)',
+          color: 'var(--color-text)',
           fontWeight: 600,
           marginBottom: '8px'
         }}
@@ -224,10 +224,10 @@ export const StickerSetDetailEdit: FC<StickerSetDetailEditProps> = ({
                 padding: '12px',
                 marginBottom: '8px',
                 backgroundColor: selectedIndex === index
-                  ? 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.18)'
-                  : 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.1)',
+                  ? 'rgba(25, 24, 24, 0.18)'
+                  : 'rgba(25, 24, 24, 0.1)',
                 borderRadius: '12px',
-                border: `1px solid ${selectedIndex === index ? 'rgba(238, 68, 159, 0.4)' : 'rgba(var(--tg-theme-border-color-rgb, 0, 0, 0), 0.1)'}`,
+                border: `1px solid ${selectedIndex === index ? 'rgba(238, 68, 159, 0.4)' : 'rgba(138, 138, 138, 0.1)'}`,
                 opacity: isDeleted ? 0.5 : 1,
                 transition: 'opacity 200ms ease, background 150ms ease, border-color 150ms ease',
                 cursor: 'pointer'
@@ -241,7 +241,7 @@ export const StickerSetDetailEdit: FC<StickerSetDetailEditProps> = ({
                   width: 32,
                   height: 32,
                   cursor: 'grab',
-                  color: 'var(--tg-theme-hint-color)',
+                  color: 'var(--color-text-secondary)',
                   flexShrink: 0
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -279,8 +279,8 @@ export const StickerSetDetailEdit: FC<StickerSetDetailEditProps> = ({
                   width: 32,
                   height: 32,
                   color: isDeleted
-                    ? 'var(--tg-theme-link-color)'
-                    : 'var(--tg-theme-destructive-text-color, #f44336)'
+                    ? 'var(--color-link)'
+                    : 'var(--color-error)'
                 }}
               >
                 {isDeleted ? <RestoreIcon /> : <DeleteIcon />}
@@ -322,8 +322,8 @@ export const StickerSetDetailEdit: FC<StickerSetDetailEditProps> = ({
           <Alert
             severity="info"
             style={{
-              backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 255, 255, 255), 0.95)',
-              color: 'var(--tg-theme-text-color)'
+              backgroundColor: 'rgba(25, 24, 24, 0.95)',
+              color: 'var(--color-text)'
             }}
           >
             Изменения пока не сохраняются на сервере. Это прототип редактора.

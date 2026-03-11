@@ -33,7 +33,7 @@ export const TopStickersCarousel: FC<TopStickersCarouselProps> = ({
 
   return (
     <div style={{ width: '100%' }}>
-      <Text variant="h4" weight="bold" style={{ color: 'var(--tg-theme-text-color)', marginBottom: '16px', fontSize: '1.25rem' }}>
+      <Text variant="h4" weight="bold" style={{ color: 'var(--color-text)', marginBottom: '16px', fontSize: '1.25rem' }}>
         ТОП-5 СТИКЕРОВ
       </Text>
       
@@ -44,7 +44,7 @@ export const TopStickersCarousel: FC<TopStickersCarouselProps> = ({
           overflowX: 'auto',
           paddingBottom: '16px',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'var(--tg-theme-hint-color) transparent'
+          scrollbarColor: 'var(--color-text-secondary) transparent'
         }}
         className="top-stickers-scroll"
       >
@@ -62,7 +62,7 @@ export const TopStickersCarousel: FC<TopStickersCarouselProps> = ({
             onMouseEnter={(e) => onStickerClick && (e.currentTarget.style.transform = 'translateY(-4px)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
-            <div style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: '8px', backgroundColor: 'var(--tg-theme-secondary-bg-color)', border: '1px solid var(--tg-theme-border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: '8px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', overflow: 'hidden', position: 'relative' }}>
               {sticker.url && sticker.fileId ? (
                 <img
                   src={getCachedStickerUrl(sticker.fileId) || sticker.url}
@@ -72,20 +72,20 @@ export const TopStickersCarousel: FC<TopStickersCarouselProps> = ({
               ) : sticker.emoji ? (
                 <span style={{ fontSize: '3rem' }}>{sticker.emoji}</span>
               ) : (
-                <span style={{ fontSize: '1.5rem', color: 'var(--tg-theme-hint-color)' }}>🎨</span>
+                <span style={{ fontSize: '1.5rem', color: 'var(--color-text-secondary)' }}>🎨</span>
               )}
               
               {/* Бейдж места */}
-              <div style={{ position: 'absolute', top: '4px', left: '4px', backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>
+              <div style={{ position: 'absolute', top: '4px', left: '4px', backgroundColor: 'var(--color-button)', color: 'var(--color-button-text)', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>
                 {index + 1}
               </div>
             </div>
             
-            <Text variant="caption" style={{ color: 'var(--tg-theme-text-color)', fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '4px'}}>
+            <Text variant="caption" style={{ color: 'var(--color-text)', fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '4px'}}>
               {sticker.name}
             </Text>
             
-            <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.7rem' }}>
+            <Text variant="caption" style={{ color: 'var(--color-text-secondary)', fontSize: '0.7rem' }}>
               {sticker.likes} <FavoriteIcon size={12} color="#ff6b6b" style={{ verticalAlign: 'middle' }} />
             </Text>
           </div>

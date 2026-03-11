@@ -54,7 +54,7 @@ export const FloatingAvatar: FC<FloatingAvatarProps> = ({
         src={!avatarError ? avatarSrc : undefined}
         size={targetSize}
         style={{
-          border: '4px solid var(--tg-theme-bg-color, #ffffff)',
+          border: '4px solid var(--color-background)',
           backgroundColor: avatarBgColor,
           fontSize,
           fontWeight: 'bold',

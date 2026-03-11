@@ -20,13 +20,13 @@ export const StylePresetDropdown: FC<StylePresetDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const textColorResolved = 'var(--color-button-text)';
   const glassBase = 'rgba(88, 138, 255, 0.24)';
   const glassSolid = 'rgba(78, 132, 255, 0.24)';
   const glassHover = 'rgba(98, 150, 255, 0.38)';
   const borderColor = 'rgba(118, 168, 255, 0.28)';
   const bgColor = 'rgba(18, 22, 29, 0.95)';
-  const hintColor = 'var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6))';
+  const hintColor = 'var(--color-text-secondary)';
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -168,7 +168,7 @@ export const StylePresetDropdown: FC<StylePresetDropdownProps> = ({
                   cursor: 'pointer',
                   transition: 'background 0.2s',
                   backgroundColor: isSelected ? glassBase : 'transparent',
-                  borderBottom: '1px solid color-mix(in srgb, var(--tg-theme-border-color) 10%, transparent)',
+                  borderBottom: '1px solid color-mix(in srgb, var(--color-border) 10%, transparent)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = glassBase;
@@ -197,7 +197,7 @@ export const StylePresetDropdown: FC<StylePresetDropdownProps> = ({
                     <CheckIcon 
                       style={{ 
                         fontSize: '1.2rem', 
-                        color: 'var(--tg-theme-button-color, #3390ec)',
+                        color: 'var(--color-button)',
                       }} 
                     />
                   )}

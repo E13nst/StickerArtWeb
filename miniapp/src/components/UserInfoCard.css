@@ -3,15 +3,15 @@
 .user-info-card {
   margin-bottom: 1.5rem;
   border-radius: 16px;
-  background-color: var(--tg-theme-secondary-bg-color);
-  color: var(--tg-theme-text-color);
-  border: 1px solid var(--tg-theme-border-color);
-  box-shadow: 0 2px 8px var(--tg-theme-shadow-color, rgba(0, 0, 0, 0.1));
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px var(--color-shadow);
   transition: box-shadow 0.2s ease;
 }
 
 .user-info-card:hover {
-  box-shadow: 0 4px 16px var(--tg-theme-shadow-color, rgba(0, 0, 0, 0.15));
+  box-shadow: 0 4px 16px var(--color-shadow);
 }
 
 .user-info-card__content {
@@ -63,7 +63,7 @@
 }
 
 .user-info-card__avatar--placeholder {
-  background-color: var(--tg-theme-hint-color);
+  background-color: var(--color-text-secondary);
 }
 
 .user-info-card__avatar-img {
@@ -109,8 +109,8 @@
 .user-info-card__role {
   font-size: 0.75rem;
   height: 24px;
-  color: var(--tg-theme-button-color);
-  border-color: var(--tg-theme-button-color);
+  color: var(--color-button);
+  border-color: var(--color-button);
   background-color: transparent;
 }
 
@@ -124,7 +124,7 @@
 .user-info-card__footer {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--tg-theme-border-color);
+  border-top: 1px solid var(--color-border);
 }
 
 .user-info-card__telegram-id {

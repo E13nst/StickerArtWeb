@@ -58,6 +58,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   onSaved,
 }) => {
   const userInfo = useProfileStore((state) => state.userInfo);
+  const effectiveUserId = userId ?? userInfo?.telegramId ?? userInfo?.id ?? null;
   const [sets, setSets] = useState<StickerSetResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,11 +72,11 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   const isDraggingDownRef = useRef(false);
 
   const loadSets = useCallback(async () => {
-    if (!userInfo?.id) return;
+    if (!effectiveUserId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.getUserStickerSets(userInfo.id, 0, 50, 'createdAt', 'DESC', true);
+      const res = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
       const botSuffix = '_by_stixlybot';
       const ownSets = (res.content ?? []).filter(s => s.name.endsWith(botSuffix));
       setSets(ownSets);
@@ -84,7 +85,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [userInfo?.id]);
+  }, [effectiveUserId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -185,10 +186,10 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     try {
       let stickerFileId: string | undefined;
 
-      if (taskId && userId) {
+      if (taskId && effectiveUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
-          userId,
+          userId: effectiveUserId,
           name: set.name,
           title: set.title || set.name,
           emoji: '🎨',
@@ -197,10 +198,6 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
         }
         stickerFileId = response.stickerFileId;
-        if (!stickerFileId && response.status !== '200') {
-          const status = await apiClient.getGenerationStatusV2(taskId);
-          stickerFileId = status.telegramSticker?.fileId;
-        }
       } else if (imageId) {
         const res = await apiClient.saveImageToStickerSet({
           imageUuid: imageId,
@@ -208,6 +205,8 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           emoji: '🎨',
         });
         stickerFileId = res.stickerFileId;
+      } else {
+        throw new Error('Не удалось определить пользователя Telegram');
       }
 
       if (!stickerFileId && !taskId) {
@@ -234,10 +233,10 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     try {
       let stickerFileId: string | undefined;
 
-      if (taskId && userId) {
+      if (taskId && effectiveUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
-          userId,
+          userId: effectiveUserId,
           name: buildStickerSetName(title),
           title,
           emoji: '🎨',
@@ -246,10 +245,6 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
         }
         stickerFileId = response.stickerFileId;
-        if (!stickerFileId && response.status !== '200') {
-          const status = await apiClient.getGenerationStatusV2(taskId);
-          stickerFileId = status.telegramSticker?.fileId;
-        }
       } else if (imageId) {
         const created = await apiClient.createNewStickerSet({
           imageUuid: imageId,
@@ -259,6 +254,8 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
         stickerFileId =
           (created as { stickerFileId?: string }).stickerFileId ??
           created.telegramStickerSetInfo?.stickers?.[0]?.file_id;
+      } else {
+        throw new Error('Не удалось определить пользователя Telegram');
       }
 
       if (stickerFileId) {

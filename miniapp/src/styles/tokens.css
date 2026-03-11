@@ -8,21 +8,25 @@
   
   /* Primary Colors */
   --color-primary: #ee449f;
-  --color-secondary: var(--tg-theme-link-color, #007aff);
+  --color-secondary: #007aff;
+  --color-link: #6ab2f2;
+  --color-button: #5288c1;
+  --color-button-text: #ffffff;
   
   /* Background Colors */
-  --color-background: var(--tg-theme-bg-color, #191818);
-  --color-surface: var(--tg-theme-secondary-bg-color, #262626);
+  --color-background: #191818;
+  --color-surface: #262626;
   --color-surface-dark: #2f2f2f;
   
   /* Text Colors */
-  --color-text: var(--tg-theme-text-color, #ffffff);
-  --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
+  --color-text: #ffffff;
+  --color-text-secondary: #8a8a8a;
   
   /* Status Colors */
-  --color-success: var(--tg-theme-success-color, #00af12);
-  --color-error: var(--tg-theme-error-color, #e03131);
-  --color-border: var(--tg-theme-border-color, #8a8a8a);
+  --color-success: #00af12;
+  --color-error: #e03131;
+  --color-border: #8a8a8a;
+  --color-shadow: rgba(0, 0, 0, 0.3);
   
   /* Overlay Colors */
   --color-overlay-light: rgba(255, 255, 255, 0.2);
@@ -184,8 +188,8 @@
 
 /* Единая тёмная тема — без переключения light/dark */
 :root {
-  --color-background: var(--tg-theme-bg-color, #191818);
-  --color-surface: var(--tg-theme-secondary-bg-color, #262626);
-  --color-text: var(--tg-theme-text-color, #ffffff);
-  --color-text-secondary: var(--tg-theme-hint-color, #8a8a8a);
+  --color-background: #191818;
+  --color-surface: #262626;
+  --color-text: #ffffff;
+  --color-text-secondary: #8a8a8a;
 }

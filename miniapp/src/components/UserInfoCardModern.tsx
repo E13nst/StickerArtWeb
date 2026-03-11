@@ -25,7 +25,7 @@ export const UserInfoCardModern: FC<UserInfoCardModernProps> = ({
   const isPremium = isUserPremium(userInfo);
 
   return (
-    <Card style={{ borderRadius: 12, backgroundColor: 'var(--tg-theme-secondary-bg-color, #f8f9fa)', color: 'var(--tg-theme-text-color, #000000)', border: '1px solid var(--tg-theme-border-color, #e0e0e0)', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)', overflow: 'visible', marginTop: 32 }}>
+    <Card style={{ borderRadius: 12, backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)', overflow: 'visible', marginTop: 32 }}>
       <CardContent style={{ padding: 24 }}>
         {/* Заголовок с именем и кнопкой поделиться */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -36,14 +36,14 @@ export const UserInfoCardModern: FC<UserInfoCardModernProps> = ({
 
           {/* Username / Handle */}
           {username && (
-            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color, #999999)', fontSize: '1rem', fontWeight: 500, textAlign: 'center' }}>
+            <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)', fontSize: '1rem', fontWeight: 500, textAlign: 'center' }}>
               @{username}
             </Text>
           )}
 
           {/* Premium badge */}
           {isPremium && (
-            <Chip label="Premium" size="small" style={{ backgroundColor: 'var(--tg-theme-button-color, #2481cc)', color: 'white', fontWeight: 'bold', fontSize: '0.75rem', height: 24 }} />
+            <Chip label="Premium" size="small" style={{ backgroundColor: 'var(--color-button)', color: 'white', fontWeight: 'bold', fontSize: '0.75rem', height: 24 }} />
           )}
         </div>
 
@@ -52,12 +52,12 @@ export const UserInfoCardModern: FC<UserInfoCardModernProps> = ({
 
         {/* Telegram ID и кнопка поделиться */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color, #999999)', fontSize: '0.75rem' }}>
+          <Text variant="caption" style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
             Telegram ID: {telegramId}
           </Text>
 
           {onShareProfile && (
-            <IconButton onClick={onShareProfile} size="small" style={{ color: 'var(--tg-theme-button-color, #2481cc)' }} aria-label="Поделиться профилем">
+            <IconButton onClick={onShareProfile} size="small" style={{ color: 'var(--color-button)' }} aria-label="Поделиться профилем">
               <ShareIcon size={18} />
             </IconButton>
           )}
@@ -75,7 +75,7 @@ export const UserInfoCardModern: FC<UserInfoCardModernProps> = ({
                 gap: '8px',
                 padding: '8px 16px',
                 borderRadius: '8px',
-                backgroundColor: 'var(--tg-theme-button-color, #2481cc)',
+                backgroundColor: 'var(--color-button)',
                 color: 'white',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'

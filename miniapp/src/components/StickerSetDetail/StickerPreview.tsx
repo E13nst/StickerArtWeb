@@ -226,7 +226,7 @@ const renderStickerMedia = (
             width: 40,
             height: 40,
             border: '3px solid rgba(255,255,255,0.2)',
-            borderTopColor: 'var(--tg-theme-button-color, #2481cc)',
+            borderTopColor: 'var(--color-button)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}

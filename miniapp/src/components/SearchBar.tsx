@@ -35,8 +35,8 @@ const SearchBarComponent: FC<SearchBarProps> = ({
   compact = false
 }) => {
   useTelegram();
-  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
-  const textColor = 'var(--tg-theme-hint-color, rgba(255,255,255,0.64))';
+  const textColorResolved = 'var(--color-button-text)';
+  const textColor = 'var(--color-text-secondary)';
   const borderColor = 'rgba(118, 168, 255, 0.28)';
   const glassSolid = 'rgba(78, 132, 255, 0.24)';
 
@@ -64,7 +64,7 @@ const SearchBarComponent: FC<SearchBarProps> = ({
         onClick={handleSearchClick}
         disabled={disabled}
         className="search-bar__icon-button search-bar__search"
-        style={{ color: disabled ? 'var(--tg-theme-hint-color)' : textColorResolved }}
+        style={{ color: disabled ? 'var(--color-text-secondary)' : textColorResolved }}
       >
         <SearchIcon />
       </button>

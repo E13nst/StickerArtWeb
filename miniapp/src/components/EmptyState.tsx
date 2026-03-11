@@ -56,21 +56,21 @@ const styles = `
 .tg-empty__title {
   font-size: var(--tg-font-size-xl);
   font-weight: 600;
-  color: var(--tg-theme-text-color);
+  color: var(--color-text);
   margin: 0 0 var(--tg-spacing-3) 0;
   line-height: 1.3;
 }
 
 .tg-empty__message {
   font-size: var(--tg-font-size-m);
-  color: var(--tg-theme-hint-color);
+  color: var(--color-text-secondary);
   margin: 0 0 var(--tg-spacing-5) 0;
   line-height: 1.5;
 }
 
 .tg-empty__button {
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
+  background: var(--color-button);
+  color: var(--color-button-text);
   border: none;
   border-radius: var(--tg-radius-m);
   padding: var(--tg-spacing-3) var(--tg-spacing-6);

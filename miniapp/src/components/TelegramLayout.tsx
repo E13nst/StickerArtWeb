@@ -65,14 +65,14 @@ const styles = `
 .tg-layout__header {
   flex-shrink: 0;
   padding: var(--tg-spacing-4) var(--tg-spacing-4) var(--tg-spacing-3);
-  background: var(--tg-theme-bg-color);
-  border-bottom: 1px solid var(--tg-theme-secondary-bg-color);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-surface);
 }
 
 .tg-layout__title {
   font-size: var(--tg-font-size-xxl);
   font-weight: 600;
-  color: var(--tg-theme-text-color);
+  color: var(--color-text);
   margin: 0;
   line-height: 1.2;
 }

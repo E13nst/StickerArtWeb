@@ -82,11 +82,11 @@ export const AnimatedLikeButton: FC<AnimatedLikeButtonProps> = ({
           borderRadius: '50%',
           border: 'none',
           backgroundColor: isLiked 
-            ? 'var(--tg-theme-button-color)' 
-            : 'var(--tg-theme-secondary-bg-color)',
+            ? 'var(--color-button)' 
+            : 'var(--color-surface)',
           color: isLiked 
-            ? 'var(--tg-theme-button-text-color)' 
-            : 'var(--tg-theme-text-color)',
+            ? 'var(--color-button-text)' 
+            : 'var(--color-text)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -121,7 +121,7 @@ export const AnimatedLikeButton: FC<AnimatedLikeButtonProps> = ({
               position: 'absolute',
               top: '-8px',
               right: '-8px',
-              backgroundColor: 'var(--tg-theme-error-color)',
+              backgroundColor: 'var(--color-error)',
               color: 'white',
               fontSize: '10px',
               fontWeight: 'bold',
@@ -167,7 +167,7 @@ export const AnimatedLikeButton: FC<AnimatedLikeButtonProps> = ({
             top: `${particle.y}%`,
             width: '4px',
             height: '4px',
-            backgroundColor: 'var(--tg-theme-button-color)',
+            backgroundColor: 'var(--color-button)',
             borderRadius: '50%',
             pointerEvents: 'none',
             animation: `particle-${particle.id} 0.6s ease-out forwards`,

@@ -11,7 +11,7 @@ const AddStickerPackButtonComponent: FC<AddStickerPackButtonProps> = ({ onClick,
   const { tg } = useTelegram();
   const handleClick = () => { tg?.HapticFeedback?.impactOccurred('light'); onClick(); };
 
-  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const textColorResolved = 'var(--color-button-text)';
   const glassBase = 'color-mix(in srgb, rgba(88, 138, 255, 0.36) 60%, transparent)';
   const glassSolid = 'rgba(78, 132, 255, 0.24)';
   const borderColor = 'rgba(118, 168, 255, 0.28)';

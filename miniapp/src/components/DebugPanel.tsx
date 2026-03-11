@@ -138,9 +138,9 @@ export const DebugPanel: FC<DebugPanelProps> = ({ initData }) => {
               right: 'calc(100vw * 0.024)',
               bottom: 'calc(100vw * 0.04)',
               borderRadius: 'calc(100vw * 0.04)',
-              boxShadow: '0 4px 16px var(--tg-theme-shadow-color)',
+              boxShadow: '0 4px 16px var(--color-shadow)',
               zIndex: 'var(--z-overlay, 400)', // выше overlay для взаимодействия
-              background: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 98%, transparent)',
+              background: 'color-mix(in srgb, var(--color-surface) 98%, transparent)',
               backdropFilter: 'blur(16px) saturate(180%)',
               WebkitBackdropFilter: 'blur(16px) saturate(180%)',
             }}

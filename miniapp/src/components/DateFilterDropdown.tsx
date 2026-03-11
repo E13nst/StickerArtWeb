@@ -43,7 +43,7 @@ export const DateFilterDropdown: FC<DateFilterDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const textColorResolved = 'var(--tg-theme-button-text-color, #ffffff)';
+  const textColorResolved = 'var(--color-button-text)';
   const glassBase = 'rgba(88, 138, 255, 0.24)';
   const glassSolid = 'rgba(78, 132, 255, 0.24)';
   const glassHover = 'rgba(98, 150, 255, 0.38)';

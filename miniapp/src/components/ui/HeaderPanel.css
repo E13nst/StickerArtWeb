@@ -93,7 +93,7 @@
   align-items: center;
   justify-content: center;
   background: var(--color-surface-dark);
-  color: var(--color-text);
+  color: #ffffff;
   font-size: var(--typography-h2-font-size);
   font-weight: var(--typography-h2-font-weight);
   font-family: var(--font-family-base);
@@ -124,7 +124,7 @@
 }
 
 .header-panel__balance-text {
-  color: var(--color-text);
+  color: #ffffff;
   font-size: var(--typography-h3-font-size);
   font-weight: var(--typography-h3-font-weight);
   font-family: var(--font-family-base);
@@ -211,7 +211,7 @@
   background: var(--component-header-panel-wallet-background-color);
   border: none;
   border-radius: 50%;
-  color: var(--color-text);
+  color: #ffffff;
   cursor: pointer;
   transition: opacity 0.2s ease;
   flex-shrink: 0;

@@ -220,7 +220,7 @@ const TxLitAvatarOverlay: FC<TxLitAvatarOverlayProps> = ({
         src={!avatarError ? avatarUrl : undefined}
         size={Math.max(120, avatarSize)}
         style={{
-          border: '4px solid var(--tg-theme-bg-color, #ffffff)',
+          border: '4px solid var(--color-background)',
           backgroundColor: avatarBgColor,
           fontSize: avatarSize > 0 ? `${avatarSize * 0.15}px` : '2rem',
           fontWeight: 'bold',

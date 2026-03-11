@@ -497,7 +497,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <FavoriteIcon style={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff)" }} />
+                    <FavoriteIcon style={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--color-button-text)" }} />
                     <span>{formattedTotalLikes}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedLikesDailyChange})</span>
                   </div>
@@ -514,7 +514,7 @@ export default function StixlyTopHeader({
                       gap: "6px",
                     }}
                   >
-                    <CollectionsIcon style={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--tg-theme-button-text-color, #ffffff)" }} />
+                    <CollectionsIcon style={{ fontSize: "clamp(16.5px, 3.75vw, 21px)", color: "var(--color-button-text)" }} />
                     <span>{formattedTotalPacks}</span>
                     <span style={{ opacity: 0.85, fontSize: "clamp(15px, 3vw, 18px)" }}>({formattedDailyChange})</span>
                   </div>

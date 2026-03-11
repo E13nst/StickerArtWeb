@@ -45,7 +45,7 @@
   background: transparent;
   border: none;
   border-radius: 8px;
-  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6));
+  color: var(--color-text-secondary);
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
@@ -54,7 +54,7 @@
 
 .sticker-set-detail-edit__toolbar-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--tg-theme-text-color, #ffffff);
+  color: var(--color-text);
 }
 
 .sticker-set-detail-edit__toolbar-btn:disabled {
@@ -109,9 +109,9 @@
   min-height: 44px;
   padding: 10px 20px;
   border-radius: var(--tg-radius-l, 16px);
-  background: var(--tg-theme-button-color, var(--color-primary, #ee449f));
+  background: var(--color-button);
   border: none;
-  color: var(--tg-theme-button-text-color, #ffffff);
+  color: var(--color-button-text);
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;

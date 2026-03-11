@@ -60,12 +60,12 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
             alignItems: 'center',
             gap: '4px',
             padding: '6px 8px',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            border: '1px solid var(--tg-theme-border-color)',
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
             borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '12px',
-            color: 'var(--tg-theme-text-color)',
+            color: 'var(--color-text)',
             transition: 'all 0.2s ease'
           }}
         >
@@ -75,7 +75,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
 
       {/* Разделитель */}
       {showHome && items.length > 0 && (
-        <span style={{ color: 'var(--tg-theme-hint-color)', fontSize: '12px' }}>›</span>
+        <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>›</span>
       )}
 
       {/* Кнопка "..." для скрытых элементов */}
@@ -88,18 +88,18 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
               alignItems: 'center',
               gap: '4px',
               padding: '6px 8px',
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              border: '1px solid var(--tg-theme-border-color)',
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '12px',
-              color: 'var(--tg-theme-hint-color)',
+              color: 'var(--color-text-secondary)',
               transition: 'all 0.2s ease'
             }}
           >
             ⋯ {hiddenCount}
           </button>
-          <span style={{ color: 'var(--tg-theme-hint-color)', fontSize: '12px' }}>›</span>
+          <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>›</span>
         </>
       )}
 
@@ -107,7 +107,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
       {visibleItems.map((item, index) => (
         <Fragment key={item.id}>
           {index > 0 && (
-            <span style={{ color: 'var(--tg-theme-hint-color)', fontSize: '12px' }}>›</span>
+            <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>›</span>
           )}
           
           <button
@@ -118,15 +118,15 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
               gap: '4px',
               padding: '6px 8px',
               backgroundColor: index === visibleItems.length - 1 
-                ? 'var(--tg-theme-button-color)' 
-                : 'var(--tg-theme-secondary-bg-color)',
-              border: '1px solid var(--tg-theme-border-color)',
+                ? 'var(--color-button)'
+                : 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '12px',
               color: index === visibleItems.length - 1 
-                ? 'var(--tg-theme-button-text-color)' 
-                : 'var(--tg-theme-text-color)',
+                ? 'var(--color-button-text)'
+                : 'var(--color-text)',
               transition: 'all 0.2s ease',
               maxWidth: '120px',
               overflow: 'hidden',
@@ -150,12 +150,12 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
             alignItems: 'center',
             gap: '4px',
             padding: '6px 8px',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-            border: '1px solid var(--tg-theme-border-color)',
+            backgroundColor: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
             borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '12px',
-            color: 'var(--tg-theme-hint-color)',
+            color: 'var(--color-text-secondary)',
             transition: 'all 0.2s ease'
           }}
         >

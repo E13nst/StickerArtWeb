@@ -8,12 +8,12 @@
 }
 .input-label {
   font-size: var(--typography-body-small-font-size, 14px);
-  color: var(--color-text-secondary, var(--tg-theme-hint-color));
+  color: var(--color-text-secondary);
 }
 .input {
   font-family: var(--font-family-base);
-  color: var(--color-text, var(--tg-theme-text-color));
-  background: var(--color-surface, var(--tg-theme-secondary-bg-color));
+  color: var(--color-text);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md, 8px);
   padding: 0 12px;
@@ -21,10 +21,10 @@
   transition: border-color 0.2s;
 }
 .input:focus {
-  border-color: var(--color-primary, var(--tg-theme-button-color));
+  border-color: var(--color-primary);
 }
 .input-error {
-  border-color: var(--color-error, var(--tg-theme-error-color));
+  border-color: var(--color-error);
 }
 .input-small {
   height: 32px;

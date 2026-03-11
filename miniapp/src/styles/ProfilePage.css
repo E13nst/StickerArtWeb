@@ -38,7 +38,7 @@
 }
 
 .profile-username {
-  color: var(--tg-theme-text-color);
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -50,7 +50,7 @@
 }
 
 .profile-handle {
-  color: var(--tg-theme-button-color);
+  color: var(--color-button);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -58,16 +58,16 @@ export const AnimatedPackCard: FC<AnimatedPackCardProps> = ({
           transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           transform: isLoaded ? 'scale(1)' : 'scale(0.98)',
           boxShadow: isLoaded 
-            ? '0 4px 12px var(--tg-theme-shadow-color)'
-            : '0 2px 4px var(--tg-theme-shadow-color)'
+            ? '0 4px 12px var(--color-shadow)'
+            : '0 2px 4px var(--color-shadow)'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.02)';
-          e.currentTarget.style.boxShadow = '0 8px 24px var(--tg-theme-shadow-color)';
+          e.currentTarget.style.boxShadow = '0 8px 24px var(--color-shadow)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 12px var(--tg-theme-shadow-color)';
+          e.currentTarget.style.boxShadow = '0 4px 12px var(--color-shadow)';
         }}
       >
         {/* Skeleton пока изображение не загружено */}
@@ -123,8 +123,8 @@ export const AnimatedPackCard: FC<AnimatedPackCardProps> = ({
               style={{
                 width: '20px',
                 height: '20px',
-                border: '2px solid var(--tg-theme-hint-color)',
-                borderTop: '2px solid var(--tg-theme-button-color)',
+                border: '2px solid var(--color-text-secondary)',
+                borderTop: '2px solid var(--color-button)',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}

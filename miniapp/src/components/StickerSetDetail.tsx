@@ -52,8 +52,8 @@ const LazyThumbnail: FC<LazyThumbnailProps> = memo(({
         minHeight: 72,
         borderRadius: 'var(--tg-radius-m)',
         border: '1px solid',
-        borderColor: isActive ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-border-color)',
-        backgroundColor: 'rgba(var(--tg-theme-bg-color-rgb, 0, 0, 0), 0.6)',
+        borderColor: isActive ? 'var(--color-button)' : 'var(--color-border)',
+        backgroundColor: 'rgba(25, 24, 24, 0.6)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
@@ -76,7 +76,7 @@ const LazyThumbnail: FC<LazyThumbnailProps> = memo(({
               position: 'absolute',
               bottom: '3px',
               left: '3px',
-              color: 'var(--tg-theme-text-color)',
+              color: 'var(--color-text)',
               fontSize: '14px',
               textShadow: '0 1px 2px rgba(0,0,0,0.6), 0 3px 6px rgba(0,0,0,0.35)'
             }}>
@@ -588,8 +588,8 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
             width: 48,
             height: 48,
             borderRadius: 'var(--tg-radius-m)',
-            backgroundColor: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
+            backgroundColor: 'var(--color-button)',
+            color: 'var(--color-button-text)',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -772,7 +772,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            textShadow: '0 2px 6px var(--tg-theme-shadow-color), 0 1px 3px var(--tg-theme-shadow-color)',
+            textShadow: '0 2px 6px var(--color-shadow), 0 1px 3px var(--color-shadow)',
           }}
         >
           {displayTitle}
@@ -796,7 +796,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
                 weight="semibold"
                 align="center"
                 style={{
-                  color: 'var(--tg-theme-link-color)',
+                  color: 'var(--color-link)',
                   fontSize: '13px',
                   lineHeight: '1.25',
                 }}

@@ -47,17 +47,17 @@ const ProfileHeaderComponent: FC<ProfileHeaderProps> = ({
 
       {/* Имя пользователя */}
       <div style={{ textAlign: 'center' }}>
-        <Text variant="h3" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '4px'}}>
+        <Text variant="h3" style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '4px'}}>
           {displayName}
           {premium && (
-            <span style={{ marginLeft: '8px', fontSize: '0.85em', color: 'var(--tg-theme-link-color)' }}>
+            <span style={{ marginLeft: '8px', fontSize: '0.85em', color: 'var(--color-link)' }}>
               ⭐
             </span>
           )}
         </Text>
         
         {username && (
-          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.9rem' }}>
+          <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
             @{username}
           </Text>
         )}
@@ -74,7 +74,7 @@ const ProfileHeaderComponent: FC<ProfileHeaderProps> = ({
             </span>
           }
           size="medium"
-          style={{ backgroundColor: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)', fontWeight: 600, fontSize: '0.95rem', padding: '4px 8px' }}
+          style={{ backgroundColor: 'var(--color-button)', color: 'var(--color-button-text)', fontWeight: 600, fontSize: '0.95rem', padding: '4px 8px' }}
         />
 
         {/* Количество стикерсетов */}
@@ -82,7 +82,7 @@ const ProfileHeaderComponent: FC<ProfileHeaderProps> = ({
           label={`${totalSets} ${totalSets === 1 ? 'set' : 'sets'}`}
           size="medium"
           variant="outlined"
-          style={{ borderColor: 'var(--tg-theme-hint-color)', color: 'var(--tg-theme-text-color)', fontWeight: 500 }}
+          style={{ borderColor: 'var(--color-text-secondary)', color: 'var(--color-text)', fontWeight: 500 }}
         />
       </div>
     </div>

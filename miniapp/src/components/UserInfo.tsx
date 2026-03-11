@@ -13,7 +13,7 @@ export const UserInfo: FC<UserInfoProps> = ({ user, isLoading = false }) => {
     return (
       <Card style={{ marginBottom: '1rem' }}>
         <CardContent>
-          <Text variant="bodySmall" align="center" style={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Text variant="bodySmall" align="center" style={{ color: 'var(--color-text-secondary)' }}>
             Загрузка информации о пользователе...
           </Text>
         </CardContent>
@@ -25,7 +25,7 @@ export const UserInfo: FC<UserInfoProps> = ({ user, isLoading = false }) => {
     return (
       <Card style={{ marginBottom: '1rem' }}>
         <CardContent>
-          <Text variant="bodySmall" align="center" style={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Text variant="bodySmall" align="center" style={{ color: 'var(--color-text-secondary)' }}>
             Пользователь не определен
           </Text>
         </CardContent>
@@ -37,14 +37,14 @@ export const UserInfo: FC<UserInfoProps> = ({ user, isLoading = false }) => {
     <Card style={{ marginBottom: '1rem' }}>
       <CardContent>
         <div style={{ textAlign: 'center' }}>
-          <Text variant="h4" style={{ color: 'var(--tg-theme-text-color)', marginBottom: 8 }}>
+          <Text variant="h4" style={{ color: 'var(--color-text)', marginBottom: 8 }}>
             Привет, <strong>{user.first_name}{user.last_name ? ` ${user.last_name}` : ''}</strong>!
           </Text>
-          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', marginBottom: 4 }}>
+          <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)', marginBottom: 4 }}>
             ID: <strong>{user.id}</strong>
           </Text>
           {user.username && (
-            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
+            <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }}>
               Username: <strong>@{user.username}</strong>
             </Text>
           )}

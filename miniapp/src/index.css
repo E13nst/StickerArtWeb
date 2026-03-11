@@ -2,9 +2,6 @@
 @import './styles/tokens.css';
 @import './styles/typography.css';
 
-/* Telegram Mini App Styles */
-@import '@telegram-apps/telegram-ui/dist/styles.css';
-
 /* Layout: скролл, header, единый фон #191818 */
 @import './styles/stixly-header.css';
 
@@ -45,25 +42,6 @@
   --tg-font-size-l: 18px;
   --tg-font-size-xl: 20px;
   --tg-font-size-xxl: 24px;
-
-  /* Единая тёмная тема */
-  --tg-theme-bg-color: #191818;
-  --tg-theme-bg-color-rgb: 25, 24, 24;
-  --tg-theme-text-color: #ffffff;
-  --tg-theme-text-color-rgb: 255, 255, 255;
-  --tg-theme-hint-color: #708499;
-  --tg-theme-link-color: #6ab2f2;
-  --tg-theme-button-color: #5288c1;
-  --tg-theme-button-color-rgb: 82, 136, 193;
-  --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #131415;
-  --tg-theme-border-color: #2a3441;
-  --tg-theme-shadow-color: rgba(0, 0, 0, 0.3);
-  --tg-theme-overlay-color: rgba(0, 0, 0, 0.8);
-  --tg-theme-success-color: #4caf50;
-  --tg-theme-warning-color: #ff9800;
-  --tg-theme-error-color: #f44336;
-  --tg-theme-error-color-rgb: 244, 67, 54;
 
   /* Header height (Header Panel) — для отступа панелей контролов */
   --stixly-header-height: var(--component-header-panel-height, 80px);
@@ -223,8 +201,8 @@ body::-webkit-scrollbar {
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--tg-theme-bg-color, transparent);
-  color: var(--tg-theme-text-color, #000000);
+  background-color: var(--color-background, #191818);
+  color: var(--color-text, #ffffff);
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -281,7 +259,7 @@ html.modal-lock .bottom-nav-paper {
 
 /* Убираем стандартные стили для ссылок */
 a {
-  color: var(--tg-theme-link-color, #2481cc);
+  color: var(--color-link);
   text-decoration: none;
 }
 
@@ -517,14 +495,14 @@ a {
 /* Отключаем стандартные стили Material-UI и применяем Telegram тему */
 /* Исключаем BottomNav Paper для сохранения прозрачности */
 .MuiPaper-root:not(.bottom-nav-paper) {
-  background-color: var(--tg-theme-secondary-bg-color) !important;
-  color: var(--tg-theme-text-color) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
   border: none !important;
 }
 
 .MuiCard-root {
-  background-color: var(--tg-theme-secondary-bg-color) !important;
-  color: var(--tg-theme-text-color) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
   border: none !important;
   border-radius: var(--tg-radius-l) !important;
 }
@@ -546,7 +524,7 @@ a {
 /* Модальные окна с адаптивным затемнением */
 .MuiDialog-paper {
   background-color: transparent !important;
-  color: var(--tg-theme-text-color) !important;
+  color: var(--color-text) !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -655,24 +633,24 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
 }
 
 .MuiAppBar-root {
-  background-color: var(--tg-theme-button-color) !important;
-  color: var(--tg-theme-button-text-color) !important;
+  background-color: var(--color-button) !important;
+  color: var(--color-button-text) !important;
 }
 
 /* BottomNavigation стили убраны - прозрачность настраивается в компоненте */
 /* .MuiBottomNavigation-root {
-  background-color: var(--tg-theme-secondary-bg-color) !important;
+  background-color: var(--color-surface) !important;
 } */
 
 /* Цвета для BottomNavigation настраиваются в компоненте */
 .MuiBottomNavigationAction-root {
-  color: var(--tg-theme-hint-color) !important;
+  color: var(--color-text-secondary) !important;
   /* Убираем фон для сохранения прозрачности */
   background-color: transparent !important;
 }
 
 .MuiBottomNavigationAction-root.Mui-selected {
-  color: var(--tg-theme-button-color) !important;
+  color: var(--color-button) !important;
   /* Убираем фон для сохранения прозрачности */
   background-color: transparent !important;
 }
@@ -688,8 +666,8 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   align-items: center !important;
   justify-content: flex-start !important;
   background: transparent !important;
-  border-top: 1px solid var(--tg-theme-border-color) !important;
-  border-bottom: 1px solid var(--tg-theme-border-color) !important;
+  border-top: 1px solid var(--color-border) !important;
+  border-bottom: 1px solid var(--color-border) !important;
   box-shadow: none !important;
   outline: none !important;
   padding-left: 0 !important;
@@ -741,62 +719,62 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
 
 /* Кнопки в профиле */
 .MuiButton-root {
-  color: var(--tg-theme-text-color) !important;
-  border-color: var(--tg-theme-border-color) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
 }
 
 .MuiButton-contained {
-  background-color: var(--tg-theme-button-color) !important;
-  color: var(--tg-theme-button-text-color) !important;
+  background-color: var(--color-button) !important;
+  color: var(--color-button-text) !important;
 }
 
 .MuiButton-outlined {
   background-color: transparent !important;
-  color: var(--tg-theme-text-color) !important;
-  border-color: var(--tg-theme-border-color) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
 }
 
 .MuiButton-outlined:hover {
-  background-color: var(--tg-theme-button-color) !important;
-  color: var(--tg-theme-button-text-color) !important;
-  border-color: var(--tg-theme-button-color) !important;
+  background-color: var(--color-button) !important;
+  color: var(--color-button-text) !important;
+  border-color: var(--color-button) !important;
 }
 
 /* Чипы */
 .MuiChip-root {
-  background-color: var(--tg-theme-secondary-bg-color) !important;
-  color: var(--tg-theme-text-color) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
 }
 
 .MuiChip-outlined {
-  border-color: var(--tg-theme-border-color) !important;
+  border-color: var(--color-border) !important;
 }
 
 .MuiChip-colorPrimary {
-  background-color: var(--tg-theme-button-color) !important;
-  color: var(--tg-theme-button-text-color) !important;
+  background-color: var(--color-button) !important;
+  color: var(--color-button-text) !important;
 }
 
 /* Алерты */
 .MuiAlert-root {
-  background-color: var(--tg-theme-secondary-bg-color) !important;
-  color: var(--tg-theme-text-color) !important;
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
   border: none !important;
 }
 
 .MuiAlert-standardError {
   background-color: rgba(244, 67, 54, 0.1) !important;
-  color: var(--tg-theme-text-color) !important;
+  color: var(--color-text) !important;
 }
 
 .MuiAlert-standardWarning {
   background-color: rgba(255, 152, 0, 0.1) !important;
-  color: var(--tg-theme-text-color) !important;
+  color: var(--color-text) !important;
 }
 
 .MuiAlert-standardInfo {
   background-color: rgba(33, 150, 243, 0.1) !important;
-  color: var(--tg-theme-text-color) !important;
+  color: var(--color-text) !important;
 }
 
 /* Telegram-style ripple effect */
@@ -813,7 +791,7 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: var(--tg-theme-hint-color, rgba(0, 0, 0, 0.1));
+  background: var(--color-text-secondary, rgba(255, 255, 255, 0.2));
   transform: translate(-50%, -50%);
   transition: width 0.3s, height 0.3s;
 }
@@ -842,7 +820,7 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
   a:focus-visible,
   input:focus-visible,
   textarea:focus-visible {
-    outline: 2px solid var(--tg-theme-button-color);
+    outline: 2px solid var(--color-button);
     outline-offset: 2px;
   }
 }
@@ -851,7 +829,7 @@ div[data-testid="sticker-pack-modal"] .MuiDialogContent-root {
 .tg-user-badge:focus-visible,
 .tg-search__input:focus-visible,
 .pack-card:focus-visible {
-  outline: 2px solid var(--tg-theme-button-color);
+  outline: 2px solid var(--color-button);
   outline-offset: 2px;
   border-radius: var(--tg-radius-m);
 }
@@ -880,17 +858,6 @@ svg,
   transition: none;
 }
 
-/* Улучшенная видимость для пользователей с нарушениями зрения */
-@media (prefers-contrast: high) {
-  :root {
-    --tg-theme-border-color: #000000;
-  }
-  
-  :root {
-    --tg-theme-border-color: #ffffff;
-  }
-}
-
 /* Поддержка уменьшенного движения */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -908,22 +875,22 @@ svg,
 
 /* Стили для иконки поиска */
 .MuiSvgIcon-root.MuiSvgIcon-colorAction.MuiSvgIcon-fontSizeMedium {
-  color: var(--tg-theme-hint-color) !important;
+  color: var(--color-text-secondary) !important;
 }
 
 /* Стили для иконок Material-UI */
 .MuiSvgIcon-root.MuiSvgIcon-colorAction.MuiSvgIcon-fontSizeMedium,
 .MuiSvgIcon-root.MuiSvgIcon-colorAction {
-  color: var(--tg-theme-hint-color) !important;
+  color: var(--color-text-secondary) !important;
 }
 
 .MuiSvgIcon-root {
-  color: var(--tg-theme-text-color) !important;
+  color: var(--color-text) !important;
 }
 
 /* Специальные стили для иконок в disabled состоянии */
 .MuiSvgIcon-root.MuiSvgIcon-colorDisabled {
-  color: var(--tg-theme-hint-color) !important;
+  color: var(--color-text-secondary) !important;
   opacity: 0.5 !important;
 }
 
@@ -934,11 +901,11 @@ svg,
   align-items: center;
   gap: var(--tg-spacing-3);
   padding: var(--tg-spacing-4);
-  background: var(--tg-theme-secondary-bg-color);
+  background: var(--color-surface);
   border: none;
   border-radius: var(--tg-radius-l);
   margin-bottom: var(--tg-spacing-4);
-  box-shadow: 0 2px 8px var(--tg-theme-shadow-color);
+  box-shadow: 0 2px 8px var(--color-shadow);
   transition: background-color 0.2s ease;
 }
 
@@ -946,8 +913,8 @@ svg,
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: var(--tg-theme-button-color);
-  color: var(--tg-theme-button-text-color);
+  background: var(--color-button);
+  color: var(--color-button-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -964,7 +931,7 @@ svg,
 .tg-user-badge__name {
   font-size: var(--tg-font-size-m);
   font-weight: 600;
-  color: var(--tg-theme-text-color);
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -972,7 +939,7 @@ svg,
 
 .tg-user-badge__username {
   font-size: var(--tg-font-size-s);
-  color: var(--tg-theme-hint-color);
+  color: var(--color-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1011,7 +978,7 @@ input.tg-search__input,
   border: none !important;
   border-radius: var(--tg-radius-s) !important; /* уменьшено с m до s */
   font-size: var(--tg-font-size-s) !important; /* уменьшенный размер шрифта */
-  color: var(--tg-theme-text-color) !important;
+  color: var(--color-text) !important;
   outline: none !important;
   transition: background 0.3s ease !important;
   font-family: inherit !important;
@@ -1022,7 +989,7 @@ input.tg-search__input,
 }
 
 .tg-search__input::placeholder {
-  color: var(--tg-theme-hint-color);
+  color: var(--color-text-secondary);
 }
 
 .tg-search__input:focus {
@@ -1046,7 +1013,7 @@ input.tg-search__input,
 
 .tg-sticker-detail__item {
   aspect-ratio: 1;
-  background: var(--tg-theme-secondary-bg-color);
+  background: var(--color-surface);
   border-radius: var(--tg-radius-m);
   display: flex;
   align-items: center;
@@ -1073,7 +1040,7 @@ input.tg-search__input,
       padding: var(--tg-spacing-3) var(--tg-spacing-4);
       background: transparent;
       border: none;
-      color: var(--tg-theme-hint-color);
+      color: var(--color-text-secondary);
       font-size: var(--tg-font-size-s);
       font-weight: 600;
       text-align: center;
@@ -1097,11 +1064,11 @@ input.tg-search__input,
       max-height: 36px;
       padding: 0;
       font-size: calc(100vw * 0.03); /* ~3% от ширины viewport (уменьшено) */
-      background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 95%, transparent);
+      background: color-mix(in srgb, var(--color-surface) 95%, transparent);
       backdrop-filter: blur(12px) saturate(180%);
       -webkit-backdrop-filter: blur(12px) saturate(180%);
       border-radius: 50%; /* делаем круглой */
-      box-shadow: 0 2px 8px var(--tg-theme-shadow-color);
+      box-shadow: 0 2px 8px var(--color-shadow);
     }
 
     .tg-debug-panel__toggle:hover {
@@ -1109,7 +1076,7 @@ input.tg-search__input,
     }
 
     .tg-debug-panel__toggle--compact:hover {
-      background: color-mix(in srgb, var(--tg-theme-button-color) 20%, transparent);
+      background: color-mix(in srgb, var(--color-button) 20%, transparent);
       transform: scale(1.05);
     }
 
@@ -1119,13 +1086,13 @@ input.tg-search__input,
     }
 
     .tg-debug-panel__toggle--compact:active {
-      background: color-mix(in srgb, var(--tg-theme-button-color) 30%, transparent);
+      background: color-mix(in srgb, var(--color-button) 30%, transparent);
       transform: scale(0.95);
     }
 
     .tg-debug-panel__content {
       padding: var(--tg-spacing-4);
-      background: color-mix(in srgb, var(--tg-theme-secondary-bg-color) 98%, transparent);
+      background: color-mix(in srgb, var(--color-surface) 98%, transparent);
       backdrop-filter: blur(16px) saturate(180%);
       -webkit-backdrop-filter: blur(16px) saturate(180%);
       max-height: 400px;
@@ -1142,15 +1109,15 @@ input.tg-search__input,
 
     .tg-debug-panel__label {
       font-weight: 600;
-      color: var(--tg-theme-hint-color);
+      color: var(--color-text-secondary);
     }
 
     .tg-debug-panel__value {
-      color: var(--tg-theme-text-color);
+      color: var(--color-text);
     }
 
     .tg-debug-panel__data {
-      background: var(--tg-theme-secondary-bg-color);
+      background: var(--color-surface);
       border-radius: var(--tg-radius-m);
       padding: var(--tg-spacing-3);
       margin-bottom: var(--tg-spacing-3);
@@ -1162,7 +1129,7 @@ input.tg-search__input,
     .tg-debug-panel__data code {
       font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
       font-size: 11px;
-      color: var(--tg-theme-text-color);
+      color: var(--color-text);
       word-break: break-all;
       white-space: pre-wrap;
       line-height: 1.4;
@@ -1175,18 +1142,18 @@ input.tg-search__input,
 
     .tg-debug-panel__hint {
       font-size: var(--tg-font-size-xs);
-      color: var(--tg-theme-hint-color);
+      color: var(--color-text-secondary);
       text-align: center;
       padding: var(--tg-spacing-2);
-      background: var(--tg-theme-secondary-bg-color);
+      background: var(--color-surface);
       border-radius: var(--tg-radius-s);
     }
 
     .tg-debug-panel__hint code {
       font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
       font-size: var(--tg-font-size-xs);
-      color: var(--tg-theme-link-color);
-      background: var(--tg-theme-bg-color);
+      color: var(--color-link);
+      background: var(--color-background);
       padding: 2px 6px;
       border-radius: 3px;
     }

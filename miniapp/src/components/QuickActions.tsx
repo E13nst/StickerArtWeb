@@ -118,17 +118,17 @@ export const QuickActions: FC<QuickActionsProps> = ({
                 gap: '8px',
                 padding: '12px 16px',
                 backgroundColor: hoveredAction === action.id 
-                  ? 'var(--tg-theme-button-color)' 
-                  : 'var(--tg-theme-secondary-bg-color)',
+                  ? 'var(--color-button)' 
+                  : 'var(--color-surface)',
                 color: hoveredAction === action.id 
-                  ? 'var(--tg-theme-button-text-color)' 
-                  : 'var(--tg-theme-text-color)',
-                border: '1px solid var(--tg-theme-border-color)',
+                  ? 'var(--color-button-text)' 
+                  : 'var(--color-text)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '12px',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500',
-                boxShadow: '0 4px 12px var(--tg-theme-shadow-color)',
+                boxShadow: '0 4px 12px var(--color-shadow)',
                 transition: 'all 0.2s ease',
                 transform: hoveredAction === action.id ? 'scale(1.05)' : 'scale(1)',
                 minWidth: '120px',
@@ -159,18 +159,18 @@ export const QuickActions: FC<QuickActionsProps> = ({
           height: '56px',
           borderRadius: '50%',
           backgroundColor: expanded 
-            ? 'var(--tg-theme-button-color)' 
-            : 'var(--tg-theme-secondary-bg-color)',
+            ? 'var(--color-button)' 
+            : 'var(--color-surface)',
           color: expanded 
-            ? 'var(--tg-theme-button-text-color)' 
-            : 'var(--tg-theme-text-color)',
-          border: '1px solid var(--tg-theme-border-color)',
+            ? 'var(--color-button-text)' 
+            : 'var(--color-text)',
+          border: '1px solid var(--color-border)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '20px',
-          boxShadow: '0 4px 12px var(--tg-theme-shadow-color)',
+          boxShadow: '0 4px 12px var(--color-shadow)',
           transition: 'all 0.3s ease',
           transform: expanded ? 'rotate(45deg)' : 'rotate(0deg)'
         }}

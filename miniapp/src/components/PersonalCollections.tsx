@@ -118,7 +118,7 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
         <h2 style={{
           fontSize: '20px',
           fontWeight: '600',
-          color: 'var(--tg-theme-text-color)',
+          color: 'var(--color-text)',
           margin: 0
         }}>
           Мои коллекции
@@ -128,8 +128,8 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
           onClick={() => setIsCreating(true)}
           style={{
             padding: '8px 12px',
-            backgroundColor: 'var(--tg-theme-button-color)',
-            color: 'var(--tg-theme-button-text-color)',
+            backgroundColor: 'var(--color-button)',
+            color: 'var(--color-button-text)',
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
@@ -144,8 +144,8 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
       {/* Создание новой коллекции */}
       {isCreating && (
         <div style={{
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          border: '1px solid var(--tg-theme-border-color)',
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: '12px',
           padding: '16px',
           marginBottom: '16px'
@@ -158,11 +158,11 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
             style={{
               width: '100%',
               padding: '12px',
-              border: '1px solid var(--tg-theme-border-color)',
+              border: '1px solid var(--color-border)',
               borderRadius: '8px',
               fontSize: '16px',
-              backgroundColor: 'var(--tg-theme-bg-color)',
-              color: 'var(--tg-theme-text-color)',
+              backgroundColor: 'var(--color-background)',
+              color: 'var(--color-text)',
               outline: 'none',
               marginBottom: '12px'
             }}
@@ -183,8 +183,8 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
               disabled={!newCollectionName.trim()}
               style={{
                 padding: '8px 16px',
-                backgroundColor: 'var(--tg-theme-button-color)',
-                color: 'var(--tg-theme-button-text-color)',
+                backgroundColor: 'var(--color-button)',
+                color: 'var(--color-button-text)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: newCollectionName.trim() ? 'pointer' : 'not-allowed',
@@ -202,9 +202,9 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
               }}
               style={{
                 padding: '8px 16px',
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-                color: 'var(--tg-theme-text-color)',
-                border: '1px solid var(--tg-theme-border-color)',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '14px'
@@ -227,8 +227,8 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
             key={collection.id}
             onClick={() => handleCollectionClick(collection)}
             style={{
-              backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-              border: '1px solid var(--tg-theme-border-color)',
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
               borderRadius: '12px',
               padding: '16px',
               cursor: 'pointer',
@@ -237,7 +237,7 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px var(--tg-theme-shadow-color)';
+              e.currentTarget.style.boxShadow = '0 4px 12px var(--color-shadow)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
@@ -268,14 +268,14 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
                 <h3 style={{
                   fontSize: '16px',
                   fontWeight: '600',
-                  color: 'var(--tg-theme-text-color)',
+                  color: 'var(--color-text)',
                   margin: 0
                 }}>
                   {collection.name}
                 </h3>
                 <p style={{
                   fontSize: '14px',
-                  color: 'var(--tg-theme-hint-color)',
+                  color: 'var(--color-text-secondary)',
                   margin: 0
                 }}>
                   {collection.description}
@@ -296,7 +296,7 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
                     style={{
                       width: '32px',
                       height: '32px',
-                      backgroundColor: 'var(--tg-theme-border-color)',
+                      backgroundColor: 'var(--color-border)',
                       borderRadius: '6px',
                       display: 'flex',
                       alignItems: 'center',
@@ -312,7 +312,7 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
                   <div style={{
                     width: '32px',
                     height: '32px',
-                    backgroundColor: 'var(--tg-theme-hint-color)',
+                      backgroundColor: 'var(--color-text-secondary)',
                     borderRadius: '6px',
                     display: 'flex',
                     alignItems: 'center',
@@ -339,7 +339,7 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
                   right: '8px',
                   width: '24px',
                   height: '24px',
-                  backgroundColor: 'var(--tg-theme-error-color)',
+                  backgroundColor: 'var(--color-error)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
@@ -362,7 +362,7 @@ export const PersonalCollections: FC<PersonalCollectionsProps> = ({
         <div style={{
           textAlign: 'center',
           padding: '40px 20px',
-          color: 'var(--tg-theme-hint-color)'
+          color: 'var(--color-text-secondary)'
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
           <h3 style={{ margin: '0 0 8px 0' }}>Нет коллекций</h3>

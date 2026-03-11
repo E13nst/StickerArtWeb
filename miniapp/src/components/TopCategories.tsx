@@ -14,7 +14,7 @@ interface TopCategoriesProps {
 export const TopCategories: FC<TopCategoriesProps> = ({ categories }) => {
   return (
     <div style={{ marginTop: 32 }}>
-      <Text variant="h4" weight="bold" style={{ color: 'var(--tg-theme-text-color)', marginBottom: 16, fontSize: '1.25rem' }}>
+      <Text variant="h4" weight="bold" style={{ color: 'var(--color-text)', marginBottom: 16, fontSize: '1.25rem' }}>
         ТОП-8 КАТЕГОРИЙ
       </Text>
       <div
@@ -45,12 +45,12 @@ export const TopCategories: FC<TopCategoriesProps> = ({ categories }) => {
               flexShrink: 0,
               padding: '4px 8px',
               borderRadius: '13px',
-              backgroundColor: 'color-mix(in srgb, var(--tg-theme-secondary-bg-color) 25%, transparent)',
-              color: 'var(--tg-theme-text-color)',
+              backgroundColor: 'color-mix(in srgb, var(--color-surface) 25%, transparent)',
+              color: 'var(--color-text)',
               fontSize: '14px',
               fontWeight: 600,
               whiteSpace: 'nowrap',
-              border: '1px solid color-mix(in srgb, var(--tg-theme-hint-color) 40%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-text-secondary) 40%, transparent)',
               cursor: 'pointer',
               transition: 'all 0.2s',
               display: 'flex',

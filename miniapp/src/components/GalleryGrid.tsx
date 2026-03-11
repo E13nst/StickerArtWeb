@@ -96,7 +96,7 @@ export const GalleryGrid: FC<GalleryGridProps> = ({ packs, onPackClick }) => {
   }, [scrollVelocity, activeColumn]);
 
   if (shuffledPacks.length === 0) {
-    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tg-theme-hint-color)', padding: '40px 0' }}>Загрузка...</div>;
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', padding: '40px 0' }}>Загрузка...</div>;
   }
 
   const leftColumnPacks = shuffledPacks.filter((_, i) => i % 2 === 0);

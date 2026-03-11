@@ -458,7 +458,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
 
   const renderLinkStep = () => (
     <form onSubmit={handleSubmitLink}>
-      <Text variant="h4" weight="bold" style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--tg-theme-text-color, #ffffff)', textAlign: 'center' }}>
+      <Text variant="h4" weight="bold" style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--color-text)', textAlign: 'center' }}>
         Добавьте стикеры в Stixly
       </Text>
       <p className="upload-sticker-pack-modal__hint">
@@ -515,7 +515,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
           <Spinner size={32} />
-          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }}>
             Загружаем данные из Telegram…
           </Text>
         </div>
@@ -525,7 +525,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
     if (previewStickers.length === 0) {
       return (
         <div style={{ padding: '32px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }}>
             Telegram не передал превью. Попробуйте обновить позже.
           </Text>
         </div>
@@ -544,8 +544,8 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
             overflowY: 'hidden',
             padding: '12px 10px',
             borderRadius: '16px',
-            border: '1px solid var(--tg-theme-border-color)',
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-surface)',
             scrollSnapType: 'x proximity',
             maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
             WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
@@ -580,7 +580,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
                   width: '96px',
                   height: '96px',
                   borderRadius: '16px',
-                  border: isActive ? '2px solid var(--tg-theme-button-color, #2481cc)' : '1px solid var(--tg-theme-border-color, rgba(0,0,0,0.12))',
+                  border: isActive ? '2px solid var(--color-button)' : '1px solid var(--color-border)',
                   backgroundColor: 'rgba(0,0,0,0.35)',
                   display: 'flex',
                   alignItems: 'center',
@@ -616,17 +616,17 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
 
   const renderCategoriesStep = () => (
     <>
-      <Text variant="h4" weight="bold" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)', marginBottom: '24px'}}>
+      <Text variant="h4" weight="bold" style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '24px'}}>
         Добавьте категории
       </Text>
 
-      <div style={{ borderRadius: '16px', border: '1px solid var(--tg-theme-border-color)', backgroundColor: 'var(--tg-theme-bg-color)', marginBottom: '16px', overflow: 'hidden' }}>
+      <div style={{ borderRadius: '16px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)', marginBottom: '16px', overflow: 'hidden' }}>
         <div style={{ display: 'flex', flexDirection: 'column', padding: 16, gap: '12px'}}>
-          <Text variant="h4" weight="bold" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
+          <Text variant="h4" weight="bold" style={{ fontWeight: 600, color: 'var(--color-text)' }}>
             {displayTitle}
           </Text>
           {displayName ? (
-            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)', wordBreak: 'break-word' }}>
+            <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)', wordBreak: 'break-word' }}>
               @{displayName}
             </Text>
           ) : null}
@@ -646,11 +646,11 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
-        <Text variant="body" weight="bold" style={{ fontWeight: 600, color: 'var(--tg-theme-text-color)' }}>
+        <Text variant="body" weight="bold" style={{ fontWeight: 600, color: 'var(--color-text)' }}>
           Выберите категории для стикерсета:
         </Text>
         {!suggestionLoading && aiSuggestedKeys.size > 0 && (
-          <Text variant="caption" style={{ color: 'var(--tg-theme-link-color, #2481cc)', fontSize: '0.75rem', fontWeight: 500 }}>
+          <Text variant="caption" style={{ color: 'var(--color-link)', fontSize: '0.75rem', fontWeight: 500 }}>
             ✨ {aiSuggestedKeys.size} от AI
           </Text>
         )}
@@ -659,7 +659,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
       {suggestionLoading && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
           <Spinner size={20} />
-          <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Text variant="caption" style={{ color: 'var(--color-text-secondary)' }}>
             AI подбирает лучшие категории...
           </Text>
         </div>
@@ -683,7 +683,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
       {categoriesLoading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px'}}>
           <Spinner size={20} />
-          <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)' }}>
+          <Text variant="caption" style={{ color: 'var(--color-text-secondary)' }}>
             Загрузка категорий...
           </Text>
         </div>
@@ -708,9 +708,9 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
           </Button>
         </Alert>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingBottom: '8px', paddingRight: '4px', borderRadius: '12px', border: '1px solid var(--tg-theme-border-color)', padding: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingBottom: '8px', paddingRight: '4px', borderRadius: '12px', border: '1px solid var(--color-border)', padding: '12px' }}>
           {categories.length === 0 ? (
-            <Text variant="bodySmall" style={{ color: 'var(--tg-theme-hint-color)' }}>
+            <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }}>
               Категории не найдены. Попробуйте позже или обновите страницу.
             </Text>
           ) : (
@@ -730,12 +730,12 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
                     transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                     ...(isAiSuggested && !isSelected ? {
                       fontWeight: 600,
-                      boxShadow: '0 0 0 1px var(--tg-theme-link-color, #2481cc)',
-                      borderColor: 'var(--tg-theme-link-color, #2481cc)',
+                      boxShadow: '0 0 0 1px var(--color-link)',
+                      borderColor: 'var(--color-link)',
                       borderWidth: 2,
                       borderStyle: 'solid',
                       backgroundColor: 'rgba(36, 129, 204, 0.08)',
-                      color: 'var(--tg-theme-link-color, #2481cc)'
+                      color: 'var(--color-link)'
                     } : {})
                   }}
                 />
@@ -746,7 +746,7 @@ export const UploadStickerPackModal: FC<UploadStickerPackModalProps> = ({
       )}
 
       {step === 'categories' && selectedCategories.length === 0 && categories.length > 0 && (
-        <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', fontSize: '0.75rem', textAlign: 'center', marginTop: '8px', marginBottom: -8, opacity: 0.8 }}>
+        <Text variant="caption" style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', textAlign: 'center', marginTop: '8px', marginBottom: -8, opacity: 0.8 }}>
           Выберите хотя бы одну категорию
         </Text>
       )}

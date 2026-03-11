@@ -284,7 +284,7 @@ export const AnimatedSticker: FC<AnimatedStickerProps> = ({
             width: 40,
             height: 40,
             border: '3px solid rgba(0, 0, 0, 0.1)',
-            borderTop: '3px solid var(--tg-theme-button-color, #3390ec)',
+            borderTop: '3px solid var(--color-button)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
           }} />

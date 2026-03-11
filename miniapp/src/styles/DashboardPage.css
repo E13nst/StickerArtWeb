@@ -357,10 +357,10 @@
 .dashboard-view-all-button {
   text-transform: none;
   text-decoration: underline;
-  text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
+  text-decoration-color: var(--color-text-secondary);
   font-size: 0.82rem;
   font-weight: 300;
-  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.7));
+  color: var(--color-text-secondary);
   padding-left: 0;
   padding-right: 0;
   padding-top: 0.25rem;
@@ -371,8 +371,8 @@
 .dashboard-view-all-button:hover {
   background-color: transparent;
   text-decoration: underline;
-  text-decoration-color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.6));
-  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.85));
+  text-decoration-color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 }
 
 /* ============================================

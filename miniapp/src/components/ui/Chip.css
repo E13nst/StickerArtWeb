@@ -21,15 +21,15 @@
 }
 
 .chip-filled {
-  background-color: var(--tg-theme-button-color, #3390ec);
-  color: var(--tg-theme-button-text-color, #ffffff);
+  background-color: var(--color-button);
+  color: var(--color-button-text);
   border: none;
 }
 
 .chip-outlined {
   background-color: transparent;
-  color: var(--tg-theme-text-color, #000000);
-  border: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.23));
+  color: var(--color-text);
+  border: 1px solid var(--color-text-secondary);
 }
 
 .chip-clickable {

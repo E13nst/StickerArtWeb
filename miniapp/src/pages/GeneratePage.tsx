@@ -39,22 +39,7 @@ const MODEL_OPTIONS: Array<{ id: GenerateModelType; name: string }> = [
   { id: 'flux-schnell', name: 'Stixly' },
   { id: 'nanabanana', name: 'Nano 🍌' },
 ];
-
-const buildStickerSetTitleFromPrompt = (rawPrompt: string): string => {
-  const trimmed = rawPrompt.trim();
-  if (!trimmed) return 'My Pack';
-  return trimmed.length > 32 ? `${trimmed.slice(0, 32).trim()}...` : trimmed;
-};
-
-const buildStickerSetNameFromTitle = (title: string): string => {
-  const base = title
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_]/g, '')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '');
-  return base || 'my_pack';
-};
+const SOURCE_IMAGE_MODEL: GenerateModelType = 'nanabanana';
 
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
@@ -103,6 +88,7 @@ export const GeneratePage: FC = () => {
   const styleDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
+  const shareAfterSaveRef = useRef(false);
 
   // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
@@ -263,7 +249,6 @@ export const GeneratePage: FC = () => {
           // Сохраняем fileId для последующей отправки боту
           const receivedFileId = statusData.telegramSticker?.fileId || null;
           setFileId(receivedFileId);
-          setStickerSaved(!!receivedFileId);
           if (receivedFileId) {
             console.log('✅ Получен fileId из ответа API:', receivedFileId);
           }
@@ -361,13 +346,7 @@ export const GeneratePage: FC = () => {
   };
 
 
-  const handleSavedFromModal = useCallback((stickerFileId?: string | null) => {
-    if (stickerFileId) {
-      setFileId(stickerFileId);
-    }
-    setStickerSaved(true);
-    setSaveError(null);
-  }, []);
+  const effectiveUserId = userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
 
   const [isSavingAndSharing, setIsSavingAndSharing] = useState(false);
 
@@ -390,6 +369,10 @@ export const GeneratePage: FC = () => {
       }
       setSourceImageFile(file);
       setSourceImageBase64(result);
+      if (selectedModel !== SOURCE_IMAGE_MODEL) {
+        setSelectedModel(SOURCE_IMAGE_MODEL);
+        setModelDropdownOpen(false);
+      }
       setErrorMessage(null);
       setErrorKind(null);
       if (pageState === 'error') {
@@ -403,16 +386,11 @@ export const GeneratePage: FC = () => {
     };
     reader.readAsDataURL(file);
     event.target.value = '';
-  }, [pageState]);
+  }, [pageState, selectedModel]);
 
   const clearSourceImage = useCallback(() => {
     setSourceImageFile(null);
     setSourceImageBase64(null);
-  }, []);
-
-  const resolveStickerFileIdForShare = useCallback(async (taskIdToResolve: string) => {
-    const status = await apiClient.getGenerationStatusV2(taskIdToResolve);
-    return status.telegramSticker?.fileId || null;
   }, []);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
@@ -447,37 +425,54 @@ export const GeneratePage: FC = () => {
     window.open(fallbackUrl, '_blank');
   }, [tg]);
 
+  const handleSavedFromModal = useCallback((stickerFileId?: string | null) => {
+    if (stickerFileId) {
+      setFileId(stickerFileId);
+    }
+    setStickerSaved(true);
+    setSaveError(null);
+    if (shareAfterSaveRef.current) {
+      shareAfterSaveRef.current = false;
+      if (stickerFileId) {
+        openChatPicker(stickerFileId);
+      } else if (tg?.showAlert) {
+        tg.showAlert('Стикер сохранён в пак, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.');
+      } else {
+        setSaveError('Стикер сохранён в пак, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.');
+      }
+    }
+  }, [openChatPicker, tg]);
+
+  const handleOpenSaveModal = useCallback((shareAfterSave: boolean = false) => {
+    shareAfterSaveRef.current = shareAfterSave;
+    setSaveError(null);
+    setSaveModalOpen(true);
+  }, []);
+
+  const handleCloseSaveModal = useCallback(() => {
+    shareAfterSaveRef.current = false;
+    setSaveModalOpen(false);
+  }, []);
+
   const handleShareSticker = async () => {
     if (fileId) {
       openChatPicker(fileId);
       return;
     }
-    if (!taskId || !user?.id) return;
+    if (!taskId) return;
 
     setIsSavingAndSharing(true);
     setSaveError(null);
     try {
-      const title = buildStickerSetTitleFromPrompt(prompt);
-      const name = buildStickerSetNameFromTitle(title);
-      const res = await apiClient.saveToStickerSetV2({
-        taskId,
-        userId: user.id,
-        name,
-        title,
-        emoji: '🎨',
-      });
-      if (res.status === '202' || res.status === 'PENDING') {
-        throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
-      }
+      const currentStatusData = await apiClient.getGenerationStatusV2(taskId);
+      const statusFileId = currentStatusData.telegramSticker?.fileId || null;
 
-      const stickerFileId = res.stickerFileId ?? await resolveStickerFileIdForShare(taskId);
-      if (!stickerFileId) {
-        throw new Error('Стикер сохранён, но fileId пока недоступен. Попробуйте снова через пару секунд.');
+      if (statusFileId) {
+        setFileId(statusFileId);
+        openChatPicker(statusFileId);
+        return;
       }
-
-      setFileId(stickerFileId);
-      setStickerSaved(true);
-      openChatPicker(stickerFileId);
+      handleOpenSaveModal(true);
     } catch (e: any) {
       setSaveError(e?.message ?? 'Не удалось сохранить стикер');
     } finally {
@@ -490,6 +485,7 @@ export const GeneratePage: FC = () => {
   const isGenerating = pageState === 'generating';
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
+  const hasSourceImage = !!sourceImageFile;
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
@@ -515,6 +511,9 @@ export const GeneratePage: FC = () => {
 
   const handleModelChange = (rawValue: string) => {
     if (rawValue === 'flux-schnell' || rawValue === 'nanabanana') {
+      if (hasSourceImage && rawValue !== SOURCE_IMAGE_MODEL) {
+        return;
+      }
       setSelectedModel(rawValue);
     }
   };
@@ -578,19 +577,31 @@ export const GeneratePage: FC = () => {
         </button>
         {modelDropdownOpen && (
           <div className="generate-model-select-dropdown">
-            {MODEL_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className={cn('generate-model-select-option', option.id === selectedModel && 'generate-model-select-option--selected')}
-                onClick={() => {
-                  handleModelChange(option.id);
-                  setModelDropdownOpen(false);
-                }}
-              >
-                {option.name}
-              </button>
-            ))}
+            {MODEL_OPTIONS.map((option) => {
+              const isOptionDisabled = hasSourceImage && option.id !== SOURCE_IMAGE_MODEL;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={cn(
+                    'generate-model-select-option',
+                    option.id === selectedModel && 'generate-model-select-option--selected',
+                    isOptionDisabled && 'generate-model-select-option--disabled',
+                  )}
+                  onClick={() => {
+                    if (isOptionDisabled) {
+                      return;
+                    }
+                    handleModelChange(option.id);
+                    setModelDropdownOpen(false);
+                  }}
+                  disabled={isOptionDisabled}
+                >
+                  {option.name}
+                  {isOptionDisabled ? ' · без фото' : ''}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -652,18 +663,30 @@ export const GeneratePage: FC = () => {
         hidden
         onChange={handleSourceImageChange}
       />
-      <button
-        type="button"
-        className="generate-input-wrapper__pictures-button"
-        onClick={handleSourceImagePick}
-        disabled={disabled}
-        aria-label={sourceImageFile ? 'Изменить исходное изображение' : 'Добавить исходное изображение'}
-      >
-        <img src={`${BASE}assets/pictures-icon.svg`} alt="" className="generate-input-wrapper__pictures-icon" aria-hidden="true" />
-      </button>
-      {sourceImageFile && (
-        <div className="generate-source-image-preview">
-          <img src={sourceImageBase64 ?? ''} alt="Исходное изображение" className="generate-source-image-preview__image" />
+      <div className="generate-input-wrapper__pictures-slot">
+        <button
+          type="button"
+          className="generate-input-wrapper__pictures-button"
+          onClick={handleSourceImagePick}
+          disabled={disabled}
+          aria-label={sourceImageFile ? 'Изменить исходное изображение' : 'Добавить исходное изображение'}
+        >
+          {sourceImageFile ? (
+            <img
+              src={sourceImageBase64 ?? ''}
+              alt="Исходное изображение"
+              className="generate-input-wrapper__pictures-preview"
+            />
+          ) : (
+            <img
+              src={`${BASE}assets/pictures-icon.svg`}
+              alt=""
+              className="generate-input-wrapper__pictures-icon"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+        {sourceImageFile && (
           <button
             type="button"
             className="generate-source-image-preview__remove"
@@ -673,8 +696,8 @@ export const GeneratePage: FC = () => {
           >
             ×
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 
@@ -736,7 +759,7 @@ export const GeneratePage: FC = () => {
             <Button
               variant="primary"
               size="medium"
-              onClick={() => setSaveModalOpen(true)}
+              onClick={() => handleOpenSaveModal(false)}
               disabled={stickerSaved}
               className="generate-action-button save"
             >
@@ -935,11 +958,11 @@ export const GeneratePage: FC = () => {
       </StixlyPageContainer>
       <SaveToStickerSetModal
         isOpen={saveModalOpen}
-        onClose={() => setSaveModalOpen(false)}
+        onClose={handleCloseSaveModal}
         imageUrl={resultImageUrl}
         imageId={imageId}
         taskId={taskId}
-        userId={user?.id ?? null}
+        userId={effectiveUserId}
         onSaved={handleSavedFromModal}
       />
     </div>

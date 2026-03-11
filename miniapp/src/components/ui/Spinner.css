@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-primary, var(--tg-theme-button-color));
+  color: var(--color-primary);
 }
 .spinner-svg {
   width: 100%;

@@ -17,7 +17,7 @@ export const MetricCard: FC<MetricCardProps> = ({
   trend,
   period,
   icon,
-  color = 'var(--tg-theme-button-color)'
+  color = 'var(--color-button)'
 }) => {
   return (
     <div className="metric-card card-base">
@@ -43,8 +43,8 @@ export const MetricCard: FC<MetricCardProps> = ({
           className="metric-card-trend"
           style={{
             color: trend.startsWith('+') 
-              ? 'var(--tg-theme-button-color)' 
-              : 'var(--tg-theme-hint-color)'
+              ? 'var(--color-button)' 
+              : 'var(--color-text-secondary)'
           }}
         >
           {trend} за {period}

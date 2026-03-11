@@ -177,8 +177,8 @@ export const PullToRefreshIndicator: FC<PullToRefreshIndicatorProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-        borderBottom: '1px solid var(--tg-theme-border-color)',
+        backgroundColor: 'var(--color-surface)',
+        borderBottom: '1px solid var(--color-border)',
         transform: `translateY(${state.pullDistance - 60}px)`,
         transition: state.isRefreshing ? 'transform 0.3s ease' : 'none',
         zIndex: 'var(--z-overlay, 400)'
@@ -205,8 +205,8 @@ export const PullToRefreshIndicator: FC<PullToRefreshIndicatorProps> = ({
               style={{
                 width: '20px',
                 height: '20px',
-                border: '2px solid var(--tg-theme-hint-color)',
-                borderTop: '2px solid var(--tg-theme-button-color)',
+                border: '2px solid var(--color-text-secondary)',
+                borderTop: '2px solid var(--color-button)',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}
@@ -221,8 +221,8 @@ export const PullToRefreshIndicator: FC<PullToRefreshIndicatorProps> = ({
           style={{
             fontSize: '12px',
             color: state.canRefresh 
-              ? 'var(--tg-theme-button-color)' 
-              : 'var(--tg-theme-hint-color)',
+              ? 'var(--color-button)' 
+              : 'var(--color-text-secondary)',
             fontWeight: '500',
             opacity: progress
           }}

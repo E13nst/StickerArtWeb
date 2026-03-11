@@ -63,11 +63,11 @@ export const TelegramAuthModal: FC<TelegramAuthModalProps> = ({
   const renderContent = () => (
     <div className="telegram-auth-modal-content">
       <div style={{ textAlign: 'center', marginBottom: '24px'}}>
-        <TelegramIcon size={48} color="var(--tg-theme-button-color)" style={{ marginBottom: '8px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
-        <Text variant="h4" style={{ color: 'var(--tg-theme-text-color)', marginBottom: '8px'}}>
+        <TelegramIcon size={48} color="var(--color-button)" style={{ marginBottom: '8px', display: 'block', marginLeft: 'auto', marginRight: 'auto' }} />
+        <Text variant="h4" style={{ color: 'var(--color-text)', marginBottom: '8px'}}>
           Авторизация через Telegram
         </Text>
-        <Text variant="bodySmall" style={{ marginBottom: '16px', color: 'var(--tg-theme-hint-color)' }}>
+        <Text variant="bodySmall" style={{ marginBottom: '16px', color: 'var(--color-text-secondary)' }}>
           Для доступа к полному функционалу откройте приложение через Telegram бота
         </Text>
       </div>
@@ -79,13 +79,13 @@ export const TelegramAuthModal: FC<TelegramAuthModalProps> = ({
       )}
 
       <Divider style={{ margin: '16px 0' }} />
-      <Text variant="caption" style={{ color: 'var(--tg-theme-hint-color)', display: 'block', marginBottom: '8px'}}>
+      <Text variant="caption" style={{ color: 'var(--color-text-secondary)', display: 'block', marginBottom: '8px'}}>
         Режим разработки
       </Text>
       <Divider style={{ margin: '8px 0 16px' }} />
 
       <div style={{ marginBottom: '16px'}}>
-        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--tg-theme-hint-color)' }}>
+        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
           initData для тестирования
         </label>
         <textarea

@@ -4,7 +4,7 @@
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--color-text, var(--tg-theme-text-color));
+  color: var(--color-text);
   cursor: pointer;
   border-radius: 50%;
   padding: 0;

@@ -104,11 +104,11 @@ export const SearchWithSuggestions: FC<SearchWithSuggestionsProps> = ({
         style={{
           width: '100%',
           padding: '12px 16px',
-          border: '1px solid var(--tg-theme-border-color)',
+          border: '1px solid var(--color-border)',
           borderRadius: '12px',
           fontSize: '16px',
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          color: 'var(--tg-theme-text-color)',
+          backgroundColor: 'var(--color-surface)',
+          color: 'var(--color-text)',
           outline: 'none'
         }}
       />
@@ -120,10 +120,10 @@ export const SearchWithSuggestions: FC<SearchWithSuggestionsProps> = ({
           top: '100%',
           left: 0,
           right: 0,
-          backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-          border: '1px solid var(--tg-theme-border-color)',
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: '12px',
-          boxShadow: '0 4px 12px var(--tg-theme-shadow-color)',
+          boxShadow: '0 4px 12px var(--color-shadow)',
           zIndex: 'var(--z-dropdown, 300)',
           marginTop: '4px'
         }}>
@@ -135,16 +135,16 @@ export const SearchWithSuggestions: FC<SearchWithSuggestionsProps> = ({
                 padding: '12px 16px',
                 cursor: 'pointer',
                 backgroundColor: selectedIndex === index 
-                  ? 'var(--tg-theme-button-color)' 
+                  ? 'var(--color-button)' 
                   : 'transparent',
                 color: selectedIndex === index 
                   ? 'white' 
-                  : 'var(--tg-theme-text-color)',
+                  : 'var(--color-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 borderBottom: index < suggestions.length - 1 
-                  ? '1px solid var(--tg-theme-border-color)' 
+                  ? '1px solid var(--color-border)' 
                   : 'none'
               }}
             >
@@ -155,8 +155,8 @@ export const SearchWithSuggestions: FC<SearchWithSuggestionsProps> = ({
               {suggestion.count && (
                 <span style={{ 
                   fontSize: '12px', 
-                  color: 'var(--tg-theme-hint-color)',
-                  backgroundColor: 'var(--tg-theme-border-color)',
+                  color: 'var(--color-text-secondary)',
+                  backgroundColor: 'var(--color-border)',
                   padding: '2px 6px',
                   borderRadius: '10px'
                 }}>

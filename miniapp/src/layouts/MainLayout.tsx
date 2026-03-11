@@ -34,7 +34,7 @@ export default function MainLayout({ children }: Props) {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: 'var(--tg-theme-bg-color, #191818)'
+        backgroundColor: 'var(--color-background)'
       }}>
         <LoadingSpinner message="Инициализация..." />
       </div>
