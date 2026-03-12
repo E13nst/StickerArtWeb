@@ -25,6 +25,8 @@ const getGeneratingSpinnerMessage = (status: GenerationStatus | null): string =>
 const POLLING_INTERVAL = 2500; // 2.5 секунды
 const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
+const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
+const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -32,6 +34,54 @@ const cn = (...classes: (string | boolean | undefined | null)[]): string => {
 
 const stripPresetName = (name: string) =>
   name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+
+const normalizeStickerSetBase = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+const buildDefaultStickerSetName = (params: {
+  username?: string | null;
+  firstName?: string | null;
+  userId?: number | null;
+}): string => {
+  const usernameBase = normalizeStickerSetBase(params.username ?? '');
+  if (usernameBase) {
+    return usernameBase.endsWith(DEFAULT_STICKER_BOT_SUFFIX)
+      ? usernameBase
+      : `${usernameBase}${DEFAULT_STICKER_BOT_SUFFIX}`;
+  }
+
+  const firstNameBase = normalizeStickerSetBase(params.firstName ?? '');
+  if (firstNameBase) {
+    return `${firstNameBase}${DEFAULT_STICKER_BOT_SUFFIX}`;
+  }
+
+  return `user_${params.userId ?? 'pack'}${DEFAULT_STICKER_BOT_SUFFIX}`;
+};
+
+const buildDefaultStickerSetTitle = (params: {
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  userId?: number | null;
+}): string => {
+  const username = (params.username ?? '').trim();
+  if (username) {
+    return `@${username}`;
+  }
+
+  const fullName = `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  return `User ${params.userId ?? ''}`.trim();
+};
 
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
@@ -88,7 +138,6 @@ export const GeneratePage: FC = () => {
   const styleDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
-  const shareAfterSaveRef = useRef(false);
 
   // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
@@ -431,26 +480,14 @@ export const GeneratePage: FC = () => {
     }
     setStickerSaved(true);
     setSaveError(null);
-    if (shareAfterSaveRef.current) {
-      shareAfterSaveRef.current = false;
-      if (stickerFileId) {
-        openChatPicker(stickerFileId);
-      } else if (tg?.showAlert) {
-        tg.showAlert('Стикер сохранён в пак, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.');
-      } else {
-        setSaveError('Стикер сохранён в пак, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.');
-      }
-    }
-  }, [openChatPicker, tg]);
+  }, []);
 
-  const handleOpenSaveModal = useCallback((shareAfterSave: boolean = false) => {
-    shareAfterSaveRef.current = shareAfterSave;
+  const handleOpenSaveModal = useCallback(() => {
     setSaveError(null);
     setSaveModalOpen(true);
   }, []);
 
   const handleCloseSaveModal = useCallback(() => {
-    shareAfterSaveRef.current = false;
     setSaveModalOpen(false);
   }, []);
 
@@ -464,15 +501,50 @@ export const GeneratePage: FC = () => {
     setIsSavingAndSharing(true);
     setSaveError(null);
     try {
-      const currentStatusData = await apiClient.getGenerationStatusV2(taskId);
-      const statusFileId = currentStatusData.telegramSticker?.fileId || null;
+      if (!effectiveUserId) {
+        throw new Error('Не удалось определить пользователя Telegram');
+      }
 
-      if (statusFileId) {
-        setFileId(statusFileId);
-        openChatPicker(statusFileId);
+      const defaultSetName = buildDefaultStickerSetName({
+        username: userInfo?.username ?? user?.username ?? null,
+        firstName: userInfo?.firstName ?? user?.first_name ?? null,
+        userId: effectiveUserId,
+      });
+      const defaultSetTitle = buildDefaultStickerSetTitle({
+        username: userInfo?.username ?? user?.username ?? null,
+        firstName: userInfo?.firstName ?? user?.first_name ?? null,
+        lastName: userInfo?.lastName ?? user?.last_name ?? null,
+        userId: effectiveUserId,
+      });
+
+      const response = await apiClient.saveToStickerSetV2({
+        taskId,
+        userId: effectiveUserId,
+        name: defaultSetName,
+        title: defaultSetTitle,
+        emoji: '🎨',
+        wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
+      });
+
+      if (response.status === '202' || response.status === 'PENDING') {
+        throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
+      }
+
+      const savedFileId = response.stickerFileId ?? null;
+      setStickerSaved(true);
+
+      if (savedFileId) {
+        setFileId(savedFileId);
+        openChatPicker(savedFileId);
         return;
       }
-      handleOpenSaveModal(true);
+
+      const message = 'Стикер сохранён в дефолтный пак, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.';
+      if (tg?.showAlert) {
+        tg.showAlert(message);
+      } else {
+        setSaveError(message);
+      }
     } catch (e: any) {
       setSaveError(e?.message ?? 'Не удалось сохранить стикер');
     } finally {
@@ -759,7 +831,7 @@ export const GeneratePage: FC = () => {
             <Button
               variant="primary"
               size="medium"
-              onClick={() => handleOpenSaveModal(false)}
+              onClick={handleOpenSaveModal}
               disabled={stickerSaved}
               className="generate-action-button save"
             >

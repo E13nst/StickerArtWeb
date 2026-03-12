@@ -8,6 +8,8 @@ import { getStickerThumbnailUrl } from '@/utils/stickerUtils';
 import type { StickerSetResponse } from '@/types/sticker';
 import './SaveToStickerSetModal.css';
 
+const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
+
 export interface SaveToStickerSetModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -193,6 +195,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           name: set.name,
           title: set.title || set.name,
           emoji: '🎨',
+          wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
         });
         if (response.status === '202' || response.status === 'PENDING') {
           throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
@@ -240,6 +243,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           name: buildStickerSetName(title),
           title,
           emoji: '🎨',
+          wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
         });
         if (response.status === '202' || response.status === 'PENDING') {
           throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
