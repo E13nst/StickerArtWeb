@@ -15,6 +15,7 @@ import { getStickerImageUrl, getStickerVideoUrl, formatStickerTitle } from '@/ut
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '@/utils/imageLoader';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
+import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
@@ -28,38 +29,19 @@ type PreviewMedia = {
 };
 
 const resolvePreviewMedia = (stickerSet: StickerSetResponse): PreviewMedia | null => {
-  const previewSticker = stickerSet.previewStickers?.[0] as
-    | { fileId?: string; url?: string; emoji?: string; isAnimated?: boolean; isVideo?: boolean }
-    | undefined;
-  const telegramSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
-  const thumbnail = stickerSet.telegramStickerSetInfo?.thumbnail;
+  const pack = adaptStickerSetsToGalleryPacks([stickerSet])[0];
+  const previewSticker = pack?.previewStickers?.[0];
 
-  const fileId =
-    previewSticker?.fileId ||
-    telegramSticker?.file_id ||
-    thumbnail?.file_id;
-
-  if (!fileId) {
+  if (!previewSticker) {
     return null;
   }
 
-  const isAnimated = Boolean(
-    previewSticker?.isAnimated ??
-      telegramSticker?.is_animated ??
-      stickerSet.telegramStickerSetInfo?.is_animated
-  );
-  const isVideo = Boolean(
-    previewSticker?.isVideo ??
-      telegramSticker?.is_video ??
-      stickerSet.telegramStickerSetInfo?.is_video
-  );
-
   return {
-    fileId,
-    url: previewSticker?.url || getStickerImageUrl(fileId),
-    emoji: previewSticker?.emoji || telegramSticker?.emoji || '🎨',
-    isAnimated,
-    isVideo,
+    fileId: previewSticker.fileId,
+    url: previewSticker.url || getStickerImageUrl(previewSticker.fileId),
+    emoji: previewSticker.emoji || '🎨',
+    isAnimated: previewSticker.isAnimated,
+    isVideo: previewSticker.isVideo,
   };
 };
 
@@ -323,7 +305,7 @@ export const SwipePage: FC = () => {
               ) : isVideo ? (
                 <SwipeCardVideoPreview
                   fileId={preview.fileId}
-                  url={getStickerVideoUrl(preview.fileId)}
+                  url={preview.url || getStickerVideoUrl(preview.fileId)}
                   emoji={preview.emoji}
                   isActive={isActiveCard}
                   stickerIndex={index}
@@ -396,7 +378,7 @@ export const SwipePage: FC = () => {
       const preview = resolvePreviewMedia(stickerSet);
       if (!preview?.fileId || !preview.isVideo) return;
       if (videoBlobCache.has(preview.fileId)) return;
-      const url = getStickerVideoUrl(preview.fileId);
+      const url = preview.url || getStickerVideoUrl(preview.fileId);
       const priority = i === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
       imageLoader.loadVideo(preview.fileId, url, priority, String(stickerSet.id), 0).catch(() => {});
     });

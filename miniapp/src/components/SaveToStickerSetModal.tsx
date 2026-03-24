@@ -17,6 +17,7 @@ export interface SaveToStickerSetModalProps {
   imageId: string | null;
   taskId: string | null;
   userId: number | null;
+  selectedEmoji?: string;
   onSaved: (stickerFileId?: string | null) => void;
 }
 
@@ -57,6 +58,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   imageId,
   taskId,
   userId,
+  selectedEmoji = '🎨',
   onSaved,
 }) => {
   const userInfo = useProfileStore((state) => state.userInfo);
@@ -194,7 +196,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           userId: effectiveUserId,
           name: set.name,
           title: set.title || set.name,
-          emoji: '🎨',
+          emoji: selectedEmoji,
           wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
         });
         if (response.status === '202' || response.status === 'PENDING') {
@@ -205,7 +207,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
         const res = await apiClient.saveImageToStickerSet({
           imageUuid: imageId,
           stickerSetName: set.name,
-          emoji: '🎨',
+          emoji: selectedEmoji,
         });
         stickerFileId = res.stickerFileId;
       } else {
@@ -242,7 +244,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           userId: effectiveUserId,
           name: buildStickerSetName(title),
           title,
-          emoji: '🎨',
+          emoji: selectedEmoji,
           wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
         });
         if (response.status === '202' || response.status === 'PENDING') {

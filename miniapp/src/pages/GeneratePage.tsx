@@ -93,6 +93,31 @@ const MODEL_OPTIONS: Array<{ id: GenerateModelType; name: string }> = [
   { id: 'nanabanana', name: 'Nano 🍌' },
 ];
 const SOURCE_IMAGE_MODEL: GenerateModelType = 'nanabanana';
+const POPULAR_EMOJIS = [
+  '😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '😘', '🥰', '😗', '😙', '😚',
+  '🙂', '🤗', '🤩', '🤔', '🫡', '🤨', '😐', '😑', '😶', '🫥', '😶‍🌫️', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯',
+  '😪', '😫', '🥱', '😴', '😌', '😛', '😜', '😝', '🤤', '😒', '😓', '😔', '😕', '🫤', '🙃', '🫠', '🤑', '😲',
+  '☹️', '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '😬', '😰', '😱', '🥵', '🥶', '😳',
+  '🤯', '😵', '😵‍💫', '🥴', '😠', '😡', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇', '🥳', '🥸', '😈', '👿',
+  '👻', '💀', '☠️', '👽', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾',
+  '❤️', '🩷', '🧡', '💛', '💚', '🩵', '💙', '💜', '🤎', '🖤', '🩶', '🤍', '💔', '❣️', '💕', '💞', '💓', '💗',
+  '💖', '💘', '💝', '💟', '♥️', '💌', '💋', '🫶', '🤝', '👏', '🙌', '👐', '👍', '👎', '👌', '✌️', '🤞', '🫰',
+  '🤟', '🤘', '🤙', '👋', '🫳', '🫴', '🖐️', '✋', '🖖', '👈', '👉', '👆', '👇', '☝️', '✊', '👊', '🤛', '🤜',
+  '💪', '🫵', '🙏', '✍️', '💅', '👀', '🧠', '👑', '💎', '🔥', '✨', '⭐', '🌟', '💫', '⚡', '☄️', '🌈', '☀️',
+  '🌤️', '⛅', '🌥️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '☔', '💧', '💦',
+  '🌊', '🎉', '🎊', '🎁', '🎈', '🎀', '🎂', '🍰', '🧁', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🍓', '🍒', '🍑',
+  '🍎', '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍇', '🥝', '🍅', '🥑', '🥕', '🌽', '🌶️', '🍄', '🥐', '🍞', '🧀',
+  '🍔', '🍟', '🍕', '🌭', '🌮', '🌯', '🥪', '🍝', '🍜', '🍣', '🍤', '🍙', '🍚', '🍛', '🍦', '🍧', '🍨', '☕',
+  '🍵', '🧃', '🥤', '🍹', '🍸', '🍷', '🍺', '🍻', '🥂',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉',
+  '🙊', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪲', '🦋', '🐌', '🐞',
+  '🐢', '🐍', '🦎', '🦂', '🐙', '🦀', '🐠', '🐟', '🐬', '🦈', '🐳', '🐘', '🦒', '🦌', '🦬', '🦥', '🦦', '🦨',
+  '🌸', '🌼', '🌻', '🌺', '🌹', '🥀', '🌷', '🪷', '🌱', '🪴', '🌲', '🌳', '🌴', '🌵',
+  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🥋', '🎮', '🕹️', '🎲', '🧩', '🎯', '🎨',
+  '🎭', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🚀', '✈️', '🚗', '🏎️', '🚕', '🚌',
+  '🚓', '🚑', '🚒', '🚜', '🛵', '🏍️', '🚲', '🛴', '⛵', '🚤', '🛸', '🏠', '🏡', '🏢', '🏙️', '🌆', '🗽', '🗼',
+  '📱', '💻', '⌚', '📷', '📸', '📹', '🎥', '💡', '🔦', '📚', '📝', '📌', '📎', '✂️', '🔒', '🔑', '🧸', '🪄'
+];
 
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
@@ -107,6 +132,7 @@ export const GeneratePage: FC = () => {
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<GenerateModelType>('flux-schnell');
+  const [selectedEmoji, setSelectedEmoji] = useState('🎨');
   const [removeBackground, setRemoveBackground] = useState<boolean>(false);
   const [sourceImageFile, setSourceImageFile] = useState<File | null>(null);
   const [sourceImageBase64, setSourceImageBase64] = useState<string | null>(null);
@@ -139,6 +165,8 @@ export const GeneratePage: FC = () => {
   const modelDropdownRef = useRef<HTMLDivElement | null>(null);
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
   const styleDropdownRef = useRef<HTMLDivElement | null>(null);
+  const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false);
+  const emojiDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
@@ -596,7 +624,7 @@ export const GeneratePage: FC = () => {
         userId: effectiveUserId,
         name: defaultSetName,
         title: defaultSetTitle,
-        emoji: '🎨',
+        emoji: selectedEmoji,
         wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
       });
 
@@ -702,6 +730,20 @@ export const GeneratePage: FC = () => {
     };
   }, [styleDropdownOpen]);
 
+  useEffect(() => {
+    if (!emojiDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emojiDropdownRef.current && !emojiDropdownRef.current.contains(e.target as Node)) {
+        setEmojiDropdownOpen(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [emojiDropdownOpen]);
+
   const renderModelFileRow = (disabled: boolean) => {
     const selectedOption = MODEL_OPTIONS.find((option) => option.id === selectedModel) ?? MODEL_OPTIONS[0];
     return (
@@ -753,6 +795,43 @@ export const GeneratePage: FC = () => {
       </div>
     );
   };
+
+  const renderEmojiSelect = (disabled: boolean) => (
+    <div ref={emojiDropdownRef} className="generate-model-select-wrap generate-model-select-wrap--emoji">
+      <button
+        type="button"
+        className="generate-model-select-trigger generate-model-select-trigger--emoji"
+        onClick={() => !disabled && setEmojiDropdownOpen(v => !v)}
+        disabled={disabled}
+        aria-label="Выбор эмодзи"
+        aria-expanded={emojiDropdownOpen}
+      >
+        <span className="generate-model-select-value generate-model-select-value--emoji">{selectedEmoji}</span>
+      </button>
+      {emojiDropdownOpen && (
+        <div className="generate-model-select-dropdown generate-model-select-dropdown--emoji">
+          {POPULAR_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className={cn(
+                'generate-model-select-option',
+                'generate-model-select-option--emoji',
+                emoji === selectedEmoji && 'generate-model-select-option--selected',
+              )}
+              onClick={() => {
+                setSelectedEmoji(emoji);
+                setEmojiDropdownOpen(false);
+                tg?.HapticFeedback?.impactOccurred('light');
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const renderStyleSelect = (disabled: boolean) => (
     <div ref={styleDropdownRef} className="generate-model-select-wrap">
@@ -867,6 +946,7 @@ export const GeneratePage: FC = () => {
           />
           <div className="generate-input-footer">
             {renderStyleSelect(true)}
+            {renderEmojiSelect(true)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
               <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
@@ -949,6 +1029,7 @@ export const GeneratePage: FC = () => {
             />
             <div className="generate-input-footer">
               {renderStyleSelect(isGenerating)}
+              {renderEmojiSelect(isGenerating)}
               <label className="generate-checkbox-label generate-checkbox-label--inline">
                 <span>Удалить фон</span>
                 <input
@@ -1015,6 +1096,7 @@ export const GeneratePage: FC = () => {
           />
           <div className="generate-input-footer">
             {renderStyleSelect(false)}
+            {renderEmojiSelect(false)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
               <input
@@ -1066,6 +1148,7 @@ export const GeneratePage: FC = () => {
           />
           <div className="generate-input-footer">
             {renderStyleSelect(isGenerating)}
+            {renderEmojiSelect(isGenerating)}
             <label className="generate-checkbox-label generate-checkbox-label--inline">
               <span>Удалить фон</span>
               <input
@@ -1110,6 +1193,7 @@ export const GeneratePage: FC = () => {
         imageId={imageId}
         taskId={taskId}
         userId={effectiveUserId}
+        selectedEmoji={selectedEmoji}
         onSaved={handleSavedFromModal}
       />
     </div>
