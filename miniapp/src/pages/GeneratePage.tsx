@@ -12,21 +12,24 @@ import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
-type PageState = 'idle' | 'generating' | 'success' | 'error';
+type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
 
-/** Сообщение для tg-spinner__message: сначала "Улучшаем промпт", потом "Создаем шедевр" */
-const getGeneratingSpinnerMessage = (status: GenerationStatus | null): string => {
+/** Сообщение для tg-spinner__message: upload -> start -> generate */
+const getGeneratingSpinnerMessage = (pageState: PageState, status: GenerationStatus | null): string => {
+  if (pageState === 'uploading') return 'Загружаем фото';
   if (status === 'GENERATING' || status === 'REMOVING_BACKGROUND') return 'Создаем шедевр';
   return 'Улучшаем промпт'; // PROCESSING_PROMPT, PENDING, null и остальные
 };
 
-const POLLING_INTERVAL = 2500; // 2.5 секунды
+const POLLING_INTERVAL = 2000;
+const POLLING_TIMEOUT_MS = 120000;
 const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
+const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -138,6 +141,9 @@ export const GeneratePage: FC = () => {
   const styleDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadedSourceImageIdsRef = useRef<string[]>([]);
+  const uploadedSourceImageAtRef = useRef<number | null>(null);
+  const pollingStartedAtRef = useRef<number | null>(null);
 
   // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
@@ -272,6 +278,7 @@ export const GeneratePage: FC = () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
+      pollingStartedAtRef.current = null;
     };
   }, []);
 
@@ -281,8 +288,25 @@ export const GeneratePage: FC = () => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
     }
+    pollingStartedAtRef.current = Date.now();
 
     const poll = async () => {
+      if (
+        pollingStartedAtRef.current &&
+        Date.now() - pollingStartedAtRef.current >= POLLING_TIMEOUT_MS
+      ) {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        pollingStartedAtRef.current = null;
+        setCurrentStatus('TIMEOUT');
+        setErrorMessage('Генерация заняла слишком много времени. Попробуйте снова.');
+        setErrorKind('general');
+        setPageState('error');
+        return;
+      }
+
       try {
         const statusData = await apiClient.getGenerationStatusV2(taskIdToCheck);
         setCurrentStatus(statusData.status);
@@ -293,6 +317,7 @@ export const GeneratePage: FC = () => {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
           }
+          pollingStartedAtRef.current = null;
           setResultImageUrl(statusData.imageUrl || null);
           setImageId(statusData.imageId || null);
           // Сохраняем fileId для последующей отправки боту
@@ -310,10 +335,12 @@ export const GeneratePage: FC = () => {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
           }
+          pollingStartedAtRef.current = null;
           setErrorMessage(
             statusData.errorMessage || 
             (statusData.status === 'TIMEOUT' ? 'Превышено время ожидания' : 'Произошла ошибка при генерации')
           );
+          setErrorKind('general');
           setPageState('error');
         }
         // Для PENDING, GENERATING, REMOVING_BACKGROUND - продолжаем polling
@@ -329,6 +356,28 @@ export const GeneratePage: FC = () => {
     // Далее с интервалом
     pollingIntervalRef.current = setInterval(poll, POLLING_INTERVAL);
   }, [refreshMyProfile]);
+
+  const ensureUploadedSourceImageIds = useCallback(async (): Promise<string[]> => {
+    if (!sourceImageFile) {
+      return [];
+    }
+
+    const cachedImageIds = uploadedSourceImageIdsRef.current;
+    const uploadedAt = uploadedSourceImageAtRef.current;
+    const hasFreshCachedUpload =
+      cachedImageIds.length > 0 &&
+      uploadedAt != null &&
+      Date.now() - uploadedAt < SOURCE_IMAGE_ID_REUSE_WINDOW_MS;
+
+    if (hasFreshCachedUpload) {
+      return cachedImageIds;
+    }
+
+    const uploadResponse = await apiClient.uploadSourceImages([sourceImageFile]);
+    uploadedSourceImageIdsRef.current = uploadResponse.imageIds;
+    uploadedSourceImageAtRef.current = Date.now();
+    return uploadResponse.imageIds;
+  }, [sourceImageFile]);
 
   // Обработка отправки формы
   const handleGenerate = async () => {
@@ -346,8 +395,6 @@ export const GeneratePage: FC = () => {
       return;
     }
 
-    setPageState('generating');
-    setCurrentStatus('PROCESSING_PROMPT');
     setErrorMessage(null);
     setErrorKind(null);
     setResultImageUrl(null);
@@ -356,15 +403,27 @@ export const GeneratePage: FC = () => {
     setFileId(null);
     setStickerSaved(false);
     setSaveError(null);
+    setCurrentStatus(null);
 
     try {
+      let uploadedImageIds: string[] = [];
+
+      if (sourceImageFile) {
+        setPageState('uploading');
+        uploadedImageIds = await ensureUploadedSourceImageIds();
+      }
+
+      setPageState('generating');
+      setCurrentStatus('PROCESSING_PROMPT');
+
       const response = await apiClient.generateStickerV2({
         prompt: trimmedPrompt,
         model: selectedModel,
         stylePresetId: selectedStylePresetId,
+        num_images: 1,
         remove_background: removeBackground,
-        source_image_base64: selectedModel === 'nanabanana' ? (sourceImageBase64 ?? undefined) : undefined,
-        image: selectedModel === 'nanabanana' && sourceImageBase64 ? undefined : ''
+        ...(uploadedImageIds.length === 1 ? { image_id: uploadedImageIds[0] } : {}),
+        ...(uploadedImageIds.length > 1 ? { image_ids: uploadedImageIds } : {}),
       });
       
       setTaskId(response.taskId);
@@ -375,14 +434,25 @@ export const GeneratePage: FC = () => {
       if (error.message === 'INSUFFICIENT_BALANCE') {
         message = 'Недостаточно ART-баллов';
         setErrorKind('general');
-      } else if (error.message === 'INVALID_PROMPT') {
-        message = 'Неверное описание';
-        setErrorKind('prompt');
+      } else if (error.message === 'GENERATION_START_TIMEOUT') {
+        message = 'Сервер слишком долго запускает генерацию. Попробуйте снова чуть позже.';
+        setErrorKind('general');
+      } else if (error.message === 'INVALID_GENERATION_PARAMS') {
+        message = 'Некорректные параметры генерации.';
+        setErrorKind(sourceImageFile ? 'upload' : 'general');
+      } else if (error.message === 'SOURCE_IMAGE_NOT_FOUND') {
+        uploadedSourceImageIdsRef.current = [];
+        uploadedSourceImageAtRef.current = null;
+        message = 'Исходное изображение не найдено или истек срок хранения. Загрузите фото заново.';
+        setErrorKind('upload');
       } else if (error.message === 'UNAUTHORIZED') {
         message = 'Требуется авторизация';
         setErrorKind('general');
+      } else if (typeof error.message === 'string' && error.message.toLowerCase().includes('загруз')) {
+        message = error.message;
+        setErrorKind('upload');
       } else if (typeof error.message === 'string' && error.message.toLowerCase().includes('upload')) {
-        message = 'Не удалось загрузить файл';
+        message = 'Не удалось загрузить изображение. Попробуйте снова.';
         setErrorKind('upload');
       } else if (error.message) {
         message = error.message;
@@ -418,6 +488,8 @@ export const GeneratePage: FC = () => {
       }
       setSourceImageFile(file);
       setSourceImageBase64(result);
+      uploadedSourceImageIdsRef.current = [];
+      uploadedSourceImageAtRef.current = null;
       if (selectedModel !== SOURCE_IMAGE_MODEL) {
         setSelectedModel(SOURCE_IMAGE_MODEL);
         setModelDropdownOpen(false);
@@ -440,6 +512,8 @@ export const GeneratePage: FC = () => {
   const clearSourceImage = useCallback(() => {
     setSourceImageFile(null);
     setSourceImageBase64(null);
+    uploadedSourceImageIdsRef.current = [];
+    uploadedSourceImageAtRef.current = null;
   }, []);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
@@ -554,7 +628,7 @@ export const GeneratePage: FC = () => {
 
   // Валидация формы
   const isFormValid = prompt.trim().length >= MIN_PROMPT_LENGTH && prompt.trim().length <= MAX_PROMPT_LENGTH;
-  const isGenerating = pageState === 'generating';
+  const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
   const hasSourceImage = !!sourceImageFile;
@@ -777,7 +851,7 @@ export const GeneratePage: FC = () => {
   const renderGeneratingState = () => (
     <>
       <div className="generate-status-container">
-        <LoadingSpinner message={getGeneratingSpinnerMessage(currentStatus)} />
+        <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
       </div>
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
@@ -1024,6 +1098,7 @@ export const GeneratePage: FC = () => {
       <OtherAccountBackground />
       <StixlyPageContainer className={cn('generate-inner', isCompactState && 'generate-inner--compact')}>
         {pageState === 'idle' && renderIdleState()}
+        {pageState === 'uploading' && renderGeneratingState()}
         {pageState === 'generating' && renderGeneratingState()}
         {pageState === 'success' && renderSuccessState()}
         {pageState === 'error' && renderErrorState()}

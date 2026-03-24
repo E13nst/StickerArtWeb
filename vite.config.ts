@@ -124,6 +124,11 @@ export default defineConfig(({ mode }) => {
           target: stickerProcessorProxyTarget,
           changeOrigin: true,
           secure: true
+        },
+        '/images': {
+          target: stickerProcessorProxyTarget,
+          changeOrigin: true,
+          secure: true
         }
       }
     }

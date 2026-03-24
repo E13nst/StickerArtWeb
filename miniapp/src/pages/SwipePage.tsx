@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, FC } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
@@ -14,39 +14,147 @@ import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { getStickerImageUrl, getStickerVideoUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '@/utils/imageLoader';
+import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
 
-/** Превью-картинка: эмодзи пока изображение не загружено */
-const ImageWithEmojiPlaceholder: FC<{
-  src: string;
-  alt: string;
+type PreviewMedia = {
+  fileId: string;
+  url: string;
   emoji: string;
-  className?: string;
-  loading?: 'lazy' | 'eager';
-}> = ({ src, alt, emoji, className, loading = 'lazy' }) => {
-  const [loaded, setLoaded] = useState(false);
+  isAnimated: boolean;
+  isVideo: boolean;
+};
+
+const resolvePreviewMedia = (stickerSet: StickerSetResponse): PreviewMedia | null => {
+  const previewSticker = stickerSet.previewStickers?.[0] as
+    | { fileId?: string; url?: string; emoji?: string; isAnimated?: boolean; isVideo?: boolean }
+    | undefined;
+  const telegramSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
+  const thumbnail = stickerSet.telegramStickerSetInfo?.thumbnail;
+
+  const fileId =
+    previewSticker?.fileId ||
+    telegramSticker?.file_id ||
+    thumbnail?.file_id;
+
+  if (!fileId) {
+    return null;
+  }
+
+  const isAnimated = Boolean(
+    previewSticker?.isAnimated ??
+      telegramSticker?.is_animated ??
+      stickerSet.telegramStickerSetInfo?.is_animated
+  );
+  const isVideo = Boolean(
+    previewSticker?.isVideo ??
+      telegramSticker?.is_video ??
+      stickerSet.telegramStickerSetInfo?.is_video
+  );
+
+  return {
+    fileId,
+    url: previewSticker?.url || getStickerImageUrl(fileId),
+    emoji: previewSticker?.emoji || telegramSticker?.emoji || '🎨',
+    isAnimated,
+    isVideo,
+  };
+};
+
+const SwipeCardVideoPreview: FC<{
+  fileId: string;
+  url: string;
+  emoji: string;
+  isActive: boolean;
+  stickerIndex: number;
+}> = ({ fileId, url, emoji, isActive, stickerIndex }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isIosTelegramWebView =
+    typeof navigator !== 'undefined' &&
+    typeof window !== 'undefined' &&
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+    Boolean((window as any).Telegram?.WebApp);
+  const preferredSrc = videoBlobCache.get(fileId) ?? undefined;
+  const { src, isReady, onError, onLoadedData } = useNonFlashingVideoSrc({
+    fileId,
+    preferredSrc,
+    fallbackSrc: url,
+    waitForPreferredMs: 100,
+    resolvePreferredSrc: () => videoBlobCache.get(fileId),
+    preferPreferredOnly: isIosTelegramWebView,
+    preferredPollMs: 100,
+    preferredMaxWaitMs: 2500,
+    fallbackOnPreferredError: !isIosTelegramWebView,
+  });
+
+  useEffect(() => {
+    const priority = isActive ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_2_NEAR_VIEWPORT;
+    imageLoader.loadVideo(fileId, url, priority, fileId, stickerIndex).catch(() => {});
+  }, [fileId, isActive, stickerIndex, url]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+    video.load();
+  }, [src]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!isActive) {
+      video.pause();
+      return;
+    }
+
+    if (!isReady) {
+      return;
+    }
+
+    video.play?.().catch(() => {});
+  }, [isActive, isReady]);
+
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      {!loaded && (
-        <div className="pack-card__placeholder" style={{ position: 'absolute', inset: 0 }}>
-          <span className="swipe-card__placeholder-emoji" style={{ fontSize: 48 }}>{emoji}</span>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      {!src && (
+        <div
+          className="pack-card__placeholder"
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          {emoji || '🎨'}
         </div>
       )}
-      <img
+      <video
+        key={fileId}
+        ref={videoRef}
         src={src}
-        alt={alt}
-        className={className}
-        loading={loading}
+        className="pack-card-video"
+        autoPlay={isActive}
+        loop
+        muted
+        playsInline
+        preload="auto"
         style={{
           maxWidth: '100%',
           maxHeight: '100%',
           objectFit: 'contain',
-          opacity: loaded ? 1 : 0,
-          transition: 'opacity 0.15s ease'
+          opacity: isReady ? 1 : 0,
+          transition: 'opacity 120ms ease',
+          backgroundColor: 'transparent'
         }}
-        onLoad={() => setLoaded(true)}
+        onLoadedData={onLoadedData}
+        onError={onError}
       />
     </div>
   );
@@ -158,10 +266,11 @@ export const SwipePage: FC = () => {
   // Рендер карточки для SwipeCardStack. Клик по карточке = download; в футере — dislike/like.
   const renderCard = useCallback((card: any, index: number, actions?: SwipeCardActions) => {
     const stickerSet = card as StickerSetResponse;
-    const previewSticker = stickerSet.telegramStickerSetInfo?.stickers?.[0];
-    const imageUrl = previewSticker ? getStickerImageUrl(previewSticker.file_id) : '';
-    const isAnimated = Boolean(previewSticker?.is_animated || stickerSet.telegramStickerSetInfo?.is_animated);
-    const isVideo = Boolean(previewSticker?.is_video || stickerSet.telegramStickerSetInfo?.is_video);
+    const preview = resolvePreviewMedia(stickerSet);
+    const imageUrl = preview?.url || '';
+    const isAnimated = Boolean(preview?.isAnimated);
+    const isVideo = Boolean(preview?.isVideo);
+    const isActiveCard = Boolean(actions);
     const stopPropagation = (event: React.SyntheticEvent) => {
       event.stopPropagation();
     };
@@ -200,50 +309,51 @@ export const SwipePage: FC = () => {
         </div>
 
         <div className="swipe-card__preview">
-          <div className="swipe-card__preview-inner">
-            {previewSticker ? (
+          <div className="swipe-card__preview-inner pack-card__content">
+            {preview ? (
               isAnimated ? (
                 <AnimatedSticker
-                  fileId={previewSticker.file_id}
+                  fileId={preview.fileId}
                   imageUrl={imageUrl}
-                  emoji={previewSticker.emoji || '🎨'}
+                  emoji={preview.emoji}
                   className="pack-card-animated-sticker"
-                  hidePlaceholder={false}
-                  priority={index === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
+                  hidePlaceholder={true}
+                  priority={isActiveCard ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
                 />
               ) : isVideo ? (
+                <SwipeCardVideoPreview
+                  fileId={preview.fileId}
+                  url={getStickerVideoUrl(preview.fileId)}
+                  emoji={preview.emoji}
+                  isActive={isActiveCard}
+                  stickerIndex={index}
+                />
+              ) : (
                 <div
                   style={{
                     width: '100%',
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'transparent'
+                    justifyContent: 'center'
                   }}
                 >
-                  <video
-                    src={videoBlobCache.get(previewSticker.file_id) || getStickerVideoUrl(previewSticker.file_id)}
-                    className="pack-card-video"
-                    autoPlay={index === 0}
-                    loop
-                    muted
-                    playsInline
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', backgroundColor: 'transparent' }}
+                  <img
+                    src={imageCache.get(preview.fileId) || imageUrl}
+                    alt={formatStickerTitle(stickerSet.title)}
+                    className="pack-card-image"
+                    loading={isActiveCard ? 'eager' : 'lazy'}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain'
+                    }}
                   />
                 </div>
-              ) : (
-                <ImageWithEmojiPlaceholder
-                  src={imageCache.get(previewSticker.file_id) || imageUrl}
-                  alt={formatStickerTitle(stickerSet.title)}
-                  emoji={previewSticker.emoji || '🎨'}
-                  className="pack-card-image"
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                />
               )
             ) : (
-              <div className="swipe-card__placeholder">
-                <span className="swipe-card__placeholder-emoji">🎨</span>
+              <div className="pack-card__placeholder">
+                🎨
               </div>
             )}
           </div>
@@ -283,13 +393,12 @@ export const SwipePage: FC = () => {
   useEffect(() => {
     const toPreload = stickerSets.slice(currentIndex, currentIndex + 4);
     toPreload.forEach((stickerSet, i) => {
-      const preview = stickerSet.telegramStickerSetInfo?.stickers?.[0];
-      if (!preview?.file_id) return;
-      const isVideo = Boolean(preview.is_video || stickerSet.telegramStickerSetInfo?.is_video);
-      if (!isVideo || videoBlobCache.has(preview.file_id)) return;
-      const url = getStickerImageUrl(preview.file_id);
+      const preview = resolvePreviewMedia(stickerSet);
+      if (!preview?.fileId || !preview.isVideo) return;
+      if (videoBlobCache.has(preview.fileId)) return;
+      const url = getStickerVideoUrl(preview.fileId);
       const priority = i === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
-      imageLoader.loadVideo(preview.file_id, url, priority, String(stickerSet.id), 0).catch(() => {});
+      imageLoader.loadVideo(preview.fileId, url, priority, String(stickerSet.id), 0).catch(() => {});
     });
   }, [stickerSets, currentIndex]);
 

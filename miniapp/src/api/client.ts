@@ -6,6 +6,22 @@ import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { getInitData } from '../telegram/launchParams';
 
+function readEnv(key: string): string | undefined {
+  try {
+    const value = (import.meta as any).env?.[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const STICKER_PROCESSOR_URL = readEnv('VITE_STICKER_PROCESSOR_URL')?.replace(/\/+$/, '') ?? '';
+
+function getStickerProcessorEndpoint(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return STICKER_PROCESSOR_URL ? `${STICKER_PROCESSOR_URL}${normalizedPath}` : normalizedPath;
+}
+
 /** Извлекает текст ошибки из ответа сервера (JSON или строка) для отображения пользователю */
 function getErrorMessage(error: any, fallback: string): string {
   const data = error?.response?.data;
@@ -20,6 +36,55 @@ function getErrorMessage(error: any, fallback: string): string {
     if (Array.isArray(detail) && detail[0] && typeof detail[0] === 'string') return detail[0];
   }
   return fallback;
+}
+
+function extractUploadedImageIds(payload: any): string[] {
+  const imageIds = new Set<string>();
+
+  const collect = (value: any) => {
+    if (!value) return;
+
+    if (typeof value === 'string') {
+      if (value.startsWith('img_')) {
+        imageIds.add(value);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach(collect);
+      return;
+    }
+
+    if (typeof value !== 'object') {
+      return;
+    }
+
+    const directKeys = ['image_id', 'imageId'];
+    directKeys.forEach((key) => {
+      const directValue = value[key];
+      if (typeof directValue === 'string' && directValue.startsWith('img_')) {
+        imageIds.add(directValue);
+      }
+    });
+
+    const arrayKeys = ['image_ids', 'imageIds', 'images', 'files', 'data', 'result'];
+    arrayKeys.forEach((key) => {
+      if (key in value) {
+        collect(value[key]);
+      }
+    });
+
+    Object.values(value).forEach((nestedValue) => {
+      if (nestedValue && typeof nestedValue === 'object') {
+        collect(nestedValue);
+      }
+    });
+  };
+
+  collect(payload);
+
+  return Array.from(imageIds);
 }
 
 // ============ ТИПЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
@@ -60,14 +125,18 @@ export interface GenerateRequestV2 {
   model: GenerateModelType;
   stylePresetId?: number | null;
   seed?: number | null;
+  num_images?: 1;
   remove_background?: boolean;
-  source_image_url?: string;
-  source_image_base64?: string;
-  image?: string;
+  image_id?: string;
+  image_ids?: string[];
 }
 
 export interface GenerateResponse {
   taskId: string;
+}
+
+export interface UploadImagesResponse {
+  imageIds: string[];
 }
 
 export type GenerationStatus = 
@@ -307,7 +376,17 @@ class ApiClient {
         return response;
       },
       (error) => {
-        console.error('❌ Ошибка ответа:', error.response?.status, error.response?.data);
+        if (error?.response) {
+          console.error('❌ Ошибка ответа:', error.response.status, error.response.data);
+        } else {
+          console.error('❌ Сетевая ошибка ответа:', {
+            code: error?.code,
+            message: error?.message,
+            url: error?.config?.url,
+            method: error?.config?.method,
+            timeout: error?.config?.timeout
+          });
+        }
         
         // Детальное логирование ошибок авторизации
         if (error.config?.url?.includes('/auth/')) {
@@ -1696,25 +1775,69 @@ class ApiClient {
   // API endpoint: POST /api/generation/v2/generate
   async generateStickerV2(request: GenerateRequestV2): Promise<GenerateResponse> {
     try {
-      const response = await this.client.post<GenerateResponse>('/generation/v2/generate', request);
+      const response = await this.client.post<GenerateResponse>('/generation/v2/generate', request, {
+        timeout: 90000
+      });
       console.log('✅ V2 генерация запущена:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ Ошибка запуска v2 генерации:', error);
 
       const status = error?.response?.status;
+      const code = error?.code;
 
       if (status === 402) {
         throw new Error('INSUFFICIENT_BALANCE');
       }
       if (status === 400) {
-        throw new Error('INVALID_PROMPT');
+        throw new Error('INVALID_GENERATION_PARAMS');
       }
       if (status === 401) {
         throw new Error('UNAUTHORIZED');
       }
+      if (status === 404) {
+        throw new Error('SOURCE_IMAGE_NOT_FOUND');
+      }
+      if (code === 'ECONNABORTED') {
+        throw new Error('GENERATION_START_TIMEOUT');
+      }
 
       throw new Error(getErrorMessage(error, 'Не удалось запустить генерацию. Попробуйте позже.'));
+    }
+  }
+
+  async uploadSourceImages(files: File[]): Promise<UploadImagesResponse> {
+    if (!files.length) {
+      return { imageIds: [] };
+    }
+
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+
+    try {
+      const response = await axios.post(getStickerProcessorEndpoint('/images/upload'), formData, {
+        headers: {
+          Accept: 'application/json'
+        },
+        timeout: 60000
+      });
+
+      const imageIds = extractUploadedImageIds(response.data);
+      if (!imageIds.length) {
+        throw new Error('UPLOAD_RESPONSE_INVALID');
+      }
+
+      return { imageIds };
+    } catch (error: any) {
+      if (error?.code === 'ECONNABORTED') {
+        throw new Error('Загрузка изображения заняла слишком много времени. Попробуйте снова.');
+      }
+
+      if (error?.message === 'UPLOAD_RESPONSE_INVALID') {
+        throw new Error('Не удалось получить идентификатор загруженного изображения.');
+      }
+
+      throw new Error(getErrorMessage(error, 'Не удалось загрузить изображение. Попробуйте снова.'));
     }
   }
 

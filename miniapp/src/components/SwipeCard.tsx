@@ -299,73 +299,76 @@ export const SwipeCard: FC<SwipeCardProps> = ({
         className="swipe-card__preview"
         style={{ position: 'relative' }}
       >
-        {currentSticker ? (
-          <>
-            {isAnimated ? (
-              <AnimatedSticker
-                fileId={currentSticker.file_id}
-                imageUrl={getStickerImageUrl(currentSticker.file_id)}
-                emoji={currentSticker.emoji || '🎨'}
-                className="pack-card-animated-sticker"
-                priority={isTopCard ? LoadPriority.TIER_1_VIEWPORT : priority}
-                hidePlaceholder={false}
-              />
-            ) : isVideo ? (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'transparent'
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  src={videoBlobCache.get(currentSticker.file_id) || (currentSticker as { url?: string }).url || getStickerVideoUrl(currentSticker.file_id)}
-                  className="pack-card-video"
-                  autoPlay={isTopCard}
-                  loop
-                  muted
-                  playsInline
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
-                    backgroundColor: 'transparent'
-                  }}
-                />
-              </div>
+        <div className="swipe-card__preview-inner">
+          <div className="pack-card__content">
+            {currentSticker ? (
+              <>
+                {isAnimated ? (
+                  <AnimatedSticker
+                    fileId={currentSticker.file_id}
+                    imageUrl={getStickerImageUrl(currentSticker.file_id)}
+                    emoji={currentSticker.emoji || '🎨'}
+                    className="pack-card-animated-sticker"
+                    priority={isTopCard ? LoadPriority.TIER_1_VIEWPORT : priority}
+                    hidePlaceholder={false}
+                  />
+                ) : isVideo ? (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <video
+                      ref={videoRef}
+                      src={videoBlobCache.get(currentSticker.file_id) || (currentSticker as { url?: string }).url || getStickerVideoUrl(currentSticker.file_id)}
+                      className="pack-card-video"
+                      autoPlay={isTopCard}
+                      loop
+                      muted
+                      playsInline
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        backgroundColor: 'transparent'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <img
+                      src={imageCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
+                      alt={currentSticker.emoji || formatStickerTitle(stickerSet.title)}
+                      className="pack-card-image"
+                      loading={isTopCard ? 'eager' : 'lazy'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <img
-                  src={imageCache.get(currentSticker.file_id) || getStickerImageUrl(currentSticker.file_id)}
-                  alt={currentSticker.emoji || formatStickerTitle(stickerSet.title)}
-                  className="pack-card-image"
-                  loading={isTopCard ? 'eager' : 'lazy'}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain'
-                  }}
-                />
+              <div className="pack-card__placeholder">
+                {(currentSticker as { emoji?: string } | undefined)?.emoji || '🎨'}
               </div>
             )}
-          </>
-        ) : (
-          <div className="swipe-card__placeholder">
-            <span className="swipe-card__placeholder-emoji">🎨</span>
           </div>
-        )}
+        </div>
         
         {/* Индикатор позиции стикера */}
         {stickers.length > 1 && (
