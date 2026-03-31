@@ -13,6 +13,129 @@
   gap: 0;
 }
 
+.generate-history-toggle {
+  position: fixed;
+  top: calc(var(--stixly-header-height, 56px) + 10px);
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(20, 20, 20, 0.72);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 120;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.generate-history-toggle__dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.generate-history-backdrop {
+  position: fixed;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 118;
+}
+
+.generate-history-panel {
+  position: fixed;
+  top: calc(var(--stixly-header-height, 56px) + 52px);
+  right: 16px;
+  width: min(280px, calc(100vw - 24px));
+  max-height: min(60vh, 440px);
+  overflow-y: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(20, 20, 20, 0.92);
+  padding: 10px;
+  z-index: 119;
+  box-sizing: border-box;
+}
+
+.generate-history-panel__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.generate-history-panel__empty {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 8px 4px;
+}
+
+.generate-history-item {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px;
+  color: #fff;
+  text-align: left;
+}
+
+.generate-history-item--active {
+  border-color: rgba(238, 68, 159, 0.8);
+}
+
+.generate-history-item__top {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.generate-history-item__status {
+  color: #fff;
+}
+
+.generate-history-item__main {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.generate-history-item__prompt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.generate-history-item__preview {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 /* Контент по Figma Contant: 402px, padding 0 16px, gap 16px, center */
 .generate-page .generate-inner.stixly-page-container,
 .generate-page .generate-inner {
@@ -372,12 +495,14 @@
 
 .generate-model-select-dropdown--emoji {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
   gap: 4px;
-  width: 264px;
-  max-height: 260px;
+  width: min(264px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: min(260px, calc(100vh - 140px));
   padding: 8px;
   overflow-y: auto;
+  left: 0;
   right: auto;
 }
 
@@ -418,6 +543,15 @@
 
 .generate-model-select-option--emoji.generate-model-select-option--selected {
   background-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 380px) {
+  .generate-model-select-dropdown--emoji {
+    width: min(232px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    max-height: min(220px, calc(100vh - 120px));
+    padding: 6px;
+  }
 }
 
 .generate-model-select-option--disabled {
@@ -641,19 +775,23 @@
 
 .generate-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
   width: 100%;
+  max-width: 232px;
+  margin: 0 auto;
 }
 
 /* Единая форма для кнопок в блоке результата */
 .generate-actions .generate-action-button {
+  flex: 1 1 0;
+  min-width: 0;
   width: 100%;
-  max-width: 192px;
   height: 32px !important;
   min-height: 32px !important;
-  padding: 0 32px !important;
+  padding: 0 12px !important;
   font-size: 16px !important;
   font-weight: 700 !important;
   line-height: 16px !important;
@@ -665,6 +803,9 @@
 .generate-action-button.share {
   background-color: var(--color-primary) !important;
   color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .generate-new-request {
@@ -723,10 +864,13 @@
 
 .generate-actions {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-md);
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
+  max-width: 232px;
+  margin: 0 auto;
 }
 
 /* ========== ERROR (Figma: same layout as idle, message inside form) ========== */

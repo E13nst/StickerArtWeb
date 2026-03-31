@@ -1,6 +1,7 @@
 import { useState, FC } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import './TelegramAuthButton.css';
 
 interface TelegramAuthButtonProps {
@@ -27,7 +28,7 @@ export const TelegramAuthButton: FC<TelegramAuthButtonProps> = ({
     console.log('🔗 Telegram Auth URL:', telegramAuthUrl);
 
     // Открываем Telegram для авторизации
-    window.open(telegramAuthUrl, '_blank');
+    openTelegramUrl(telegramAuthUrl);
 
     // Слушаем сообщения от Telegram Web App
     const handleMessage = (event: MessageEvent) => {

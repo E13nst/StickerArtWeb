@@ -157,8 +157,9 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   border-radius: var(--swipe-card-radius);
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
+  isolation: isolate;
 }
 
 /* Content — Figma: 338×73, Text gap 4px */
@@ -221,6 +222,8 @@
   flex: 1;
   min-block-size: 0;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .swipe-card__preview-inner {

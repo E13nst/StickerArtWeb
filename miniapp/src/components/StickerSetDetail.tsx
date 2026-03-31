@@ -19,6 +19,7 @@ import { useStickerNavigation } from '@/hooks/useStickerNavigation';
 import { CategoriesDialog, BlockDialog, StickerPreview } from './StickerSetDetail/index';
 import { InteractiveLikeCount } from './InteractiveLikeCount';
 import { DownloadIcon } from '@/components/ui/Icons';
+import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { DonateModal } from './DonateModal';
 import { LoadingSpinner } from './LoadingSpinner';
 import './StickerSetDetail.css';
@@ -111,7 +112,7 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
   onCategoriesUpdated,
   onStickerSetUpdated
 }) => {
-  const { initData, user } = useTelegram();
+  const { initData, user, tg } = useTelegram();
   const {
     userInfo,
     currentUserId: storeUserId,
@@ -536,8 +537,8 @@ export const StickerSetDetail: FC<StickerSetDetailProps> = ({
       return;
     }
 
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
-  }, [activeIndex, fullStickerSet?.url, stickers, stickerSet.url]);
+    openTelegramUrl(targetUrl, tg);
+  }, [activeIndex, fullStickerSet?.url, stickers, stickerSet.url, tg]);
 
   // НЕ блокируем отображение - показываем оптимистичный UI сразу
   // Индикатор загрузки показываем только если данных совсем нет

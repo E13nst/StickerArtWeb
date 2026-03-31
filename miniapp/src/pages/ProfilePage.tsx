@@ -19,6 +19,7 @@ import { StickerPackModal } from '@/components/StickerPackModal';
 import { ProfileTabs, TabPanel } from '@/components/ProfileTabs';
 import { OptimizedGallery } from '@/components/OptimizedGallery';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
+import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { useStickerFeed } from '@/hooks/useStickerFeed';
 import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
@@ -330,11 +331,7 @@ export const ProfilePage: FC = () => {
   };
 
   const handleCreateSticker = () => {
-    if (tg) {
-      tg.openTelegramLink('https://t.me/StickerGalleryBot');
-    } else {
-      window.open('https://t.me/StickerGalleryBot', '_blank');
-    }
+    openTelegramUrl('https://t.me/StickerGalleryBot', tg);
   };
 
   // Загрузка следующей страницы

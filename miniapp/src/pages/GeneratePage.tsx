@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, FC, ChangeEvent } from 'react';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { KeyboardArrowDownIcon } from '@/components/ui/Icons';
+import { KeyboardArrowDownIcon, RestoreIcon } from '@/components/ui/Icons';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset } from '@/api/client';
@@ -11,7 +11,16 @@ import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
+import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
+import {
+  clearActiveGenerateHistoryEntry,
+  createGenerateHistoryLocalId,
+  GenerateHistoryEntry,
+  readGenerateHistory,
+  upsertGenerateHistoryEntry,
+  updateGenerateHistoryEntry,
+} from '@/utils/generateHistoryStorage';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
@@ -30,6 +39,7 @@ const MIN_PROMPT_LENGTH = 1;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
+const TERMINAL_GENERATION_STATUSES: GenerationStatus[] = ['COMPLETED', 'FAILED', 'TIMEOUT'];
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -149,6 +159,8 @@ export const GeneratePage: FC = () => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
+  const [historyEntries, setHistoryEntries] = useState<GenerateHistoryEntry[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);
@@ -172,6 +184,8 @@ export const GeneratePage: FC = () => {
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
   const uploadedSourceImageAtRef = useRef<number | null>(null);
   const pollingStartedAtRef = useRef<number | null>(null);
+  const activeHistoryLocalIdRef = useRef<string | null>(null);
+  const restoreAppliedRef = useRef(false);
 
   // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
@@ -275,6 +289,28 @@ export const GeneratePage: FC = () => {
     }
   }, [setUserInfo]);
 
+  const effectiveUserId = userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
+  const historyUserScopeId = effectiveUserId != null ? String(effectiveUserId) : null;
+
+  const syncHistoryEntries = useCallback(() => {
+    if (!historyUserScopeId) {
+      setHistoryEntries([]);
+      return [];
+    }
+    const entries = readGenerateHistory(historyUserScopeId);
+    setHistoryEntries(entries);
+    return entries;
+  }, [historyUserScopeId]);
+
+  const patchHistoryEntry = useCallback(
+    (matcher: { localId?: string; taskId?: string }, patch: Partial<GenerateHistoryEntry>) => {
+      if (!historyUserScopeId) return;
+      const updated = updateGenerateHistoryEntry(historyUserScopeId, matcher, patch);
+      setHistoryEntries(updated);
+    },
+    [historyUserScopeId]
+  );
+
   useEffect(() => {
     refreshMyProfile();
     const onVisibilityChange = () => {
@@ -332,12 +368,38 @@ export const GeneratePage: FC = () => {
         setErrorMessage('Генерация заняла слишком много времени. Попробуйте снова.');
         setErrorKind('general');
         setPageState('error');
+        patchHistoryEntry(
+          { taskId: taskIdToCheck, localId: activeHistoryLocalIdRef.current ?? undefined },
+          {
+            pageState: 'error',
+            generationStatus: 'TIMEOUT',
+            errorMessage: 'Генерация заняла слишком много времени. Попробуйте снова.',
+            isActive: false,
+          }
+        );
         return;
       }
 
       try {
         const statusData = await apiClient.getGenerationStatusV2(taskIdToCheck);
         setCurrentStatus(statusData.status);
+        patchHistoryEntry(
+          { taskId: taskIdToCheck, localId: activeHistoryLocalIdRef.current ?? undefined },
+          {
+            generationStatus: statusData.status,
+            pageState:
+              statusData.status === 'COMPLETED'
+                ? 'success'
+                : statusData.status === 'FAILED' || statusData.status === 'TIMEOUT'
+                ? 'error'
+                : 'generating',
+            resultImageUrl: statusData.imageUrl || null,
+            imageId: statusData.imageId || null,
+            fileId: statusData.telegramSticker?.fileId || null,
+            errorMessage: statusData.errorMessage || null,
+            isActive: !TERMINAL_GENERATION_STATUSES.includes(statusData.status),
+          }
+        );
 
         if (statusData.status === 'COMPLETED') {
           // Успешное завершение
@@ -383,7 +445,7 @@ export const GeneratePage: FC = () => {
     
     // Далее с интервалом
     pollingIntervalRef.current = setInterval(poll, POLLING_INTERVAL);
-  }, [refreshMyProfile]);
+  }, [patchHistoryEntry, refreshMyProfile]);
 
   const ensureUploadedSourceImageIds = useCallback(async (): Promise<string[]> => {
     if (!sourceImageFile) {
@@ -406,6 +468,34 @@ export const GeneratePage: FC = () => {
     uploadedSourceImageAtRef.current = Date.now();
     return uploadResponse.imageIds;
   }, [sourceImageFile]);
+
+  useEffect(() => {
+    syncHistoryEntries();
+  }, [syncHistoryEntries]);
+
+  useEffect(() => {
+    if (!historyUserScopeId || restoreAppliedRef.current) return;
+    const entries = readGenerateHistory(historyUserScopeId);
+    setHistoryEntries(entries);
+    restoreAppliedRef.current = true;
+    const activeEntry =
+      entries.find((entry) => entry.isActive) ??
+      entries.find((entry) => !TERMINAL_GENERATION_STATUSES.includes(entry.generationStatus ?? 'PENDING'));
+    if (!activeEntry || !activeEntry.taskId) return;
+
+    setPrompt(activeEntry.prompt);
+    setSelectedModel(activeEntry.model);
+    setSelectedStylePresetId(activeEntry.stylePresetId);
+    setSelectedEmoji(activeEntry.selectedEmoji);
+    setRemoveBackground(activeEntry.removeBackground);
+    setTaskId(activeEntry.taskId);
+    setCurrentStatus(activeEntry.generationStatus ?? 'PENDING');
+    setErrorMessage(null);
+    setErrorKind(null);
+    setPageState('generating');
+    activeHistoryLocalIdRef.current = activeEntry.localId;
+    startPolling(activeEntry.taskId);
+  }, [historyUserScopeId, startPolling]);
 
   // Обработка отправки формы
   const handleGenerate = async () => {
@@ -432,13 +522,45 @@ export const GeneratePage: FC = () => {
     setStickerSaved(false);
     setSaveError(null);
     setCurrentStatus(null);
+    setHistoryOpen(false);
 
     try {
       let uploadedImageIds: string[] = [];
+      const localHistoryId = createGenerateHistoryLocalId();
+      const now = Date.now();
+      activeHistoryLocalIdRef.current = localHistoryId;
+
+      if (historyUserScopeId) {
+        clearActiveGenerateHistoryEntry(historyUserScopeId);
+        const baseEntry: GenerateHistoryEntry = {
+          localId: localHistoryId,
+          taskId: null,
+          createdAt: now,
+          updatedAt: now,
+          prompt: trimmedPrompt,
+          model: selectedModel,
+          stylePresetId: selectedStylePresetId,
+          selectedEmoji,
+          removeBackground,
+          hasSourceImage: !!sourceImageFile,
+          pageState: sourceImageFile ? 'uploading' : 'generating',
+          generationStatus: sourceImageFile ? null : 'PROCESSING_PROMPT',
+          resultImageUrl: null,
+          imageId: null,
+          fileId: null,
+          errorMessage: null,
+          isActive: true,
+        };
+        setHistoryEntries(upsertGenerateHistoryEntry(historyUserScopeId, baseEntry));
+      }
 
       if (sourceImageFile) {
         setPageState('uploading');
         uploadedImageIds = await ensureUploadedSourceImageIds();
+        patchHistoryEntry(
+          { localId: localHistoryId },
+          { pageState: 'generating', generationStatus: 'PROCESSING_PROMPT' }
+        );
       }
 
       setPageState('generating');
@@ -455,6 +577,7 @@ export const GeneratePage: FC = () => {
       });
       
       setTaskId(response.taskId);
+      patchHistoryEntry({ localId: localHistoryId }, { taskId: response.taskId, pageState: 'generating', isActive: true });
       startPolling(response.taskId);
     } catch (error: any) {
       let message = 'Не удалось запустить генерацию';
@@ -489,11 +612,17 @@ export const GeneratePage: FC = () => {
       
       setErrorMessage(message);
       setPageState('error');
+      patchHistoryEntry(
+        { localId: activeHistoryLocalIdRef.current ?? undefined },
+        {
+          pageState: 'error',
+          generationStatus: 'FAILED',
+          errorMessage: message,
+          isActive: false,
+        }
+      );
     }
   };
-
-
-  const effectiveUserId = userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
 
   const [isSavingAndSharing, setIsSavingAndSharing] = useState(false);
 
@@ -559,10 +688,8 @@ export const GeneratePage: FC = () => {
       if (isIos) {
         // iOS: switchInlineQuery с choose_chat ненадёжен до mid-2025 версий Telegram
         // openTelegramLink надёжно открывает нативный шаринг внутри приложения
-        if (tg.openTelegramLink) {
-          tg.openTelegramLink(fallbackUrl);
-          return;
-        }
+        openTelegramUrl(fallbackUrl, tg);
+        return;
       }
       // Desktop и Android: нативный пикер чатов через switchInlineQuery
       tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
@@ -570,19 +697,23 @@ export const GeneratePage: FC = () => {
     }
 
     if (tg?.openTelegramLink) {
-      tg.openTelegramLink(fallbackUrl);
+      openTelegramUrl(fallbackUrl, tg);
       return;
     }
-    window.open(fallbackUrl, '_blank');
+    openTelegramUrl(fallbackUrl, tg);
   }, [tg]);
 
   const handleSavedFromModal = useCallback((stickerFileId?: string | null) => {
     if (stickerFileId) {
       setFileId(stickerFileId);
+      patchHistoryEntry(
+        { taskId: taskId ?? undefined, localId: activeHistoryLocalIdRef.current ?? undefined },
+        { fileId: stickerFileId }
+      );
     }
     setStickerSaved(true);
     setSaveError(null);
-  }, []);
+  }, [patchHistoryEntry, taskId]);
 
   const handleOpenSaveModal = useCallback(() => {
     setSaveError(null);
@@ -637,6 +768,10 @@ export const GeneratePage: FC = () => {
 
       if (savedFileId) {
         setFileId(savedFileId);
+        patchHistoryEntry(
+          { taskId: taskId ?? undefined, localId: activeHistoryLocalIdRef.current ?? undefined },
+          { fileId: savedFileId }
+        );
         openChatPicker(savedFileId);
         return;
       }
@@ -665,6 +800,45 @@ export const GeneratePage: FC = () => {
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
   const shouldShowGeneralError = errorMessage && errorKind !== 'prompt';
   const isCompactState = pageState !== 'success';
+  const formatHistoryStatus = (entry: GenerateHistoryEntry): string => {
+    if (entry.generationStatus === 'COMPLETED' || entry.pageState === 'success') return 'Готово';
+    if (entry.generationStatus === 'FAILED' || entry.pageState === 'error') return 'Ошибка';
+    if (entry.generationStatus === 'TIMEOUT') return 'Таймаут';
+    return 'В процессе';
+  };
+
+  const openHistoryEntry = (entry: GenerateHistoryEntry) => {
+    setHistoryOpen(false);
+    setPrompt(entry.prompt);
+    setSelectedModel(entry.model);
+    setSelectedStylePresetId(entry.stylePresetId);
+    setSelectedEmoji(entry.selectedEmoji);
+    setRemoveBackground(entry.removeBackground);
+    setTaskId(entry.taskId);
+    setCurrentStatus(entry.generationStatus);
+    setResultImageUrl(entry.resultImageUrl);
+    setImageId(entry.imageId);
+    setFileId(entry.fileId);
+    setStickerSaved(Boolean(entry.fileId));
+    setErrorMessage(entry.errorMessage);
+    setErrorKind(entry.pageState === 'error' ? 'general' : null);
+    activeHistoryLocalIdRef.current = entry.localId;
+
+    if (entry.pageState === 'success') {
+      setPageState('success');
+      return;
+    }
+    if (entry.pageState === 'error') {
+      setPageState('error');
+      return;
+    }
+    setPageState('generating');
+    if (entry.taskId) {
+      patchHistoryEntry({ localId: entry.localId }, { isActive: true });
+      startPolling(entry.taskId);
+    }
+  };
+
   const createStickerPrefix = t('generate.createStickerPrefix', user?.language_code);
 
   const renderHeaderWithModel = (disabled: boolean) => (
@@ -989,7 +1163,7 @@ export const GeneratePage: FC = () => {
               disabled={stickerSaved}
               className="generate-action-button save"
             >
-              {stickerSaved ? 'Сохранено в пак' : 'Сохранить в пак'}
+              Сохранить
             </Button>
           )}
           <Button
@@ -999,8 +1173,9 @@ export const GeneratePage: FC = () => {
             disabled={isSavingAndSharing}
             loading={isSavingAndSharing}
             className="generate-action-button share"
+            aria-label="Поделиться"
           >
-            {isSavingAndSharing ? 'Сохраняем...' : 'Поделиться'}
+            {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
           </Button>
         </div>
       </div>
@@ -1179,6 +1354,52 @@ export const GeneratePage: FC = () => {
   return (
     <div className={cn('page-container', 'generate-page', isInTelegramApp && 'telegram-app')}>
       <OtherAccountBackground />
+      <button
+        type="button"
+        className="generate-history-toggle"
+        onClick={() => setHistoryOpen((prev) => !prev)}
+        aria-label="Открыть историю генераций"
+      >
+        <RestoreIcon size={18} />
+        {historyEntries.some((entry) => entry.isActive) && <span className="generate-history-toggle__dot" />}
+      </button>
+      {historyOpen && (
+        <>
+          <button
+            type="button"
+            className="generate-history-backdrop"
+            onClick={() => setHistoryOpen(false)}
+            aria-label="Закрыть историю генераций"
+          />
+          <aside className="generate-history-panel" aria-label="История генераций">
+            <div className="generate-history-panel__title">История генераций</div>
+            {historyEntries.length === 0 && (
+              <div className="generate-history-panel__empty">Пока нет сохраненных генераций</div>
+            )}
+            {historyEntries.map((entry) => (
+              <button
+                key={entry.localId}
+                type="button"
+                className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
+                onClick={() => openHistoryEntry(entry)}
+              >
+                <div className="generate-history-item__main">
+                  <div className="generate-history-item__top">
+                    <span className="generate-history-item__time">
+                      {new Date(entry.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span className="generate-history-item__status">{formatHistoryStatus(entry)}</span>
+                  </div>
+                  <div className="generate-history-item__prompt">{entry.prompt}</div>
+                </div>
+                {entry.resultImageUrl && (
+                  <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" aria-hidden="true" />
+                )}
+              </button>
+            ))}
+          </aside>
+        </>
+      )}
       <StixlyPageContainer className={cn('generate-inner', isCompactState && 'generate-inner--compact')}>
         {pageState === 'idle' && renderIdleState()}
         {pageState === 'uploading' && renderGeneratingState()}

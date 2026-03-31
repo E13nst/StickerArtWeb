@@ -66,6 +66,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
   const baseIconSize = currentSize.iconSize;
   const visualIconSize = placement === 'bottom-center' ? baseIconSize * 1.18 : baseIconSize * 0.42;
   const heartIconSize = placement === 'bottom-center' ? baseIconSize * 0.82 : baseIconSize * 0.75;
+  const topRightOffset = size === 'large' ? -2 : size === 'medium' ? -1 : 0;
   
   const getTextColor = () => 'rgba(255, 255, 255, 0.92)';
 
@@ -101,9 +102,8 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
           transform: 'translate(-50%, 0)'
         }
       : {
-          /* Внутри карточки, чтобы не обрезалось контейнером с overflow-x: hidden (галерея) */
-          top: '6px',
-          right: '6px'
+          top: `${topRightOffset}px`,
+          right: `${topRightOffset}px`
         };
 
   const transformValue = isAnimating ? 'scale(1.18)' : 'scale(1)';
@@ -120,7 +120,7 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
         justifyContent: 'center',
         width: `${visualIconSize}px`,
         height: `${visualIconSize}px`,
-        zIndex: 10,
+        zIndex: placement === 'bottom-center' ? 10 : 30,
         transition: 'all 0.233s ease',
         pointerEvents: 'auto', // Делаем кликабельным!
         cursor: 'pointer',
@@ -133,7 +133,8 @@ export const InteractiveLikeCount: FC<InteractiveLikeCountProps> = ({
           : isAnimating ? 'brightness(1.15)' : 'brightness(1)',
         boxShadow: 'none',
         backgroundColor: 'transparent',
-        overflow: 'visible'
+        overflow: 'visible',
+        isolation: 'isolate'
       }}
       title={isLiked ? `${likesCount} лайков (нажмите чтобы убрать)` : `${likesCount} лайков (нажмите чтобы лайкнуть)`}
     >

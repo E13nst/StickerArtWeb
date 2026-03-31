@@ -174,18 +174,18 @@
 }
 
 @keyframes header-plus-button-shimmer {
-  0%, 84% {
+  0%, 72% {
     background-position: 220% 0;
     opacity: 0;
   }
-  86% {
+  76% {
     opacity: 1;
   }
-  90% {
+  92% {
     background-position: -120% 0;
     opacity: 1;
   }
-  92%, 100% {
+  96%, 100% {
     background-position: -120% 0;
     opacity: 0;
   }

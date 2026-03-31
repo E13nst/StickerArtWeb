@@ -16,6 +16,7 @@ import { StickerSetResponse } from '@/types/sticker';
 import { imageCache, videoBlobCache, LoadPriority, imageLoader } from '@/utils/imageLoader';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
+import { openTelegramUrl } from '@/utils/openTelegramUrl';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
@@ -242,8 +243,8 @@ export const SwipePage: FC = () => {
       }
       return;
     }
-    window.open(targetUrl, '_blank', 'noopener,noreferrer');
-  }, []);
+    openTelegramUrl(targetUrl, tg);
+  }, [tg]);
 
   // Рендер карточки для SwipeCardStack. Клик по карточке = download; в футере — dislike/like.
   const renderCard = useCallback((card: any, index: number, actions?: SwipeCardActions) => {
