@@ -25,6 +25,7 @@ export const HeaderPanel: FC = () => {
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
+  const suppressAvatarClickRef = useRef(false);
 
   // На /author/ и /profile/:id показываем placeholder — аватар автора не в шапке, а на странице
   const isViewingOtherUser = /\/author\/|\/profile\/[^/]+/.test(pathname);
@@ -87,14 +88,15 @@ export const HeaderPanel: FC = () => {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-    longPressTriggeredRef.current = false;
   }, []);
 
   const handleAvatarTouchStart = useCallback((_e: TouchEvent | MouseEvent) => {
     longPressTriggeredRef.current = false;
+    suppressAvatarClickRef.current = false;
     longPressTimerRef.current = setTimeout(() => {
       longPressTimerRef.current = null;
       longPressTriggeredRef.current = true;
+      suppressAvatarClickRef.current = true;
       window.dispatchEvent(new CustomEvent('stixly-open-debug-panel'));
       if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     }, DEBUG_PANEL_LONG_PRESS_MS);
@@ -104,7 +106,20 @@ export const HeaderPanel: FC = () => {
     clearLongPress();
   }, [clearLongPress]);
 
-  useEffect(() => () => clearLongPress(), [clearLongPress]);
+  const handleAvatarActivate = useCallback(() => {
+    if (suppressAvatarClickRef.current || longPressTriggeredRef.current) {
+      suppressAvatarClickRef.current = false;
+      longPressTriggeredRef.current = false;
+      return;
+    }
+    navigate(`/generate?avatar=${Date.now()}`);
+  }, [navigate]);
+
+  useEffect(() => () => {
+    clearLongPress();
+    suppressAvatarClickRef.current = false;
+    longPressTriggeredRef.current = false;
+  }, [clearLongPress]);
 
   return (
     <header ref={headerRef} className="header-panel" role="banner">
@@ -123,6 +138,13 @@ export const HeaderPanel: FC = () => {
             onMouseDown={handleAvatarTouchStart}
             onMouseUp={handleAvatarTouchEnd}
             onMouseLeave={handleAvatarTouchEnd}
+            onClick={handleAvatarActivate}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleAvatarActivate();
+              }
+            }}
           >
             {showAccountIcon ? (
               <div className="header-panel__avatar header-panel__avatar--placeholder">

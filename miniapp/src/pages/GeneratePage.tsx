@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef, FC, ChangeEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { KeyboardArrowDownIcon, RestoreIcon } from '@/components/ui/Icons';
@@ -13,6 +14,7 @@ import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
 import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
+import { getAvatarUrl } from '@/utils/avatarUtils';
 import {
   clearActiveGenerateHistoryEntry,
   createGenerateHistoryLocalId,
@@ -21,6 +23,7 @@ import {
   upsertGenerateHistoryEntry,
   updateGenerateHistoryEntry,
 } from '@/utils/generateHistoryStorage';
+import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/generatePreferencesStorage';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
@@ -40,6 +43,11 @@ const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
 const TERMINAL_GENERATION_STATUSES: GenerationStatus[] = ['COMPLETED', 'FAILED', 'TIMEOUT'];
+const DEFAULT_GENERATE_MODEL: GenerateModelType = 'nanabanana';
+const DEFAULT_GENERATE_EMOJI = '🎨';
+const DEFAULT_REMOVE_BACKGROUND = true;
+const DEFAULT_STYLE_NAME = 'telegram';
+const TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY = 'generate_telegram_avatar_dismissed';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -96,6 +104,23 @@ const buildDefaultStickerSetTitle = (params: {
   return `User ${params.userId ?? ''}`.trim();
 };
 
+const getTelegramAvatarDismissedStorageKey = (telegramUserId: number): string =>
+  `${TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY}:${telegramUserId}`;
+
+const blobToDataUrl = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('DATA_URL_READ_FAILED'));
+      }
+    };
+    reader.onerror = () => reject(new Error('DATA_URL_READ_FAILED'));
+    reader.readAsDataURL(blob);
+  });
+
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
 const MODEL_OPTIONS: Array<{ id: GenerateModelType; name: string }> = [
@@ -132,6 +157,7 @@ const POPULAR_EMOJIS = [
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
   const { isInTelegramApp, tg, user } = useTelegram();
+  const location = useLocation();
   
   // Inline-режим параметры из URL
   const [, setInlineQueryId] = useState<string | null>(null);
@@ -141,11 +167,13 @@ export const GeneratePage: FC = () => {
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
-  const [selectedModel, setSelectedModel] = useState<GenerateModelType>('flux-schnell');
-  const [selectedEmoji, setSelectedEmoji] = useState('🎨');
-  const [removeBackground, setRemoveBackground] = useState<boolean>(false);
-  const [sourceImageFile, setSourceImageFile] = useState<File | null>(null);
-  const [sourceImageBase64, setSourceImageBase64] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<GenerateModelType>(DEFAULT_GENERATE_MODEL);
+  const [selectedEmoji, setSelectedEmoji] = useState(DEFAULT_GENERATE_EMOJI);
+  const [removeBackground, setRemoveBackground] = useState<boolean>(DEFAULT_REMOVE_BACKGROUND);
+  const [sourceImageFiles, setSourceImageFiles] = useState<File[]>([]);
+  const [sourceImagePreviews, setSourceImagePreviews] = useState<string[]>([]);
+  const [sourceImageOrigin, setSourceImageOrigin] = useState<'none' | 'manual' | 'telegram-avatar'>('none');
+  const [telegramAvatarDismissed, setTelegramAvatarDismissed] = useState(false);
   
   // Состояние генерации
   const [pageState, setPageState] = useState<PageState>('idle');
@@ -169,6 +197,7 @@ export const GeneratePage: FC = () => {
   // Баланс пользователя
   const userInfo = useProfileStore((state) => state.userInfo);
   const setUserInfo = useProfileStore((state) => state.setUserInfo);
+  const isProfileFromAuthenticatedApi = useProfileStore((state) => state.isProfileFromAuthenticatedApi);
   const [, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
   
   // Polling ref
@@ -186,6 +215,9 @@ export const GeneratePage: FC = () => {
   const pollingStartedAtRef = useRef<number | null>(null);
   const activeHistoryLocalIdRef = useRef<string | null>(null);
   const restoreAppliedRef = useRef(false);
+  const preferencesAppliedRef = useRef(false);
+  const avatarAutofillAppliedRef = useRef<string | null>(null);
+  const processedAvatarTriggerRef = useRef<string | null>(null);
 
   // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
@@ -290,7 +322,55 @@ export const GeneratePage: FC = () => {
   }, [setUserInfo]);
 
   const effectiveUserId = userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
+  const telegramUserId = user?.id ?? null;
+  const telegramPhotoUrl = user?.photo_url ?? null;
+  const profileAvatarUrl = useMemo(() => {
+    if (!isProfileFromAuthenticatedApi || !userInfo) return null;
+    if (userInfo.avatarUrl) return userInfo.avatarUrl;
+    return getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 160) ?? null;
+  }, [isProfileFromAuthenticatedApi, userInfo]);
+  const effectiveAvatarUrl = telegramPhotoUrl || profileAvatarUrl;
+  const avatarTriggerToken = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('avatar');
+  }, [location.search]);
   const historyUserScopeId = effectiveUserId != null ? String(effectiveUserId) : null;
+
+  const persistGeneratePreferences = useCallback((patch: {
+    selectedModel?: GenerateModelType;
+    stylePresetId?: number | null;
+    selectedEmoji?: string;
+    removeBackground?: boolean;
+  }) => {
+    if (!historyUserScopeId) return;
+    writeGeneratePreferences(historyUserScopeId, {
+      selectedModel: patch.selectedModel ?? selectedModel,
+      stylePresetId: patch.stylePresetId !== undefined ? patch.stylePresetId : selectedStylePresetId,
+      selectedEmoji: patch.selectedEmoji ?? selectedEmoji,
+      removeBackground: patch.removeBackground ?? removeBackground,
+    });
+  }, [historyUserScopeId, removeBackground, selectedEmoji, selectedModel, selectedStylePresetId]);
+
+  const persistTelegramAvatarDismissed = useCallback((dismissed: boolean) => {
+    if (!telegramUserId) return;
+    try {
+      const key = getTelegramAvatarDismissedStorageKey(telegramUserId);
+      if (dismissed) {
+        localStorage.setItem(key, '1');
+      } else {
+        localStorage.removeItem(key);
+      }
+    } catch {
+      // ignore localStorage failures in private mode/webview quirks
+    }
+  }, [telegramUserId]);
+
+  const getDefaultStylePresetId = useCallback((): number | null => {
+    const telegramPreset = stylePresets.find(
+      (preset) => stripPresetName(preset.name).trim().toLowerCase() === DEFAULT_STYLE_NAME
+    );
+    return telegramPreset?.id ?? null;
+  }, [stylePresets]);
 
   const syncHistoryEntries = useCallback(() => {
     if (!historyUserScopeId) {
@@ -322,6 +402,114 @@ export const GeneratePage: FC = () => {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [refreshMyProfile]);
 
+  useEffect(() => {
+    if (!telegramUserId) {
+      setTelegramAvatarDismissed(false);
+      return;
+    }
+    try {
+      const key = getTelegramAvatarDismissedStorageKey(telegramUserId);
+      setTelegramAvatarDismissed(localStorage.getItem(key) === '1');
+    } catch {
+      setTelegramAvatarDismissed(false);
+    }
+  }, [telegramUserId]);
+
+  useEffect(() => {
+    if (!avatarTriggerToken || !telegramUserId) return;
+    setTelegramAvatarDismissed(false);
+    persistTelegramAvatarDismissed(false);
+  }, [avatarTriggerToken, persistTelegramAvatarDismissed, telegramUserId]);
+
+  useEffect(() => {
+    const hasPendingAvatarTrigger =
+      avatarTriggerToken != null && processedAvatarTriggerRef.current !== avatarTriggerToken;
+    const canAutofill =
+      telegramUserId != null &&
+      typeof effectiveAvatarUrl === 'string' &&
+      effectiveAvatarUrl.length > 0 &&
+      (hasPendingAvatarTrigger || (!telegramAvatarDismissed && sourceImageFiles.length === 0));
+
+    if (!canAutofill) {
+      return;
+    }
+
+    if (hasPendingAvatarTrigger) {
+      processedAvatarTriggerRef.current = avatarTriggerToken;
+    }
+
+    const autofillKey = `${telegramUserId}:${effectiveAvatarUrl}:${hasPendingAvatarTrigger ? avatarTriggerToken : 'default'}`;
+    if (avatarAutofillAppliedRef.current === autofillKey) {
+      return;
+    }
+    avatarAutofillAppliedRef.current = autofillKey;
+
+    const abortController = new AbortController();
+
+    (async () => {
+      try {
+        const response = await fetch(effectiveAvatarUrl, {
+          mode: 'cors',
+          credentials: 'omit',
+          cache: 'no-store',
+          signal: abortController.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`AVATAR_FETCH_FAILED_${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const mimeType = (blob.type || '').toLowerCase();
+        const looksLikeSvg = mimeType.includes('svg') || /\.svg(?:$|[?#])/i.test(effectiveAvatarUrl);
+        if (looksLikeSvg) {
+          throw new Error('AVATAR_SVG_UNSUPPORTED');
+        }
+
+        const previewDataUrl = await blobToDataUrl(blob);
+        const fileExt = mimeType.includes('png')
+          ? 'png'
+          : mimeType.includes('webp')
+            ? 'webp'
+            : 'jpg';
+        const fileType = mimeType || 'image/jpeg';
+        const avatarFile = new File([blob], `telegram-avatar.${fileExt}`, { type: fileType });
+
+        if (abortController.signal.aborted) return;
+
+        setSourceImageFiles([avatarFile]);
+        setSourceImagePreviews([previewDataUrl]);
+        setSourceImageOrigin('telegram-avatar');
+        uploadedSourceImageIdsRef.current = [];
+        uploadedSourceImageAtRef.current = null;
+        setErrorMessage(null);
+        setErrorKind(null);
+
+        if (selectedModel !== SOURCE_IMAGE_MODEL) {
+          setSelectedModel(SOURCE_IMAGE_MODEL);
+          persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
+          setModelDropdownOpen(false);
+        }
+      } catch (error) {
+        // Тихий fallback: при недоступном photo_url оставляем текущий UI без ошибки.
+        if (!abortController.signal.aborted) {
+          console.info('Автоподстановка Telegram-аватара недоступна:', error);
+        }
+      }
+    })();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    persistGeneratePreferences,
+    selectedModel,
+    sourceImageFiles.length,
+    telegramAvatarDismissed,
+    avatarTriggerToken,
+    effectiveAvatarUrl,
+    telegramUserId,
+  ]);
+
   // Разрешаем скролл для этой страницы
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -345,6 +533,22 @@ export const GeneratePage: FC = () => {
       pollingStartedAtRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const isOnGeneratePage = location.pathname === '/generate';
+    const isAvatarScenarioInactive = sourceImageOrigin !== 'telegram-avatar';
+    const shouldHighlightHeaderAvatar = isOnGeneratePage && isAvatarScenarioInactive;
+
+    if (shouldHighlightHeaderAvatar) {
+      document.body.classList.add('generate-avatar-hint-active');
+    } else {
+      document.body.classList.remove('generate-avatar-hint-active');
+    }
+
+    return () => {
+      document.body.classList.remove('generate-avatar-hint-active');
+    };
+  }, [location.pathname, sourceImageOrigin]);
 
   // Polling статуса генерации
   const startPolling = useCallback((taskIdToCheck: string) => {
@@ -448,7 +652,7 @@ export const GeneratePage: FC = () => {
   }, [patchHistoryEntry, refreshMyProfile]);
 
   const ensureUploadedSourceImageIds = useCallback(async (): Promise<string[]> => {
-    if (!sourceImageFile) {
+    if (!sourceImageFiles.length) {
       return [];
     }
 
@@ -463,15 +667,20 @@ export const GeneratePage: FC = () => {
       return cachedImageIds;
     }
 
-    const uploadResponse = await apiClient.uploadSourceImages([sourceImageFile]);
+    const uploadResponse = await apiClient.uploadSourceImages(sourceImageFiles);
     uploadedSourceImageIdsRef.current = uploadResponse.imageIds;
     uploadedSourceImageAtRef.current = Date.now();
     return uploadResponse.imageIds;
-  }, [sourceImageFile]);
+  }, [sourceImageFiles]);
 
   useEffect(() => {
     syncHistoryEntries();
   }, [syncHistoryEntries]);
+
+  useEffect(() => {
+    restoreAppliedRef.current = false;
+    preferencesAppliedRef.current = false;
+  }, [historyUserScopeId]);
 
   useEffect(() => {
     if (!historyUserScopeId || restoreAppliedRef.current) return;
@@ -494,13 +703,37 @@ export const GeneratePage: FC = () => {
     setErrorKind(null);
     setPageState('generating');
     activeHistoryLocalIdRef.current = activeEntry.localId;
+    preferencesAppliedRef.current = true;
     startPolling(activeEntry.taskId);
   }, [historyUserScopeId, startPolling]);
+
+  useEffect(() => {
+    if (!historyUserScopeId || preferencesAppliedRef.current) return;
+
+    const savedPreferences = readGeneratePreferences(historyUserScopeId);
+    if (savedPreferences) {
+      setSelectedModel(savedPreferences.selectedModel);
+      setSelectedStylePresetId(savedPreferences.stylePresetId);
+      setSelectedEmoji(savedPreferences.selectedEmoji);
+      setRemoveBackground(savedPreferences.removeBackground);
+      preferencesAppliedRef.current = true;
+      return;
+    }
+
+    if (stylePresets.length === 0) return;
+
+    setSelectedModel(DEFAULT_GENERATE_MODEL);
+    setSelectedStylePresetId(getDefaultStylePresetId());
+    setSelectedEmoji(DEFAULT_GENERATE_EMOJI);
+    setRemoveBackground(DEFAULT_REMOVE_BACKGROUND);
+    preferencesAppliedRef.current = true;
+  }, [getDefaultStylePresetId, historyUserScopeId, stylePresets]);
 
   // Обработка отправки формы
   const handleGenerate = async () => {
     const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH) {
+    const canGenerateWithoutPrompt = sourceImageFiles.length > 0 && selectedStylePresetId != null;
+    if (!canGenerateWithoutPrompt && (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH)) {
       setErrorMessage('Введите описание стикера');
       setErrorKind('prompt');
       setPageState('error');
@@ -542,9 +775,9 @@ export const GeneratePage: FC = () => {
           stylePresetId: selectedStylePresetId,
           selectedEmoji,
           removeBackground,
-          hasSourceImage: !!sourceImageFile,
-          pageState: sourceImageFile ? 'uploading' : 'generating',
-          generationStatus: sourceImageFile ? null : 'PROCESSING_PROMPT',
+          hasSourceImage: sourceImageFiles.length > 0,
+          pageState: sourceImageFiles.length > 0 ? 'uploading' : 'generating',
+          generationStatus: sourceImageFiles.length > 0 ? null : 'PROCESSING_PROMPT',
           resultImageUrl: null,
           imageId: null,
           fileId: null,
@@ -554,7 +787,7 @@ export const GeneratePage: FC = () => {
         setHistoryEntries(upsertGenerateHistoryEntry(historyUserScopeId, baseEntry));
       }
 
-      if (sourceImageFile) {
+      if (sourceImageFiles.length > 0) {
         setPageState('uploading');
         uploadedImageIds = await ensureUploadedSourceImageIds();
         patchHistoryEntry(
@@ -590,7 +823,7 @@ export const GeneratePage: FC = () => {
         setErrorKind('general');
       } else if (error.message === 'INVALID_GENERATION_PARAMS') {
         message = 'Некорректные параметры генерации.';
-        setErrorKind(sourceImageFile ? 'upload' : 'general');
+        setErrorKind(sourceImageFiles.length > 0 ? 'upload' : 'general');
       } else if (error.message === 'SOURCE_IMAGE_NOT_FOUND') {
         uploadedSourceImageIdsRef.current = [];
         uploadedSourceImageAtRef.current = null;
@@ -631,47 +864,47 @@ export const GeneratePage: FC = () => {
   }, []);
 
   const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : null;
-      if (!result) {
-        setErrorMessage('Не удалось прочитать изображение');
+    (async () => {
+      try {
+        const previews = await Promise.all(files.map((file) => blobToDataUrl(file)));
+        setSourceImageFiles((prev) => [...prev, ...files]);
+        setSourceImagePreviews((prev) => [...prev, ...previews]);
+        setSourceImageOrigin('manual');
+        uploadedSourceImageIdsRef.current = [];
+        uploadedSourceImageAtRef.current = null;
+        if (selectedModel !== SOURCE_IMAGE_MODEL) {
+          setSelectedModel(SOURCE_IMAGE_MODEL);
+          persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
+          setModelDropdownOpen(false);
+        }
+        setErrorMessage(null);
+        setErrorKind(null);
+        if (pageState === 'error') {
+          setPageState('idle');
+        }
+      } catch {
+        setErrorMessage('Не удалось загрузить файл');
         setErrorKind('upload');
         setPageState('error');
-        return;
       }
-      setSourceImageFile(file);
-      setSourceImageBase64(result);
-      uploadedSourceImageIdsRef.current = [];
-      uploadedSourceImageAtRef.current = null;
-      if (selectedModel !== SOURCE_IMAGE_MODEL) {
-        setSelectedModel(SOURCE_IMAGE_MODEL);
-        setModelDropdownOpen(false);
-      }
-      setErrorMessage(null);
-      setErrorKind(null);
-      if (pageState === 'error') {
-        setPageState('idle');
-      }
-    };
-    reader.onerror = () => {
-      setErrorMessage('Не удалось загрузить файл');
-      setErrorKind('upload');
-      setPageState('error');
-    };
-    reader.readAsDataURL(file);
+    })();
     event.target.value = '';
-  }, [pageState, selectedModel]);
+  }, [pageState, persistGeneratePreferences, selectedModel]);
 
-  const clearSourceImage = useCallback(() => {
-    setSourceImageFile(null);
-    setSourceImageBase64(null);
+  const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
+    if (options?.markAvatarDismissed && sourceImageOrigin === 'telegram-avatar') {
+      setTelegramAvatarDismissed(true);
+      persistTelegramAvatarDismissed(true);
+    }
+    setSourceImageFiles([]);
+    setSourceImagePreviews([]);
+    setSourceImageOrigin('none');
     uploadedSourceImageIdsRef.current = [];
     uploadedSourceImageAtRef.current = null;
-  }, []);
+  }, [persistTelegramAvatarDismissed, sourceImageOrigin]);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
     const query = buildSwitchInlineQuery(stickerFileId);
@@ -790,11 +1023,15 @@ export const GeneratePage: FC = () => {
   };
 
   // Валидация формы
-  const isFormValid = prompt.trim().length >= MIN_PROMPT_LENGTH && prompt.trim().length <= MAX_PROMPT_LENGTH;
+  const hasSourceImage = sourceImageFiles.length > 0;
+  const trimmedPrompt = prompt.trim();
+  const canGenerateWithoutPrompt = hasSourceImage && selectedStylePresetId != null;
+  const isFormValid =
+    (trimmedPrompt.length >= MIN_PROMPT_LENGTH && trimmedPrompt.length <= MAX_PROMPT_LENGTH) ||
+    canGenerateWithoutPrompt;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
-  const hasSourceImage = !!sourceImageFile;
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
@@ -863,13 +1100,28 @@ export const GeneratePage: FC = () => {
         return;
       }
       setSelectedModel(rawValue);
+      persistGeneratePreferences({ selectedModel: rawValue });
     }
   };
 
   const handleStyleSelect = (presetId: number) => {
-    setSelectedStylePresetId((prev) => (prev === presetId ? null : presetId));
+    const nextStylePresetId = selectedStylePresetId === presetId ? null : presetId;
+    setSelectedStylePresetId(nextStylePresetId);
+    persistGeneratePreferences({ stylePresetId: nextStylePresetId });
     setStyleDropdownOpen(false);
     tg?.HapticFeedback?.impactOccurred('light');
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setSelectedEmoji(emoji);
+    persistGeneratePreferences({ selectedEmoji: emoji });
+    setEmojiDropdownOpen(false);
+    tg?.HapticFeedback?.impactOccurred('light');
+  };
+
+  const handleRemoveBackgroundChange = (checked: boolean) => {
+    setRemoveBackground(checked);
+    persistGeneratePreferences({ removeBackground: checked });
   };
 
   const styleSelectOptions = stylePresets.map((p) => ({ id: p.id, name: stripPresetName(p.name) }));
@@ -993,11 +1245,7 @@ export const GeneratePage: FC = () => {
                 'generate-model-select-option--emoji',
                 emoji === selectedEmoji && 'generate-model-select-option--selected',
               )}
-              onClick={() => {
-                setSelectedEmoji(emoji);
-                setEmojiDropdownOpen(false);
-                tg?.HapticFeedback?.impactOccurred('light');
-              }}
+              onClick={() => handleEmojiSelect(emoji)}
             >
               {emoji}
             </button>
@@ -1041,15 +1289,39 @@ export const GeneratePage: FC = () => {
     </div>
   );
 
+  const primarySourcePreview = sourceImagePreviews[0] ?? null;
+  const hasTelegramAvatarInForm = sourceImageOrigin === 'telegram-avatar' && !!primarySourcePreview;
   const renderBrandBlock = () => (
-    <div className="generate-brand" aria-hidden="true">
-      <img
-        src={STIXLY_LOGO_ORANGE}
-        alt=""
-        className="generate-brand-logo"
-        loading="eager"
-        decoding="async"
-      />
+    <div className="generate-brand">
+      {hasTelegramAvatarInForm ? (
+        <div className="generate-brand-avatar-card">
+          <button
+            type="button"
+            className="generate-brand-avatar-remove"
+            onClick={() => clearSourceImage({ markAvatarDismissed: true })}
+            aria-label="Убрать Telegram-аватар"
+          >
+            ×
+          </button>
+          <img
+            src={primarySourcePreview ?? ''}
+            alt="Telegram-аватар"
+            className="generate-brand-avatar-image"
+            loading="eager"
+            decoding="async"
+          />
+          <span className="generate-brand-avatar-label">Сгенерировать по аватару</span>
+        </div>
+      ) : (
+        <img
+          src={STIXLY_LOGO_ORANGE}
+          alt=""
+          className="generate-brand-logo"
+          loading="eager"
+          decoding="async"
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 
@@ -1059,20 +1331,24 @@ export const GeneratePage: FC = () => {
         ref={sourceImageInputRef}
         type="file"
         accept="image/*"
+        multiple
         hidden
         onChange={handleSourceImageChange}
       />
       <div className="generate-input-wrapper__pictures-slot">
         <button
           type="button"
-          className="generate-input-wrapper__pictures-button"
+          className={cn(
+            'generate-input-wrapper__pictures-button',
+            hasSourceImage && 'generate-input-wrapper__pictures-button--with-preview'
+          )}
           onClick={handleSourceImagePick}
           disabled={disabled}
-          aria-label={sourceImageFile ? 'Изменить исходное изображение' : 'Добавить исходное изображение'}
+          aria-label={hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}
         >
-          {sourceImageFile ? (
+          {hasSourceImage ? (
             <img
-              src={sourceImageBase64 ?? ''}
+              src={primarySourcePreview ?? ''}
               alt="Исходное изображение"
               className="generate-input-wrapper__pictures-preview"
             />
@@ -1085,11 +1361,18 @@ export const GeneratePage: FC = () => {
             />
           )}
         </button>
-        {sourceImageFile && (
+        {hasSourceImage && (
+          sourceImageFiles.length > 1 && (
+            <span className="generate-input-wrapper__pictures-count" aria-label={`Прикреплено ${sourceImageFiles.length} изображений`}>
+              +{sourceImageFiles.length - 1}
+            </span>
+          )
+        )}
+        {hasSourceImage && (
           <button
             type="button"
             className="generate-source-image-preview__remove"
-            onClick={clearSourceImage}
+            onClick={() => clearSourceImage({ markAvatarDismissed: sourceImageOrigin === 'telegram-avatar' })}
             disabled={disabled}
             aria-label="Удалить исходное изображение"
           >
@@ -1210,7 +1493,7 @@ export const GeneratePage: FC = () => {
                 <input
                   type="checkbox"
                   checked={removeBackground}
-                  onChange={(e) => setRemoveBackground(e.target.checked)}
+                  onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
                   disabled={isGenerating}
                   className="generate-checkbox"
                 />
@@ -1277,7 +1560,7 @@ export const GeneratePage: FC = () => {
               <input
                 type="checkbox"
                 checked={removeBackground}
-                onChange={(e) => setRemoveBackground(e.target.checked)}
+                onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
                 className="generate-checkbox"
               />
             </label>
@@ -1329,7 +1612,7 @@ export const GeneratePage: FC = () => {
               <input
                 type="checkbox"
                 checked={removeBackground}
-                onChange={(e) => setRemoveBackground(e.target.checked)}
+                onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
                 disabled={isGenerating}
                 className="generate-checkbox"
               />

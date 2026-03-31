@@ -88,6 +88,23 @@
   flex-shrink: 0;
 }
 
+@keyframes header-avatar-hint-pulse {
+  0%, 65%, 100% {
+    transform: scale(1);
+  }
+  72% {
+    transform: scale(1.08);
+  }
+  84% {
+    transform: scale(1);
+  }
+}
+
+body.generate-avatar-hint-active .header-panel__avatar-wrap .header-panel__avatar,
+body.generate-avatar-hint-active .header-panel__avatar-wrap .header-panel__avatar--placeholder {
+  animation: header-avatar-hint-pulse 2.8s ease-in-out infinite;
+}
+
 .header-panel__avatar--placeholder {
   display: flex;
   align-items: center;

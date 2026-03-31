@@ -165,13 +165,13 @@
 
 .generate-brand {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 0;
-  gap: 0;
+  gap: 8px;
   width: 280px;
-  height: 160px;
+  min-height: 160px;
   flex: none;
   order: 0;
   flex-grow: 0;
@@ -185,6 +185,53 @@
   flex: none;
   order: 0;
   flex-grow: 0;
+}
+
+.generate-brand-avatar-card {
+  position: relative;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.generate-brand-avatar-image {
+  width: 128px;
+  height: 128px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.42);
+}
+
+.generate-brand-avatar-label {
+  color: #fff;
+  font-size: 13px;
+  line-height: 16px;
+  text-align: center;
+  opacity: 0.94;
+}
+
+.generate-brand-avatar-remove {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 16px;
+  line-height: 22px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.generate-brand-avatar-remove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Figma: Logo/маскот подпись — "Generation" 8px, #ee449f */
@@ -264,11 +311,14 @@
 
 .generate-input-wrapper__pictures-slot {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 24px;
-  height: 24px;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
   z-index: 2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .generate-input-wrapper__pictures-button {
@@ -281,6 +331,13 @@
   cursor: pointer;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.generate-input-wrapper__pictures-button--with-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  overflow: visible;
 }
 
 .generate-input-wrapper__pictures-button:disabled {
@@ -306,6 +363,35 @@
   object-fit: cover;
 }
 
+.generate-input-wrapper__pictures-button--with-preview .generate-input-wrapper__pictures-preview {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.generate-input-wrapper__pictures-count {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .generate-source-image-preview {
   position: absolute;
   top: 12px;
@@ -328,18 +414,21 @@
 
 .generate-source-image-preview__remove {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 14px;
-  height: 14px;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
-  font-size: 11px;
-  line-height: 14px;
+  font-size: 14px;
+  line-height: 18px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .generate-source-image-preview__remove:disabled {
@@ -378,7 +467,7 @@
   height: auto;
   min-height: 0;
   padding: 0;
-  padding-right: 36px; /* не заходить под .generate-input-wrapper__pictures-icon (12px + 24px) */
+  padding-right: 56px; /* резерв под увеличенное превью 40px + внутренний отступ */
   padding-bottom: 0;
   background-color: transparent;
   border: none;
