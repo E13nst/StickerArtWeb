@@ -102,10 +102,6 @@ export const HeaderPanel: FC = () => {
     }, DEBUG_PANEL_LONG_PRESS_MS);
   }, [tg]);
 
-  const handleAvatarTouchEnd = useCallback(() => {
-    clearLongPress();
-  }, [clearLongPress]);
-
   const handleAvatarActivate = useCallback(() => {
     if (suppressAvatarClickRef.current || longPressTriggeredRef.current) {
       suppressAvatarClickRef.current = false;
@@ -114,6 +110,16 @@ export const HeaderPanel: FC = () => {
     }
     navigate(`/generate?avatar=${Date.now()}`);
   }, [navigate]);
+
+  const handleAvatarTouchEnd = useCallback((event?: TouchEvent | MouseEvent) => {
+    clearLongPress();
+    if (event && 'type' in event && event.type === 'touchend') {
+      event.preventDefault();
+      if (!suppressAvatarClickRef.current && !longPressTriggeredRef.current) {
+        handleAvatarActivate();
+      }
+    }
+  }, [clearLongPress, handleAvatarActivate]);
 
   useEffect(() => () => {
     clearLongPress();
