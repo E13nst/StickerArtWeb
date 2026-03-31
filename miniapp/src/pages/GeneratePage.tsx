@@ -14,7 +14,7 @@ import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
 import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
-import { getAvatarUrl } from '@/utils/avatarUtils';
+import { getAvatarUrl, getOptimalAvatarFileId } from '@/utils/avatarUtils';
 import {
   clearActiveGenerateHistoryEntry,
   createGenerateHistoryLocalId,
@@ -324,12 +324,19 @@ export const GeneratePage: FC = () => {
   const effectiveUserId = userInfo?.telegramId ?? userInfo?.id ?? user?.id ?? null;
   const telegramUserId = user?.id ?? null;
   const telegramPhotoUrl = user?.photo_url ?? null;
+  const profileAvatarFileId = useMemo(() => {
+    if (!isProfileFromAuthenticatedApi || !userInfo) return null;
+    return userInfo.profilePhotoFileId ?? getOptimalAvatarFileId(userInfo.profilePhotos, 160) ?? null;
+  }, [isProfileFromAuthenticatedApi, userInfo]);
   const profileAvatarUrl = useMemo(() => {
     if (!isProfileFromAuthenticatedApi || !userInfo) return null;
+    if (profileAvatarFileId && userInfo.id) {
+      return getAvatarUrl(userInfo.id, profileAvatarFileId, undefined, 160) ?? null;
+    }
     if (userInfo.avatarUrl) return userInfo.avatarUrl;
-    return getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 160) ?? null;
-  }, [isProfileFromAuthenticatedApi, userInfo]);
-  const effectiveAvatarUrl = telegramPhotoUrl || profileAvatarUrl;
+    return null;
+  }, [isProfileFromAuthenticatedApi, profileAvatarFileId, userInfo]);
+  const effectiveAvatarUrl = profileAvatarUrl || telegramPhotoUrl;
   const avatarTriggerToken = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return params.get('avatar');
@@ -438,7 +445,8 @@ export const GeneratePage: FC = () => {
       processedAvatarTriggerRef.current = avatarTriggerToken;
     }
 
-    const autofillKey = `${telegramUserId}:${effectiveAvatarUrl}:${hasPendingAvatarTrigger ? avatarTriggerToken : 'default'}`;
+    const avatarSourceKey = profileAvatarFileId || effectiveAvatarUrl;
+    const autofillKey = `${telegramUserId}:${avatarSourceKey}:${hasPendingAvatarTrigger ? avatarTriggerToken : 'default'}`;
     if (avatarAutofillAppliedRef.current === autofillKey) {
       return;
     }
@@ -448,19 +456,27 @@ export const GeneratePage: FC = () => {
 
     (async () => {
       try {
-        const response = await fetch(effectiveAvatarUrl, {
-          mode: 'cors',
-          credentials: 'omit',
-          cache: 'no-store',
-          signal: abortController.signal,
-        });
-        if (!response.ok) {
-          throw new Error(`AVATAR_FETCH_FAILED_${response.status}`);
-        }
+        let blob: Blob;
 
-        const blob = await response.blob();
+        if (profileAvatarFileId && userInfo?.id) {
+          blob = await apiClient.getUserPhotoBlob(userInfo.id, profileAvatarFileId);
+        } else {
+          const response = await fetch(effectiveAvatarUrl, {
+            mode: 'cors',
+            credentials: 'omit',
+            cache: 'no-store',
+            signal: abortController.signal,
+          });
+          if (!response.ok) {
+            throw new Error(`AVATAR_FETCH_FAILED_${response.status}`);
+          }
+
+          blob = await response.blob();
+        }
         const mimeType = (blob.type || '').toLowerCase();
-        const looksLikeSvg = mimeType.includes('svg') || /\.svg(?:$|[?#])/i.test(effectiveAvatarUrl);
+        const looksLikeSvg =
+          mimeType.includes('svg') ||
+          (!profileAvatarFileId && /\.svg(?:$|[?#])/i.test(effectiveAvatarUrl));
         if (looksLikeSvg) {
           throw new Error('AVATAR_SVG_UNSUPPORTED');
         }
@@ -507,7 +523,9 @@ export const GeneratePage: FC = () => {
     telegramAvatarDismissed,
     avatarTriggerToken,
     effectiveAvatarUrl,
+    profileAvatarFileId,
     telegramUserId,
+    userInfo?.id,
   ]);
 
   // Разрешаем скролл для этой страницы
