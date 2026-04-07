@@ -839,6 +839,9 @@ export const GeneratePage: FC = () => {
       } else if (error.message === 'GENERATION_START_TIMEOUT') {
         message = 'Сервер слишком долго запускает генерацию. Попробуйте снова чуть позже.';
         setErrorKind('general');
+      } else if (error.message === 'UPLOAD_TOO_LARGE') {
+        message = 'Фото слишком большое. Уменьшите изображение или выберите другое и попробуйте снова.';
+        setErrorKind('upload');
       } else if (error.message === 'INVALID_GENERATION_PARAMS') {
         message = 'Некорректные параметры генерации.';
         setErrorKind(sourceImageFiles.length > 0 ? 'upload' : 'general');

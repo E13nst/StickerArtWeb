@@ -16,6 +16,10 @@ function readEnv(key: string): string | undefined {
 }
 
 const STICKER_PROCESSOR_URL = readEnv('VITE_STICKER_PROCESSOR_URL')?.replace(/\/+$/, '') ?? '';
+const UPLOAD_IMAGE_MAX_DIMENSION = 1600;
+const UPLOAD_IMAGE_REPROCESS_THRESHOLD_BYTES = 1_200_000;
+const UPLOAD_IMAGE_TARGET_BYTES = 900_000;
+const JPEG_UPLOAD_QUALITIES = [0.9, 0.82, 0.74, 0.66] as const;
 
 function getStickerProcessorEndpoint(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -24,9 +28,20 @@ function getStickerProcessorEndpoint(path: string): string {
 
 /** Извлекает текст ошибки из ответа сервера (JSON или строка) для отображения пользователю */
 function getErrorMessage(error: any, fallback: string): string {
+  const status = error?.response?.status;
+  if (status === 413) {
+    return 'Изображение слишком большое. Попробуйте выбрать другое фото или уменьшить его размер.';
+  }
+
   const data = error?.response?.data;
   if (data == null) return fallback;
-  if (typeof data === 'string' && data.length > 0 && data.length < 500) return data;
+  if (typeof data === 'string' && data.length > 0 && data.length < 500) {
+    const trimmed = data.trim();
+    const looksLikeHtml = /^<!doctype|^<html[\s>]|^<head[\s>]|^<body[\s>]|<h1[\s>]|<\/html>$/i.test(trimmed);
+    if (!looksLikeHtml) {
+      return trimmed;
+    }
+  }
   if (typeof data === 'object') {
     const msg = data.message ?? data.error ?? data.errorMessage;
     if (typeof msg === 'string' && msg.length > 0) return msg;
@@ -85,6 +100,102 @@ function extractUploadedImageIds(payload: any): string[] {
   collect(payload);
 
   return Array.from(imageIds);
+}
+
+function loadImageElement(blob: Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('IMAGE_LOAD_FAILED'));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+function getScaledDimensions(width: number, height: number, maxDimension: number): { width: number; height: number } {
+  if (width <= maxDimension && height <= maxDimension) {
+    return { width, height };
+  }
+
+  const scale = Math.min(maxDimension / width, maxDimension / height);
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, mimeType: string, quality?: number): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), mimeType, quality);
+  });
+}
+
+async function optimizeUploadImage(file: File): Promise<File> {
+  if (typeof document === 'undefined' || !file.type.startsWith('image/')) {
+    return file;
+  }
+
+  try {
+    const image = await loadImageElement(file);
+    const originalWidth = image.naturalWidth || image.width;
+    const originalHeight = image.naturalHeight || image.height;
+    const scaled = getScaledDimensions(originalWidth, originalHeight, UPLOAD_IMAGE_MAX_DIMENSION);
+    const shouldResize = scaled.width !== originalWidth || scaled.height !== originalHeight;
+    const shouldReprocess = shouldResize || file.size > UPLOAD_IMAGE_REPROCESS_THRESHOLD_BYTES;
+
+    if (!shouldReprocess) {
+      return file;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = scaled.width;
+    canvas.height = scaled.height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return file;
+    }
+
+    context.drawImage(image, 0, 0, scaled.width, scaled.height);
+
+    const targetMimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+    const qualityCandidates = targetMimeType === 'image/png' ? [undefined] : [...JPEG_UPLOAD_QUALITIES];
+    let optimizedBlob: Blob | null = null;
+
+    for (const quality of qualityCandidates) {
+      const candidate = await canvasToBlob(canvas, targetMimeType, quality);
+      if (!candidate) {
+        continue;
+      }
+
+      optimizedBlob = candidate;
+      if (candidate.size <= UPLOAD_IMAGE_TARGET_BYTES) {
+        break;
+      }
+    }
+
+    if (!optimizedBlob || optimizedBlob.size >= file.size) {
+      return file;
+    }
+
+    const baseName = file.name.replace(/\.[^/.]+$/, '') || 'source-image';
+    const nextExtension = targetMimeType === 'image/png' ? 'png' : 'jpg';
+    return new File([optimizedBlob], `${baseName}.${nextExtension}`, {
+      type: optimizedBlob.type || targetMimeType,
+      lastModified: file.lastModified,
+    });
+  } catch {
+    return file;
+  }
 }
 
 // ============ ТИПЫ ДЛЯ ГЕНЕРАЦИИ СТИКЕРОВ ============
@@ -1811,8 +1922,9 @@ class ApiClient {
       return { imageIds: [] };
     }
 
+    const preparedFiles = await Promise.all(files.map((file) => optimizeUploadImage(file)));
     const formData = new FormData();
-    files.forEach((file) => formData.append('files', file));
+    preparedFiles.forEach((file) => formData.append('files', file));
 
     try {
       const response = await axios.post(getStickerProcessorEndpoint('/images/upload'), formData, {
@@ -1829,6 +1941,10 @@ class ApiClient {
 
       return { imageIds };
     } catch (error: any) {
+      if (error?.response?.status === 413) {
+        throw new Error('UPLOAD_TOO_LARGE');
+      }
+
       if (error?.code === 'ECONNABORTED') {
         throw new Error('Загрузка изображения заняла слишком много времени. Попробуйте снова.');
       }
