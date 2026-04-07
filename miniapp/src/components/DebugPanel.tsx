@@ -3,6 +3,7 @@ import { useTelegram } from '../hooks/useTelegram';
 import { useStickerStore } from '../store/useStickerStore';
 import { apiClient } from '../api/client';
 import { getBuildInfo, formatBuildTime } from '../utils/buildInfo';
+import { isDevToolsUnlocked } from '../utils/devToolsUnlock';
 
 interface DebugPanelProps {
   initData?: string;
@@ -11,7 +12,7 @@ interface DebugPanelProps {
 export const DebugPanel: FC<DebugPanelProps> = ({ initData }) => {
   const { tg, isInTelegramApp, isMockMode } = useTelegram();
   const { authStatus, authError } = useStickerStore();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(() => isDevToolsUnlocked());
   const [copied, setCopied] = useState(false);
   const buildInfo = getBuildInfo();
   
@@ -111,41 +112,79 @@ export const DebugPanel: FC<DebugPanelProps> = ({ initData }) => {
     }
   };
 
+  const unlocked = isDevToolsUnlocked();
+
   return (
     <>
       {expanded && (
         <>
-          {/* Overlay для закрытия по клику вне окна */}
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 'var(--z-dropdown, 300)',
-              backgroundColor: 'rgba(0, 0, 0, 0.2)',
-              backdropFilter: 'blur(2px)',
-              WebkitBackdropFilter: 'blur(2px)',
-            }}
-            onClick={() => setExpanded(false)}
-          />
+          {/* До разблокировки — затемнение и закрытие по клику; после — без оверлея, чтобы не блокировать приложение */}
+          {!unlocked && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 'var(--z-dropdown, 300)',
+                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                backdropFilter: 'blur(2px)',
+                WebkitBackdropFilter: 'blur(2px)',
+              }}
+              onClick={() => setExpanded(false)}
+            />
+          )}
           <div 
             className="tg-debug-panel__content"
             style={{
               position: 'fixed',
               left: 'calc(100vw * 0.024)',
               right: 'calc(100vw * 0.024)',
-              bottom: 'calc(100vw * 0.04)',
+              bottom: unlocked
+                ? 'calc(var(--stixly-taskbar-height, 96.25px) + 2vw)'
+                : 'calc(100vw * 0.04)',
               borderRadius: 'calc(100vw * 0.04)',
               boxShadow: '0 4px 16px var(--color-shadow)',
               zIndex: 'var(--z-overlay, 400)', // выше overlay для взаимодействия
               background: 'color-mix(in srgb, var(--color-surface) 98%, transparent)',
               backdropFilter: 'blur(16px) saturate(180%)',
               WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              maxHeight: unlocked ? 'min(42vh, 320px)' : undefined,
+              overflowY: unlocked ? 'auto' : undefined,
             }}
             onClick={(e) => e.stopPropagation()}
           >
+          <div
+            className="tg-debug-panel__toolbar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              paddingBottom: 8,
+              marginBottom: 4,
+              borderBottom: '1px solid color-mix(in srgb, var(--color-border, #444) 60%, transparent)',
+            }}
+          >
+            <span className="tg-debug-panel__label" style={{ margin: 0 }}>
+              Debug
+            </span>
+            <button
+              type="button"
+              className="tg-button"
+              style={{
+                minWidth: 'auto',
+                padding: '6px 12px',
+                fontSize: 13,
+                background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-border, #666) 50%, transparent)',
+              }}
+              onClick={() => setExpanded(false)}
+            >
+              Закрыть
+            </button>
+          </div>
           {/* Информация о сборке */}
           <div className="tg-debug-panel__section">
             <div className="tg-debug-panel__info">

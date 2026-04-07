@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, ReactNode } from 'react';
+import React, { useEffect, useMemo, useRef, useState, ReactNode, CSSProperties } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { BottomNav } from '@/components/BottomNav';
@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DebugPanel } from '@/components/DebugPanel';
 import { useTelegram } from '@/hooks/useTelegram';
 import { ScrollProvider } from '@/contexts/ScrollContext';
+import { isDevToolsUnlocked, persistDevToolsUnlocked } from '@/utils/devToolsUnlock';
 
 interface Props {
   children: ReactNode;
@@ -19,12 +20,32 @@ export default function MainLayout({ children }: Props) {
   const { isReady, initData } = useTelegram();
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  /** Инкремент при разблокировке — перечитываем sessionStorage; закрытие debug-панели на это не влияет. */
+  const [devToolsUnlockTick, setDevToolsUnlockTick] = useState(0);
+
+  const showBottomNav = useMemo(() => isDevToolsUnlocked(), [devToolsUnlockTick]);
+
+  useEffect(() => {
+    const onUnlock = () => {
+      persistDevToolsUnlocked();
+      setDevToolsUnlockTick((t) => t + 1);
+    };
+    window.addEventListener('stixly-open-debug-panel', onUnlock);
+    return () => window.removeEventListener('stixly-open-debug-panel', onUnlock);
+  }, []);
 
   useEffect(() => {
     if (mainScrollRef.current) {
       mainScrollRef.current.scrollTop = 0;
     }
   }, [location.pathname]);
+
+  const layoutCompactBottomStyle: CSSProperties | undefined = !showBottomNav
+    ? ({
+        '--stixly-bottom-nav-height': 'var(--stixly-safe-area-bottom)',
+        '--stixly-taskbar-height': 'calc(var(--stixly-safe-area-bottom) + 12px)',
+      } as CSSProperties)
+    : undefined;
 
   // Не рендерим layout до стабильного viewport
   if (!isReady) {
@@ -51,6 +72,7 @@ export default function MainLayout({ children }: Props) {
         flexDirection: 'column',
         overflowX: 'hidden',
         overflowY: isSwipePage ? 'hidden' : 'visible',
+        ...layoutCompactBottomStyle,
       }}
     >
       {/* Полноэкранный фон под хедером: градиент из :root, чтобы под header не было тёмного слоя body */}
@@ -90,7 +112,7 @@ export default function MainLayout({ children }: Props) {
           <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
         </div>
       </ScrollProvider>
-      <BottomNav />
+      <BottomNav visible={showBottomNav} />
     </div>
   );
 }

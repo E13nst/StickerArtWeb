@@ -6,9 +6,12 @@ interface BottomNavProps {
   activeTab?: number;
   onChange?: (newValue: number) => void;
   isInTelegramApp?: boolean;
+  /** Показывать нижнее меню (после разблокировки долгим нажатием на аватар в шапке). */
+  visible?: boolean;
 }
 
-/** Navbar всегда видим; модалки с keepNavbarVisible (StickerSetDetail) не перекрывают его бэкдропом. */
-export const BottomNav: FC<BottomNavProps> = () => {
+/** Navbar скрыт до разблокировки; модалки с keepNavbarVisible (StickerSetDetail) не перекрывают его бэкдропом. */
+export const BottomNav: FC<BottomNavProps> = ({ visible = false }) => {
+  if (!visible) return null;
   return <Navbar />;
 };

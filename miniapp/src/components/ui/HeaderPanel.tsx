@@ -80,7 +80,7 @@ export const HeaderPanel: FC = () => {
     console.log('Wallet button clicked - TON Connect');
   };
 
-  // Долгое нажатие на аватар (3 сек) — открытие Debug Panel
+  // Долгое нажатие на аватар (3 сек) — нижнее меню + Debug Panel до перезапуска миниаппа
   const clearLongPress = useCallback(() => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
@@ -130,12 +130,12 @@ export const HeaderPanel: FC = () => {
       <div className="header-panel__backdrop" aria-hidden="true" />
       <div className="header-panel__inner">
         <div className="header-panel__content">
-          {/* Аватар: фото или иконка Account; долгое нажатие 3 сек — Debug Panel */}
+          {/* Аватар: фото или иконка Account; долгое нажатие 3 сек — навбар + Debug Panel */}
           <div
             className="header-panel__avatar-wrap"
             role="button"
             tabIndex={0}
-            aria-label="Аватар; удержание 3 сек — отладка"
+            aria-label="Аватар; удержание 3 сек — меню навигации и отладка (до перезапуска)"
             onTouchStart={handleAvatarTouchStart}
             onTouchEnd={handleAvatarTouchEnd}
             onTouchCancel={handleAvatarTouchEnd}

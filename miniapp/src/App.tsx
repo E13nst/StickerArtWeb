@@ -152,7 +152,7 @@ const App: FC = () => {
             </div>
           }>
           <Routes>
-            <Route path="/" element={<Navigate to="/gallery" replace />} />
+            <Route path="/" element={<Navigate to="/generate" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/profile" element={<MyProfilePage />} />
