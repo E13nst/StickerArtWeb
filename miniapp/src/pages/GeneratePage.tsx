@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -884,36 +884,58 @@ export const GeneratePage: FC = () => {
     sourceImageInputRef.current?.click();
   }, []);
 
-  const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
+  const appendSourceImages = useCallback(async (files: File[]) => {
     if (!files.length) return;
 
-    (async () => {
-      try {
-        const previews = await Promise.all(files.map((file) => blobToDataUrl(file)));
-        setSourceImageFiles((prev) => [...prev, ...files]);
-        setSourceImagePreviews((prev) => [...prev, ...previews]);
-        setSourceImageOrigin('manual');
-        uploadedSourceImageIdsRef.current = [];
-        uploadedSourceImageAtRef.current = null;
-        if (selectedModel !== SOURCE_IMAGE_MODEL) {
-          setSelectedModel(SOURCE_IMAGE_MODEL);
-          persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
-          setModelDropdownOpen(false);
-        }
-        setErrorMessage(null);
-        setErrorKind(null);
-        if (pageState === 'error') {
-          setPageState('idle');
-        }
-      } catch {
-        setErrorMessage('Не удалось загрузить файл');
-        setErrorKind('upload');
-        setPageState('error');
+    try {
+      const previews = await Promise.all(files.map((file) => blobToDataUrl(file)));
+      setSourceImageFiles((prev) => [...prev, ...files]);
+      setSourceImagePreviews((prev) => [...prev, ...previews]);
+      setSourceImageOrigin('manual');
+      uploadedSourceImageIdsRef.current = [];
+      uploadedSourceImageAtRef.current = null;
+      if (selectedModel !== SOURCE_IMAGE_MODEL) {
+        setSelectedModel(SOURCE_IMAGE_MODEL);
+        persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
+        setModelDropdownOpen(false);
       }
-    })();
-    event.target.value = '';
+      setErrorMessage(null);
+      setErrorKind(null);
+      if (pageState === 'error') {
+        setPageState('idle');
+      }
+    } catch {
+      setErrorMessage('Не удалось загрузить файл');
+      setErrorKind('upload');
+      setPageState('error');
+    }
   }, [pageState, persistGeneratePreferences, selectedModel]);
+
+  const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    void appendSourceImages(files);
+    event.target.value = '';
+  }, [appendSourceImages]);
+
+  const handlePromptPaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedImageFiles = Array.from(event.clipboardData?.items ?? [])
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item, index) => {
+        const file = item.getAsFile();
+        if (!file) return null;
+        if (file.name) return file;
+        const extension = file.type.split('/')[1] || 'png';
+        return new File([file], `pasted-image-${Date.now()}-${index}.${extension}`, { type: file.type || 'image/png' });
+      })
+      .filter((file): file is File => Boolean(file));
+
+    if (!pastedImageFiles.length) {
+      return;
+    }
+
+    event.preventDefault();
+    void appendSourceImages(pastedImageFiles);
+  }, [appendSourceImages]);
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
     if (options?.markAvatarDismissed && sourceImageOrigin === 'telegram-avatar') {
@@ -1478,6 +1500,7 @@ export const GeneratePage: FC = () => {
               placeholder="Опишите стикер, например: собака летит на ракете"
               value={prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
+              onPaste={handlePromptPaste}
               maxLength={MAX_PROMPT_LENGTH}
               disabled={isGenerating}
               onFocus={handlePromptFocusIn}
@@ -1546,6 +1569,7 @@ export const GeneratePage: FC = () => {
             placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
+            onPaste={handlePromptPaste}
             maxLength={MAX_PROMPT_LENGTH}
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
@@ -1598,6 +1622,7 @@ export const GeneratePage: FC = () => {
             placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
+            onPaste={handlePromptPaste}
             maxLength={MAX_PROMPT_LENGTH}
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
