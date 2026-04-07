@@ -39,13 +39,20 @@ interface NavItem {
   Icon: FC<{ size?: number; color?: string; className?: string; style?: CSSProperties }>;
 }
 
+/** Поставьте `true`, чтобы снова показать Home и Gallery в нижнем меню. */
+const SHOW_HOME_AND_GALLERY_IN_NAV = false;
+
 const navItems: NavItem[] = [
   { path: '/dashboard', label: 'Home', Icon: NavHomeIcon },
   { path: '/gallery', label: 'Gallery', Icon: NavGalleryIcon },
   { path: '/nft-soon', label: 'Swipe', Icon: NavLikeIcon },
-  { path: '/generate', label: 'Stixly AI', Icon: NavArtIcon },
+  { path: '/generate', label: 'Generate', Icon: NavArtIcon },
   { path: '/profile', label: 'Profile', Icon: NavAccountIcon },
 ];
+
+const visibleNavItems = SHOW_HOME_AND_GALLERY_IN_NAV
+  ? navItems
+  : navItems.filter((item) => item.path !== '/dashboard' && item.path !== '/gallery');
 
 export const Navbar: FC = () => {
   const location = useLocation();
@@ -59,7 +66,7 @@ export const Navbar: FC = () => {
 
   return (
     <nav className="navbar">
-      {navItems.map((item) => {
+      {visibleNavItems.map((item) => {
         const active = isActive(item.path);
         const Icon = item.Icon;
         return (
