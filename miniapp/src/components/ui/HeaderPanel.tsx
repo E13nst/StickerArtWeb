@@ -71,11 +71,9 @@ export const HeaderPanel: FC = () => {
     maximumFractionDigits: 2,
   });
 
-  // Обработчики событий
-  const handlePlusClick = () => {
-    // TODO: Открыть модальное окно пополнения баланса
-    console.log('Plus button clicked - пополнение баланса');
-  };
+  const handleTopUpNavigate = useCallback(() => {
+    navigate('/profile?tab=artpoints');
+  }, [navigate]);
 
   const handleWalletClick = () => {
     // TODO: Подключить TON Connect
@@ -186,8 +184,13 @@ export const HeaderPanel: FC = () => {
             className="header-panel__balance"
             role="button"
             tabIndex={0}
-            onClick={() => navigate('/profile?tab=artpoints')}
-            onKeyDown={(e) => e.key === 'Enter' && navigate('/profile?tab=artpoints')}
+            onClick={handleTopUpNavigate}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleTopUpNavigate();
+              }
+            }}
             aria-label="Перейти в ART-points"
           >
             <button
@@ -197,7 +200,7 @@ export const HeaderPanel: FC = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                handlePlusClick();
+                handleTopUpNavigate();
               }}
             >
               <svg

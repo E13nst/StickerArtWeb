@@ -11,7 +11,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { buildSwitchInlineQuery, buildFallbackShareUrl } from '@/utils/stickerUtils';
+import { buildFallbackShareUrl } from '@/utils/stickerUtils';
 import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { getAvatarUrl, getOptimalAvatarFileId } from '@/utils/avatarUtils';
@@ -925,32 +925,9 @@ export const GeneratePage: FC = () => {
   }, [persistTelegramAvatarDismissed, sourceImageOrigin]);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
-    const query = buildSwitchInlineQuery(stickerFileId);
     const fallbackUrl = buildFallbackShareUrl(stickerFileId);
-
-    const isIos = tg?.platform === 'ios' || tg?.platform === 'iphone' || tg?.platform === 'ipad';
-
-    if (tg?.switchInlineQuery) {
-      if (tg.initDataUnsafe?.chat) {
-        // Уже в чате — переключаем inline query в текущем чате
-        tg.switchInlineQuery(query);
-        return;
-      }
-      if (isIos) {
-        // iOS: switchInlineQuery с choose_chat ненадёжен до mid-2025 версий Telegram
-        // openTelegramLink надёжно открывает нативный шаринг внутри приложения
-        openTelegramUrl(fallbackUrl, tg);
-        return;
-      }
-      // Desktop и Android: нативный пикер чатов через switchInlineQuery
-      tg.switchInlineQuery(query, ['users', 'groups', 'channels', 'bots']);
-      return;
-    }
-
-    if (tg?.openTelegramLink) {
-      openTelegramUrl(fallbackUrl, tg);
-      return;
-    }
+    // Ведем шаринг тем же путем, что и рабочие переходы на Telegram-ссылки
+    // в StickerSetDetail: так Telegram не закрывает miniapp при открытии share flow.
     openTelegramUrl(fallbackUrl, tg);
   }, [tg]);
 
