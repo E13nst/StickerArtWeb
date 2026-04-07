@@ -124,10 +124,12 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
 const MODEL_OPTIONS: Array<{ id: GenerateModelType; name: string }> = [
-  { id: 'flux-schnell', name: 'Stixly' },
   { id: 'nanabanana', name: 'Nano 🍌' },
 ];
 const SOURCE_IMAGE_MODEL: GenerateModelType = 'nanabanana';
+const AVAILABLE_MODEL_IDS = new Set<GenerateModelType>(MODEL_OPTIONS.map((option) => option.id));
+const normalizeGenerateModel = (model: GenerateModelType | null | undefined): GenerateModelType =>
+  model && AVAILABLE_MODEL_IDS.has(model) ? model : DEFAULT_GENERATE_MODEL;
 const POPULAR_EMOJIS = [
   '😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '😘', '🥰', '😗', '😙', '😚',
   '🙂', '🤗', '🤩', '🤔', '🫡', '🤨', '😐', '😑', '😶', '🫥', '😶‍🌫️', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯',
@@ -711,7 +713,7 @@ export const GeneratePage: FC = () => {
     if (!activeEntry || !activeEntry.taskId) return;
 
     setPrompt(activeEntry.prompt);
-    setSelectedModel(activeEntry.model);
+    setSelectedModel(normalizeGenerateModel(activeEntry.model));
     setSelectedStylePresetId(activeEntry.stylePresetId);
     setSelectedEmoji(activeEntry.selectedEmoji);
     setRemoveBackground(activeEntry.removeBackground);
@@ -730,7 +732,7 @@ export const GeneratePage: FC = () => {
 
     const savedPreferences = readGeneratePreferences(historyUserScopeId);
     if (savedPreferences) {
-      setSelectedModel(savedPreferences.selectedModel);
+      setSelectedModel(normalizeGenerateModel(savedPreferences.selectedModel));
       setSelectedStylePresetId(savedPreferences.stylePresetId);
       setSelectedEmoji(savedPreferences.selectedEmoji);
       setRemoveBackground(savedPreferences.removeBackground);
@@ -1067,7 +1069,7 @@ export const GeneratePage: FC = () => {
   const openHistoryEntry = (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
     setPrompt(entry.prompt);
-    setSelectedModel(entry.model);
+    setSelectedModel(normalizeGenerateModel(entry.model));
     setSelectedStylePresetId(entry.stylePresetId);
     setSelectedEmoji(entry.selectedEmoji);
     setRemoveBackground(entry.removeBackground);
@@ -1115,7 +1117,7 @@ export const GeneratePage: FC = () => {
   };
 
   const handleModelChange = (rawValue: string) => {
-    if (rawValue === 'flux-schnell' || rawValue === 'nanabanana') {
+    if (rawValue === 'nanabanana') {
       if (hasSourceImage && rawValue !== SOURCE_IMAGE_MODEL) {
         return;
       }
@@ -1192,24 +1194,27 @@ export const GeneratePage: FC = () => {
 
   const renderModelFileRow = (disabled: boolean) => {
     const selectedOption = MODEL_OPTIONS.find((option) => option.id === selectedModel) ?? MODEL_OPTIONS[0];
+    const isSingleModel = MODEL_OPTIONS.length === 1;
     return (
       <div ref={modelDropdownRef} className="generate-model-select-wrap">
         <button
           type="button"
           className="generate-model-select-trigger"
-          onClick={() => !disabled && setModelDropdownOpen(v => !v)}
-          disabled={disabled}
+          onClick={() => !disabled && !isSingleModel && setModelDropdownOpen(v => !v)}
+          disabled={disabled || isSingleModel}
           aria-label="Выбор модели генерации"
-          aria-expanded={modelDropdownOpen}
+          aria-expanded={isSingleModel ? false : modelDropdownOpen}
         >
           <span className="generate-model-select-value">{selectedOption.name}</span>
-          <KeyboardArrowDownIcon
-            size={14}
-            color="var(--color-text-secondary)"
-            style={{ transform: modelDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-          />
+          {!isSingleModel && (
+            <KeyboardArrowDownIcon
+              size={14}
+              color="var(--color-text-secondary)"
+              style={{ transform: modelDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+            />
+          )}
         </button>
-        {modelDropdownOpen && (
+        {!isSingleModel && modelDropdownOpen && (
           <div className="generate-model-select-dropdown">
             {MODEL_OPTIONS.map((option) => {
               const isOptionDisabled = hasSourceImage && option.id !== SOURCE_IMAGE_MODEL;
