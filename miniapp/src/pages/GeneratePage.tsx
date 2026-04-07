@@ -11,8 +11,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { buildFallbackShareUrl } from '@/utils/stickerUtils';
-import { openTelegramUrl } from '@/utils/openTelegramUrl';
+import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { getAvatarUrl, getOptimalAvatarFileId } from '@/utils/avatarUtils';
 import {
@@ -952,10 +951,37 @@ export const GeneratePage: FC = () => {
   }, [persistTelegramAvatarDismissed, sourceImageOrigin]);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
-    const fallbackUrl = buildFallbackShareUrl(stickerFileId);
-    // Ведем шаринг тем же путем, что и рабочие переходы на Telegram-ссылки
-    // в StickerSetDetail: так Telegram не закрывает miniapp при открытии share flow.
-    openTelegramUrl(fallbackUrl, tg);
+    const cleanFileId = removeInvisibleChars(stickerFileId).trim();
+    const fallbackUrl = buildFallbackShareUrl(cleanFileId);
+    const isIos = tg?.platform === 'ios' || tg?.platform === 'iphone' || tg?.platform === 'ipad';
+
+    if (isValidTelegramFileId(cleanFileId) && tg?.switchInlineQuery && !isIos) {
+      try {
+        // Всегда просим chooser чатов: это и есть нужный inline-сценарий с file_id.
+        tg.switchInlineQuery(buildSwitchInlineQuery(cleanFileId), ['users', 'groups', 'channels', 'bots']);
+        return;
+      } catch (error) {
+        console.warn('[GeneratePage] switchInlineQuery failed, fallback to share URL', error);
+      }
+    }
+
+    // Blind spot: на iOS switchInlineQuery у Mini Apps до сих пор работает нестабильно,
+    // поэтому запасной путь держим внутри Telegram, а не в браузере.
+    if (tg?.openTelegramLink) {
+      try {
+        tg.openTelegramLink(fallbackUrl);
+        return;
+      } catch (error) {
+        console.warn('[GeneratePage] openTelegramLink failed, fallback to openLink', error);
+      }
+    }
+
+    if (tg?.openLink) {
+      tg.openLink(fallbackUrl, { try_instant_view: false });
+      return;
+    }
+
+    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
   }, [tg]);
 
   const handleSavedFromModal = useCallback((stickerFileId?: string | null) => {

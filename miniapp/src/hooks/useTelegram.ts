@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { TelegramWebApp, TelegramUser } from '../types/telegram';
 import WebApp from '@twa-dev/sdk';
 import { setupTelegramViewportSafe } from '../utils/setupTelegramViewport';
+import { getInitData as getCapturedInitData } from '../telegram/launchParams';
 
 // Функция для получения реального initData из localStorage (для тестирования с ModHeader)
 const getRealInitDataForTesting = (): string | null => {
@@ -14,6 +15,45 @@ const getRealInitDataForTesting = (): string | null => {
   } catch (e) {
     console.warn('Ошибка чтения dev_telegram_init_data из localStorage:', e);
   }
+  return null;
+};
+
+const parseTelegramUserJson = (rawUser: string): TelegramUser | null => {
+  const candidates = [rawUser];
+
+  try {
+    const decoded = decodeURIComponent(rawUser);
+    if (decoded !== rawUser) {
+      candidates.push(decoded);
+    }
+  } catch {
+    // rawUser уже мог быть декодирован URLSearchParams
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsedUser = JSON.parse(candidate) as Partial<TelegramUser>;
+      if (typeof parsedUser?.id !== 'number' || typeof parsedUser?.first_name !== 'string') {
+        continue;
+      }
+
+      return {
+        id: parsedUser.id,
+        first_name: parsedUser.first_name,
+        last_name: parsedUser.last_name,
+        username: parsedUser.username,
+        language_code: parsedUser.language_code,
+        is_bot: parsedUser.is_bot,
+        is_premium: parsedUser.is_premium,
+        added_to_attachment_menu: parsedUser.added_to_attachment_menu,
+        allows_write_to_pm: parsedUser.allows_write_to_pm,
+        photo_url: parsedUser.photo_url,
+      };
+    } catch {
+      // попробуем следующий вариант
+    }
+  }
+
   return null;
 };
 
@@ -35,17 +75,19 @@ const createMockTelegramEnv = (realInitData?: string | null): TelegramWebApp => 
     
     if (userStr) {
       try {
-        const parsedUser = JSON.parse(decodeURIComponent(userStr));
-        mockUser = {
-          id: parsedUser.id || 777000,
-          first_name: parsedUser.first_name || 'Dev',
-          last_name: parsedUser.last_name || 'User',
-          username: parsedUser.username || 'devuser',
-          language_code: parsedUser.language_code || 'ru',
-          is_premium: parsedUser.is_premium || false,
-          photo_url: parsedUser.photo_url,
-        };
-        console.log('✅ Распарсен реальный пользователь из initData:', mockUser);
+        const parsedUser = parseTelegramUserJson(userStr);
+        if (parsedUser) {
+          mockUser = {
+            id: parsedUser.id || 777000,
+            first_name: parsedUser.first_name || 'Dev',
+            last_name: parsedUser.last_name || 'User',
+            username: parsedUser.username || 'devuser',
+            language_code: parsedUser.language_code || 'ru',
+            is_premium: parsedUser.is_premium || false,
+            photo_url: parsedUser.photo_url,
+          };
+          console.log('✅ Распарсен реальный пользователь из initData:', mockUser);
+        }
       } catch (e) {
         console.warn('Ошибка парсинга user из initData:', e);
       }
@@ -140,8 +182,8 @@ const createMockTelegramEnvBase = (_mockUser: TelegramUser): Partial<TelegramWeb
     expand: () => console.log('🔧 Mock expand'),
     close: () => console.log('🔧 Mock close'),
     sendData: () => console.log('🔧 Mock sendData'),
-    switchInlineQuery: (query: string) => {
-      console.log('🔧 Mock switchInlineQuery:', query);
+    switchInlineQuery: (query: string, chatTypes?: string[]) => {
+      console.log('🔧 Mock switchInlineQuery:', query, chatTypes);
       // В mock режиме открываем fallback URL
       const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(query)}`;
       window.open(shareUrl, '_blank');
@@ -201,6 +243,61 @@ const isVersionSupported = (version: string, minVersion: string): boolean => {
   return true;
 };
 
+const normalizeInitData = (value?: string | null): string => {
+  if (typeof value !== 'string') return '';
+  return value.trim();
+};
+
+const parseUserFromInitData = (rawInitData?: string | null): TelegramUser | null => {
+  const initData = normalizeInitData(rawInitData);
+  if (!initData) return null;
+
+  try {
+    const params = new URLSearchParams(initData);
+    const rawUser = params.get('user');
+    if (!rawUser) return null;
+
+    const parsedUser = parseTelegramUserJson(rawUser);
+    if (!parsedUser) {
+      return null;
+    }
+
+    return parsedUser;
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('⚠️ Не удалось распарсить user из initData:', error);
+    }
+    return null;
+  }
+};
+
+const resolveTelegramAuthState = (preferredTelegram?: TelegramWebApp | null): {
+  telegram: TelegramWebApp | null;
+  initData: string;
+  user: TelegramUser | null;
+} => {
+  const runtimeTelegram = typeof window !== 'undefined' ? window.Telegram?.WebApp ?? null : null;
+  const telegram = preferredTelegram ?? runtimeTelegram ?? globalTelegram ?? null;
+
+  const liveInitData =
+    normalizeInitData(preferredTelegram?.initData) ||
+    normalizeInitData(runtimeTelegram?.initData) ||
+    normalizeInitData(globalTelegram?.initData) ||
+    normalizeInitData(getCapturedInitData());
+
+  const user =
+    preferredTelegram?.initDataUnsafe?.user ??
+    runtimeTelegram?.initDataUnsafe?.user ??
+    globalTelegram?.initDataUnsafe?.user ??
+    parseUserFromInitData(liveInitData);
+
+  return {
+    telegram,
+    initData: liveInitData,
+    user: user ?? null,
+  };
+};
+
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
@@ -216,13 +313,34 @@ export const useTelegram = () => {
   // isReady = isBaseReady && isViewportReady
   const isReady = isBaseReady && isViewportReady;
 
+  const syncResolvedTelegramState = useCallback((preferredTelegram?: TelegramWebApp | null) => {
+    const resolved = resolveTelegramAuthState(preferredTelegram ?? telegramRef.current);
+    const nextTelegram = resolved.telegram;
+
+    if (nextTelegram) {
+      telegramRef.current = nextTelegram;
+      globalTelegram = nextTelegram;
+      setTg((prev) => (prev === nextTelegram ? prev : nextTelegram));
+    }
+
+    setUser((prev) => {
+      const prevKey = prev
+        ? `${prev.id}:${prev.first_name}:${prev.last_name ?? ''}:${prev.username ?? ''}:${prev.language_code ?? ''}:${prev.photo_url ?? ''}`
+        : '';
+      const nextKey = resolved.user
+        ? `${resolved.user.id}:${resolved.user.first_name}:${resolved.user.last_name ?? ''}:${resolved.user.username ?? ''}:${resolved.user.language_code ?? ''}:${resolved.user.photo_url ?? ''}`
+        : '';
+      return prevKey === nextKey ? prev : resolved.user;
+    });
+    setInitData((prev) => (prev === resolved.initData ? prev : resolved.initData));
+
+    return resolved;
+  }, []);
+
   useEffect(() => {
     // Если инициализация уже завершена, синхронизируем состояние с глобальным объектом
     if (isInitialized && !initializationPromise && globalTelegram) {
-      telegramRef.current = globalTelegram;
-      setTg(globalTelegram);
-      setUser(globalTelegram.initDataUnsafe?.user || null);
-      setInitData(globalTelegram.initData || '');
+      syncResolvedTelegramState(globalTelegram);
       setIsMockMode(globalIsMockMode);
       setIsBaseReady(true);
       setIsViewportReady(true);
@@ -234,10 +352,7 @@ export const useTelegram = () => {
       initializationPromise.then(() => {
         // После завершения инициализации обновляем состояние из глобального объекта
         if (globalTelegram) {
-          telegramRef.current = globalTelegram;
-          setTg(globalTelegram);
-          setUser(globalTelegram.initDataUnsafe?.user || null);
-          setInitData(globalTelegram.initData || '');
+          syncResolvedTelegramState(globalTelegram);
           setIsMockMode(globalIsMockMode);
           setIsBaseReady(true);
           setIsViewportReady(true);
@@ -251,10 +366,11 @@ export const useTelegram = () => {
     initializationPromise = (async () => {
     const isDev = import.meta.env.DEV;
     const hasTelegramWebApp = Boolean(window.Telegram?.WebApp);
+    const capturedInitData = normalizeInitData(getCapturedInitData());
     // ✅ FIX: Проверяем, что initData не только существует, но и не пустая строка
     // При inline query initData может быть строкой с user и query_id (без chat)
     const rawInitData = window.Telegram?.WebApp?.initData;
-    const hasInitData = Boolean(rawInitData && rawInitData.trim() !== '');
+    const hasInitData = Boolean(normalizeInitData(rawInitData) || capturedInitData);
     
     let telegram: TelegramWebApp;
     let viewportChangedHandler: (() => void) | null = null;
@@ -287,19 +403,15 @@ export const useTelegram = () => {
       // Сохраняем ссылку для cleanup
       telegramRef.current = telegram;
       
-      setTg(telegram);
-      setUser(telegram.initDataUnsafe?.user || null);
-      
-      // ✅ FIX: Всегда берем initData из telegram.initData (строка), независимо от наличия chat в initDataUnsafe
-      // При inline query initData содержит user и query_id, но не содержит chat - это нормально
-      const initDataValue = telegram.initData || '';
-      setInitData(initDataValue);
+      const resolvedAuth = syncResolvedTelegramState(telegram);
+      const initDataValue = resolvedAuth.initData;
+      const resolvedUser = resolvedAuth.user;
       
       // ✅ FIX: Логирование для диагностики inline query контекста
       if (import.meta.env.DEV && initDataValue) {
         const hasChat = Boolean(telegram.initDataUnsafe?.chat);
         const hasQueryId = initDataValue.includes('query_id=');
-        const hasUser = Boolean(telegram.initDataUnsafe?.user);
+        const hasUser = Boolean(resolvedUser);
         
         if (hasQueryId && !hasChat) {
           console.log('🔍 Inline query контекст обнаружен:', {
@@ -314,7 +426,7 @@ export const useTelegram = () => {
       
       // Определяем, находимся ли мы в реальном Telegram Mini App (не в браузере/mock)
       // Проверяем до ready(), чтобы знать, нужно ли ждать viewportChanged
-      const isRealTelegramApp = hasTelegramWebApp && hasInitData && !isMockMode;
+      const isRealTelegramApp = hasTelegramWebApp && Boolean(initDataValue) && !globalIsMockMode;
       const isIos = isIosTelegram(telegram);
       
       // Инициализация Telegram Web App
@@ -519,6 +631,56 @@ export const useTelegram = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!tg) {
+      return;
+    }
+
+    const needsLateSync = !normalizeInitData(initData) || !user;
+    if (!needsLateSync) {
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const trySync = () => {
+      attempts += 1;
+      const resolved = syncResolvedTelegramState(tg);
+      const hasResolvedInitData = Boolean(normalizeInitData(resolved.initData));
+      const hasResolvedUser = Boolean(resolved.user);
+
+      return hasResolvedInitData && hasResolvedUser;
+    };
+
+    if (trySync()) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (trySync() || attempts >= maxAttempts) {
+        window.clearInterval(intervalId);
+      }
+    }, 250);
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        if (trySync()) {
+          window.clearInterval(intervalId);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    };
+  }, [tg, initData, user, syncResolvedTelegramState]);
+
   const checkInitDataExpiry = (initDataString: string) => {
     if (!initDataString) {
       return { valid: false, reason: 'initData отсутствует' };
@@ -563,13 +725,12 @@ export const useTelegram = () => {
     
     console.log('🔄 Попытка обновления initData...');
     
-    const newUser = tg.initDataUnsafe?.user;
-    const newInitData = tg.initData;
+    const resolved = syncResolvedTelegramState(tg);
+    const newUser = resolved.user;
+    const newInitData = resolved.initData;
     
-    if (newInitData && newInitData !== initData) {
+    if (newInitData && (newInitData !== initData || (!user && newUser))) {
       console.log('✅ initData обновлен');
-      setUser(newUser || null);
-      setInitData(newInitData);
       return true;
     } else {
       console.log('❌ initData не изменился');

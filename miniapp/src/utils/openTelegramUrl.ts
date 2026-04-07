@@ -36,17 +36,6 @@ const isTelegramUrl = (url: string): boolean => {
   }
 };
 
-const isTelegramShareUrl = (url: string): boolean => {
-  try {
-    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'https://t.me');
-    const hostname = parsed.hostname.toLowerCase();
-    const pathname = parsed.pathname.replace(/\/+$/, '');
-    return TELEGRAM_HOSTNAMES.has(hostname) && pathname === '/share/url';
-  } catch {
-    return /^https?:\/\/(www\.)?(t\.me|telegram\.me)\/share\/url(?:\?|$)/i.test(url);
-  }
-};
-
 export const openTelegramUrl = (url: string, tg?: TelegramWebApp | null): void => {
   if (!url) {
     return;
@@ -55,11 +44,6 @@ export const openTelegramUrl = (url: string, tg?: TelegramWebApp | null): void =
   const webApp = getTelegramWebApp(tg);
 
   if (webApp) {
-    if (isTelegramShareUrl(url) && typeof webApp.openLink === 'function') {
-      webApp.openLink(url, { try_instant_view: false });
-      return;
-    }
-
     if (
       isTelegramUrl(url) &&
       hasTelegramRuntimeContext(webApp) &&
