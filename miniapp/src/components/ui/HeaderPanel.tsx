@@ -4,23 +4,23 @@ import type { TouchEvent, MouseEvent } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
-import { getAvatarUrl } from '@/utils/avatarUtils';
 import { AccountBalanceWalletIcon } from '@/components/ui/Icons';
+import { resolveAvatarContext } from '@/utils/resolvedAvatar';
 import './HeaderPanel.css';
 
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 
 /**
  * HeaderPanel — шапка с аватаром текущего пользователя, балансом ART и кнопками.
- * Аватар только из профиля/API (blob, userInfo.avatarUrl). Сторонние URL (user.photo_url) не используются.
- * При отсутствии профиля/аватара или ошибке загрузки — иконка Account.
+ * Приоритет аватара: blob/API профиль. Если профильный источник ещё не готов,
+ * разрешаем безопасный fallback на Telegram photo_url, чтобы UI не расходился с GeneratePage.
  */
 const DEBUG_PANEL_LONG_PRESS_MS = 3000;
 
 export const HeaderPanel: FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { user, tg } = useTelegram();
+  const { user, tg, isInTelegramApp, isMockMode } = useTelegram();
   const { userInfo, currentUserId, isProfileFromAuthenticatedApi } = useProfileStore();
   const { avatarBlobUrl } = useUserAvatar(currentUserId ?? undefined);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,16 +31,28 @@ export const HeaderPanel: FC = () => {
   const isViewingOtherUser = /\/author\/|\/profile\/[^/]+/.test(pathname);
   const headerRef = useRef<HTMLElement>(null);
   const [avatarError, setAvatarError] = useState(false);
+  const allowHeaderTelegramFallback =
+    !isViewingOtherUser &&
+    (
+      !isInTelegramApp ||
+      isMockMode ||
+      !isProfileFromAuthenticatedApi ||
+      (!avatarBlobUrl && !userInfo?.avatarUrl && !userInfo?.profilePhotoFileId && !userInfo?.profilePhotos)
+    );
 
-  const avatarUrl = useMemo(() => {
-    if (!user) return undefined;
-    if (!isProfileFromAuthenticatedApi || !userInfo || isViewingOtherUser) return undefined;
-    if (avatarBlobUrl) return avatarBlobUrl;
-    if (userInfo.avatarUrl) return userInfo.avatarUrl;
-    return getAvatarUrl(userInfo.id, userInfo.profilePhotoFileId, userInfo.profilePhotos, 96);
-  }, [user, isProfileFromAuthenticatedApi, userInfo, avatarBlobUrl, isViewingOtherUser]);
+  const avatarContext = useMemo(() => resolveAvatarContext({
+    user,
+    userInfo,
+    isProfileFromAuthenticatedApi,
+    avatarBlobUrl,
+    targetSize: 96,
+    allowTelegramPhotoFallback: allowHeaderTelegramFallback,
+    fallbackUserId: currentUserId,
+  }), [allowHeaderTelegramFallback, avatarBlobUrl, currentUserId, isProfileFromAuthenticatedApi, user, userInfo]);
 
-  const showAccountIcon = !user || !avatarUrl || avatarError;
+  const avatarUrl = isViewingOtherUser ? undefined : avatarContext.headerAvatarUrl ?? undefined;
+
+  const showAccountIcon = !avatarUrl || avatarError;
 
   useEffect(() => {
     setAvatarError(false);
@@ -173,7 +185,7 @@ export const HeaderPanel: FC = () => {
             ) : (
               <img
                 src={avatarUrl!}
-                alt={user?.first_name ?? 'Avatar'}
+                alt={user?.first_name ?? userInfo?.firstName ?? 'Avatar'}
                 className="header-panel__avatar"
                 onError={() => setAvatarError(true)}
               />
