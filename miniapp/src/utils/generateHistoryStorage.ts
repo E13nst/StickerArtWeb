@@ -25,7 +25,7 @@ export interface GenerateHistoryEntry {
 
 const HISTORY_STORAGE_VERSION = 1;
 const HISTORY_STORAGE_PREFIX = `stixly:generate-history:v${HISTORY_STORAGE_VERSION}`;
-const HISTORY_MAX_ITEMS = 5;
+const HISTORY_MAX_ITEMS = 20;
 
 const isBrowser = (): boolean => typeof window !== 'undefined' && !!window.localStorage;
 

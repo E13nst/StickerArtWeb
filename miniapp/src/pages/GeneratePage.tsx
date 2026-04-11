@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +14,7 @@ import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
+import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
 import {
   clearActiveGenerateHistoryEntry,
@@ -41,11 +43,11 @@ const MIN_PROMPT_LENGTH = 1;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
+const MAX_SOURCE_IMAGE_FILES = 14;
 const TERMINAL_GENERATION_STATUSES: GenerationStatus[] = ['COMPLETED', 'FAILED', 'TIMEOUT'];
 const DEFAULT_GENERATE_MODEL: GenerateModelType = 'nanabanana';
 const DEFAULT_GENERATE_EMOJI = '🎨';
 const DEFAULT_REMOVE_BACKGROUND = true;
-const DEFAULT_STYLE_NAME = 'telegram';
 const TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY = 'generate_telegram_avatar_dismissed';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
@@ -120,6 +122,9 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
+const getSourceImageLimitMessage = (): string =>
+  `Можно прикрепить не больше ${MAX_SOURCE_IMAGE_FILES} изображений. Лишние изображения не добавлены.`;
+
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
 const MODEL_OPTIONS: Array<{ id: GenerateModelType; name: string }> = [
@@ -190,6 +195,7 @@ export const GeneratePage: FC = () => {
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [historyEntries, setHistoryEntries] = useState<GenerateHistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [isPromptFocused, setIsPromptFocused] = useState(false);
   
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);
@@ -221,21 +227,35 @@ export const GeneratePage: FC = () => {
   const processedAvatarTriggerRef = useRef<string | null>(null);
   const lastAvatarAutofillBlockReasonRef = useRef<string | null>(null);
 
-  // При фокусе на поле промпта — скрываем navbar, убираем сдвиг контента при появлении клавиатуры
+  const scrollPromptIntoView = useCallback((element: HTMLElement) => {
+    requestAnimationFrame(() => {
+      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+
+    window.setTimeout(() => {
+      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 280);
+  }, []);
+
+  // При фокусе на поле промпта — мягко переводим форму в режим клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
-    if ((e.target as HTMLElement)?.classList?.contains?.('generate-input')) {
+    const target = e.target as HTMLElement;
+    if (target?.classList?.contains?.('generate-input')) {
       if (promptFocusTimeoutRef.current) {
         clearTimeout(promptFocusTimeoutRef.current);
         promptFocusTimeoutRef.current = null;
       }
+      setIsPromptFocused(true);
       document.body.classList.add('generate-prompt-focused');
+      scrollPromptIntoView(target);
     }
-  }, []);
+  }, [scrollPromptIntoView]);
 
   const handlePromptFocusOut = useCallback((e: React.FocusEvent) => {
     if ((e.target as HTMLElement)?.classList?.contains?.('generate-input')) {
       promptFocusTimeoutRef.current && clearTimeout(promptFocusTimeoutRef.current);
       promptFocusTimeoutRef.current = window.setTimeout(() => {
+        setIsPromptFocused(false);
         document.body.classList.remove('generate-prompt-focused');
         promptFocusTimeoutRef.current = null;
       }, 250);
@@ -248,6 +268,7 @@ export const GeneratePage: FC = () => {
         clearTimeout(promptFocusTimeoutRef.current);
         promptFocusTimeoutRef.current = null;
       }
+      setIsPromptFocused(false);
       document.body.classList.remove('generate-prompt-focused');
     };
   }, []);
@@ -389,13 +410,6 @@ export const GeneratePage: FC = () => {
       // ignore localStorage failures in private mode/webview quirks
     }
   }, [telegramUserId]);
-
-  const getDefaultStylePresetId = useCallback((): number | null => {
-    const telegramPreset = stylePresets.find(
-      (preset) => stripPresetName(preset.name).trim().toLowerCase() === DEFAULT_STYLE_NAME
-    );
-    return telegramPreset?.id ?? null;
-  }, [stylePresets]);
 
   const syncHistoryEntries = useCallback(() => {
     if (!historyUserScopeId) {
@@ -780,11 +794,11 @@ export const GeneratePage: FC = () => {
     if (stylePresets.length === 0) return;
 
     setSelectedModel(DEFAULT_GENERATE_MODEL);
-    setSelectedStylePresetId(getDefaultStylePresetId());
+    setSelectedStylePresetId(null);
     setSelectedEmoji(DEFAULT_GENERATE_EMOJI);
     setRemoveBackground(DEFAULT_REMOVE_BACKGROUND);
     preferencesAppliedRef.current = true;
-  }, [getDefaultStylePresetId, historyUserScopeId, stylePresets]);
+  }, [historyUserScopeId, stylePresets]);
 
   // Обработка отправки формы
   const handleGenerate = async () => {
@@ -926,9 +940,20 @@ export const GeneratePage: FC = () => {
   const appendSourceImages = useCallback(async (files: File[]) => {
     if (!files.length) return;
 
+    const remainingSlots = MAX_SOURCE_IMAGE_FILES - sourceImageFiles.length;
+    if (remainingSlots <= 0) {
+      setErrorMessage(getSourceImageLimitMessage());
+      setErrorKind('upload');
+      setPageState('error');
+      return;
+    }
+
+    const filesToAppend = files.slice(0, remainingSlots);
+    const skippedFilesCount = files.length - filesToAppend.length;
+
     try {
-      const previews = await Promise.all(files.map((file) => blobToDataUrl(file)));
-      setSourceImageFiles((prev) => [...prev, ...files]);
+      const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
+      setSourceImageFiles((prev) => [...prev, ...filesToAppend]);
       setSourceImagePreviews((prev) => [...prev, ...previews]);
       setSourceImageOrigin('manual');
       uploadedSourceImageIdsRef.current = [];
@@ -938,43 +963,23 @@ export const GeneratePage: FC = () => {
         persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
         setModelDropdownOpen(false);
       }
-      setErrorMessage(null);
-      setErrorKind(null);
-      if (pageState === 'error') {
-        setPageState('idle');
+      if (skippedFilesCount > 0) {
+        setErrorMessage(getSourceImageLimitMessage());
+        setErrorKind('upload');
+        setPageState('error');
+      } else {
+        setErrorMessage(null);
+        setErrorKind(null);
+        if (pageState === 'error') {
+          setPageState('idle');
+        }
       }
     } catch {
       setErrorMessage('Не удалось загрузить файл');
       setErrorKind('upload');
       setPageState('error');
     }
-  }, [pageState, persistGeneratePreferences, selectedModel]);
-
-  const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    void appendSourceImages(files);
-    event.target.value = '';
-  }, [appendSourceImages]);
-
-  const handlePromptPaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const pastedImageFiles = Array.from(event.clipboardData?.items ?? [])
-      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
-      .map((item, index) => {
-        const file = item.getAsFile();
-        if (!file) return null;
-        if (file.name) return file;
-        const extension = file.type.split('/')[1] || 'png';
-        return new File([file], `pasted-image-${Date.now()}-${index}.${extension}`, { type: file.type || 'image/png' });
-      })
-      .filter((file): file is File => Boolean(file));
-
-    if (!pastedImageFiles.length) {
-      return;
-    }
-
-    event.preventDefault();
-    void appendSourceImages(pastedImageFiles);
-  }, [appendSourceImages]);
+  }, [pageState, persistGeneratePreferences, selectedModel, sourceImageFiles.length]);
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
     if (options?.markAvatarDismissed && sourceImageOrigin === 'telegram-avatar') {
@@ -1021,6 +1026,32 @@ export const GeneratePage: FC = () => {
 
     window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
   }, [tg]);
+
+  const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    void appendSourceImages(files);
+    event.target.value = '';
+  }, [appendSourceImages]);
+
+  const handlePromptPaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedImageFiles = Array.from(event.clipboardData?.items ?? [])
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item, index) => {
+        const file = item.getAsFile();
+        if (!file) return null;
+        if (file.name) return file;
+        const extension = file.type.split('/')[1] || 'png';
+        return new File([file], `pasted-image-${Date.now()}-${index}.${extension}`, { type: file.type || 'image/png' });
+      })
+      .filter((file): file is File => Boolean(file));
+
+    if (!pastedImageFiles.length) {
+      return;
+    }
+
+    event.preventDefault();
+    void appendSourceImages(pastedImageFiles);
+  }, [appendSourceImages]);
 
   const handleSavedFromModal = useCallback((stickerFileId?: string | null) => {
     if (stickerFileId) {
@@ -1130,6 +1161,32 @@ export const GeneratePage: FC = () => {
     return 'В процессе';
   };
 
+  const getHistoryStatusTone = (entry: GenerateHistoryEntry): 'success' | 'error' | 'progress' => {
+    if (entry.generationStatus === 'COMPLETED' || entry.pageState === 'success') return 'success';
+    if (entry.generationStatus === 'FAILED' || entry.pageState === 'error' || entry.generationStatus === 'TIMEOUT') return 'error';
+    return 'progress';
+  };
+
+  const formatHistoryUpdatedAt = (timestamp: number): string =>
+    new Date(timestamp).toLocaleString([], {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+  const getHistoryPromptLabel = (entry: GenerateHistoryEntry): string => {
+    const promptValue = entry.prompt.trim();
+    if (promptValue.length > 0) return promptValue;
+    return entry.hasSourceImage ? 'Генерация по изображению' : 'Генерация без описания';
+  };
+
+  const getHistoryStyleLabel = (entry: GenerateHistoryEntry): string => {
+    if (entry.stylePresetId == null) return 'Без стиля';
+    const preset = stylePresets.find((item) => item.id === entry.stylePresetId);
+    return preset ? stripPresetName(preset.name) : 'Без стиля';
+  };
+
   const openHistoryEntry = (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
     setPrompt(entry.prompt);
@@ -1161,6 +1218,19 @@ export const GeneratePage: FC = () => {
       startPolling(entry.taskId);
     }
   };
+
+  useEffect(() => {
+    if (!historyOpen) return;
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setHistoryOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [historyOpen]);
 
   const createStickerPrefix = t('generate.createStickerPrefix', user?.language_code);
 
@@ -1450,13 +1520,15 @@ export const GeneratePage: FC = () => {
             />
           )}
         </button>
-        {hasSourceImage && (
-          sourceImageFiles.length > 1 && (
-            <span className="generate-input-wrapper__pictures-count" aria-label={`Прикреплено ${sourceImageFiles.length} изображений`}>
-              +{sourceImageFiles.length - 1}
-            </span>
-          )
-        )}
+        <span
+          className={cn(
+            'generate-input-wrapper__pictures-count',
+            sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-input-wrapper__pictures-count--limit'
+          )}
+          aria-label={`Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES} изображений`}
+        >
+          {sourceImageFiles.length}/{MAX_SOURCE_IMAGE_FILES}
+        </span>
         {hasSourceImage && (
           <button
             type="button"
@@ -1471,6 +1543,88 @@ export const GeneratePage: FC = () => {
       </div>
     </>
   );
+
+  const renderHistoryModal = () => {
+    if (!historyOpen || typeof document === 'undefined') {
+      return null;
+    }
+
+    return createPortal(
+      <ModalBackdrop open={historyOpen} onClose={() => setHistoryOpen(false)} keepNavbarVisible>
+        <section
+          data-modal-content
+          className="generate-history-modal"
+          aria-label="История генераций"
+        >
+          <div className="generate-history-modal__header">
+            <div className="generate-history-modal__header-copy">
+              <h2 className="generate-history-modal__title">История генераций</h2>
+              <p className="generate-history-modal__subtitle">
+                Выберите генерацию, чтобы быстро вернуть результат, стиль и параметры.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="generate-history-modal__close"
+              onClick={() => setHistoryOpen(false)}
+              aria-label="Закрыть историю генераций"
+            >
+              ×
+            </button>
+          </div>
+
+          {historyEntries.length === 0 ? (
+            <div className="generate-history-modal__empty">
+              <div className="generate-history-modal__empty-title">История пока пуста</div>
+              <div className="generate-history-modal__empty-text">
+                После первой генерации здесь появятся последние результаты.
+              </div>
+            </div>
+          ) : (
+            <div className="generate-history-modal__list" role="list">
+              {historyEntries.map((entry) => (
+                <button
+                  key={entry.localId}
+                  type="button"
+                  role="listitem"
+                  className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
+                  onClick={() => openHistoryEntry(entry)}
+                >
+                  <div className="generate-history-item__preview-wrap" aria-hidden="true">
+                    {entry.resultImageUrl ? (
+                      <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" />
+                    ) : (
+                      <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
+                    )}
+                  </div>
+                  <div className="generate-history-item__main">
+                    <div className="generate-history-item__top">
+                      <span
+                        className={cn(
+                          'generate-history-item__status',
+                          `generate-history-item__status--${getHistoryStatusTone(entry)}`
+                        )}
+                      >
+                        {formatHistoryStatus(entry)}
+                      </span>
+                      {entry.isActive && <span className="generate-history-item__active-badge">Открыто</span>}
+                    </div>
+                    <div className="generate-history-item__prompt">{getHistoryPromptLabel(entry)}</div>
+                    <div className="generate-history-item__meta">
+                      <span>{formatHistoryUpdatedAt(entry.updatedAt)}</span>
+                      <span>{getHistoryStyleLabel(entry)}</span>
+                      <span>{entry.hasSourceImage ? 'С фото' : 'Только текст'}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      </ModalBackdrop>,
+      document.body
+    );
+  };
 
   // Рендер состояния генерации: спиннер с сообщением "Подождите", форма readonly, кнопка в стиле submit с текстом "Подождите"
   const renderGeneratingState = () => (
@@ -1738,44 +1892,14 @@ export const GeneratePage: FC = () => {
         <RestoreIcon size={18} />
         {historyEntries.some((entry) => entry.isActive) && <span className="generate-history-toggle__dot" />}
       </button>
-      {historyOpen && (
-        <>
-          <button
-            type="button"
-            className="generate-history-backdrop"
-            onClick={() => setHistoryOpen(false)}
-            aria-label="Закрыть историю генераций"
-          />
-          <aside className="generate-history-panel" aria-label="История генераций">
-            <div className="generate-history-panel__title">История генераций</div>
-            {historyEntries.length === 0 && (
-              <div className="generate-history-panel__empty">Пока нет сохраненных генераций</div>
-            )}
-            {historyEntries.map((entry) => (
-              <button
-                key={entry.localId}
-                type="button"
-                className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
-                onClick={() => openHistoryEntry(entry)}
-              >
-                <div className="generate-history-item__main">
-                  <div className="generate-history-item__top">
-                    <span className="generate-history-item__time">
-                      {new Date(entry.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="generate-history-item__status">{formatHistoryStatus(entry)}</span>
-                  </div>
-                  <div className="generate-history-item__prompt">{entry.prompt}</div>
-                </div>
-                {entry.resultImageUrl && (
-                  <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" aria-hidden="true" />
-                )}
-              </button>
-            ))}
-          </aside>
-        </>
-      )}
-      <StixlyPageContainer className={cn('generate-inner', isCompactState && 'generate-inner--compact')}>
+      {renderHistoryModal()}
+      <StixlyPageContainer
+        className={cn(
+          'generate-inner',
+          isCompactState && 'generate-inner--compact',
+          isPromptFocused && 'generate-inner--prompt-focused'
+        )}
+      >
         {pageState === 'idle' && renderIdleState()}
         {pageState === 'uploading' && renderGeneratingState()}
         {pageState === 'generating' && renderGeneratingState()}

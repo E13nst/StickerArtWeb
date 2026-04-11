@@ -19,6 +19,7 @@ const STICKER_PROCESSOR_URL = readEnv('VITE_STICKER_PROCESSOR_URL')?.replace(/\/
 const UPLOAD_IMAGE_MAX_DIMENSION = 1600;
 const UPLOAD_IMAGE_REPROCESS_THRESHOLD_BYTES = 1_200_000;
 const UPLOAD_IMAGE_TARGET_BYTES = 900_000;
+const SOURCE_IMAGE_UPLOAD_BATCH_BYTES = 4_000_000;
 const JPEG_UPLOAD_QUALITIES = [0.9, 0.82, 0.74, 0.66] as const;
 
 function getStickerProcessorEndpoint(path: string): string {
@@ -100,6 +101,31 @@ function extractUploadedImageIds(payload: any): string[] {
   collect(payload);
 
   return Array.from(imageIds);
+}
+
+function splitFilesIntoUploadBatches(files: File[], maxBatchBytes: number): File[][] {
+  const batches: File[][] = [];
+  let currentBatch: File[] = [];
+  let currentBatchBytes = 0;
+
+  files.forEach((file) => {
+    const nextBatchBytes = currentBatchBytes + file.size;
+    if (currentBatch.length > 0 && nextBatchBytes > maxBatchBytes) {
+      batches.push(currentBatch);
+      currentBatch = [file];
+      currentBatchBytes = file.size;
+      return;
+    }
+
+    currentBatch.push(file);
+    currentBatchBytes = nextBatchBytes;
+  });
+
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+
+  return batches;
 }
 
 function loadImageElement(blob: Blob): Promise<HTMLImageElement> {
@@ -195,6 +221,48 @@ async function optimizeUploadImage(file: File): Promise<File> {
     });
   } catch {
     return file;
+  }
+}
+
+async function uploadSourceImageBatch(files: File[]): Promise<string[]> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  try {
+    const response = await axios.post(getStickerProcessorEndpoint('/images/upload'), formData, {
+      headers: {
+        Accept: 'application/json'
+      },
+      timeout: 60000
+    });
+
+    const imageIds = extractUploadedImageIds(response.data);
+    if (!imageIds.length) {
+      throw new Error('UPLOAD_RESPONSE_INVALID');
+    }
+
+    return imageIds;
+  } catch (error: any) {
+    if (error?.response?.status === 413) {
+      if (files.length > 1) {
+        const middleIndex = Math.ceil(files.length / 2);
+        const leftPart = await uploadSourceImageBatch(files.slice(0, middleIndex));
+        const rightPart = await uploadSourceImageBatch(files.slice(middleIndex));
+        return [...leftPart, ...rightPart];
+      }
+
+      throw new Error('UPLOAD_TOO_LARGE');
+    }
+
+    if (error?.code === 'ECONNABORTED') {
+      throw new Error('Загрузка изображения заняла слишком много времени. Попробуйте снова.');
+    }
+
+    if (error?.message === 'UPLOAD_RESPONSE_INVALID') {
+      throw new Error('Не удалось получить идентификатор загруженного изображения.');
+    }
+
+    throw new Error(getErrorMessage(error, 'Не удалось загрузить изображение. Попробуйте снова.'));
   }
 }
 
@@ -1923,38 +1991,15 @@ class ApiClient {
     }
 
     const preparedFiles = await Promise.all(files.map((file) => optimizeUploadImage(file)));
-    const formData = new FormData();
-    preparedFiles.forEach((file) => formData.append('files', file));
+    const preparedBatches = splitFilesIntoUploadBatches(preparedFiles, SOURCE_IMAGE_UPLOAD_BATCH_BYTES);
+    const imageIds: string[] = [];
 
-    try {
-      const response = await axios.post(getStickerProcessorEndpoint('/images/upload'), formData, {
-        headers: {
-          Accept: 'application/json'
-        },
-        timeout: 60000
-      });
-
-      const imageIds = extractUploadedImageIds(response.data);
-      if (!imageIds.length) {
-        throw new Error('UPLOAD_RESPONSE_INVALID');
-      }
-
-      return { imageIds };
-    } catch (error: any) {
-      if (error?.response?.status === 413) {
-        throw new Error('UPLOAD_TOO_LARGE');
-      }
-
-      if (error?.code === 'ECONNABORTED') {
-        throw new Error('Загрузка изображения заняла слишком много времени. Попробуйте снова.');
-      }
-
-      if (error?.message === 'UPLOAD_RESPONSE_INVALID') {
-        throw new Error('Не удалось получить идентификатор загруженного изображения.');
-      }
-
-      throw new Error(getErrorMessage(error, 'Не удалось загрузить изображение. Попробуйте снова.'));
+    for (const batch of preparedBatches) {
+      const batchImageIds = await uploadSourceImageBatch(batch);
+      imageIds.push(...batchImageIds);
     }
+
+    return { imageIds };
   }
 
   // Получение статуса генерации
