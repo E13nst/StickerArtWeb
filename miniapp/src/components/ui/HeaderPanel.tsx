@@ -66,11 +66,16 @@ export const HeaderPanel: FC = () => {
     };
 
     const rafId = requestAnimationFrame(updateHeaderHeight);
+    const visualViewport = window.visualViewport;
     window.addEventListener('resize', updateHeaderHeight);
+    visualViewport?.addEventListener('resize', updateHeaderHeight);
+    visualViewport?.addEventListener('scroll', updateHeaderHeight);
 
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateHeaderHeight);
+      visualViewport?.removeEventListener('resize', updateHeaderHeight);
+      visualViewport?.removeEventListener('scroll', updateHeaderHeight);
     };
   }, []);
 

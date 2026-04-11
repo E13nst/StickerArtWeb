@@ -24,6 +24,7 @@ export default function MainLayout({ children }: Props) {
   const [devToolsUnlockTick, setDevToolsUnlockTick] = useState(0);
 
   const showBottomNav = useMemo(() => isDevToolsUnlocked(), [devToolsUnlockTick]);
+  const viewportHeightCss = 'var(--stixly-viewport-height, var(--tg-viewport-height, var(--tg-viewport-stable-height, 100vh)))';
 
   useEffect(() => {
     const onUnlock = () => {
@@ -40,6 +41,26 @@ export default function MainLayout({ children }: Props) {
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    const updateViewportHeight = () => {
+      const nextHeight = window.visualViewport?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty('--stixly-viewport-height', `${Math.round(nextHeight)}px`);
+    };
+
+    updateViewportHeight();
+
+    const visualViewport = window.visualViewport;
+    window.addEventListener('resize', updateViewportHeight);
+    visualViewport?.addEventListener('resize', updateViewportHeight);
+    visualViewport?.addEventListener('scroll', updateViewportHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      visualViewport?.removeEventListener('resize', updateViewportHeight);
+      visualViewport?.removeEventListener('scroll', updateViewportHeight);
+    };
+  }, []);
+
   const layoutCompactBottomStyle: CSSProperties | undefined = !showBottomNav
     ? ({
         '--stixly-bottom-nav-height': 'var(--stixly-safe-area-bottom)',
@@ -54,7 +75,7 @@ export default function MainLayout({ children }: Props) {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: '100vh',
+        minHeight: viewportHeightCss,
         backgroundColor: 'var(--color-background)'
       }}>
         <LoadingSpinner message="Инициализация..." />
@@ -67,7 +88,7 @@ export default function MainLayout({ children }: Props) {
       className="stixly-main-layout"
       style={{
         position: 'relative',
-        minHeight: '100vh',
+        minHeight: viewportHeightCss,
         display: 'flex',
         flexDirection: 'column',
         overflowX: 'hidden',
@@ -100,7 +121,9 @@ export default function MainLayout({ children }: Props) {
           style={{
             position: 'relative',
             flex: '1 1 auto',
-            height: isSwipePage ? 'calc(100vh - var(--stixly-header-height, 80px))' : 'calc(100vh - var(--stixly-bottom-nav-height, 0px))',
+            height: isSwipePage
+              ? `calc(${viewportHeightCss} - var(--stixly-header-height, 80px))`
+              : `calc(${viewportHeightCss} - var(--stixly-bottom-nav-height, 0px))`,
             overflowY: isSwipePage ? 'hidden' : 'auto',
             overflowX: 'hidden',
             paddingBottom: isSwipePage ? 0 : 'var(--stixly-taskbar-height, 90.25px)', // Taskbar: Navbar + Home Indicator (Figma)

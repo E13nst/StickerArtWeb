@@ -193,9 +193,10 @@ export const GeneratePage: FC = () => {
   const [fileId, setFileId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
   const [savedStickerSetName, setSavedStickerSetName] = useState<string | null>(null);
-  const [savedStickerSetTitle, setSavedStickerSetTitle] = useState<string | null>(null);
+  const [, setSavedStickerSetTitle] = useState<string | null>(null);
   const [defaultStickerSetName, setDefaultStickerSetName] = useState<string | null>(null);
   const [defaultStickerSetTitle, setDefaultStickerSetTitle] = useState<string | null>(null);
+  const [saveNoticeText, setSaveNoticeText] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -221,6 +222,7 @@ export const GeneratePage: FC = () => {
   const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false);
   const emojiDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
+  const saveNoticeTimeoutRef = useRef<number | null>(null);
   const draggedSourceImageIndexRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
@@ -234,13 +236,50 @@ export const GeneratePage: FC = () => {
   const lastAvatarAutofillBlockReasonRef = useRef<string | null>(null);
 
   const scrollPromptIntoView = useCallback((element: HTMLElement) => {
-    requestAnimationFrame(() => {
-      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    });
+    const alignWithinScrollContainer = () => {
+      const scrollContainer = element.closest('.stixly-main-scroll');
+      if (!(scrollContainer instanceof HTMLElement)) {
+        element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        return;
+      }
 
-    window.setTimeout(() => {
-      element.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }, 280);
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      const topGap = elementRect.top - containerRect.top;
+      const bottomGap = containerRect.bottom - elementRect.bottom;
+      const topPadding = 20;
+      const bottomPadding = 120;
+
+      if (topGap < topPadding) {
+        scrollContainer.scrollBy({ top: topGap - topPadding, behavior: 'smooth' });
+        return;
+      }
+
+      if (bottomGap < bottomPadding) {
+        scrollContainer.scrollBy({ top: bottomPadding - bottomGap, behavior: 'smooth' });
+      }
+    };
+
+    requestAnimationFrame(alignWithinScrollContainer);
+    window.setTimeout(alignWithinScrollContainer, 220);
+  }, []);
+
+  const showSaveNotice = useCallback((message: string | null) => {
+    if (saveNoticeTimeoutRef.current) {
+      clearTimeout(saveNoticeTimeoutRef.current);
+      saveNoticeTimeoutRef.current = null;
+    }
+
+    setSaveNoticeText(message);
+
+    if (!message) {
+      return;
+    }
+
+    saveNoticeTimeoutRef.current = window.setTimeout(() => {
+      setSaveNoticeText(null);
+      saveNoticeTimeoutRef.current = null;
+    }, 3200);
   }, []);
 
   // При фокусе на поле промпта — мягко переводим форму в режим клавиатуры
@@ -274,7 +313,12 @@ export const GeneratePage: FC = () => {
         clearTimeout(promptFocusTimeoutRef.current);
         promptFocusTimeoutRef.current = null;
       }
+      if (saveNoticeTimeoutRef.current) {
+        clearTimeout(saveNoticeTimeoutRef.current);
+        saveNoticeTimeoutRef.current = null;
+      }
       setIsPromptFocused(false);
+      setSaveNoticeText(null);
       document.body.classList.remove('generate-prompt-focused');
     };
   }, []);
@@ -586,6 +630,7 @@ export const GeneratePage: FC = () => {
           setStickerSaved(false);
           setSavedStickerSetName(null);
           setSavedStickerSetTitle(null);
+          showSaveNotice(null);
           setSaveError(null);
           setHistoryOpen(false);
         }
@@ -873,6 +918,7 @@ export const GeneratePage: FC = () => {
     setStickerSaved(false);
     setSavedStickerSetName(null);
     setSavedStickerSetTitle(null);
+    showSaveNotice(null);
     setSaveError(null);
     setCurrentStatus(null);
     setHistoryOpen(false);
@@ -991,7 +1037,9 @@ export const GeneratePage: FC = () => {
   const appendSourceImages = useCallback(async (files: File[]) => {
     if (!files.length) return;
 
-    const remainingSlots = MAX_SOURCE_IMAGE_FILES - sourceImageFiles.length;
+    const currentSourceCount = sourceImageOrigin === 'telegram-avatar' ? 0 : sourceImageFiles.length;
+    const shouldReplaceTelegramAvatar = sourceImageOrigin === 'telegram-avatar';
+    const remainingSlots = MAX_SOURCE_IMAGE_FILES - currentSourceCount;
     if (remainingSlots <= 0) {
       setErrorMessage(getSourceImageLimitMessage());
       setErrorKind('upload');
@@ -1004,8 +1052,8 @@ export const GeneratePage: FC = () => {
 
     try {
       const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
-      setSourceImageFiles((prev) => [...prev, ...filesToAppend]);
-      setSourceImagePreviews((prev) => [...prev, ...previews]);
+      setSourceImageFiles((prev) => shouldReplaceTelegramAvatar ? filesToAppend : [...prev, ...filesToAppend]);
+      setSourceImagePreviews((prev) => shouldReplaceTelegramAvatar ? previews : [...prev, ...previews]);
       setSourceImageOrigin('manual');
       uploadedSourceImageIdsRef.current = [];
       uploadedSourceImageAtRef.current = null;
@@ -1029,7 +1077,7 @@ export const GeneratePage: FC = () => {
       setErrorKind('upload');
       setPageState('error');
     }
-  }, [pageState, persistGeneratePreferences, selectedModel, sourceImageFiles.length]);
+  }, [pageState, persistGeneratePreferences, selectedModel, sourceImageFiles.length, sourceImageOrigin]);
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
     if (options?.markAvatarDismissed && sourceImageOrigin === 'telegram-avatar') {
@@ -1177,9 +1225,10 @@ export const GeneratePage: FC = () => {
       setDefaultStickerSetTitle(stickerSetTitle);
       persistDefaultSaveTarget(stickerSetName, stickerSetTitle);
     }
+    showSaveNotice(stickerSetTitle ? `Сохранено в ${stickerSetTitle}` : 'Стикер сохранен');
     setSaveError(null);
     void refreshMyProfile();
-  }, [patchHistoryEntry, persistDefaultSaveTarget, refreshMyProfile, taskId]);
+  }, [patchHistoryEntry, persistDefaultSaveTarget, refreshMyProfile, showSaveNotice, taskId]);
 
   const handleOpenSaveModal = useCallback(() => {
     setSaveError(null);
@@ -1238,6 +1287,7 @@ export const GeneratePage: FC = () => {
       setDefaultStickerSetName(response.stickerSetName ?? targetSetName);
       setDefaultStickerSetTitle(response.title ?? targetSetTitle);
       persistDefaultSaveTarget(response.stickerSetName ?? targetSetName, response.title ?? targetSetTitle);
+      showSaveNotice(`Сохранено в ${response.title ?? targetSetTitle}`);
 
       if (savedFileId) {
         setFileId(savedFileId);
@@ -1277,6 +1327,7 @@ export const GeneratePage: FC = () => {
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
+  const latestHistoryEntry = historyEntries[0] ?? null;
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
@@ -1295,14 +1346,6 @@ export const GeneratePage: FC = () => {
     return 'progress';
   };
 
-  const formatHistoryUpdatedAt = (timestamp: number): string =>
-    new Date(timestamp).toLocaleString([], {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
   const getHistoryPromptLabel = (entry: GenerateHistoryEntry): string => {
     const promptValue = entry.prompt.trim();
     if (promptValue.length > 0) return promptValue;
@@ -1313,6 +1356,19 @@ export const GeneratePage: FC = () => {
     if (entry.stylePresetId == null) return 'Без стиля';
     const preset = stylePresets.find((item) => item.id === entry.stylePresetId);
     return preset ? stripPresetName(preset.name) : 'Без стиля';
+  };
+
+  const getHistoryPrimaryChip = (entry: GenerateHistoryEntry): string => {
+    const styleLabel = getHistoryStyleLabel(entry);
+    return styleLabel !== 'Без стиля' ? styleLabel : entry.hasSourceImage ? 'С фото' : 'Только текст';
+  };
+
+  const getHistorySecondaryChip = (entry: GenerateHistoryEntry): string | null => {
+    const styleLabel = getHistoryStyleLabel(entry);
+    if (styleLabel !== 'Без стиля') {
+      return entry.hasSourceImage ? 'С фото' : 'Только текст';
+    }
+    return null;
   };
 
   const openHistoryEntry = (entry: GenerateHistoryEntry) => {
@@ -1367,9 +1423,30 @@ export const GeneratePage: FC = () => {
       return null;
     }
 
+    const isSourceImageLimitReached = sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES;
+
     return (
       <div className="generate-source-strip" aria-label="Прикрепленные изображения">
         <div className="generate-source-strip__inner">
+          {!disabled && (
+            <button
+              type="button"
+              className={cn(
+                'generate-source-strip__add',
+                isSourceImageLimitReached && 'generate-source-strip__add--limit',
+              )}
+              onClick={handleSourceImagePick}
+              disabled={isSourceImageLimitReached}
+              aria-label="Добавить еще изображения"
+            >
+              <img
+                src={`${BASE}assets/pictures-icon.svg`}
+                alt=""
+                className="generate-source-strip__add-icon"
+                aria-hidden="true"
+              />
+            </button>
+          )}
           {sourceImagePreviews.map((preview, index) => (
             <div
               key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
@@ -1416,21 +1493,6 @@ export const GeneratePage: FC = () => {
               )}
             </div>
           ))}
-          {!disabled && sourceImageFiles.length < MAX_SOURCE_IMAGE_FILES && (
-            <button
-              type="button"
-              className="generate-source-strip__add"
-              onClick={handleSourceImagePick}
-              aria-label="Добавить еще изображения"
-            >
-              <img
-                src={`${BASE}assets/pictures-icon.svg`}
-                alt=""
-                className="generate-source-strip__add-icon"
-                aria-hidden="true"
-              />
-            </button>
-          )}
         </div>
       </div>
     );
@@ -1653,11 +1715,12 @@ export const GeneratePage: FC = () => {
           className="generate-history-modal"
           aria-label="История генераций"
         >
+          <div className="generate-history-modal__handle" aria-hidden="true" />
           <div className="generate-history-modal__header">
             <div className="generate-history-modal__header-copy">
               <h2 className="generate-history-modal__title">История генераций</h2>
               <p className="generate-history-modal__subtitle">
-                Выберите генерацию, чтобы быстро вернуть результат, стиль и параметры.
+                Нажмите на карточку, чтобы вернуть результат и настройки.
               </p>
             </div>
             <button
@@ -1679,42 +1742,50 @@ export const GeneratePage: FC = () => {
             </div>
           ) : (
             <div className="generate-history-modal__list" role="list">
-              {historyEntries.map((entry) => (
-                <button
-                  key={entry.localId}
-                  type="button"
-                  role="listitem"
-                  className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
-                  onClick={() => openHistoryEntry(entry)}
-                >
-                  <div className="generate-history-item__preview-wrap" aria-hidden="true">
-                    {entry.resultImageUrl ? (
-                      <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" />
-                    ) : (
-                      <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
-                    )}
-                  </div>
-                  <div className="generate-history-item__main">
-                    <div className="generate-history-item__top">
-                      <span
-                        className={cn(
-                          'generate-history-item__status',
-                          `generate-history-item__status--${getHistoryStatusTone(entry)}`
-                        )}
-                      >
-                        {formatHistoryStatus(entry)}
-                      </span>
-                      {entry.isActive && <span className="generate-history-item__active-badge">Открыто</span>}
+              {historyEntries.map((entry) => {
+                const secondaryChip = getHistorySecondaryChip(entry);
+
+                return (
+                  <button
+                    key={entry.localId}
+                    type="button"
+                    role="listitem"
+                    className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
+                    onClick={() => openHistoryEntry(entry)}
+                  >
+                    <div className="generate-history-item__preview-wrap" aria-hidden="true">
+                      {entry.resultImageUrl ? (
+                        <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" />
+                      ) : (
+                        <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
+                      )}
                     </div>
-                    <div className="generate-history-item__prompt">{getHistoryPromptLabel(entry)}</div>
-                    <div className="generate-history-item__meta">
-                      <span>{formatHistoryUpdatedAt(entry.updatedAt)}</span>
-                      <span>{getHistoryStyleLabel(entry)}</span>
-                      <span>{entry.hasSourceImage ? 'С фото' : 'Только текст'}</span>
+                    <div className="generate-history-item__main">
+                      <div className="generate-history-item__top">
+                        <span
+                          className={cn(
+                            'generate-history-item__status',
+                            `generate-history-item__status--${getHistoryStatusTone(entry)}`
+                          )}
+                        >
+                          {formatHistoryStatus(entry)}
+                        </span>
+                        {entry.isActive && <span className="generate-history-item__active-badge">Сейчас</span>}
+                      </div>
+                      <div className="generate-history-item__prompt">{getHistoryPromptLabel(entry)}</div>
+                      <div className="generate-history-item__footer">
+                        <div className="generate-history-item__chips">
+                          <span className="generate-history-item__chip">{getHistoryPrimaryChip(entry)}</span>
+                          {secondaryChip && (
+                            <span className="generate-history-item__chip">{secondaryChip}</span>
+                          )}
+                        </div>
+                        <span className="generate-history-item__open-hint">Открыть</span>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>
@@ -1786,7 +1857,7 @@ export const GeneratePage: FC = () => {
               onClick={handleOpenSaveModal}
               className="generate-action-button save"
             >
-              {stickerSaved ? 'Сохранить ещё' : 'Сохранить'}
+              {stickerSaved ? 'Сохранено' : 'Сохранить'}
             </Button>
           )}
           <Button
@@ -1801,9 +1872,9 @@ export const GeneratePage: FC = () => {
             {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
           </Button>
         </div>
-        {savedStickerSetTitle && (
-          <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }} align="center">
-            Сохранено в: {savedStickerSetTitle}
+        {saveNoticeText && (
+          <Text variant="bodySmall" className="generate-save-notice" align="center">
+            {saveNoticeText}
           </Text>
         )}
       </div>
@@ -1991,7 +2062,26 @@ export const GeneratePage: FC = () => {
         onClick={() => setHistoryOpen((prev) => !prev)}
         aria-label="Открыть историю генераций"
       >
-        <RestoreIcon size={18} />
+        <div className="generate-history-toggle__preview" aria-hidden="true">
+          {latestHistoryEntry?.resultImageUrl ? (
+            <img
+              className="generate-history-toggle__preview-image"
+              src={latestHistoryEntry.resultImageUrl}
+              alt=""
+            />
+          ) : (
+            <span className="generate-history-toggle__preview-fallback">
+              {latestHistoryEntry?.selectedEmoji ?? '🕘'}
+            </span>
+          )}
+        </div>
+        <div className="generate-history-toggle__content">
+          <span className="generate-history-toggle__title">История</span>
+          <span className="generate-history-toggle__subtitle">
+            {latestHistoryEntry ? 'Вернуть прошлую генерацию' : 'Последние результаты'}
+          </span>
+        </div>
+        <RestoreIcon size={16} />
         {historyEntries.some((entry) => entry.isActive) && <span className="generate-history-toggle__dot" />}
       </button>
       {renderHistoryModal()}
