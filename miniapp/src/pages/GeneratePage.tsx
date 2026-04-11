@@ -106,7 +106,7 @@ const buildDefaultStickerSetTitle = (params: {
   return `User ${params.userId ?? ''}`.trim();
 };
 
-const isTrustedStickerSetSaveTarget = (set: { name: string; userId?: number }, effectiveUserId: number): boolean => {
+const isTrustedAutoSaveStickerSet = (set: { name: string; title?: string; userId?: number }, effectiveUserId: number): boolean => {
   const normalizedName = set.name.trim().toLowerCase();
   if (!normalizedName.endsWith(DEFAULT_STICKER_BOT_SUFFIX)) {
     return false;
@@ -506,8 +506,9 @@ export const GeneratePage: FC = () => {
 
     try {
       const nextValue =
-        parseSaveTargetPayload(window.localStorage.getItem(getLastUsedSaveTargetStorageKey(historyUserScopeId))) ??
-        parseSaveTargetPayload(window.localStorage.getItem(getLegacyDefaultSaveTargetStorageKey(historyUserScopeId)));
+        parseSaveTargetPayload(window.localStorage.getItem(getLastUsedSaveTargetStorageKey(historyUserScopeId)));
+
+      window.localStorage.removeItem(getLegacyDefaultSaveTargetStorageKey(historyUserScopeId));
 
       setLastUsedStickerSetName(nextValue?.name ?? null);
       setLastUsedStickerSetTitle(nextValue?.title ?? null);
@@ -516,33 +517,6 @@ export const GeneratePage: FC = () => {
       setLastUsedStickerSetTitle(null);
     }
   }, [historyUserScopeId]);
-
-  const resolveValidatedLastUsedSaveTarget = useCallback(async () => {
-    if (!effectiveUserId || !lastUsedStickerSetName) {
-      return null;
-    }
-
-    try {
-      const response = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
-      const ownSets = (response.content ?? []).filter((set) => isTrustedStickerSetSaveTarget(set, effectiveUserId));
-      const matchedSet = ownSets.find((set) => set.name === lastUsedStickerSetName);
-
-      if (!matchedSet) {
-        setLastUsedStickerSetName(null);
-        setLastUsedStickerSetTitle(null);
-        persistLastUsedSaveTarget(null, null);
-        return null;
-      }
-
-      return {
-        name: matchedSet.name,
-        title: matchedSet.title || lastUsedStickerSetTitle || matchedSet.name,
-      };
-    } catch (error) {
-      console.warn('[GeneratePage] Failed to validate last used sticker set', error);
-      return null;
-    }
-  }, [effectiveUserId, lastUsedStickerSetName, lastUsedStickerSetTitle, persistLastUsedSaveTarget]);
 
   const persistGeneratePreferences = useCallback((patch: {
     selectedModel?: GenerateModelType;
@@ -1315,6 +1289,42 @@ export const GeneratePage: FC = () => {
     setSaveModalOpen(false);
   }, []);
 
+  const resolveServerAutoSaveTarget = useCallback(async () => {
+    if (!effectiveUserId) {
+      return null;
+    }
+
+    const username = (userInfo?.username ?? user?.username ?? '').trim();
+    if (!username) {
+      return null;
+    }
+
+    const expectedSetName = buildDefaultStickerSetName({ username, userId: effectiveUserId }).toLowerCase();
+
+    try {
+      const response = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
+      const ownSets = (response.content ?? []).filter((set) => isTrustedAutoSaveStickerSet(set, effectiveUserId));
+      const matchedSet = ownSets.find((set) => set.name.trim().toLowerCase() === expectedSetName);
+
+      if (!matchedSet) {
+        return null;
+      }
+
+      return {
+        name: matchedSet.name,
+        title: matchedSet.title || buildDefaultStickerSetTitle({
+          username,
+          firstName: userInfo?.firstName ?? user?.first_name ?? null,
+          lastName: userInfo?.lastName ?? user?.last_name ?? null,
+          userId: effectiveUserId,
+        }),
+      };
+    } catch (error) {
+      console.warn('[GeneratePage] Failed to resolve auto-save target from server', error);
+      return null;
+    }
+  }, [effectiveUserId, user?.first_name, user?.last_name, user?.username, userInfo?.firstName, userInfo?.lastName, userInfo?.username]);
+
   const handleShareSticker = async () => {
     if (fileId) {
       openChatPicker(fileId);
@@ -1329,20 +1339,14 @@ export const GeneratePage: FC = () => {
         throw new Error('Не удалось определить пользователя Telegram');
       }
 
-      const fallbackSetName = buildDefaultStickerSetName({
-        username: userInfo?.username ?? user?.username ?? null,
-        firstName: userInfo?.firstName ?? user?.first_name ?? null,
-        userId: effectiveUserId,
-      });
-      const fallbackSetTitle = buildDefaultStickerSetTitle({
-        username: userInfo?.username ?? user?.username ?? null,
-        firstName: userInfo?.firstName ?? user?.first_name ?? null,
-        lastName: userInfo?.lastName ?? user?.last_name ?? null,
-        userId: effectiveUserId,
-      });
-      const validatedLastUsedTarget = await resolveValidatedLastUsedSaveTarget();
-      const targetSetName = validatedLastUsedTarget?.name ?? fallbackSetName;
-      const targetSetTitle = validatedLastUsedTarget?.title ?? fallbackSetTitle;
+      const autoSaveTarget = await resolveServerAutoSaveTarget();
+      if (!autoSaveTarget) {
+        setSaveModalOpen(true);
+        return;
+      }
+
+      const targetSetName = autoSaveTarget.name;
+      const targetSetTitle = autoSaveTarget.title;
 
       const response = await apiClient.saveToStickerSetV2({
         taskId,
