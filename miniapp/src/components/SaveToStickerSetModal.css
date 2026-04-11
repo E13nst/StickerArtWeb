@@ -112,6 +112,14 @@
   background-color: rgba(255, 255, 255, 0.08);
 }
 
+.save-to-stickerset-modal__item--saved {
+  background-color: rgba(238, 68, 159, 0.08);
+}
+
+.save-to-stickerset-modal__item--default {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
 .save-to-stickerset-modal__item:disabled {
   cursor: not-allowed;
   opacity: 0.7;
@@ -193,6 +201,42 @@
   white-space: nowrap;
 }
 
+.save-to-stickerset-modal__copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-to-stickerset-modal__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.save-to-stickerset-modal__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.save-to-stickerset-modal__badge--saved {
+  background: rgba(238, 68, 159, 0.16);
+  color: #ffffff;
+}
+
+.save-to-stickerset-modal__badge--default {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+}
+
 .save-to-stickerset-modal__status {
   font-size: 12px;
   color: var(--color-text-secondary);
@@ -205,6 +249,13 @@
   color: var(--color-text-secondary);
   text-align: center;
   margin: 0;
+}
+
+.save-to-stickerset-modal__subhint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: -8px 0 0;
 }
 
 .save-to-stickerset-modal__error {

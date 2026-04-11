@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, FC } from 'react';
+import { useEffect, useState, useCallback, useRef, FC, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { Button } from '@/components/ui/Button';
@@ -18,7 +18,14 @@ export interface SaveToStickerSetModalProps {
   taskId: string | null;
   userId: number | null;
   selectedEmoji?: string;
-  onSaved: (stickerFileId?: string | null) => void;
+  currentSavedStickerSetName?: string | null;
+  preferredStickerSetName?: string | null;
+  preferredStickerSetTitle?: string | null;
+  onSaved: (payload?: {
+    stickerFileId?: string | null;
+    stickerSetName?: string | null;
+    stickerSetTitle?: string | null;
+  }) => void;
 }
 
 function buildStickerSetName(title: string): string {
@@ -59,6 +66,9 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   taskId,
   userId,
   selectedEmoji = '🎨',
+  currentSavedStickerSetName = null,
+  preferredStickerSetName = null,
+  preferredStickerSetTitle = null,
   onSaved,
 }) => {
   const userInfo = useProfileStore((state) => state.userInfo);
@@ -74,6 +84,20 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const touchStartYRef = useRef<number | null>(null);
   const isDraggingDownRef = useRef(false);
+
+  const orderedSets = useMemo(() => {
+    const getPriority = (set: StickerSetResponse): number => {
+      if (currentSavedStickerSetName && set.name === currentSavedStickerSetName) return 0;
+      if (preferredStickerSetName && set.name === preferredStickerSetName) return 1;
+      return 2;
+    };
+
+    return [...sets].sort((left, right) => {
+      const priorityDiff = getPriority(left) - getPriority(right);
+      if (priorityDiff !== 0) return priorityDiff;
+      return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+    });
+  }, [currentSavedStickerSetName, preferredStickerSetName, sets]);
 
   const loadSets = useCallback(async () => {
     if (!effectiveUserId) return;
@@ -218,7 +242,11 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
         throw new Error('Стикер сохранён, но fileId пока недоступен. Попробуйте снова через пару секунд.');
       }
 
-      onSaved(stickerFileId ?? null);
+      onSaved({
+        stickerFileId: stickerFileId ?? null,
+        stickerSetName: set.name,
+        stickerSetTitle: set.title || set.name,
+      });
       onClose();
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось сохранить');
@@ -237,6 +265,8 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     setCreateError(null);
     try {
       let stickerFileId: string | undefined;
+      let savedSetName = buildStickerSetName(title);
+      let savedSetTitle = title;
 
       if (taskId && effectiveUserId) {
         const response = await apiClient.saveToStickerSetV2({
@@ -251,6 +281,8 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
           throw new Error('Стикер ещё не готов для сохранения. Попробуйте снова через пару секунд.');
         }
         stickerFileId = response.stickerFileId;
+        savedSetName = response.stickerSetName ?? savedSetName;
+        savedSetTitle = response.title ?? savedSetTitle;
       } else if (imageId) {
         const created = await apiClient.createNewStickerSet({
           imageUuid: imageId,
@@ -260,14 +292,24 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
         stickerFileId =
           (created as { stickerFileId?: string }).stickerFileId ??
           created.telegramStickerSetInfo?.stickers?.[0]?.file_id;
+        savedSetName = created.name || savedSetName;
+        savedSetTitle = created.title || savedSetTitle;
       } else {
         throw new Error('Не удалось определить пользователя Telegram');
       }
 
       if (stickerFileId) {
-        onSaved(stickerFileId);
+        onSaved({
+          stickerFileId,
+          stickerSetName: savedSetName,
+          stickerSetTitle: savedSetTitle,
+        });
       } else if (taskId) {
-        onSaved(null);
+        onSaved({
+          stickerFileId: null,
+          stickerSetName: savedSetName,
+          stickerSetTitle: savedSetTitle,
+        });
       } else {
         throw new Error('Стикер сохранён, но fileId пока недоступен. Попробуйте снова через пару секунд.');
       }
@@ -309,11 +351,18 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
                   <p className="save-to-stickerset-modal__hint">У вас пока нет наборов. Создайте новый.</p>
                 ) : (
                   <div className="save-to-stickerset-modal__list-inner">
-                    {sets.map((set, i) => (
+                    {orderedSets.map((set, i) => {
+                      const isSavedSet = currentSavedStickerSetName === set.name;
+                      const isDefaultSet = preferredStickerSetName === set.name;
+                      return (
                       <button
                         key={set.id}
                         type="button"
-                        className="save-to-stickerset-modal__item"
+                        className={[
+                          'save-to-stickerset-modal__item',
+                          isSavedSet ? 'save-to-stickerset-modal__item--saved' : '',
+                          isDefaultSet ? 'save-to-stickerset-modal__item--default' : '',
+                        ].filter(Boolean).join(' ')}
                         onClick={() => handleSelectSet(set)}
                         disabled={saving}
                       >
@@ -321,12 +370,32 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
                         <div className="save-to-stickerset-modal__thumb">
                           <img src={getSetPreviewUrl(set)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         </div>
-                        <span className="save-to-stickerset-modal__title">{set.title || set.name}</span>
+                        <div className="save-to-stickerset-modal__copy">
+                          <span className="save-to-stickerset-modal__title">{set.title || set.name}</span>
+                          {(isSavedSet || isDefaultSet) && (
+                            <span className="save-to-stickerset-modal__badges">
+                              {isSavedSet && (
+                                <span className="save-to-stickerset-modal__badge save-to-stickerset-modal__badge--saved">
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                    <path d="M2.5 6.2L4.8 8.5L9.5 3.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  <span>Сохранено</span>
+                                </span>
+                              )}
+                              {isDefaultSet && (
+                                <span className="save-to-stickerset-modal__badge save-to-stickerset-modal__badge--default">
+                                  <span>По умолчанию</span>
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
                         <span className="save-to-stickerset-modal__status">
                           {getVisibilityLabel(set)}
                         </span>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -334,6 +403,11 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
               {error && <p className="save-to-stickerset-modal__error">{error}</p>}
 
               <p className="save-to-stickerset-modal__hint">Выберите набор или создайте новый</p>
+              {preferredStickerSetTitle && (
+                <p className="save-to-stickerset-modal__subhint">
+                  По умолчанию будет использоваться: {preferredStickerSetTitle}
+                </p>
+              )}
 
               <Button
                 variant="primary"

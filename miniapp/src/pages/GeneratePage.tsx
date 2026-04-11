@@ -49,6 +49,7 @@ const DEFAULT_GENERATE_MODEL: GenerateModelType = 'nanabanana';
 const DEFAULT_GENERATE_EMOJI = '🎨';
 const DEFAULT_REMOVE_BACKGROUND = true;
 const TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY = 'generate_telegram_avatar_dismissed';
+const DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-target:v1';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -125,6 +126,9 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
 const getSourceImageLimitMessage = (): string =>
   `Можно прикрепить не больше ${MAX_SOURCE_IMAGE_FILES} изображений. Лишние изображения не добавлены.`;
 
+const getDefaultSaveTargetStorageKey = (userScopeId: string): string =>
+  `${DEFAULT_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
+
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
 const MODEL_OPTIONS: Array<{ id: GenerateModelType; name: string }> = [
@@ -189,6 +193,10 @@ export const GeneratePage: FC = () => {
   const [imageId, setImageId] = useState<string | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
   const [stickerSaved, setStickerSaved] = useState(false);
+  const [savedStickerSetName, setSavedStickerSetName] = useState<string | null>(null);
+  const [savedStickerSetTitle, setSavedStickerSetTitle] = useState<string | null>(null);
+  const [defaultStickerSetName, setDefaultStickerSetName] = useState<string | null>(null);
+  const [defaultStickerSetTitle, setDefaultStickerSetTitle] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -382,6 +390,42 @@ export const GeneratePage: FC = () => {
   ]);
   const historyUserScopeId = effectiveUserId != null ? String(effectiveUserId) : null;
 
+  const persistDefaultSaveTarget = useCallback((name: string | null, title: string | null) => {
+    if (!historyUserScopeId) return;
+    try {
+      window.localStorage.setItem(
+        getDefaultSaveTargetStorageKey(historyUserScopeId),
+        JSON.stringify({ name, title })
+      );
+    } catch {
+      // ignore storage failures in private mode / webview quirks
+    }
+  }, [historyUserScopeId]);
+
+  useEffect(() => {
+    if (!historyUserScopeId) {
+      setDefaultStickerSetName(null);
+      setDefaultStickerSetTitle(null);
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(getDefaultSaveTargetStorageKey(historyUserScopeId));
+      if (!raw) {
+        setDefaultStickerSetName(null);
+        setDefaultStickerSetTitle(null);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as { name?: unknown; title?: unknown };
+      setDefaultStickerSetName(typeof parsed.name === 'string' ? parsed.name : null);
+      setDefaultStickerSetTitle(typeof parsed.title === 'string' ? parsed.title : null);
+    } catch {
+      setDefaultStickerSetName(null);
+      setDefaultStickerSetTitle(null);
+    }
+  }, [historyUserScopeId]);
+
   const persistGeneratePreferences = useCallback((patch: {
     selectedModel?: GenerateModelType;
     stylePresetId?: number | null;
@@ -542,6 +586,8 @@ export const GeneratePage: FC = () => {
           setImageId(null);
           setFileId(null);
           setStickerSaved(false);
+          setSavedStickerSetName(null);
+          setSavedStickerSetTitle(null);
           setSaveError(null);
           setHistoryOpen(false);
         }
@@ -770,6 +816,10 @@ export const GeneratePage: FC = () => {
     setRemoveBackground(activeEntry.removeBackground);
     setTaskId(activeEntry.taskId);
     setCurrentStatus(activeEntry.generationStatus ?? 'PENDING');
+    setFileId(activeEntry.fileId);
+    setStickerSaved(Boolean(activeEntry.fileId));
+    setSavedStickerSetName(activeEntry.savedStickerSetName ?? null);
+    setSavedStickerSetTitle(activeEntry.savedStickerSetTitle ?? null);
     setErrorMessage(null);
     setErrorKind(null);
     setPageState('generating');
@@ -824,6 +874,8 @@ export const GeneratePage: FC = () => {
     setTaskId(null);
     setFileId(null);
     setStickerSaved(false);
+    setSavedStickerSetName(null);
+    setSavedStickerSetTitle(null);
     setSaveError(null);
     setCurrentStatus(null);
     setHistoryOpen(false);
@@ -852,6 +904,8 @@ export const GeneratePage: FC = () => {
           resultImageUrl: null,
           imageId: null,
           fileId: null,
+          savedStickerSetName: null,
+          savedStickerSetTitle: null,
           errorMessage: null,
           isActive: true,
         };
@@ -1053,17 +1107,45 @@ export const GeneratePage: FC = () => {
     void appendSourceImages(pastedImageFiles);
   }, [appendSourceImages]);
 
-  const handleSavedFromModal = useCallback((stickerFileId?: string | null) => {
+  const handleSavedFromModal = useCallback((payload?: {
+    stickerFileId?: string | null;
+    stickerSetName?: string | null;
+    stickerSetTitle?: string | null;
+  }) => {
+    const stickerFileId = payload?.stickerFileId ?? null;
+    const stickerSetName = payload?.stickerSetName ?? null;
+    const stickerSetTitle = payload?.stickerSetTitle ?? null;
+
     if (stickerFileId) {
       setFileId(stickerFileId);
       patchHistoryEntry(
         { taskId: taskId ?? undefined, localId: activeHistoryLocalIdRef.current ?? undefined },
-        { fileId: stickerFileId }
+        {
+          fileId: stickerFileId,
+          savedStickerSetName: stickerSetName,
+          savedStickerSetTitle: stickerSetTitle,
+        }
+      );
+    } else if (stickerSetName || stickerSetTitle) {
+      patchHistoryEntry(
+        { taskId: taskId ?? undefined, localId: activeHistoryLocalIdRef.current ?? undefined },
+        {
+          savedStickerSetName: stickerSetName,
+          savedStickerSetTitle: stickerSetTitle,
+        }
       );
     }
     setStickerSaved(true);
+    setSavedStickerSetName(stickerSetName);
+    setSavedStickerSetTitle(stickerSetTitle);
+    if (stickerSetName || stickerSetTitle) {
+      setDefaultStickerSetName(stickerSetName);
+      setDefaultStickerSetTitle(stickerSetTitle);
+      persistDefaultSaveTarget(stickerSetName, stickerSetTitle);
+    }
     setSaveError(null);
-  }, [patchHistoryEntry, taskId]);
+    void refreshMyProfile();
+  }, [patchHistoryEntry, persistDefaultSaveTarget, refreshMyProfile, taskId]);
 
   const handleOpenSaveModal = useCallback(() => {
     setSaveError(null);
@@ -1088,23 +1170,25 @@ export const GeneratePage: FC = () => {
         throw new Error('Не удалось определить пользователя Telegram');
       }
 
-      const defaultSetName = buildDefaultStickerSetName({
+      const fallbackSetName = buildDefaultStickerSetName({
         username: userInfo?.username ?? user?.username ?? null,
         firstName: userInfo?.firstName ?? user?.first_name ?? null,
         userId: effectiveUserId,
       });
-      const defaultSetTitle = buildDefaultStickerSetTitle({
+      const fallbackSetTitle = buildDefaultStickerSetTitle({
         username: userInfo?.username ?? user?.username ?? null,
         firstName: userInfo?.firstName ?? user?.first_name ?? null,
         lastName: userInfo?.lastName ?? user?.last_name ?? null,
         userId: effectiveUserId,
       });
+      const targetSetName = defaultStickerSetName ?? fallbackSetName;
+      const targetSetTitle = defaultStickerSetTitle ?? fallbackSetTitle;
 
       const response = await apiClient.saveToStickerSetV2({
         taskId,
         userId: effectiveUserId,
-        name: defaultSetName,
-        title: defaultSetTitle,
+        name: targetSetName,
+        title: targetSetTitle,
         emoji: selectedEmoji,
         wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
       });
@@ -1115,13 +1199,23 @@ export const GeneratePage: FC = () => {
 
       const savedFileId = response.stickerFileId ?? null;
       setStickerSaved(true);
+      setSavedStickerSetName(response.stickerSetName ?? targetSetName);
+      setSavedStickerSetTitle(response.title ?? targetSetTitle);
+      setDefaultStickerSetName(response.stickerSetName ?? targetSetName);
+      setDefaultStickerSetTitle(response.title ?? targetSetTitle);
+      persistDefaultSaveTarget(response.stickerSetName ?? targetSetName, response.title ?? targetSetTitle);
 
       if (savedFileId) {
         setFileId(savedFileId);
         patchHistoryEntry(
           { taskId: taskId ?? undefined, localId: activeHistoryLocalIdRef.current ?? undefined },
-          { fileId: savedFileId }
+          {
+            fileId: savedFileId,
+            savedStickerSetName: response.stickerSetName ?? targetSetName,
+            savedStickerSetTitle: response.title ?? targetSetTitle,
+          }
         );
+        void refreshMyProfile();
         openChatPicker(savedFileId);
         return;
       }
@@ -1200,6 +1294,8 @@ export const GeneratePage: FC = () => {
     setImageId(entry.imageId);
     setFileId(entry.fileId);
     setStickerSaved(Boolean(entry.fileId));
+    setSavedStickerSetName(entry.savedStickerSetName ?? null);
+    setSavedStickerSetTitle(entry.savedStickerSetTitle ?? null);
     setErrorMessage(entry.errorMessage);
     setErrorKind(entry.pageState === 'error' ? 'general' : null);
     activeHistoryLocalIdRef.current = entry.localId;
@@ -1686,10 +1782,9 @@ export const GeneratePage: FC = () => {
               variant="primary"
               size="medium"
               onClick={handleOpenSaveModal}
-              disabled={stickerSaved}
               className="generate-action-button save"
             >
-              Сохранить
+              {stickerSaved ? 'Сохранить ещё' : 'Сохранить'}
             </Button>
           )}
           <Button
@@ -1704,6 +1799,11 @@ export const GeneratePage: FC = () => {
             {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
           </Button>
         </div>
+        {savedStickerSetTitle && (
+          <Text variant="bodySmall" style={{ color: 'var(--color-text-secondary)' }} align="center">
+            Сохранено в: {savedStickerSetTitle}
+          </Text>
+        )}
       </div>
 
       <div className="generate-success-section generate-new-request">
@@ -1914,6 +2014,9 @@ export const GeneratePage: FC = () => {
         taskId={taskId}
         userId={effectiveUserId}
         selectedEmoji={selectedEmoji}
+        currentSavedStickerSetName={savedStickerSetName}
+        preferredStickerSetName={defaultStickerSetName}
+        preferredStickerSetTitle={defaultStickerSetTitle}
         onSaved={handleSavedFromModal}
       />
     </div>

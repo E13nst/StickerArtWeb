@@ -19,6 +19,8 @@ export interface GenerateHistoryEntry {
   resultImageUrl: string | null;
   imageId: string | null;
   fileId: string | null;
+  savedStickerSetName?: string | null;
+  savedStickerSetTitle?: string | null;
   errorMessage: string | null;
   isActive: boolean;
 }
@@ -64,8 +66,21 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
   if (!(typeof raw.resultImageUrl === 'string' || raw.resultImageUrl === null)) return null;
   if (!(typeof raw.imageId === 'string' || raw.imageId === null)) return null;
   if (!(typeof raw.fileId === 'string' || raw.fileId === null)) return null;
+  if (!('savedStickerSetName' in raw) || !(typeof raw.savedStickerSetName === 'string' || raw.savedStickerSetName === null)) {
+    raw.savedStickerSetName = null;
+  }
+  if (!('savedStickerSetTitle' in raw) || !(typeof raw.savedStickerSetTitle === 'string' || raw.savedStickerSetTitle === null)) {
+    raw.savedStickerSetTitle = null;
+  }
   if (!(typeof raw.errorMessage === 'string' || raw.errorMessage === null)) return null;
   if (typeof raw.isActive !== 'boolean') return null;
+
+  const savedStickerSetName = typeof raw.savedStickerSetName === 'string' || raw.savedStickerSetName === null
+    ? raw.savedStickerSetName
+    : null;
+  const savedStickerSetTitle = typeof raw.savedStickerSetTitle === 'string' || raw.savedStickerSetTitle === null
+    ? raw.savedStickerSetTitle
+    : null;
 
   return {
     localId: raw.localId,
@@ -83,6 +98,8 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
     resultImageUrl: raw.resultImageUrl,
     imageId: raw.imageId,
     fileId: raw.fileId,
+    savedStickerSetName,
+    savedStickerSetTitle,
     errorMessage: raw.errorMessage,
     isActive: raw.isActive,
   };
