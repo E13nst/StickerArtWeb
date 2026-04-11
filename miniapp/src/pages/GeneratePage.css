@@ -416,27 +416,88 @@
 }
 
 /* Header — "Создайте Стикер с" + селектор модели (Stixly) */
-.generate-header {
-  font-family: var(--font-family-base);
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 16px;
-  color: #ffffff;
-  width: 370px;
-  min-height: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  text-align: center;
-  margin: 0;
+.generate-source-strip {
+  width: 100%;
+  max-width: 370px;
 }
 
-.generate-header .generate-model-select-trigger {
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 16px;
+.generate-source-strip__inner {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 4px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.generate-source-strip__inner::-webkit-scrollbar {
+  display: none;
+}
+
+.generate-source-strip__item,
+.generate-source-strip__add {
+  position: relative;
+  flex: 0 0 auto;
+  width: 55px;
+  height: 55px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.generate-source-strip__item {
+  cursor: grab;
+}
+
+.generate-source-strip__item:active {
+  cursor: grabbing;
+}
+
+.generate-source-strip__image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.generate-source-strip__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 14px;
+  line-height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.generate-source-strip__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.generate-source-strip__add-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%);
 }
 
 /* Input block (Inpit) — #262626, 16px radius, 370px, Figma gap 16px */
@@ -500,20 +561,12 @@
   overflow: hidden;
 }
 
-.generate-input-wrapper__pictures-button--with-preview {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  overflow: visible;
-}
-
 .generate-input-wrapper__pictures-button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-.generate-input-wrapper__pictures-icon,
-.generate-input-wrapper__pictures-preview {
+.generate-input-wrapper__pictures-icon {
   width: 100%;
   height: 100%;
   display: block;
@@ -524,21 +577,6 @@
   opacity: 0.85;
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(54%) sepia(0%) saturate(0%); /* #8A8A8A в стиле приложения */
-}
-
-.generate-input-wrapper__pictures-preview {
-  object-fit: cover;
-}
-
-.generate-input-wrapper__pictures-button--with-preview .generate-input-wrapper__pictures-preview {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .generate-input-wrapper__pictures-count {
@@ -562,50 +600,6 @@
 .generate-input-wrapper__pictures-count--limit {
   background: var(--color-primary);
   color: #fff;
-}
-
-.generate-source-image-preview {
-  position: absolute;
-  top: 12px;
-  right: 44px;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 2;
-}
-
-.generate-source-image-preview__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.generate-source-image-preview__remove {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.72);
-  color: #fff;
-  font-size: 14px;
-  line-height: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.generate-source-image-preview__remove:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
 }
 
 .generate-input-footer {

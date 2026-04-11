@@ -9,7 +9,6 @@ import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
-import { t } from '@/i18n/translations';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId } from '@/utils/stickerUtils';
@@ -217,13 +216,12 @@ export const GeneratePage: FC = () => {
   
   // Polling ref
   const pollingIntervalRef = useRef<number | null>(null);
-  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
-  const modelDropdownRef = useRef<HTMLDivElement | null>(null);
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
   const styleDropdownRef = useRef<HTMLDivElement | null>(null);
   const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false);
   const emojiDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
+  const draggedSourceImageIndexRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
   const uploadedSourceImageAtRef = useRef<number | null>(null);
@@ -599,7 +597,6 @@ export const GeneratePage: FC = () => {
         if (selectedModel !== SOURCE_IMAGE_MODEL) {
           setSelectedModel(SOURCE_IMAGE_MODEL);
           persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
-          setModelDropdownOpen(false);
         }
       } catch (error) {
         // Тихий fallback: при недоступном photo_url оставляем текущий UI без ошибки.
@@ -1015,7 +1012,6 @@ export const GeneratePage: FC = () => {
       if (selectedModel !== SOURCE_IMAGE_MODEL) {
         setSelectedModel(SOURCE_IMAGE_MODEL);
         persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
-        setModelDropdownOpen(false);
       }
       if (skippedFilesCount > 0) {
         setErrorMessage(getSourceImageLimitMessage());
@@ -1046,6 +1042,44 @@ export const GeneratePage: FC = () => {
     uploadedSourceImageIdsRef.current = [];
     uploadedSourceImageAtRef.current = null;
   }, [persistTelegramAvatarDismissed, sourceImageOrigin]);
+
+  const removeSourceImageAt = useCallback((index: number) => {
+    if (index < 0 || index >= sourceImageFiles.length) return;
+
+    if (sourceImageFiles.length === 1) {
+      clearSourceImage({ markAvatarDismissed: sourceImageOrigin === 'telegram-avatar' });
+      return;
+    }
+
+    setSourceImageFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    setSourceImagePreviews((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    uploadedSourceImageIdsRef.current = [];
+    uploadedSourceImageAtRef.current = null;
+  }, [clearSourceImage, sourceImageFiles.length, sourceImageOrigin]);
+
+  const moveSourceImage = useCallback((fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex === toIndex ||
+      fromIndex >= sourceImageFiles.length ||
+      toIndex >= sourceImageFiles.length
+    ) {
+      return;
+    }
+
+    const reorder = <T,>(items: T[]): T[] => {
+      const next = [...items];
+      const [movedItem] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, movedItem);
+      return next;
+    };
+
+    setSourceImageFiles((prev) => reorder(prev));
+    setSourceImagePreviews((prev) => reorder(prev));
+    uploadedSourceImageIdsRef.current = [];
+    uploadedSourceImageAtRef.current = null;
+  }, [sourceImageFiles.length]);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
     const cleanFileId = removeInvisibleChars(stickerFileId).trim();
@@ -1328,14 +1362,79 @@ export const GeneratePage: FC = () => {
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [historyOpen]);
 
-  const createStickerPrefix = t('generate.createStickerPrefix', user?.language_code);
+  const renderSourceImageStrip = (disabled: boolean) => {
+    if (!hasSourceImage) {
+      return null;
+    }
 
-  const renderHeaderWithModel = (disabled: boolean) => (
-    <div className="generate-header">
-      <span>{createStickerPrefix}</span>
-      {renderModelFileRow(disabled)}
-    </div>
-  );
+    return (
+      <div className="generate-source-strip" aria-label="Прикрепленные изображения">
+        <div className="generate-source-strip__inner">
+          {sourceImagePreviews.map((preview, index) => (
+            <div
+              key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
+              className="generate-source-strip__item"
+              draggable={!disabled && sourceImageFiles.length > 1}
+              onDragStart={() => {
+                draggedSourceImageIndexRef.current = index;
+              }}
+              onDragOver={(event) => {
+                if (disabled) return;
+                event.preventDefault();
+              }}
+              onDrop={(event) => {
+                if (disabled) return;
+                event.preventDefault();
+                const draggedIndex = draggedSourceImageIndexRef.current;
+                if (draggedIndex == null) return;
+                moveSourceImage(draggedIndex, index);
+                draggedSourceImageIndexRef.current = null;
+              }}
+              onDragEnd={() => {
+                draggedSourceImageIndexRef.current = null;
+              }}
+            >
+              <img
+                src={preview}
+                alt={`Исходное изображение ${index + 1}`}
+                className="generate-source-strip__image"
+                loading="lazy"
+                decoding="async"
+              />
+              {!disabled && (
+                <button
+                  type="button"
+                  className="generate-source-strip__remove"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeSourceImageAt(index);
+                  }}
+                  aria-label={`Удалить изображение ${index + 1}`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+          {!disabled && sourceImageFiles.length < MAX_SOURCE_IMAGE_FILES && (
+            <button
+              type="button"
+              className="generate-source-strip__add"
+              onClick={handleSourceImagePick}
+              aria-label="Добавить еще изображения"
+            >
+              <img
+                src={`${BASE}assets/pictures-icon.svg`}
+                alt=""
+                className="generate-source-strip__add-icon"
+                aria-hidden="true"
+              />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const handlePromptChange = (value: string) => {
     setPrompt(value);
@@ -1343,16 +1442,6 @@ export const GeneratePage: FC = () => {
       setErrorMessage(null);
       setErrorKind(null);
       setPageState('idle');
-    }
-  };
-
-  const handleModelChange = (rawValue: string) => {
-    if (rawValue === 'nanabanana') {
-      if (hasSourceImage && rawValue !== SOURCE_IMAGE_MODEL) {
-        return;
-      }
-      setSelectedModel(rawValue);
-      persistGeneratePreferences({ selectedModel: rawValue });
     }
   };
 
@@ -1381,20 +1470,6 @@ export const GeneratePage: FC = () => {
   const styleButtonLabel = selectedPreset ? stripPresetName(selectedPreset.name) : 'Без стиля';
 
   useEffect(() => {
-    if (!modelDropdownOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
-        setModelDropdownOpen(false);
-      }
-    };
-    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [modelDropdownOpen]);
-
-  useEffect(() => {
     if (!styleDropdownOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (styleDropdownRef.current && !styleDropdownRef.current.contains(e.target as Node)) {
@@ -1421,61 +1496,6 @@ export const GeneratePage: FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [emojiDropdownOpen]);
-
-  const renderModelFileRow = (disabled: boolean) => {
-    const selectedOption = MODEL_OPTIONS.find((option) => option.id === selectedModel) ?? MODEL_OPTIONS[0];
-    const isSingleModel = MODEL_OPTIONS.length === 1;
-    return (
-      <div ref={modelDropdownRef} className="generate-model-select-wrap">
-        <button
-          type="button"
-          className="generate-model-select-trigger"
-          onClick={() => !disabled && !isSingleModel && setModelDropdownOpen(v => !v)}
-          disabled={disabled || isSingleModel}
-          aria-label="Выбор модели генерации"
-          aria-expanded={isSingleModel ? false : modelDropdownOpen}
-        >
-          <span className="generate-model-select-value">{selectedOption.name}</span>
-          {!isSingleModel && (
-            <KeyboardArrowDownIcon
-              size={14}
-              color="var(--color-text-secondary)"
-              style={{ transform: modelDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-            />
-          )}
-        </button>
-        {!isSingleModel && modelDropdownOpen && (
-          <div className="generate-model-select-dropdown">
-            {MODEL_OPTIONS.map((option) => {
-              const isOptionDisabled = hasSourceImage && option.id !== SOURCE_IMAGE_MODEL;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={cn(
-                    'generate-model-select-option',
-                    option.id === selectedModel && 'generate-model-select-option--selected',
-                    isOptionDisabled && 'generate-model-select-option--disabled',
-                  )}
-                  onClick={() => {
-                    if (isOptionDisabled) {
-                      return;
-                    }
-                    handleModelChange(option.id);
-                    setModelDropdownOpen(false);
-                  }}
-                  disabled={isOptionDisabled}
-                >
-                  {option.name}
-                  {isOptionDisabled ? ' · без фото' : ''}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const renderEmojiSelect = (disabled: boolean) => (
     <div ref={emojiDropdownRef} className="generate-model-select-wrap generate-model-select-wrap--emoji">
@@ -1601,20 +1621,12 @@ export const GeneratePage: FC = () => {
           disabled={disabled}
           aria-label={hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}
         >
-          {hasSourceImage ? (
-            <img
-              src={primarySourcePreview ?? ''}
-              alt="Исходное изображение"
-              className="generate-input-wrapper__pictures-preview"
-            />
-          ) : (
-            <img
-              src={`${BASE}assets/pictures-icon.svg`}
-              alt=""
-              className="generate-input-wrapper__pictures-icon"
-              aria-hidden="true"
-            />
-          )}
+          <img
+            src={`${BASE}assets/pictures-icon.svg`}
+            alt=""
+            className="generate-input-wrapper__pictures-icon"
+            aria-hidden="true"
+          />
         </button>
         <span
           className={cn(
@@ -1625,17 +1637,6 @@ export const GeneratePage: FC = () => {
         >
           {sourceImageFiles.length}/{MAX_SOURCE_IMAGE_FILES}
         </span>
-        {hasSourceImage && (
-          <button
-            type="button"
-            className="generate-source-image-preview__remove"
-            onClick={() => clearSourceImage({ markAvatarDismissed: sourceImageOrigin === 'telegram-avatar' })}
-            disabled={disabled}
-            aria-label="Удалить исходное изображение"
-          >
-            ×
-          </button>
-        )}
       </div>
     </>
   );
@@ -1728,6 +1729,7 @@ export const GeneratePage: FC = () => {
       <div className="generate-status-container">
         <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
       </div>
+      {renderSourceImageStrip(true)}
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
           {renderSourceImageButton(true)}
@@ -1807,7 +1809,7 @@ export const GeneratePage: FC = () => {
       </div>
 
       <div className="generate-success-section generate-new-request">
-        {renderHeaderWithModel(isGenerating)}
+        {renderSourceImageStrip(isGenerating)}
         <div className="generate-form-block">
           <div
             className={cn(
@@ -1870,7 +1872,7 @@ export const GeneratePage: FC = () => {
   const renderErrorState = () => (
     <div className="generate-error-container">
       {renderBrandBlock()}
-      {renderHeaderWithModel(false)}
+      {renderSourceImageStrip(false)}
       {shouldShowGeneralError && (
         <div className="generate-error-banner">
           <span className="generate-error-icon">!</span>
@@ -1934,7 +1936,7 @@ export const GeneratePage: FC = () => {
   const renderIdleState = () => (
     <>
       {renderBrandBlock()}
-      {renderHeaderWithModel(isGenerating)}
+      {renderSourceImageStrip(isGenerating)}
 
       <div className="generate-form-block">
         <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
