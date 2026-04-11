@@ -500,19 +500,32 @@
 .generate-source-strip {
   width: 100%;
   max-width: 370px;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  overflow: visible;
 }
 
 .generate-source-strip__inner {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 4px;
+  padding: 2px 0 10px;
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
   mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.generate-source-strip__inner--empty {
+  overflow: visible;
+  padding-bottom: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 .generate-source-strip__inner::-webkit-scrollbar {
@@ -565,6 +578,70 @@
   cursor: pointer;
 }
 
+.generate-source-picker {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: 55px;
+  height: 55px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: visible;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.generate-source-picker:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.generate-source-picker__icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(100%);
+  opacity: 0.9;
+}
+
+.generate-source-picker__badge {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.generate-source-picker__badge--limit {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(52, 120, 246, 0.34);
+}
+
 /* Input block (Inpit) — #262626, 16px radius, 370px, Figma gap 16px */
 .generate-form-block {
   display: flex;
@@ -598,74 +675,6 @@
   flex-grow: 0;
   box-sizing: border-box;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.generate-source-controls {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.generate-source-controls__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.generate-source-controls__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.68;
-}
-
-.generate-source-controls__icon {
-  width: 16px;
-  height: 16px;
-  display: block;
-  object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(100%);
-  opacity: 0.9;
-}
-
-.generate-source-controls__label {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.generate-source-controls__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  z-index: 3;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
-}
-
-.generate-source-controls__count--limit {
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(52, 120, 246, 0.34);
 }
 
 .generate-input-footer {

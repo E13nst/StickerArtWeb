@@ -1495,14 +1495,23 @@ export const GeneratePage: FC = () => {
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [historyOpen]);
 
-  const renderSourceImageStrip = (disabled: boolean) => {
-    if (!hasSourceImage) {
-      return null;
-    }
-
-    return (
+  const renderSourceImageStrip = (disabled: boolean) => (
+    <>
+      <input
+        ref={sourceImageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={handleSourceImageChange}
+      />
       <div className="generate-source-strip" aria-label="Прикрепленные изображения">
-        <div className="generate-source-strip__inner">
+        <div
+          className={cn(
+            'generate-source-strip__inner',
+            !hasSourceImage && 'generate-source-strip__inner--empty'
+          )}
+        >
           {sourceImagePreviews.map((preview, index) => (
             <div
               key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
@@ -1550,9 +1559,32 @@ export const GeneratePage: FC = () => {
             </div>
           ))}
         </div>
+        <button
+          type="button"
+          className="generate-source-picker"
+          onClick={handleSourceImagePick}
+          disabled={disabled}
+          aria-label={`${hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`}
+        >
+          <img
+            src={`${BASE}assets/pictures-icon.svg`}
+            alt=""
+            className="generate-source-picker__icon"
+            aria-hidden="true"
+          />
+          <span
+            className={cn(
+              'generate-source-picker__badge',
+              sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-source-picker__badge--limit'
+            )}
+            aria-hidden="true"
+          >
+            {MAX_SOURCE_IMAGE_FILES} max
+          </span>
+        </button>
       </div>
-    );
-  };
+    </>
+  );
 
   const handlePromptChange = (value: string) => {
     setPrompt(value);
@@ -1718,45 +1750,6 @@ export const GeneratePage: FC = () => {
     </div>
   );
 
-  const renderSourceImageButton = (disabled: boolean) => (
-    <>
-      <input
-        ref={sourceImageInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={handleSourceImageChange}
-      />
-      <div className="generate-source-controls">
-        <button
-          type="button"
-          className="generate-source-controls__button"
-          onClick={handleSourceImagePick}
-          disabled={disabled}
-          aria-label={hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}
-        >
-          <img
-            src={`${BASE}assets/pictures-icon.svg`}
-            alt=""
-            className="generate-source-controls__icon"
-            aria-hidden="true"
-          />
-          <span className="generate-source-controls__label">Фото</span>
-        </button>
-        <span
-          className={cn(
-            'generate-source-controls__count',
-            sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-source-controls__count--limit'
-          )}
-          aria-label={`Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES} изображений`}
-        >
-          {sourceImageFiles.length}/{MAX_SOURCE_IMAGE_FILES}
-        </span>
-      </div>
-    </>
-  );
-
   const renderHistoryModal = () => {
     if (!historyOpen || typeof document === 'undefined') {
       return null;
@@ -1855,7 +1848,6 @@ export const GeneratePage: FC = () => {
       </div>
       {renderSourceImageStrip(true)}
       <div className="generate-form-block">
-        {renderSourceImageButton(true)}
         <div className="generate-input-wrapper">
           <textarea
             className="generate-input generate-input--readonly"
@@ -1935,7 +1927,6 @@ export const GeneratePage: FC = () => {
       <div className="generate-success-section generate-new-request">
         {renderSourceImageStrip(isGenerating)}
         <div className="generate-form-block">
-          {renderSourceImageButton(isGenerating)}
           <div
             className={cn(
               'generate-input-wrapper',
@@ -2004,7 +1995,6 @@ export const GeneratePage: FC = () => {
         </div>
       )}
       <div className="generate-form-block">
-        {renderSourceImageButton(false)}
         <div
           className={cn(
             'generate-input-wrapper',
@@ -2063,7 +2053,6 @@ export const GeneratePage: FC = () => {
       {renderSourceImageStrip(isGenerating)}
 
       <div className="generate-form-block">
-        {renderSourceImageButton(isGenerating)}
         <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
           <textarea
             className="generate-input"

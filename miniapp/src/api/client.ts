@@ -16,11 +16,11 @@ function readEnv(key: string): string | undefined {
 }
 
 const STICKER_PROCESSOR_URL = readEnv('VITE_STICKER_PROCESSOR_URL')?.replace(/\/+$/, '') ?? '';
-const UPLOAD_IMAGE_MAX_DIMENSION = 1600;
-const UPLOAD_IMAGE_REPROCESS_THRESHOLD_BYTES = 1_200_000;
-const UPLOAD_IMAGE_TARGET_BYTES = 900_000;
+const UPLOAD_IMAGE_MAX_DIMENSION = 1024;
+const UPLOAD_IMAGE_MAX_BYTES = 2_900_000;
+const UPLOAD_IMAGE_REPROCESS_THRESHOLD_BYTES = 2_700_000;
 const SOURCE_IMAGE_UPLOAD_BATCH_BYTES = 4_000_000;
-const JPEG_UPLOAD_QUALITIES = [0.9, 0.82, 0.74, 0.66] as const;
+const JPEG_UPLOAD_QUALITIES = [0.96, 0.92, 0.88, 0.84, 0.8, 0.76, 0.72] as const;
 
 function getStickerProcessorEndpoint(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -147,6 +147,50 @@ function loadImageElement(blob: Blob): Promise<HTMLImageElement> {
   });
 }
 
+type DecodedUploadImage =
+  | {
+      width: number;
+      height: number;
+      draw: (context: CanvasRenderingContext2D, width: number, height: number) => void;
+      release: () => void;
+    }
+  | {
+      width: number;
+      height: number;
+      draw: (context: CanvasRenderingContext2D, width: number, height: number) => void;
+      release: () => void;
+    };
+
+async function decodeUploadImage(blob: Blob): Promise<DecodedUploadImage> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+      return {
+        width: bitmap.width,
+        height: bitmap.height,
+        draw: (context, width, height) => {
+          context.drawImage(bitmap, 0, 0, width, height);
+        },
+        release: () => {
+          bitmap.close();
+        },
+      };
+    } catch {
+      // Fallback to HTMLImageElement below when createImageBitmap is unavailable or fails.
+    }
+  }
+
+  const image = await loadImageElement(blob);
+  return {
+    width: image.naturalWidth || image.width,
+    height: image.naturalHeight || image.height,
+    draw: (context, width, height) => {
+      context.drawImage(image, 0, 0, width, height);
+    },
+    release: () => {},
+  };
+}
+
 function getScaledDimensions(width: number, height: number, maxDimension: number): { width: number; height: number } {
   if (width <= maxDimension && height <= maxDimension) {
     return { width, height };
@@ -165,15 +209,82 @@ function canvasToBlob(canvas: HTMLCanvasElement, mimeType: string, quality?: num
   });
 }
 
+async function createOptimizedUploadBlob(
+  canvas: HTMLCanvasElement,
+  hasTransparency: boolean,
+): Promise<{ blob: Blob; mimeType: string } | null> {
+  const mimeTypeCandidates = hasTransparency
+    ? (['image/png', 'image/jpeg'] as const)
+    : (['image/jpeg'] as const);
+
+  let bestCandidate: { blob: Blob; mimeType: string } | null = null;
+
+  for (const mimeType of mimeTypeCandidates) {
+    const qualityCandidates = mimeType === 'image/png' ? [undefined] : [...JPEG_UPLOAD_QUALITIES];
+
+    for (const quality of qualityCandidates) {
+      const exportCanvas = mimeType === 'image/jpeg'
+        ? document.createElement('canvas')
+        : canvas;
+
+      if (mimeType === 'image/jpeg') {
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height;
+        const exportContext = exportCanvas.getContext('2d');
+        if (!exportContext) {
+          continue;
+        }
+
+        exportContext.fillStyle = '#ffffff';
+        exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        exportContext.drawImage(canvas, 0, 0);
+      }
+
+      const candidateBlob = await canvasToBlob(exportCanvas, mimeType, quality);
+      if (!candidateBlob) {
+        continue;
+      }
+
+      if (!bestCandidate || candidateBlob.size < bestCandidate.blob.size) {
+        bestCandidate = { blob: candidateBlob, mimeType };
+      }
+
+      if (candidateBlob.size <= UPLOAD_IMAGE_MAX_BYTES) {
+        return { blob: candidateBlob, mimeType };
+      }
+    }
+  }
+
+  return bestCandidate;
+}
+
+function canvasHasTransparency(canvas: HTMLCanvasElement): boolean {
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) {
+    return false;
+  }
+
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+  for (let index = 3; index < data.length; index += 4) {
+    if (data[index] < 255) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 async function optimizeUploadImage(file: File): Promise<File> {
   if (typeof document === 'undefined' || !file.type.startsWith('image/')) {
     return file;
   }
 
+  let decodedImage: DecodedUploadImage | null = null;
+
   try {
-    const image = await loadImageElement(file);
-    const originalWidth = image.naturalWidth || image.width;
-    const originalHeight = image.naturalHeight || image.height;
+    decodedImage = await decodeUploadImage(file);
+    const originalWidth = decodedImage.width;
+    const originalHeight = decodedImage.height;
     const scaled = getScaledDimensions(originalWidth, originalHeight, UPLOAD_IMAGE_MAX_DIMENSION);
     const shouldResize = scaled.width !== originalWidth || scaled.height !== originalHeight;
     const shouldReprocess = shouldResize || file.size > UPLOAD_IMAGE_REPROCESS_THRESHOLD_BYTES;
@@ -191,25 +302,34 @@ async function optimizeUploadImage(file: File): Promise<File> {
       return file;
     }
 
-    context.drawImage(image, 0, 0, scaled.width, scaled.height);
+    decodedImage.draw(context, scaled.width, scaled.height);
 
-    const targetMimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-    const qualityCandidates = targetMimeType === 'image/png' ? [undefined] : [...JPEG_UPLOAD_QUALITIES];
-    let optimizedBlob: Blob | null = null;
+    const hasTransparency = file.type !== 'image/jpeg' && canvasHasTransparency(canvas);
+    const optimizedResult = await createOptimizedUploadBlob(canvas, hasTransparency);
+    const optimizedBlob = optimizedResult?.blob ?? null;
+    const targetMimeType = optimizedResult?.mimeType ?? (hasTransparency ? 'image/png' : 'image/jpeg');
 
-    for (const quality of qualityCandidates) {
-      const candidate = await canvasToBlob(canvas, targetMimeType, quality);
-      if (!candidate) {
-        continue;
+    if (!optimizedBlob) {
+      if (file.size <= UPLOAD_IMAGE_MAX_BYTES && !shouldResize) {
+        return file;
       }
-
-      optimizedBlob = candidate;
-      if (candidate.size <= UPLOAD_IMAGE_TARGET_BYTES) {
-        break;
-      }
+      throw new Error('UPLOAD_TOO_LARGE');
     }
 
-    if (!optimizedBlob || optimizedBlob.size >= file.size) {
+    if (optimizedBlob.size > UPLOAD_IMAGE_MAX_BYTES) {
+      if (file.size <= UPLOAD_IMAGE_MAX_BYTES && !shouldResize) {
+        return file;
+      }
+      throw new Error('UPLOAD_TOO_LARGE');
+    }
+
+    const shouldUseOptimizedFile =
+      shouldResize ||
+      optimizedBlob.size < file.size ||
+      targetMimeType !== file.type ||
+      file.size > UPLOAD_IMAGE_MAX_BYTES;
+
+    if (!shouldUseOptimizedFile) {
       return file;
     }
 
@@ -220,7 +340,12 @@ async function optimizeUploadImage(file: File): Promise<File> {
       lastModified: file.lastModified,
     });
   } catch {
+    if (file.size > UPLOAD_IMAGE_MAX_BYTES) {
+      throw new Error('UPLOAD_TOO_LARGE');
+    }
     return file;
+  } finally {
+    decodedImage?.release();
   }
 }
 
