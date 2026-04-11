@@ -11,7 +11,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId } from '@/utils/stickerUtils';
+import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
@@ -48,7 +48,8 @@ const DEFAULT_GENERATE_MODEL: GenerateModelType = 'nanabanana';
 const DEFAULT_GENERATE_EMOJI = '🎨';
 const DEFAULT_REMOVE_BACKGROUND = true;
 const TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY = 'generate_telegram_avatar_dismissed';
-const DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-target:v1';
+const LAST_USED_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-last-used-save-target:v1';
+const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-target:v1';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -105,6 +106,23 @@ const buildDefaultStickerSetTitle = (params: {
   return `User ${params.userId ?? ''}`.trim();
 };
 
+const isTrustedStickerSetSaveTarget = (set: { name: string; userId?: number }, effectiveUserId: number): boolean => {
+  const normalizedName = set.name.trim().toLowerCase();
+  if (!normalizedName.endsWith(DEFAULT_STICKER_BOT_SUFFIX)) {
+    return false;
+  }
+
+  if (normalizedName.endsWith('_by_stickergallerybot')) {
+    return false;
+  }
+
+  if (typeof set.userId === 'number' && set.userId !== effectiveUserId) {
+    return false;
+  }
+
+  return true;
+};
+
 const getTelegramAvatarDismissedStorageKey = (telegramUserId: number): string =>
   `${TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY}:${telegramUserId}`;
 
@@ -125,8 +143,27 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
 const getSourceImageLimitMessage = (): string =>
   `Можно прикрепить не больше ${MAX_SOURCE_IMAGE_FILES} изображений. Лишние изображения не добавлены.`;
 
-const getDefaultSaveTargetStorageKey = (userScopeId: string): string =>
-  `${DEFAULT_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
+const getLastUsedSaveTargetStorageKey = (userScopeId: string): string =>
+  `${LAST_USED_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
+
+const getLegacyDefaultSaveTargetStorageKey = (userScopeId: string): string =>
+  `${LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
+
+const parseSaveTargetPayload = (raw: string | null): { name: string | null; title: string | null } | null => {
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as { name?: unknown; title?: unknown };
+    return {
+      name: typeof parsed.name === 'string' ? parsed.name : null,
+      title: typeof parsed.title === 'string' ? parsed.title : null,
+    };
+  } catch {
+    return null;
+  }
+};
 
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 const STIXLY_LOGO_ORANGE = `${BASE}assets/stixly-logo-orange.webp`;
@@ -194,8 +231,8 @@ export const GeneratePage: FC = () => {
   const [stickerSaved, setStickerSaved] = useState(false);
   const [savedStickerSetName, setSavedStickerSetName] = useState<string | null>(null);
   const [, setSavedStickerSetTitle] = useState<string | null>(null);
-  const [defaultStickerSetName, setDefaultStickerSetName] = useState<string | null>(null);
-  const [defaultStickerSetTitle, setDefaultStickerSetTitle] = useState<string | null>(null);
+  const [lastUsedStickerSetName, setLastUsedStickerSetName] = useState<string | null>(null);
+  const [lastUsedStickerSetTitle, setLastUsedStickerSetTitle] = useState<string | null>(null);
   const [saveNoticeText, setSaveNoticeText] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -282,6 +319,16 @@ export const GeneratePage: FC = () => {
     }, 3200);
   }, []);
 
+  const shouldUsePromptKeyboardMode = useMemo(() => {
+    const platformInfo = getPlatformInfo(tg);
+    const hasCoarsePointer =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches;
+
+    return platformInfo.isMobile || hasCoarsePointer;
+  }, [tg]);
+
   // При фокусе на поле промпта — мягко переводим форму в режим клавиатуры
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
     const target = e.target as HTMLElement;
@@ -290,14 +337,20 @@ export const GeneratePage: FC = () => {
         clearTimeout(promptFocusTimeoutRef.current);
         promptFocusTimeoutRef.current = null;
       }
+      if (!shouldUsePromptKeyboardMode) {
+        return;
+      }
       setIsPromptFocused(true);
       document.body.classList.add('generate-prompt-focused');
       scrollPromptIntoView(target);
     }
-  }, [scrollPromptIntoView]);
+  }, [scrollPromptIntoView, shouldUsePromptKeyboardMode]);
 
   const handlePromptFocusOut = useCallback((e: React.FocusEvent) => {
     if ((e.target as HTMLElement)?.classList?.contains?.('generate-input')) {
+      if (!shouldUsePromptKeyboardMode) {
+        return;
+      }
       promptFocusTimeoutRef.current && clearTimeout(promptFocusTimeoutRef.current);
       promptFocusTimeoutRef.current = window.setTimeout(() => {
         setIsPromptFocused(false);
@@ -305,7 +358,7 @@ export const GeneratePage: FC = () => {
         promptFocusTimeoutRef.current = null;
       }, 250);
     }
-  }, []);
+  }, [shouldUsePromptKeyboardMode]);
 
   useEffect(() => {
     return () => {
@@ -432,11 +485,11 @@ export const GeneratePage: FC = () => {
   ]);
   const historyUserScopeId = effectiveUserId != null ? String(effectiveUserId) : null;
 
-  const persistDefaultSaveTarget = useCallback((name: string | null, title: string | null) => {
+  const persistLastUsedSaveTarget = useCallback((name: string | null, title: string | null) => {
     if (!historyUserScopeId) return;
     try {
       window.localStorage.setItem(
-        getDefaultSaveTargetStorageKey(historyUserScopeId),
+        getLastUsedSaveTargetStorageKey(historyUserScopeId),
         JSON.stringify({ name, title })
       );
     } catch {
@@ -446,27 +499,50 @@ export const GeneratePage: FC = () => {
 
   useEffect(() => {
     if (!historyUserScopeId) {
-      setDefaultStickerSetName(null);
-      setDefaultStickerSetTitle(null);
+      setLastUsedStickerSetName(null);
+      setLastUsedStickerSetTitle(null);
       return;
     }
 
     try {
-      const raw = window.localStorage.getItem(getDefaultSaveTargetStorageKey(historyUserScopeId));
-      if (!raw) {
-        setDefaultStickerSetName(null);
-        setDefaultStickerSetTitle(null);
-        return;
-      }
+      const nextValue =
+        parseSaveTargetPayload(window.localStorage.getItem(getLastUsedSaveTargetStorageKey(historyUserScopeId))) ??
+        parseSaveTargetPayload(window.localStorage.getItem(getLegacyDefaultSaveTargetStorageKey(historyUserScopeId)));
 
-      const parsed = JSON.parse(raw) as { name?: unknown; title?: unknown };
-      setDefaultStickerSetName(typeof parsed.name === 'string' ? parsed.name : null);
-      setDefaultStickerSetTitle(typeof parsed.title === 'string' ? parsed.title : null);
+      setLastUsedStickerSetName(nextValue?.name ?? null);
+      setLastUsedStickerSetTitle(nextValue?.title ?? null);
     } catch {
-      setDefaultStickerSetName(null);
-      setDefaultStickerSetTitle(null);
+      setLastUsedStickerSetName(null);
+      setLastUsedStickerSetTitle(null);
     }
   }, [historyUserScopeId]);
+
+  const resolveValidatedLastUsedSaveTarget = useCallback(async () => {
+    if (!effectiveUserId || !lastUsedStickerSetName) {
+      return null;
+    }
+
+    try {
+      const response = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
+      const ownSets = (response.content ?? []).filter((set) => isTrustedStickerSetSaveTarget(set, effectiveUserId));
+      const matchedSet = ownSets.find((set) => set.name === lastUsedStickerSetName);
+
+      if (!matchedSet) {
+        setLastUsedStickerSetName(null);
+        setLastUsedStickerSetTitle(null);
+        persistLastUsedSaveTarget(null, null);
+        return null;
+      }
+
+      return {
+        name: matchedSet.name,
+        title: matchedSet.title || lastUsedStickerSetTitle || matchedSet.name,
+      };
+    } catch (error) {
+      console.warn('[GeneratePage] Failed to validate last used sticker set', error);
+      return null;
+    }
+  }, [effectiveUserId, lastUsedStickerSetName, lastUsedStickerSetTitle, persistLastUsedSaveTarget]);
 
   const persistGeneratePreferences = useCallback((patch: {
     selectedModel?: GenerateModelType;
@@ -1221,14 +1297,14 @@ export const GeneratePage: FC = () => {
     setSavedStickerSetName(stickerSetName);
     setSavedStickerSetTitle(stickerSetTitle);
     if (stickerSetName || stickerSetTitle) {
-      setDefaultStickerSetName(stickerSetName);
-      setDefaultStickerSetTitle(stickerSetTitle);
-      persistDefaultSaveTarget(stickerSetName, stickerSetTitle);
+      setLastUsedStickerSetName(stickerSetName);
+      setLastUsedStickerSetTitle(stickerSetTitle);
+      persistLastUsedSaveTarget(stickerSetName, stickerSetTitle);
     }
     showSaveNotice(stickerSetTitle ? `Сохранено в ${stickerSetTitle}` : 'Стикер сохранен');
     setSaveError(null);
     void refreshMyProfile();
-  }, [patchHistoryEntry, persistDefaultSaveTarget, refreshMyProfile, showSaveNotice, taskId]);
+  }, [patchHistoryEntry, persistLastUsedSaveTarget, refreshMyProfile, showSaveNotice, taskId]);
 
   const handleOpenSaveModal = useCallback(() => {
     setSaveError(null);
@@ -1264,8 +1340,9 @@ export const GeneratePage: FC = () => {
         lastName: userInfo?.lastName ?? user?.last_name ?? null,
         userId: effectiveUserId,
       });
-      const targetSetName = defaultStickerSetName ?? fallbackSetName;
-      const targetSetTitle = defaultStickerSetTitle ?? fallbackSetTitle;
+      const validatedLastUsedTarget = await resolveValidatedLastUsedSaveTarget();
+      const targetSetName = validatedLastUsedTarget?.name ?? fallbackSetName;
+      const targetSetTitle = validatedLastUsedTarget?.title ?? fallbackSetTitle;
 
       const response = await apiClient.saveToStickerSetV2({
         taskId,
@@ -1284,9 +1361,9 @@ export const GeneratePage: FC = () => {
       setStickerSaved(true);
       setSavedStickerSetName(response.stickerSetName ?? targetSetName);
       setSavedStickerSetTitle(response.title ?? targetSetTitle);
-      setDefaultStickerSetName(response.stickerSetName ?? targetSetName);
-      setDefaultStickerSetTitle(response.title ?? targetSetTitle);
-      persistDefaultSaveTarget(response.stickerSetName ?? targetSetName, response.title ?? targetSetTitle);
+      setLastUsedStickerSetName(response.stickerSetName ?? targetSetName);
+      setLastUsedStickerSetTitle(response.title ?? targetSetTitle);
+      persistLastUsedSaveTarget(response.stickerSetName ?? targetSetName, response.title ?? targetSetTitle);
       showSaveNotice(`Сохранено в ${response.title ?? targetSetTitle}`);
 
       if (savedFileId) {
@@ -1304,7 +1381,7 @@ export const GeneratePage: FC = () => {
         return;
       }
 
-      const message = 'Стикер сохранён в дефолтный пак, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.';
+      const message = 'Стикер сохранён, но Telegram fileId пока не вернулся. Попробуйте нажать "Поделиться" ещё раз.';
       if (tg?.showAlert) {
         tg.showAlert(message);
       } else {
@@ -1423,30 +1500,9 @@ export const GeneratePage: FC = () => {
       return null;
     }
 
-    const isSourceImageLimitReached = sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES;
-
     return (
       <div className="generate-source-strip" aria-label="Прикрепленные изображения">
         <div className="generate-source-strip__inner">
-          {!disabled && (
-            <button
-              type="button"
-              className={cn(
-                'generate-source-strip__add',
-                isSourceImageLimitReached && 'generate-source-strip__add--limit',
-              )}
-              onClick={handleSourceImagePick}
-              disabled={isSourceImageLimitReached}
-              aria-label="Добавить еще изображения"
-            >
-              <img
-                src={`${BASE}assets/pictures-icon.svg`}
-                alt=""
-                className="generate-source-strip__add-icon"
-                aria-hidden="true"
-              />
-            </button>
-          )}
           {sourceImagePreviews.map((preview, index) => (
             <div
               key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
@@ -1672,13 +1728,10 @@ export const GeneratePage: FC = () => {
         hidden
         onChange={handleSourceImageChange}
       />
-      <div className="generate-input-wrapper__pictures-slot">
+      <div className="generate-source-controls">
         <button
           type="button"
-          className={cn(
-            'generate-input-wrapper__pictures-button',
-            hasSourceImage && 'generate-input-wrapper__pictures-button--with-preview'
-          )}
+          className="generate-source-controls__button"
           onClick={handleSourceImagePick}
           disabled={disabled}
           aria-label={hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}
@@ -1686,14 +1739,15 @@ export const GeneratePage: FC = () => {
           <img
             src={`${BASE}assets/pictures-icon.svg`}
             alt=""
-            className="generate-input-wrapper__pictures-icon"
+            className="generate-source-controls__icon"
             aria-hidden="true"
           />
+          <span className="generate-source-controls__label">Фото</span>
         </button>
         <span
           className={cn(
-            'generate-input-wrapper__pictures-count',
-            sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-input-wrapper__pictures-count--limit'
+            'generate-source-controls__count',
+            sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-source-controls__count--limit'
           )}
           aria-label={`Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES} изображений`}
         >
@@ -1720,7 +1774,7 @@ export const GeneratePage: FC = () => {
             <div className="generate-history-modal__header-copy">
               <h2 className="generate-history-modal__title">История генераций</h2>
               <p className="generate-history-modal__subtitle">
-                Нажмите на карточку, чтобы вернуть результат и настройки.
+                История временная. Важные стикеры сохраняйте в стикерпак.
               </p>
             </div>
             <button
@@ -1780,7 +1834,6 @@ export const GeneratePage: FC = () => {
                             <span className="generate-history-item__chip">{secondaryChip}</span>
                           )}
                         </div>
-                        <span className="generate-history-item__open-hint">Открыть</span>
                       </div>
                     </div>
                   </button>
@@ -1802,8 +1855,8 @@ export const GeneratePage: FC = () => {
       </div>
       {renderSourceImageStrip(true)}
       <div className="generate-form-block">
+        {renderSourceImageButton(true)}
         <div className="generate-input-wrapper">
-          {renderSourceImageButton(true)}
           <textarea
             className="generate-input generate-input--readonly"
             rows={4}
@@ -1882,6 +1935,7 @@ export const GeneratePage: FC = () => {
       <div className="generate-success-section generate-new-request">
         {renderSourceImageStrip(isGenerating)}
         <div className="generate-form-block">
+          {renderSourceImageButton(isGenerating)}
           <div
             className={cn(
               'generate-input-wrapper',
@@ -1889,7 +1943,6 @@ export const GeneratePage: FC = () => {
               shouldShowPromptError && 'generate-input-wrapper--error',
             )}
           >
-            {renderSourceImageButton(isGenerating)}
             <textarea
               className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
               rows={4}
@@ -1951,6 +2004,7 @@ export const GeneratePage: FC = () => {
         </div>
       )}
       <div className="generate-form-block">
+        {renderSourceImageButton(false)}
         <div
           className={cn(
             'generate-input-wrapper',
@@ -1958,7 +2012,6 @@ export const GeneratePage: FC = () => {
             shouldShowPromptError && 'generate-input-wrapper--error',
           )}
         >
-          {renderSourceImageButton(false)}
           <textarea
             className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
             rows={4}
@@ -2010,8 +2063,8 @@ export const GeneratePage: FC = () => {
       {renderSourceImageStrip(isGenerating)}
 
       <div className="generate-form-block">
+        {renderSourceImageButton(isGenerating)}
         <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
-          {renderSourceImageButton(isGenerating)}
           <textarea
             className="generate-input"
             rows={4}
@@ -2077,9 +2130,6 @@ export const GeneratePage: FC = () => {
         </div>
         <div className="generate-history-toggle__content">
           <span className="generate-history-toggle__title">История</span>
-          <span className="generate-history-toggle__subtitle">
-            {latestHistoryEntry ? 'Вернуть прошлую генерацию' : 'Последние результаты'}
-          </span>
         </div>
         <RestoreIcon size={16} />
         {historyEntries.some((entry) => entry.isActive) && <span className="generate-history-toggle__dot" />}
@@ -2107,8 +2157,8 @@ export const GeneratePage: FC = () => {
         userId={effectiveUserId}
         selectedEmoji={selectedEmoji}
         currentSavedStickerSetName={savedStickerSetName}
-        preferredStickerSetName={defaultStickerSetName}
-        preferredStickerSetTitle={defaultStickerSetTitle}
+        lastUsedStickerSetName={lastUsedStickerSetName}
+        lastUsedStickerSetTitle={lastUsedStickerSetTitle}
         onSaved={handleSavedFromModal}
       />
     </div>

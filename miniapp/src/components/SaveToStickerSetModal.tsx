@@ -9,6 +9,9 @@ import type { StickerSetResponse } from '@/types/sticker';
 import './SaveToStickerSetModal.css';
 
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
+const STICKER_BOT_SUFFIX = '_by_stixlybot';
+const TELEGRAM_STICKER_SET_NAME_MAX_LENGTH = 64;
+const UNIQUE_NAME_TOKEN_LENGTH = 6;
 
 export interface SaveToStickerSetModalProps {
   isOpen: boolean;
@@ -19,8 +22,8 @@ export interface SaveToStickerSetModalProps {
   userId: number | null;
   selectedEmoji?: string;
   currentSavedStickerSetName?: string | null;
-  preferredStickerSetName?: string | null;
-  preferredStickerSetTitle?: string | null;
+  lastUsedStickerSetName?: string | null;
+  lastUsedStickerSetTitle?: string | null;
   onSaved: (payload?: {
     stickerFileId?: string | null;
     stickerSetName?: string | null;
@@ -28,15 +31,35 @@ export interface SaveToStickerSetModalProps {
   }) => void;
 }
 
-function buildStickerSetName(title: string): string {
-  const normalized = title
+function normalizeStickerSetSegment(value: string): string {
+  return value
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_]/g, '')
+    .replace(/[^a-z0-9_]/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '');
-  return normalized || 'my_pack';
+}
+
+function buildUniqueStickerSetName(params: {
+  title: string;
+  username?: string | null;
+  userId?: number | null;
+}): string {
+  const titleBase = normalizeStickerSetSegment(params.title) || 'pack';
+  const ownerBase =
+    normalizeStickerSetSegment(params.username ?? '') ||
+    (params.userId != null ? `u${params.userId}` : 'user');
+  const uniqueToken = Date.now().toString(36).slice(-UNIQUE_NAME_TOKEN_LENGTH);
+  const reservedLength =
+    STICKER_BOT_SUFFIX.length +
+    ownerBase.length +
+    uniqueToken.length +
+    2; // underscores between title/owner/token
+  const maxTitleLength = Math.max(6, TELEGRAM_STICKER_SET_NAME_MAX_LENGTH - reservedLength);
+  const titlePart = titleBase.slice(0, maxTitleLength).replace(/^_+|_+$/g, '') || 'pack';
+
+  return `${titlePart}_${ownerBase}_${uniqueToken}${STICKER_BOT_SUFFIX}`;
 }
 
 function getSetPreviewUrl(set: StickerSetResponse): string {
@@ -56,6 +79,23 @@ function getVisibilityLabel(set: StickerSetResponse): 'Public' | 'Private' {
   return 'Private';
 }
 
+function isTrustedUserStickerSet(set: StickerSetResponse, effectiveUserId: number): boolean {
+  const normalizedName = set.name.trim().toLowerCase();
+  if (!normalizedName.endsWith(STICKER_BOT_SUFFIX)) {
+    return false;
+  }
+
+  if (normalizedName.endsWith('_by_stickergallerybot')) {
+    return false;
+  }
+
+  if (typeof set.userId === 'number' && set.userId !== effectiveUserId) {
+    return false;
+  }
+
+  return true;
+}
+
 const DISMISS_THRESHOLD = 100;
 const DRAG_ANIMATION_MS = 200;
 
@@ -67,8 +107,8 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   userId,
   selectedEmoji = '🎨',
   currentSavedStickerSetName = null,
-  preferredStickerSetName = null,
-  preferredStickerSetTitle = null,
+  lastUsedStickerSetName = null,
+  lastUsedStickerSetTitle = null,
   onSaved,
 }) => {
   const userInfo = useProfileStore((state) => state.userInfo);
@@ -86,9 +126,13 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   const isDraggingDownRef = useRef(false);
 
   const orderedSets = useMemo(() => {
+    const validatedLastUsedSetName = sets.some((set) => set.name === lastUsedStickerSetName)
+      ? lastUsedStickerSetName
+      : null;
+
     const getPriority = (set: StickerSetResponse): number => {
       if (currentSavedStickerSetName && set.name === currentSavedStickerSetName) return 0;
-      if (preferredStickerSetName && set.name === preferredStickerSetName) return 1;
+      if (validatedLastUsedSetName && set.name === validatedLastUsedSetName) return 1;
       return 2;
     };
 
@@ -97,7 +141,12 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
       if (priorityDiff !== 0) return priorityDiff;
       return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
     });
-  }, [currentSavedStickerSetName, preferredStickerSetName, sets]);
+  }, [currentSavedStickerSetName, lastUsedStickerSetName, sets]);
+
+  const validatedLastUsedSet = useMemo(
+    () => orderedSets.find((set) => set.name === lastUsedStickerSetName) ?? null,
+    [lastUsedStickerSetName, orderedSets]
+  );
 
   const loadSets = useCallback(async () => {
     if (!effectiveUserId) return;
@@ -105,8 +154,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     setError(null);
     try {
       const res = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
-      const botSuffix = '_by_stixlybot';
-      const ownSets = (res.content ?? []).filter(s => s.name.endsWith(botSuffix));
+      const ownSets = (res.content ?? []).filter((set) => isTrustedUserStickerSet(set, effectiveUserId));
       setSets(ownSets);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить наборы');
@@ -265,14 +313,19 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     setCreateError(null);
     try {
       let stickerFileId: string | undefined;
-      let savedSetName = buildStickerSetName(title);
+      const nextStickerSetName = buildUniqueStickerSetName({
+        title,
+        username: userInfo?.username ?? null,
+        userId: effectiveUserId,
+      });
+      let savedSetName = nextStickerSetName;
       let savedSetTitle = title;
 
       if (taskId && effectiveUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
           userId: effectiveUserId,
-          name: buildStickerSetName(title),
+          name: nextStickerSetName,
           title,
           emoji: selectedEmoji,
           wait_timeout_sec: SAVE_TO_SET_WAIT_TIMEOUT_SEC,
@@ -287,7 +340,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
         const created = await apiClient.createNewStickerSet({
           imageUuid: imageId,
           title,
-          name: buildStickerSetName(title) || undefined,
+          name: nextStickerSetName,
         });
         stickerFileId =
           (created as { stickerFileId?: string }).stickerFileId ??
@@ -353,7 +406,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
                   <div className="save-to-stickerset-modal__list-inner">
                     {orderedSets.map((set, i) => {
                       const isSavedSet = currentSavedStickerSetName === set.name;
-                      const isDefaultSet = preferredStickerSetName === set.name;
+                      const isLastUsedSet = validatedLastUsedSet?.name === set.name;
                       return (
                       <button
                         key={set.id}
@@ -361,7 +414,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
                         className={[
                           'save-to-stickerset-modal__item',
                           isSavedSet ? 'save-to-stickerset-modal__item--saved' : '',
-                          isDefaultSet ? 'save-to-stickerset-modal__item--default' : '',
+                          isLastUsedSet ? 'save-to-stickerset-modal__item--last-used' : '',
                         ].filter(Boolean).join(' ')}
                         onClick={() => handleSelectSet(set)}
                         disabled={saving}
@@ -372,7 +425,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
                         </div>
                         <div className="save-to-stickerset-modal__copy">
                           <span className="save-to-stickerset-modal__title">{set.title || set.name}</span>
-                          {(isSavedSet || isDefaultSet) && (
+                          {(isSavedSet || isLastUsedSet) && (
                             <span className="save-to-stickerset-modal__badges">
                               {isSavedSet && (
                                 <span className="save-to-stickerset-modal__badge save-to-stickerset-modal__badge--saved">
@@ -382,9 +435,9 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
                                   <span>Сохранено</span>
                                 </span>
                               )}
-                              {isDefaultSet && (
-                                <span className="save-to-stickerset-modal__badge save-to-stickerset-modal__badge--default">
-                                  <span>По умолчанию</span>
+                              {isLastUsedSet && (
+                                <span className="save-to-stickerset-modal__badge save-to-stickerset-modal__badge--last-used">
+                                  <span>Последний</span>
                                 </span>
                               )}
                             </span>
@@ -403,9 +456,9 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
               {error && <p className="save-to-stickerset-modal__error">{error}</p>}
 
               <p className="save-to-stickerset-modal__hint">Выберите набор или создайте новый</p>
-              {preferredStickerSetTitle && (
+              {validatedLastUsedSet && (
                 <p className="save-to-stickerset-modal__subhint">
-                  По умолчанию будет использоваться: {preferredStickerSetTitle}
+                  Последний использованный: {validatedLastUsedSet.title || lastUsedStickerSetTitle || validatedLastUsedSet.name}
                 </p>
               )}
 
