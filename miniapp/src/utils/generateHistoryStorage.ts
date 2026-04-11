@@ -196,3 +196,19 @@ export const clearActiveGenerateHistoryEntry = (userScopeId: string): GenerateHi
   const updated = prev.map((entry) => ({ ...entry, isActive: false }));
   return writeEntries(userScopeId, updated);
 };
+
+export const deleteGenerateHistoryEntry = (
+  userScopeId: string,
+  matcher: { localId?: string; taskId?: string }
+): GenerateHistoryEntry[] => {
+  const prev = readGenerateHistory(userScopeId);
+  if (!matcher.localId && !matcher.taskId) return prev;
+
+  const filtered = prev.filter((entry) => {
+    const matchesLocalId = matcher.localId && entry.localId === matcher.localId;
+    const matchesTaskId = matcher.taskId && entry.taskId != null && entry.taskId === matcher.taskId;
+    return !(matchesLocalId || matchesTaskId);
+  });
+
+  return writeEntries(userScopeId, filtered);
+};

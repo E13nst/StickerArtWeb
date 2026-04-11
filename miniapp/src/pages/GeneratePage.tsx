@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { KeyboardArrowDownIcon, RestoreIcon } from '@/components/ui/Icons';
+import { KeyboardArrowDownIcon } from '@/components/ui/Icons';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset } from '@/api/client';
@@ -18,6 +18,7 @@ import { resolveAvatarContext } from '@/utils/resolvedAvatar';
 import {
   clearActiveGenerateHistoryEntry,
   createGenerateHistoryLocalId,
+  deleteGenerateHistoryEntry,
   GenerateHistoryEntry,
   readGenerateHistory,
   upsertGenerateHistoryEntry,
@@ -43,6 +44,7 @@ const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
 const MAX_SOURCE_IMAGE_FILES = 14;
+const SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES = 64 * 1024;
 const TERMINAL_GENERATION_STATUSES: GenerationStatus[] = ['COMPLETED', 'FAILED', 'TIMEOUT'];
 const DEFAULT_GENERATE_MODEL: GenerateModelType = 'nanabanana';
 const DEFAULT_GENERATE_EMOJI = '🎨';
@@ -142,6 +144,9 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
 
 const getSourceImageLimitMessage = (): string =>
   `Можно прикрепить не больше ${MAX_SOURCE_IMAGE_FILES} изображений. Лишние изображения не добавлены.`;
+
+const bytesToHex = (bytes: Uint8Array): string =>
+  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
 const getLastUsedSaveTargetStorageKey = (userScopeId: string): string =>
   `${LAST_USED_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
@@ -565,6 +570,15 @@ export const GeneratePage: FC = () => {
     },
     [historyUserScopeId]
   );
+
+  const removeHistoryEntry = useCallback((matcher: { localId?: string; taskId?: string }) => {
+    if (!historyUserScopeId) return;
+    const updated = deleteGenerateHistoryEntry(historyUserScopeId, matcher);
+    if (matcher.localId && activeHistoryLocalIdRef.current === matcher.localId) {
+      activeHistoryLocalIdRef.current = null;
+    }
+    setHistoryEntries(updated);
+  }, [historyUserScopeId]);
 
   useEffect(() => {
     refreshMyProfile();
@@ -1084,11 +1098,55 @@ export const GeneratePage: FC = () => {
     sourceImageInputRef.current?.click();
   }, []);
 
+  const buildSourceImageFingerprint = useCallback(async (file: File): Promise<string> => {
+    const fallbackFingerprint = [file.type, file.size, file.lastModified, file.name].join(':');
+    if (typeof crypto === 'undefined' || !crypto.subtle || typeof TextEncoder === 'undefined') {
+      return fallbackFingerprint;
+    }
+
+    try {
+      const encoder = new TextEncoder();
+      const metadataBytes = encoder.encode(`${file.type}:${file.size}`);
+      const headBytes = new Uint8Array(
+        await file.slice(0, SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES).arrayBuffer()
+      );
+      const tailStart = Math.max(0, file.size - SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES);
+      const tailBytes = tailStart > 0
+        ? new Uint8Array(await file.slice(tailStart).arrayBuffer())
+        : new Uint8Array();
+      const payload = new Uint8Array(metadataBytes.length + headBytes.length + tailBytes.length);
+      payload.set(metadataBytes, 0);
+      payload.set(headBytes, metadataBytes.length);
+      payload.set(tailBytes, metadataBytes.length + headBytes.length);
+      const digest = await crypto.subtle.digest('SHA-256', payload);
+      return `${file.type}:${file.size}:${bytesToHex(new Uint8Array(digest))}`;
+    } catch {
+      return fallbackFingerprint;
+    }
+  }, []);
+
   const appendSourceImages = useCallback(async (files: File[]) => {
     if (!files.length) return;
 
     const currentSourceCount = sourceImageOrigin === 'telegram-avatar' ? 0 : sourceImageFiles.length;
     const shouldReplaceTelegramAvatar = sourceImageOrigin === 'telegram-avatar';
+    const existingFiles = shouldReplaceTelegramAvatar ? [] : sourceImageFiles;
+    const existingFingerprints = new Set(await Promise.all(existingFiles.map((file) => buildSourceImageFingerprint(file))));
+    const uniqueIncomingFiles: File[] = [];
+
+    for (const file of files) {
+      const fingerprint = await buildSourceImageFingerprint(file);
+      if (existingFingerprints.has(fingerprint)) {
+        continue;
+      }
+      existingFingerprints.add(fingerprint);
+      uniqueIncomingFiles.push(file);
+    }
+
+    if (!uniqueIncomingFiles.length) {
+      return;
+    }
+
     const remainingSlots = MAX_SOURCE_IMAGE_FILES - currentSourceCount;
     if (remainingSlots <= 0) {
       setErrorMessage(getSourceImageLimitMessage());
@@ -1097,8 +1155,8 @@ export const GeneratePage: FC = () => {
       return;
     }
 
-    const filesToAppend = files.slice(0, remainingSlots);
-    const skippedFilesCount = files.length - filesToAppend.length;
+    const filesToAppend = uniqueIncomingFiles.slice(0, remainingSlots);
+    const skippedFilesCount = uniqueIncomingFiles.length - filesToAppend.length;
 
     try {
       const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
@@ -1127,7 +1185,7 @@ export const GeneratePage: FC = () => {
       setErrorKind('upload');
       setPageState('error');
     }
-  }, [pageState, persistGeneratePreferences, selectedModel, sourceImageFiles.length, sourceImageOrigin]);
+  }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, selectedModel, sourceImageFiles, sourceImageOrigin]);
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
     if (options?.markAvatarDismissed && sourceImageOrigin === 'telegram-avatar') {
@@ -1409,6 +1467,15 @@ export const GeneratePage: FC = () => {
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
   const latestHistoryEntry = historyEntries[0] ?? null;
+  const historyHasCurrentResultPreview = pageState === 'success' && !!resultImageUrl;
+  const historyHasStoredResultPreview = !!latestHistoryEntry?.resultImageUrl;
+  const historyPreviewImage = historyHasCurrentResultPreview
+    ? resultImageUrl
+    : latestHistoryEntry?.resultImageUrl ?? null;
+  const historyPreviewFallback = latestHistoryEntry?.selectedEmoji ?? '🕘';
+  const historyHasPreviewImage = !!historyPreviewImage;
+  const shouldCompactHistoryToggle = historyHasCurrentResultPreview;
+  const hasActiveHistoryEntry = historyEntries.some((entry) => entry.isActive);
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
@@ -1512,78 +1579,101 @@ export const GeneratePage: FC = () => {
       <div className="generate-source-strip" aria-label="Прикрепленные изображения">
         <div
           className={cn(
-            'generate-source-strip__inner',
-            !hasSourceImage && 'generate-source-strip__inner--empty'
+            'generate-source-strip__scroll-shell',
+            !hasSourceImage && 'generate-source-strip__scroll-shell--empty'
           )}
         >
-          {sourceImagePreviews.map((preview, index) => (
-            <div
-              key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
-              className="generate-source-strip__item"
-              draggable={!disabled && sourceImageFiles.length > 1}
-              onDragStart={() => {
-                draggedSourceImageIndexRef.current = index;
-              }}
-              onDragOver={(event) => {
-                if (disabled) return;
-                event.preventDefault();
-              }}
-              onDrop={(event) => {
-                if (disabled) return;
-                event.preventDefault();
-                const draggedIndex = draggedSourceImageIndexRef.current;
-                if (draggedIndex == null) return;
-                moveSourceImage(draggedIndex, index);
-                draggedSourceImageIndexRef.current = null;
-              }}
-              onDragEnd={() => {
-                draggedSourceImageIndexRef.current = null;
-              }}
-            >
-              <img
-                src={preview}
-                alt={`Исходное изображение ${index + 1}`}
-                className="generate-source-strip__image"
-                loading="lazy"
-                decoding="async"
-              />
-              {!disabled && (
-                <button
-                  type="button"
-                  className="generate-source-strip__remove"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeSourceImageAt(index);
-                  }}
-                  aria-label={`Удалить изображение ${index + 1}`}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+          <div
+            className={cn(
+              'generate-source-strip__inner',
+              !hasSourceImage && 'generate-source-strip__inner--empty'
+            )}
+          >
+            {sourceImagePreviews.map((preview, index) => (
+              <div
+                key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
+                className="generate-source-strip__item"
+                draggable={!disabled && sourceImageFiles.length > 1}
+                onDragStart={() => {
+                  draggedSourceImageIndexRef.current = index;
+                }}
+                onDragOver={(event) => {
+                  if (disabled) return;
+                  event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  if (disabled) return;
+                  event.preventDefault();
+                  const draggedIndex = draggedSourceImageIndexRef.current;
+                  if (draggedIndex == null) return;
+                  moveSourceImage(draggedIndex, index);
+                  draggedSourceImageIndexRef.current = null;
+                }}
+                onDragEnd={() => {
+                  draggedSourceImageIndexRef.current = null;
+                }}
+              >
+                <img
+                  src={preview}
+                  alt={`Исходное изображение ${index + 1}`}
+                  className="generate-source-strip__image"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {!disabled && (
+                  <button
+                    type="button"
+                    className="generate-source-strip__remove"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeSourceImageAt(index);
+                    }}
+                    aria-label={`Удалить изображение ${index + 1}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            {sourceImageFiles.length >= 2 && (
+              <button
+                type="button"
+                className="generate-source-strip__clear-all"
+                onClick={() => clearSourceImage()}
+                disabled={disabled}
+                aria-label="Удалить все прикрепленные изображения"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
         <button
           type="button"
           className="generate-source-picker"
           onClick={handleSourceImagePick}
-          disabled={disabled}
+          disabled={disabled || sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES}
           aria-label={`${hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`}
         >
-          <img
-            src={`${BASE}assets/pictures-icon.svg`}
-            alt=""
-            className="generate-source-picker__icon"
-            aria-hidden="true"
-          />
+          {sourceImageFiles.length < MAX_SOURCE_IMAGE_FILES && (
+            <img
+              src={`${BASE}assets/pictures-icon.svg`}
+              alt=""
+              className="generate-source-picker__icon"
+              aria-hidden="true"
+            />
+          )}
           <span
             className={cn(
               'generate-source-picker__badge',
-              sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-source-picker__badge--limit'
+              sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-source-picker__badge--limit',
+              sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES && 'generate-source-picker__badge--full'
             )}
             aria-hidden="true"
           >
-            {MAX_SOURCE_IMAGE_FILES} max
+            {sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES
+              ? `${MAX_SOURCE_IMAGE_FILES} max`
+              : sourceImageFiles.length}
           </span>
         </button>
       </div>
@@ -1685,7 +1775,7 @@ export const GeneratePage: FC = () => {
   );
 
   const renderStyleSelect = (disabled: boolean) => (
-    <div ref={styleDropdownRef} className="generate-model-select-wrap">
+    <div ref={styleDropdownRef} className="generate-model-select-wrap generate-model-select-wrap--style">
       <button
         type="button"
         className="generate-model-select-trigger"
@@ -1702,7 +1792,7 @@ export const GeneratePage: FC = () => {
         />
       </button>
       {styleDropdownOpen && (
-        <div className="generate-model-select-dropdown">
+        <div className="generate-model-select-dropdown generate-model-select-dropdown--style">
           {styleSelectOptions.map((opt) => (
             <button
               key={opt.id}
@@ -1762,11 +1852,11 @@ export const GeneratePage: FC = () => {
     return createPortal(
       <ModalBackdrop open={historyOpen} onClose={() => setHistoryOpen(false)} keepNavbarVisible>
         <section
+          id="generate-history-modal"
           data-modal-content
           className="generate-history-modal"
           aria-label="История генераций"
         >
-          <div className="generate-history-modal__handle" aria-hidden="true" />
           <div className="generate-history-modal__header">
             <div className="generate-history-modal__header-copy">
               <h2 className="generate-history-modal__title">История генераций</h2>
@@ -1795,45 +1885,64 @@ export const GeneratePage: FC = () => {
             <div className="generate-history-modal__list" role="list">
               {historyEntries.map((entry) => {
                 const secondaryChip = getHistorySecondaryChip(entry);
+                const statusTone = getHistoryStatusTone(entry);
+                const canRemoveEntry = statusTone === 'error';
 
                 return (
-                  <button
+                  <div
                     key={entry.localId}
-                    type="button"
                     role="listitem"
-                    className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
-                    onClick={() => openHistoryEntry(entry)}
+                    className={cn('generate-history-item-shell', canRemoveEntry && 'generate-history-item-shell--removable')}
                   >
-                    <div className="generate-history-item__preview-wrap" aria-hidden="true">
-                      {entry.resultImageUrl ? (
-                        <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" />
-                      ) : (
-                        <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
-                      )}
-                    </div>
-                    <div className="generate-history-item__main">
-                      <div className="generate-history-item__top">
-                        <span
-                          className={cn(
-                            'generate-history-item__status',
-                            `generate-history-item__status--${getHistoryStatusTone(entry)}`
-                          )}
-                        >
-                          {formatHistoryStatus(entry)}
-                        </span>
-                        {entry.isActive && <span className="generate-history-item__active-badge">Сейчас</span>}
+                    <button
+                      type="button"
+                      className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
+                      onClick={() => openHistoryEntry(entry)}
+                    >
+                      <div className="generate-history-item__preview-wrap" aria-hidden="true">
+                        {entry.resultImageUrl ? (
+                          <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" />
+                        ) : (
+                          <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
+                        )}
                       </div>
-                      <div className="generate-history-item__prompt">{getHistoryPromptLabel(entry)}</div>
-                      <div className="generate-history-item__footer">
-                        <div className="generate-history-item__chips">
-                          <span className="generate-history-item__chip">{getHistoryPrimaryChip(entry)}</span>
-                          {secondaryChip && (
-                            <span className="generate-history-item__chip">{secondaryChip}</span>
-                          )}
+                      <div className="generate-history-item__main">
+                        <div className="generate-history-item__top">
+                          <span
+                            className={cn(
+                              'generate-history-item__status',
+                              `generate-history-item__status--${statusTone}`
+                            )}
+                          >
+                            {formatHistoryStatus(entry)}
+                          </span>
+                          {entry.isActive && <span className="generate-history-item__active-badge">Сейчас</span>}
+                        </div>
+                        <div className="generate-history-item__prompt">{getHistoryPromptLabel(entry)}</div>
+                        <div className="generate-history-item__footer">
+                          <div className="generate-history-item__chips">
+                            <span className="generate-history-item__chip">{getHistoryPrimaryChip(entry)}</span>
+                            {secondaryChip && (
+                              <span className="generate-history-item__chip">{secondaryChip}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    {canRemoveEntry && (
+                      <button
+                        type="button"
+                        className="generate-history-item__remove"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeHistoryEntry({ localId: entry.localId });
+                        }}
+                        aria-label="Удалить ошибочную запись из истории"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -1871,7 +1980,13 @@ export const GeneratePage: FC = () => {
             </label>
           </div>
         </div>
-        <Button variant="primary" size="medium" disabled className="generate-button-submit">
+        <Button
+          variant="primary"
+          size="medium"
+          loading
+          className="generate-button-submit"
+          aria-label="Идет генерация"
+        >
           Подождите
         </Button>
       </div>
@@ -2104,28 +2219,35 @@ export const GeneratePage: FC = () => {
       <OtherAccountBackground />
       <button
         type="button"
-        className="generate-history-toggle"
+        className={cn(
+          'generate-history-toggle',
+          shouldCompactHistoryToggle && 'generate-history-toggle--compact',
+          historyHasPreviewImage && 'generate-history-toggle--preview-image',
+          historyHasCurrentResultPreview && 'generate-history-toggle--current-preview',
+          historyHasStoredResultPreview && !historyHasCurrentResultPreview && 'generate-history-toggle--history-preview'
+        )}
         onClick={() => setHistoryOpen((prev) => !prev)}
         aria-label="Открыть историю генераций"
+        aria-expanded={historyOpen}
+        aria-controls="generate-history-modal"
       >
+        <div className="generate-history-toggle__content">
+          <span className="generate-history-toggle__title">История</span>
+        </div>
         <div className="generate-history-toggle__preview" aria-hidden="true">
-          {latestHistoryEntry?.resultImageUrl ? (
+          {historyPreviewImage ? (
             <img
               className="generate-history-toggle__preview-image"
-              src={latestHistoryEntry.resultImageUrl}
+              src={historyPreviewImage}
               alt=""
             />
           ) : (
             <span className="generate-history-toggle__preview-fallback">
-              {latestHistoryEntry?.selectedEmoji ?? '🕘'}
+              {historyPreviewFallback}
             </span>
           )}
         </div>
-        <div className="generate-history-toggle__content">
-          <span className="generate-history-toggle__title">История</span>
-        </div>
-        <RestoreIcon size={16} />
-        {historyEntries.some((entry) => entry.isActive) && <span className="generate-history-toggle__dot" />}
+        {hasActiveHistoryEntry && <span className="generate-history-toggle__dot" />}
       </button>
       {renderHistoryModal()}
       <StixlyPageContainer

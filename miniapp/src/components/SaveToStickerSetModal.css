@@ -305,3 +305,20 @@
 .save-to-stickerset-modal__create-actions > * {
   flex: 1;
 }
+
+.save-to-stickerset-modal .button-loading {
+  gap: 0;
+}
+
+.save-to-stickerset-modal .button-loading .button-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.save-to-stickerset-modal .button-loading .button-content {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
