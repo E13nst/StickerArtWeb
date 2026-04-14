@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, MouseEvent as ReactMouseEvent, useMemo, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
@@ -148,6 +148,9 @@ const getSourceImageLimitMessage = (): string =>
 const bytesToHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
+const isTelegramAvatarSourceFile = (file?: File | null): boolean =>
+  Boolean(file && /^telegram-avatar\./i.test(file.name));
+
 const getLastUsedSaveTargetStorageKey = (userScopeId: string): string =>
   `${LAST_USED_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
 
@@ -224,7 +227,9 @@ export const GeneratePage: FC = () => {
   const [sourceImageFiles, setSourceImageFiles] = useState<File[]>([]);
   const [sourceImagePreviews, setSourceImagePreviews] = useState<string[]>([]);
   const [sourceImageOrigin, setSourceImageOrigin] = useState<'none' | 'manual' | 'telegram-avatar'>('none');
+  const [sourceStripExpanded, setSourceStripExpanded] = useState(false);
   const [telegramAvatarDismissed, setTelegramAvatarDismissed] = useState(false);
+  const [keyboardInsetPx, setKeyboardInsetPx] = useState(0);
   
   // Состояние генерации
   const [pageState, setPageState] = useState<PageState>('idle');
@@ -267,8 +272,11 @@ export const GeneratePage: FC = () => {
   const saveNoticeTimeoutRef = useRef<number | null>(null);
   const draggedSourceImageIndexRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
+  const sourceStripInnerRef = useRef<HTMLDivElement | null>(null);
+  const previousSourceImageCountRef = useRef(0);
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
   const uploadedSourceImageAtRef = useRef<number | null>(null);
+  const uploadedSourceImageSignatureRef = useRef<string | null>(null);
   const pollingStartedAtRef = useRef<number | null>(null);
   const activeHistoryLocalIdRef = useRef<string | null>(null);
   const restoreAppliedRef = useRef(false);
@@ -277,11 +285,17 @@ export const GeneratePage: FC = () => {
   const processedAvatarTriggerRef = useRef<string | null>(null);
   const lastAvatarAutofillBlockReasonRef = useRef<string | null>(null);
 
-  const scrollPromptIntoView = useCallback((element: HTMLElement) => {
+  const scrollPromptIntoView = useCallback((element: HTMLElement, behavior: ScrollBehavior = 'smooth') => {
+    const getKeyboardInset = (): number => {
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return 0;
+      return Math.max(0, Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop));
+    };
+
     const alignWithinScrollContainer = () => {
       const scrollContainer = element.closest('.stixly-main-scroll');
       if (!(scrollContainer instanceof HTMLElement)) {
-        element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        element.scrollIntoView({ block: 'nearest', behavior });
         return;
       }
 
@@ -290,20 +304,28 @@ export const GeneratePage: FC = () => {
       const topGap = elementRect.top - containerRect.top;
       const bottomGap = containerRect.bottom - elementRect.bottom;
       const topPadding = 20;
-      const bottomPadding = 120;
+      const bottomPadding = Math.max(120, getKeyboardInset() + 84);
 
       if (topGap < topPadding) {
-        scrollContainer.scrollBy({ top: topGap - topPadding, behavior: 'smooth' });
+        scrollContainer.scrollBy({ top: topGap - topPadding, behavior });
         return;
       }
 
       if (bottomGap < bottomPadding) {
-        scrollContainer.scrollBy({ top: bottomPadding - bottomGap, behavior: 'smooth' });
+        scrollContainer.scrollBy({ top: bottomPadding - bottomGap, behavior });
       }
     };
 
     requestAnimationFrame(alignWithinScrollContainer);
-    window.setTimeout(alignWithinScrollContainer, 220);
+    window.setTimeout(alignWithinScrollContainer, 120);
+    window.setTimeout(alignWithinScrollContainer, 260);
+  }, []);
+
+  const scrollSourceStripToEnd = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const strip = sourceStripInnerRef.current;
+    if (!strip) return;
+    const nextScrollLeft = Math.max(0, strip.scrollWidth - strip.clientWidth);
+    strip.scrollTo({ left: nextScrollLeft, behavior });
   }, []);
 
   const showSaveNotice = useCallback((message: string | null) => {
@@ -338,6 +360,7 @@ export const GeneratePage: FC = () => {
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
     const target = e.target as HTMLElement;
     if (target?.classList?.contains?.('generate-input')) {
+      setSourceStripExpanded(false);
       if (promptFocusTimeoutRef.current) {
         clearTimeout(promptFocusTimeoutRef.current);
         promptFocusTimeoutRef.current = null;
@@ -376,10 +399,66 @@ export const GeneratePage: FC = () => {
         saveNoticeTimeoutRef.current = null;
       }
       setIsPromptFocused(false);
+      setKeyboardInsetPx(0);
       setSaveNoticeText(null);
       document.body.classList.remove('generate-prompt-focused');
     };
   }, []);
+
+  useEffect(() => {
+    if (!shouldUsePromptKeyboardMode || !isPromptFocused) {
+      setKeyboardInsetPx(0);
+      return;
+    }
+
+    const updateKeyboardInset = () => {
+      const visualViewport = window.visualViewport;
+      const nextInset = visualViewport
+        ? Math.max(0, Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop))
+        : 0;
+      setKeyboardInsetPx(nextInset);
+
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && activeElement.classList.contains('generate-input')) {
+        scrollPromptIntoView(activeElement, nextInset > 0 ? 'auto' : 'smooth');
+      }
+    };
+
+    updateKeyboardInset();
+    const visualViewport = window.visualViewport;
+    window.addEventListener('resize', updateKeyboardInset);
+    visualViewport?.addEventListener('resize', updateKeyboardInset);
+    visualViewport?.addEventListener('scroll', updateKeyboardInset);
+
+    return () => {
+      window.removeEventListener('resize', updateKeyboardInset);
+      visualViewport?.removeEventListener('resize', updateKeyboardInset);
+      visualViewport?.removeEventListener('scroll', updateKeyboardInset);
+    };
+  }, [isPromptFocused, scrollPromptIntoView, shouldUsePromptKeyboardMode]);
+
+  useEffect(() => {
+    const previousCount = previousSourceImageCountRef.current;
+    const currentCount = sourceImageFiles.length;
+
+    if (currentCount > previousCount) {
+      const behavior: ScrollBehavior = previousCount === 0 ? 'auto' : 'smooth';
+      requestAnimationFrame(() => {
+        scrollSourceStripToEnd(behavior);
+      });
+      window.setTimeout(() => {
+        scrollSourceStripToEnd(behavior);
+      }, 100);
+    }
+
+    previousSourceImageCountRef.current = currentCount;
+  }, [scrollSourceStripToEnd, sourceImageFiles.length]);
+
+  useEffect(() => {
+    if (sourceImageFiles.length === 0 && sourceStripExpanded) {
+      setSourceStripExpanded(false);
+    }
+  }, [sourceImageFiles.length, sourceStripExpanded]);
 
   // Извлечение параметров из URL при инициализации
   useEffect(() => {
@@ -684,6 +763,7 @@ export const GeneratePage: FC = () => {
         setSourceImageFiles([avatarFile]);
         setSourceImagePreviews([previewDataUrl]);
         setSourceImageOrigin('telegram-avatar');
+        setSourceStripExpanded(true);
         if (hasPendingAvatarTrigger) {
           setPageState('idle');
           setCurrentStatus(null);
@@ -698,8 +778,7 @@ export const GeneratePage: FC = () => {
           setSaveError(null);
           setHistoryOpen(false);
         }
-        uploadedSourceImageIdsRef.current = [];
-        uploadedSourceImageAtRef.current = null;
+        resetUploadedSourceImageCache();
         setErrorMessage(null);
         setErrorKind(null);
 
@@ -874,6 +953,21 @@ export const GeneratePage: FC = () => {
     pollingIntervalRef.current = setInterval(poll, POLLING_INTERVAL);
   }, [patchHistoryEntry, refreshMyProfile]);
 
+  const resetUploadedSourceImageCache = useCallback(() => {
+    uploadedSourceImageIdsRef.current = [];
+    uploadedSourceImageAtRef.current = null;
+    uploadedSourceImageSignatureRef.current = null;
+  }, []);
+
+  const buildSourceImageSignature = useCallback((files: File[]): string => {
+    if (!files.length) {
+      return 'empty';
+    }
+    return files
+      .map((file) => `${file.type}:${file.size}:${file.lastModified}:${file.name}`)
+      .join('|');
+  }, []);
+
   const ensureUploadedSourceImageIds = useCallback(async (): Promise<string[]> => {
     if (!sourceImageFiles.length) {
       return [];
@@ -881,8 +975,10 @@ export const GeneratePage: FC = () => {
 
     const cachedImageIds = uploadedSourceImageIdsRef.current;
     const uploadedAt = uploadedSourceImageAtRef.current;
+    const currentSignature = buildSourceImageSignature(sourceImageFiles);
     const hasFreshCachedUpload =
       cachedImageIds.length > 0 &&
+      uploadedSourceImageSignatureRef.current === currentSignature &&
       uploadedAt != null &&
       Date.now() - uploadedAt < SOURCE_IMAGE_ID_REUSE_WINDOW_MS;
 
@@ -893,8 +989,9 @@ export const GeneratePage: FC = () => {
     const uploadResponse = await apiClient.uploadSourceImages(sourceImageFiles);
     uploadedSourceImageIdsRef.current = uploadResponse.imageIds;
     uploadedSourceImageAtRef.current = Date.now();
+    uploadedSourceImageSignatureRef.current = currentSignature;
     return uploadResponse.imageIds;
-  }, [sourceImageFiles]);
+  }, [buildSourceImageSignature, sourceImageFiles]);
 
   useEffect(() => {
     syncHistoryEntries();
@@ -958,6 +1055,7 @@ export const GeneratePage: FC = () => {
 
   // Обработка отправки формы
   const handleGenerate = async () => {
+    setSourceStripExpanded(false);
     const trimmedPrompt = prompt.trim();
     const canGenerateWithoutPrompt = sourceImageFiles.length > 0 && selectedStylePresetId != null;
     if (!canGenerateWithoutPrompt && (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH)) {
@@ -1060,8 +1158,7 @@ export const GeneratePage: FC = () => {
         message = 'Некорректные параметры генерации.';
         setErrorKind(sourceImageFiles.length > 0 ? 'upload' : 'general');
       } else if (error.message === 'SOURCE_IMAGE_NOT_FOUND') {
-        uploadedSourceImageIdsRef.current = [];
-        uploadedSourceImageAtRef.current = null;
+        resetUploadedSourceImageCache();
         message = 'Исходное изображение не найдено или истек срок хранения. Загрузите фото заново.';
         setErrorKind('upload');
       } else if (error.message === 'UNAUTHORIZED') {
@@ -1128,9 +1225,8 @@ export const GeneratePage: FC = () => {
   const appendSourceImages = useCallback(async (files: File[]) => {
     if (!files.length) return;
 
-    const currentSourceCount = sourceImageOrigin === 'telegram-avatar' ? 0 : sourceImageFiles.length;
-    const shouldReplaceTelegramAvatar = sourceImageOrigin === 'telegram-avatar';
-    const existingFiles = shouldReplaceTelegramAvatar ? [] : sourceImageFiles;
+    const currentSourceCount = sourceImageFiles.length;
+    const existingFiles = sourceImageFiles;
     const existingFingerprints = new Set(await Promise.all(existingFiles.map((file) => buildSourceImageFingerprint(file))));
     const uniqueIncomingFiles: File[] = [];
 
@@ -1160,11 +1256,11 @@ export const GeneratePage: FC = () => {
 
     try {
       const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
-      setSourceImageFiles((prev) => shouldReplaceTelegramAvatar ? filesToAppend : [...prev, ...filesToAppend]);
-      setSourceImagePreviews((prev) => shouldReplaceTelegramAvatar ? previews : [...prev, ...previews]);
+      setSourceImageFiles((prev) => [...prev, ...filesToAppend]);
+      setSourceImagePreviews((prev) => [...prev, ...previews]);
       setSourceImageOrigin('manual');
-      uploadedSourceImageIdsRef.current = [];
-      uploadedSourceImageAtRef.current = null;
+      setSourceStripExpanded(true);
+      resetUploadedSourceImageCache();
       if (selectedModel !== SOURCE_IMAGE_MODEL) {
         setSelectedModel(SOURCE_IMAGE_MODEL);
         persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
@@ -1185,33 +1281,40 @@ export const GeneratePage: FC = () => {
       setErrorKind('upload');
       setPageState('error');
     }
-  }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, selectedModel, sourceImageFiles, sourceImageOrigin]);
+  }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, resetUploadedSourceImageCache, selectedModel, sourceImageFiles]);
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
-    if (options?.markAvatarDismissed && sourceImageOrigin === 'telegram-avatar') {
+    const shouldMarkAvatarDismissed = options?.markAvatarDismissed ?? sourceImageFiles.some((file) => isTelegramAvatarSourceFile(file));
+    if (shouldMarkAvatarDismissed) {
       setTelegramAvatarDismissed(true);
       persistTelegramAvatarDismissed(true);
     }
     setSourceImageFiles([]);
     setSourceImagePreviews([]);
     setSourceImageOrigin('none');
-    uploadedSourceImageIdsRef.current = [];
-    uploadedSourceImageAtRef.current = null;
-  }, [persistTelegramAvatarDismissed, sourceImageOrigin]);
+    setSourceStripExpanded(false);
+    resetUploadedSourceImageCache();
+  }, [persistTelegramAvatarDismissed, resetUploadedSourceImageCache, sourceImageFiles]);
 
   const removeSourceImageAt = useCallback((index: number) => {
     if (index < 0 || index >= sourceImageFiles.length) return;
+    const removedFile = sourceImageFiles[index];
+    const removedTelegramAvatar = isTelegramAvatarSourceFile(removedFile);
 
     if (sourceImageFiles.length === 1) {
-      clearSourceImage({ markAvatarDismissed: sourceImageOrigin === 'telegram-avatar' });
+      clearSourceImage({ markAvatarDismissed: removedTelegramAvatar || sourceImageOrigin === 'telegram-avatar' });
       return;
+    }
+
+    if (removedTelegramAvatar) {
+      setTelegramAvatarDismissed(true);
+      persistTelegramAvatarDismissed(true);
     }
 
     setSourceImageFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
     setSourceImagePreviews((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
-    uploadedSourceImageIdsRef.current = [];
-    uploadedSourceImageAtRef.current = null;
-  }, [clearSourceImage, sourceImageFiles.length, sourceImageOrigin]);
+    resetUploadedSourceImageCache();
+  }, [clearSourceImage, persistTelegramAvatarDismissed, resetUploadedSourceImageCache, sourceImageFiles, sourceImageOrigin]);
 
   const moveSourceImage = useCallback((fromIndex: number, toIndex: number) => {
     if (
@@ -1233,9 +1336,8 @@ export const GeneratePage: FC = () => {
 
     setSourceImageFiles((prev) => reorder(prev));
     setSourceImagePreviews((prev) => reorder(prev));
-    uploadedSourceImageIdsRef.current = [];
-    uploadedSourceImageAtRef.current = null;
-  }, [sourceImageFiles.length]);
+    resetUploadedSourceImageCache();
+  }, [resetUploadedSourceImageCache, sourceImageFiles.length]);
 
   const openChatPicker = useCallback((stickerFileId: string) => {
     const cleanFileId = removeInvisibleChars(stickerFileId).trim();
@@ -1277,7 +1379,20 @@ export const GeneratePage: FC = () => {
     event.target.value = '';
   }, [appendSourceImages]);
 
-  const handlePromptPaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
+  const handleSourcePickerAction = useCallback(() => {
+    if (sourceImageFiles.length > 0 && !sourceStripExpanded) {
+      setSourceStripExpanded(true);
+      return;
+    }
+
+    if (sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES) {
+      return;
+    }
+
+    handleSourceImagePick();
+  }, [handleSourceImagePick, sourceImageFiles.length, sourceStripExpanded]);
+
+  const handleInputWrapperPaste = useCallback((event: ClipboardEvent<HTMLElement>) => {
     const pastedImageFiles = Array.from(event.clipboardData?.items ?? [])
       .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
       .map((item, index) => {
@@ -1296,6 +1411,10 @@ export const GeneratePage: FC = () => {
     event.preventDefault();
     void appendSourceImages(pastedImageFiles);
   }, [appendSourceImages]);
+
+  const handleInputWrapperAction = useCallback((_event: ReactMouseEvent<HTMLElement>) => {
+    setSourceStripExpanded(false);
+  }, []);
 
   const handleSavedFromModal = useCallback((payload?: {
     stickerFileId?: string | null;
@@ -1566,7 +1685,11 @@ export const GeneratePage: FC = () => {
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [historyOpen]);
 
-  const renderSourceImageStrip = (disabled: boolean) => (
+  const renderSourceImageStrip = (disabled: boolean) => {
+    const hasAttachedImages = sourceImageFiles.length > 0;
+    const isStripExpanded = hasAttachedImages && sourceStripExpanded;
+
+    return (
     <>
       <input
         ref={sourceImageInputRef}
@@ -1576,84 +1699,89 @@ export const GeneratePage: FC = () => {
         hidden
         onChange={handleSourceImageChange}
       />
-      <div className="generate-source-strip" aria-label="Прикрепленные изображения">
-        <div
-          className={cn(
-            'generate-source-strip__scroll-shell',
-            !hasSourceImage && 'generate-source-strip__scroll-shell--empty'
-          )}
-        >
-          <div
-            className={cn(
-              'generate-source-strip__inner',
-              !hasSourceImage && 'generate-source-strip__inner--empty'
-            )}
-          >
-            {sourceImagePreviews.map((preview, index) => (
-              <div
-                key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
-                className="generate-source-strip__item"
-                draggable={!disabled && sourceImageFiles.length > 1}
-                onDragStart={() => {
-                  draggedSourceImageIndexRef.current = index;
-                }}
-                onDragOver={(event) => {
-                  if (disabled) return;
-                  event.preventDefault();
-                }}
-                onDrop={(event) => {
-                  if (disabled) return;
-                  event.preventDefault();
-                  const draggedIndex = draggedSourceImageIndexRef.current;
-                  if (draggedIndex == null) return;
-                  moveSourceImage(draggedIndex, index);
-                  draggedSourceImageIndexRef.current = null;
-                }}
-                onDragEnd={() => {
-                  draggedSourceImageIndexRef.current = null;
-                }}
-              >
-                <img
-                  src={preview}
-                  alt={`Исходное изображение ${index + 1}`}
-                  className="generate-source-strip__image"
-                  loading="lazy"
-                  decoding="async"
-                />
-                {!disabled && (
-                  <button
-                    type="button"
-                    className="generate-source-strip__remove"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      removeSourceImageAt(index);
-                    }}
-                    aria-label={`Удалить изображение ${index + 1}`}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            {sourceImageFiles.length >= 2 && (
-              <button
-                type="button"
-                className="generate-source-strip__clear-all"
-                onClick={() => clearSourceImage()}
-                disabled={disabled}
-                aria-label="Удалить все прикрепленные изображения"
-              >
-                ×
-              </button>
-            )}
+      <div
+        className={cn(
+          'generate-source-strip',
+          isStripExpanded ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed'
+        )}
+        aria-label="Прикрепленные изображения"
+      >
+        {isStripExpanded && (
+          <div className="generate-source-strip__scroll-shell">
+            <div ref={sourceStripInnerRef} className="generate-source-strip__inner">
+              {sourceImagePreviews.map((preview, index) => (
+                <div
+                  key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
+                  className="generate-source-strip__item"
+                  style={{
+                    animationDelay: `${Math.max(0, sourceImagePreviews.length - index - 1) * 45}ms`,
+                  }}
+                  draggable={!disabled && sourceImageFiles.length > 1}
+                  onDragStart={() => {
+                    draggedSourceImageIndexRef.current = index;
+                  }}
+                  onDragOver={(event) => {
+                    if (disabled) return;
+                    event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    if (disabled) return;
+                    event.preventDefault();
+                    const draggedIndex = draggedSourceImageIndexRef.current;
+                    if (draggedIndex == null) return;
+                    moveSourceImage(draggedIndex, index);
+                    draggedSourceImageIndexRef.current = null;
+                  }}
+                  onDragEnd={() => {
+                    draggedSourceImageIndexRef.current = null;
+                  }}
+                >
+                  <img
+                    src={preview}
+                    alt={`Исходное изображение ${index + 1}`}
+                    className="generate-source-strip__image"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  {!disabled && (
+                    <button
+                      type="button"
+                      className="generate-source-strip__remove"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        removeSourceImageAt(index);
+                      }}
+                      aria-label={`Удалить изображение ${index + 1}`}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+        {isStripExpanded && sourceImageFiles.length >= 2 && (
+          <button
+            type="button"
+            className="generate-source-strip__clear-link"
+            onClick={() => clearSourceImage()}
+            disabled={disabled}
+            aria-label="Удалить все прикрепленные изображения"
+          >
+            Удалить все
+          </button>
+        )}
         <button
           type="button"
           className="generate-source-picker"
-          onClick={handleSourceImagePick}
-          disabled={disabled || sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES}
-          aria-label={`${hasSourceImage ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`}
+          onClick={handleSourcePickerAction}
+          disabled={disabled}
+          aria-label={
+            hasAttachedImages && !isStripExpanded
+              ? `Показать прикрепленные изображения. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`
+              : `${hasAttachedImages ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`
+          }
         >
           {sourceImageFiles.length < MAX_SOURCE_IMAGE_FILES && (
             <img
@@ -1678,9 +1806,11 @@ export const GeneratePage: FC = () => {
         </button>
       </div>
     </>
-  );
+    );
+  };
 
   const handlePromptChange = (value: string) => {
+    setSourceStripExpanded(false);
     setPrompt(value);
     if (pageState === 'error' && errorKind === 'prompt') {
       setErrorMessage(null);
@@ -1690,6 +1820,7 @@ export const GeneratePage: FC = () => {
   };
 
   const handleStyleSelect = (presetId: number) => {
+    setSourceStripExpanded(false);
     const nextStylePresetId = selectedStylePresetId === presetId ? null : presetId;
     setSelectedStylePresetId(nextStylePresetId);
     persistGeneratePreferences({ stylePresetId: nextStylePresetId });
@@ -1698,6 +1829,7 @@ export const GeneratePage: FC = () => {
   };
 
   const handleEmojiSelect = (emoji: string) => {
+    setSourceStripExpanded(false);
     setSelectedEmoji(emoji);
     persistGeneratePreferences({ selectedEmoji: emoji });
     setEmojiDropdownOpen(false);
@@ -1705,6 +1837,7 @@ export const GeneratePage: FC = () => {
   };
 
   const handleRemoveBackgroundChange = (checked: boolean) => {
+    setSourceStripExpanded(false);
     setRemoveBackground(checked);
     persistGeneratePreferences({ removeBackground: checked });
   };
@@ -1746,7 +1879,12 @@ export const GeneratePage: FC = () => {
       <button
         type="button"
         className="generate-model-select-trigger generate-model-select-trigger--emoji"
-        onClick={() => !disabled && setEmojiDropdownOpen(v => !v)}
+        onClick={() => {
+          setSourceStripExpanded(false);
+          if (!disabled) {
+            setEmojiDropdownOpen(v => !v);
+          }
+        }}
         disabled={disabled}
         aria-label="Выбор эмодзи"
         aria-expanded={emojiDropdownOpen}
@@ -1779,7 +1917,12 @@ export const GeneratePage: FC = () => {
       <button
         type="button"
         className="generate-model-select-trigger"
-        onClick={() => !disabled && setStyleDropdownOpen((v) => !v)}
+        onClick={() => {
+          setSourceStripExpanded(false);
+          if (!disabled) {
+            setStyleDropdownOpen((v) => !v);
+          }
+        }}
         disabled={disabled}
         aria-label="Выберите стиль"
         aria-expanded={styleDropdownOpen}
@@ -2052,6 +2195,9 @@ export const GeneratePage: FC = () => {
               hasPromptText && 'generate-input-wrapper--active',
               shouldShowPromptError && 'generate-input-wrapper--error',
             )}
+            onPaste={handleInputWrapperPaste}
+            onMouseDownCapture={handleInputWrapperAction}
+            onClickCapture={handleInputWrapperAction}
           >
             <textarea
               className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
@@ -2059,7 +2205,6 @@ export const GeneratePage: FC = () => {
               placeholder="Опишите стикер, например: собака летит на ракете"
               value={prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
-              onPaste={handlePromptPaste}
               maxLength={MAX_PROMPT_LENGTH}
               disabled={isGenerating}
               onFocus={handlePromptFocusIn}
@@ -2120,6 +2265,9 @@ export const GeneratePage: FC = () => {
             hasPromptText && 'generate-input-wrapper--active',
             shouldShowPromptError && 'generate-input-wrapper--error',
           )}
+          onPaste={handleInputWrapperPaste}
+          onMouseDownCapture={handleInputWrapperAction}
+          onClickCapture={handleInputWrapperAction}
         >
           <textarea
             className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
@@ -2127,7 +2275,6 @@ export const GeneratePage: FC = () => {
             placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
-            onPaste={handlePromptPaste}
             maxLength={MAX_PROMPT_LENGTH}
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
@@ -2172,14 +2319,18 @@ export const GeneratePage: FC = () => {
       {renderSourceImageStrip(isGenerating)}
 
       <div className="generate-form-block">
-        <div className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}>
+        <div
+          className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}
+          onPaste={handleInputWrapperPaste}
+          onMouseDownCapture={handleInputWrapperAction}
+          onClickCapture={handleInputWrapperAction}
+        >
           <textarea
             className="generate-input"
             rows={4}
             placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
-            onPaste={handlePromptPaste}
             maxLength={MAX_PROMPT_LENGTH}
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
@@ -2214,8 +2365,19 @@ export const GeneratePage: FC = () => {
     </>
   );
 
+  const generatePageStyle = useMemo(
+    () =>
+      ({
+        '--generate-keyboard-inset': `${keyboardInsetPx}px`,
+      }) as CSSProperties,
+    [keyboardInsetPx]
+  );
+
   return (
-    <div className={cn('page-container', 'generate-page', isInTelegramApp && 'telegram-app')}>
+    <div
+      className={cn('page-container', 'generate-page', isInTelegramApp && 'telegram-app')}
+      style={generatePageStyle}
+    >
       <OtherAccountBackground />
       <button
         type="button"

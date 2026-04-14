@@ -462,7 +462,8 @@
   min-height: auto;
   justify-content: flex-start;
   padding-top: 13px;
-  padding-bottom: 21px;
+  padding-bottom: calc(21px + var(--generate-keyboard-inset, 0px));
+  transition: padding-bottom 0.22s ease, padding-top 0.22s ease;
 }
 
 .generate-brand {
@@ -554,18 +555,35 @@
 
 /* Header — "Создайте Стикер с" + селектор модели (Stixly) */
 .generate-source-strip {
+  position: relative;
   width: 100%;
   max-width: 370px;
   display: flex;
   align-items: stretch;
   gap: 8px;
   overflow: visible;
+  transition: transform 0.2s ease, margin-bottom 0.2s ease;
+}
+
+.generate-source-strip--collapsed {
+  justify-content: flex-end;
+  transform: translateY(20px);
+  margin-bottom: -20px;
+  z-index: 0;
+}
+
+.generate-source-strip--expanded {
+  justify-content: flex-start;
+  transform: translateY(0);
+  margin-bottom: 0;
+  z-index: 2;
 }
 
 .generate-source-strip__scroll-shell {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
+  height: 55px;
   margin-right: 0;
   overflow: hidden;
 }
@@ -590,12 +608,14 @@
 
 .generate-source-strip__inner {
   width: 100%;
+  height: 100%;
   min-width: 0;
   display: flex;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 0 10px 0;
+  padding: 0;
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -617,7 +637,6 @@
 
 .generate-source-strip__inner--empty {
   overflow: visible;
-  padding-bottom: 0;
   mask-image: none;
   -webkit-mask-image: none;
 }
@@ -638,6 +657,14 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
 }
 
+.generate-source-strip__item:first-child {
+  margin-left: auto;
+}
+
+.generate-source-strip--expanded .generate-source-strip__item {
+  animation: generateSourceItemReveal 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 .generate-source-strip__item {
   cursor: grab;
 }
@@ -646,35 +673,36 @@
   cursor: grabbing;
 }
 
-.generate-source-strip__clear-all {
-  position: relative;
-  flex: 0 0 auto;
-  width: 55px;
-  height: 55px;
+.generate-source-strip__clear-link {
+  position: absolute;
+  top: -18px;
+  right: 0;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  color: rgba(214, 109, 137, 0.96);
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 600;
   cursor: pointer;
-  overflow: visible;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 28px;
-  line-height: 1;
+  white-space: nowrap;
 }
 
-.generate-source-strip__clear-all:disabled {
+.generate-source-strip__clear-link:hover:not(:disabled) {
+  color: rgba(239, 135, 164, 0.98);
+  text-decoration: underline;
+}
+
+.generate-source-strip__clear-link:disabled {
   cursor: not-allowed;
-  opacity: 0.68;
+  opacity: 0.6;
+  text-decoration: none;
 }
 
 .generate-source-picker {
-  flex: 0 0 55px;
+  flex: 0 0 auto;
   align-self: flex-start;
   margin-left: 0;
 }
@@ -737,6 +765,22 @@
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(100%);
   opacity: 0.9;
+  transition: transform 0.2s ease;
+}
+
+.generate-source-strip--collapsed .generate-source-picker__icon {
+  transform: translate(-4px, -8px);
+}
+
+@keyframes generateSourceItemReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(18px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 .generate-source-picker__badge {
@@ -777,6 +821,8 @@
 
 /* Input block (Inpit) — #262626, 16px radius, 370px, Figma gap 16px */
 .generate-form-block {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 16px;
