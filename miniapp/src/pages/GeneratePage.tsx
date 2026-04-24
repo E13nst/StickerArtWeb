@@ -42,6 +42,8 @@ const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
 const PROMPT_ROWS = 6;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
+const BACKGROUND_REMOVE_FALLBACK_NOTICE =
+  'Не удалось удалить фон, поэтому показан вариант без удаления фона.';
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
 const MAX_SOURCE_IMAGE_FILES = 14;
@@ -56,6 +58,31 @@ const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
+};
+
+const parseGenerationMetadata = (
+  metadata: unknown
+): { background_remove_fallback_applied?: boolean } | null => {
+  if (!metadata) {
+    return null;
+  }
+
+  const parsedMetadata =
+    typeof metadata === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(metadata) as unknown;
+          } catch {
+            return null;
+          }
+        })()
+      : metadata;
+
+  if (!parsedMetadata || typeof parsedMetadata !== 'object' || Array.isArray(parsedMetadata)) {
+    return null;
+  }
+
+  return parsedMetadata as { background_remove_fallback_applied?: boolean };
 };
 
 const stripPresetName = (name: string) =>
@@ -889,6 +916,9 @@ export const GeneratePage: FC = () => {
 
       try {
         const statusData = await apiClient.getGenerationStatusV2(taskIdToCheck);
+        const generationMetadata = parseGenerationMetadata(statusData.metadata);
+        const backgroundRemoveFallbackApplied =
+          generationMetadata?.background_remove_fallback_applied === true;
         setCurrentStatus(statusData.status);
         patchHistoryEntry(
           { taskId: taskIdToCheck, localId: activeHistoryLocalIdRef.current ?? undefined },
@@ -903,7 +933,10 @@ export const GeneratePage: FC = () => {
             resultImageUrl: statusData.imageUrl || null,
             imageId: statusData.imageId || null,
             fileId: statusData.telegramSticker?.fileId || null,
-            errorMessage: statusData.errorMessage || null,
+            errorMessage:
+              statusData.status === 'COMPLETED'
+                ? null
+                : statusData.errorMessage || null,
             isActive: !TERMINAL_GENERATION_STATUSES.includes(statusData.status),
           }
         );
@@ -923,6 +956,11 @@ export const GeneratePage: FC = () => {
           if (receivedFileId) {
             console.log('✅ Получен fileId из ответа API:', receivedFileId);
           }
+          setErrorMessage(null);
+          setErrorKind(null);
+          showSaveNotice(
+            backgroundRemoveFallbackApplied ? BACKGROUND_REMOVE_FALLBACK_NOTICE : null
+          );
           setPageState('success');
           // Обновляем профиль/баланс в сторе, чтобы хедер сразу показал новый баланс и аватар
           refreshMyProfile();

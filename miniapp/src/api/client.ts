@@ -459,7 +459,7 @@ export interface GenerationStatusResponse {
   imageId?: string;
   imageFormat?: string;
   originalImageUrl?: string;
-  metadata?: string;
+  metadata?: string | Record<string, unknown> | null;
   errorMessage?: string;
   telegramSticker?: {
     fileId?: string;
