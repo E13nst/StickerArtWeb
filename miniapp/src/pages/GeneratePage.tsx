@@ -37,9 +37,10 @@ const getGeneratingSpinnerMessage = (pageState: PageState, status: GenerationSta
 };
 
 const POLLING_INTERVAL = 2000;
-const POLLING_TIMEOUT_MS = 120000;
+const POLLING_TIMEOUT_MS = 600000;
 const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
+const PROMPT_ROWS = 6;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
 const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
@@ -1912,6 +1913,26 @@ export const GeneratePage: FC = () => {
     </div>
   );
 
+  const renderInputFooter = (disabled: boolean) => (
+    <div className="generate-input-footer">
+      <div className="generate-input-toolbar">
+        {renderStyleSelect(disabled)}
+        {renderEmojiSelect(disabled)}
+      </div>
+      <label className="generate-checkbox-label generate-checkbox-label--inline">
+        <span>Удалить фон</span>
+        <input
+          type="checkbox"
+          checked={removeBackground}
+          onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
+          disabled={disabled}
+          className="generate-checkbox"
+          readOnly={disabled}
+        />
+      </label>
+    </div>
+  );
+
   const renderStyleSelect = (disabled: boolean) => (
     <div ref={styleDropdownRef} className="generate-model-select-wrap generate-model-select-wrap--style">
       <button
@@ -2107,21 +2128,14 @@ export const GeneratePage: FC = () => {
         <div className="generate-input-wrapper">
           <textarea
             className="generate-input generate-input--readonly"
-            rows={4}
+            rows={PROMPT_ROWS}
             readOnly
             value={prompt}
             maxLength={MAX_PROMPT_LENGTH}
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
           />
-          <div className="generate-input-footer">
-            {renderStyleSelect(true)}
-            {renderEmojiSelect(true)}
-            <label className="generate-checkbox-label generate-checkbox-label--inline">
-              <span>Удалить фон</span>
-              <input type="checkbox" checked={removeBackground} disabled className="generate-checkbox" readOnly />
-            </label>
-          </div>
+          {renderInputFooter(true)}
         </div>
         <Button
           variant="primary"
@@ -2201,7 +2215,7 @@ export const GeneratePage: FC = () => {
           >
             <textarea
               className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
-              rows={4}
+              rows={PROMPT_ROWS}
               placeholder="Опишите стикер, например: собака летит на ракете"
               value={prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
@@ -2210,20 +2224,7 @@ export const GeneratePage: FC = () => {
               onFocus={handlePromptFocusIn}
               onBlur={handlePromptFocusOut}
             />
-            <div className="generate-input-footer">
-              {renderStyleSelect(isGenerating)}
-              {renderEmojiSelect(isGenerating)}
-              <label className="generate-checkbox-label generate-checkbox-label--inline">
-                <span>Удалить фон</span>
-                <input
-                  type="checkbox"
-                  checked={removeBackground}
-                  onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
-                  disabled={isGenerating}
-                  className="generate-checkbox"
-                />
-              </label>
-            </div>
+            {renderInputFooter(isGenerating)}
             {shouldShowPromptError && (
               <div className="generate-error-inline">
                 <span className="generate-error-icon">!</span>
@@ -2271,7 +2272,7 @@ export const GeneratePage: FC = () => {
         >
           <textarea
             className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
-            rows={4}
+            rows={PROMPT_ROWS}
             placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
@@ -2279,19 +2280,7 @@ export const GeneratePage: FC = () => {
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
           />
-          <div className="generate-input-footer">
-            {renderStyleSelect(false)}
-            {renderEmojiSelect(false)}
-            <label className="generate-checkbox-label generate-checkbox-label--inline">
-              <span>Удалить фон</span>
-              <input
-                type="checkbox"
-                checked={removeBackground}
-                onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
-                className="generate-checkbox"
-              />
-            </label>
-          </div>
+          {renderInputFooter(false)}
           {shouldShowPromptError && (
             <div className="generate-error-inline">
               <span className="generate-error-icon">!</span>
@@ -2327,7 +2316,7 @@ export const GeneratePage: FC = () => {
         >
           <textarea
             className="generate-input"
-            rows={4}
+            rows={PROMPT_ROWS}
             placeholder="Опишите стикер, например: собака летит на ракете"
             value={prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
@@ -2335,20 +2324,7 @@ export const GeneratePage: FC = () => {
             onFocus={handlePromptFocusIn}
             onBlur={handlePromptFocusOut}
           />
-          <div className="generate-input-footer">
-            {renderStyleSelect(isGenerating)}
-            {renderEmojiSelect(isGenerating)}
-            <label className="generate-checkbox-label generate-checkbox-label--inline">
-              <span>Удалить фон</span>
-              <input
-                type="checkbox"
-                checked={removeBackground}
-                onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
-                disabled={isGenerating}
-                className="generate-checkbox"
-              />
-            </label>
-          </div>
+          {renderInputFooter(isGenerating)}
         </div>
 
         <Button
