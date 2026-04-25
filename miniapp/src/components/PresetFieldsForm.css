@@ -1,14 +1,22 @@
 .preset-fields-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 0;
+  width: 100%;
 }
 
 .preset-fields-form__field {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 10px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0;
+}
+
+.preset-fields-form__field--first {
+  border-top: none;
+  padding-top: 0;
 }
 
 .preset-fields-form__label {
@@ -27,6 +35,91 @@
   font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
   line-height: 1.4;
+}
+
+.preset-fields-form__emoji-prompt {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.35;
+}
+
+.preset-fields-form__emoji-row {
+  position: relative;
+  width: 100%;
+}
+
+.preset-fields-form__emoji-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 20px;
+  line-height: 1;
+  font-family: var(--font-family-base, inherit);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.preset-fields-form__emoji-value:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.preset-fields-form__emoji-value:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preset-fields-form__emoji-value--error {
+  border-color: rgba(255, 80, 80, 0.55);
+}
+
+.preset-fields-form__emoji-dropdown {
+  position: absolute;
+  z-index: 1001;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 4px;
+  max-height: 220px;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: var(--component-modal-panel-bg, rgba(0, 0, 0, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.preset-fields-form__emoji-option {
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.preset-fields-form__emoji-option:hover,
+.preset-fields-form__emoji-option--active {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .preset-fields-form__input,

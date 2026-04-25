@@ -404,6 +404,8 @@ export interface ArtTariffsResponse {
   credits?: ArtTariffDebit[];
 }
 
+export type StylePresetRemoveBgMode = 'FORCE_ON' | 'FORCE_OFF' | 'PRESET_DEFAULT';
+
 export interface StylePresetPromptInput {
   enabled: boolean;
   required?: boolean | null;
@@ -439,7 +441,10 @@ export interface StylePreset {
   previewUrl?: string | null;
   previewWebpUrl?: string | null;
   thumbnailUrl?: string | null;
+  /** Короткий текст у кнопки эмодзи стикера (как у «История»). */
+  stickerEmojiLabel?: string | null;
   uiMode?: string | null;
+  removeBackgroundMode?: StylePresetRemoveBgMode | null;
   promptInput?: StylePresetPromptInput | null;
   fields?: StylePresetField[] | null;
 }

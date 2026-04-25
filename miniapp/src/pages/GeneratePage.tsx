@@ -7,7 +7,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import './GeneratePage.css';
-import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField } from '@/api/client';
+import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
@@ -26,6 +26,7 @@ import {
   updateGenerateHistoryEntry,
 } from '@/utils/generateHistoryStorage';
 import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/generatePreferencesStorage';
+import { POPULAR_EMOJIS } from '@/constants/popularEmojis';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
@@ -61,6 +62,15 @@ const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
+
+function resolveRemoveBackground(
+  presetMode: StylePresetRemoveBgMode | null | undefined,
+  userValue: boolean,
+): { value: boolean; userControlled: boolean } {
+  if (presetMode === 'FORCE_ON')  return { value: true,      userControlled: false };
+  if (presetMode === 'FORCE_OFF') return { value: false,     userControlled: false };
+  return                                 { value: userValue, userControlled: true  };
+}
 
 const parseGenerationMetadata = (
   metadata: unknown
@@ -215,31 +225,6 @@ const SOURCE_IMAGE_MODEL: GenerateModelType = 'nanabanana';
 const AVAILABLE_MODEL_IDS = new Set<GenerateModelType>(MODEL_OPTIONS.map((option) => option.id));
 const normalizeGenerateModel = (model: GenerateModelType | null | undefined): GenerateModelType =>
   model && AVAILABLE_MODEL_IDS.has(model) ? model : DEFAULT_GENERATE_MODEL;
-const POPULAR_EMOJIS = [
-  '😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '😘', '🥰', '😗', '😙', '😚',
-  '🙂', '🤗', '🤩', '🤔', '🫡', '🤨', '😐', '😑', '😶', '🫥', '😶‍🌫️', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯',
-  '😪', '😫', '🥱', '😴', '😌', '😛', '😜', '😝', '🤤', '😒', '😓', '😔', '😕', '🫤', '🙃', '🫠', '🤑', '😲',
-  '☹️', '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '😬', '😰', '😱', '🥵', '🥶', '😳',
-  '🤯', '😵', '😵‍💫', '🥴', '😠', '😡', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇', '🥳', '🥸', '😈', '👿',
-  '👻', '💀', '☠️', '👽', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾',
-  '❤️', '🩷', '🧡', '💛', '💚', '🩵', '💙', '💜', '🤎', '🖤', '🩶', '🤍', '💔', '❣️', '💕', '💞', '💓', '💗',
-  '💖', '💘', '💝', '💟', '♥️', '💌', '💋', '🫶', '🤝', '👏', '🙌', '👐', '👍', '👎', '👌', '✌️', '🤞', '🫰',
-  '🤟', '🤘', '🤙', '👋', '🫳', '🫴', '🖐️', '✋', '🖖', '👈', '👉', '👆', '👇', '☝️', '✊', '👊', '🤛', '🤜',
-  '💪', '🫵', '🙏', '✍️', '💅', '👀', '🧠', '👑', '💎', '🔥', '✨', '⭐', '🌟', '💫', '⚡', '☄️', '🌈', '☀️',
-  '🌤️', '⛅', '🌥️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '☔', '💧', '💦',
-  '🌊', '🎉', '🎊', '🎁', '🎈', '🎀', '🎂', '🍰', '🧁', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🍓', '🍒', '🍑',
-  '🍎', '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍇', '🥝', '🍅', '🥑', '🥕', '🌽', '🌶️', '🍄', '🥐', '🍞', '🧀',
-  '🍔', '🍟', '🍕', '🌭', '🌮', '🌯', '🥪', '🍝', '🍜', '🍣', '🍤', '🍙', '🍚', '🍛', '🍦', '🍧', '🍨', '☕',
-  '🍵', '🧃', '🥤', '🍹', '🍸', '🍷', '🍺', '🍻', '🥂',
-  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉',
-  '🙊', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪲', '🦋', '🐌', '🐞',
-  '🐢', '🐍', '🦎', '🦂', '🐙', '🦀', '🐠', '🐟', '🐬', '🦈', '🐳', '🐘', '🦒', '🦌', '🦬', '🦥', '🦦', '🦨',
-  '🌸', '🌼', '🌻', '🌺', '🌹', '🥀', '🌷', '🪷', '🌱', '🪴', '🌲', '🌳', '🌴', '🌵',
-  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🥋', '🎮', '🕹️', '🎲', '🧩', '🎯', '🎨',
-  '🎭', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🚀', '✈️', '🚗', '🏎️', '🚕', '🚌',
-  '🚓', '🚑', '🚒', '🚜', '🛵', '🏍️', '🚲', '🛴', '⛵', '🚤', '🛸', '🏠', '🏡', '🏢', '🏙️', '🌆', '🗽', '🗼',
-  '📱', '💻', '⌚', '📷', '📸', '📹', '🎥', '💡', '🔦', '📚', '📝', '📌', '📎', '✂️', '🔒', '🔑', '🧸', '🪄'
-];
 
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
@@ -305,6 +290,7 @@ export const GeneratePage: FC = () => {
   const draggedSourceImageIndexRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
   const sourceStripInnerRef = useRef<HTMLDivElement | null>(null);
+  const sourceStripContainerRef = useRef<HTMLDivElement | null>(null);
   const previousSourceImageCountRef = useRef(0);
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
   const uploadedSourceImageAtRef = useRef<number | null>(null);
@@ -1110,6 +1096,31 @@ export const GeneratePage: FC = () => {
   const effectivePromptPlaceholder =
     promptInputCfg?.placeholder ?? 'Опишите стикер, например: собака летит на ракете';
   const selectedPresetFieldDefs: StylePresetField[] = selectedPreset?.fields ?? [];
+  const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
+
+  const removeBgResolved = resolveRemoveBackground(
+    selectedPreset?.removeBackgroundMode,
+    removeBackground,
+  );
+  const showRemoveBgToggle = removeBgResolved.userControlled;
+  const effectiveRemoveBackground = removeBgResolved.value;
+
+  const renderRemoveBgToggle = (disabled: boolean) =>
+    showRemoveBgToggle ? (
+      <label className="generate-checkbox-label generate-checkbox-label--inline">
+        <input
+          type="checkbox"
+          className="generate-checkbox"
+          checked={removeBackground}
+          disabled={disabled}
+          onChange={(e) => {
+            setRemoveBackground(e.target.checked);
+            persistGeneratePreferences({ removeBackground: e.target.checked });
+          }}
+        />
+        <span>Удалить фон</span>
+      </label>
+    ) : null;
 
   // Обработка отправки формы
   const handleGenerate = async () => {
@@ -1208,7 +1219,7 @@ export const GeneratePage: FC = () => {
         model: selectedModel,
         stylePresetId: selectedStylePresetId,
         num_images: 1,
-        remove_background: removeBackground,
+        remove_background: effectiveRemoveBackground,
         ...(uploadedImageIds.length === 1 ? { image_id: uploadedImageIds[0] } : {}),
         ...(uploadedImageIds.length > 1 ? { image_ids: uploadedImageIds } : {}),
         ...(Object.keys(fieldsToSend).length > 0 ? { preset_fields: fieldsToSend } : {}),
@@ -1678,7 +1689,6 @@ export const GeneratePage: FC = () => {
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
-  const shouldShowGeneralError = errorMessage && errorKind !== 'prompt';
   const isCompactState = pageState !== 'success';
   const formatHistoryStatus = (entry: GenerateHistoryEntry): string => {
     if (entry.generationStatus === 'COMPLETED' || entry.pageState === 'success') return 'Готово';
@@ -1780,6 +1790,7 @@ export const GeneratePage: FC = () => {
         onChange={handleSourceImageChange}
       />
       <div
+        ref={sourceStripContainerRef}
         className={cn(
           'generate-source-strip',
           isStripExpanded ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed'
@@ -1925,6 +1936,12 @@ export const GeneratePage: FC = () => {
     setPresetFields((prev) => ({ ...prev, [key]: value }));
   };
 
+  const dismissErrorToast = () => {
+    setErrorMessage(null);
+    setErrorKind(null);
+    setPageState((prev) => (prev === 'error' ? 'idle' : prev));
+  };
+
   const handleEmojiSelect = (emoji: string) => {
     setSourceStripExpanded(false);
     setSelectedEmoji(emoji);
@@ -1947,49 +1964,151 @@ export const GeneratePage: FC = () => {
     };
   }, [emojiDropdownOpen]);
 
-  const renderEmojiSelect = (disabled: boolean) => (
-    <div ref={emojiDropdownRef} className="generate-model-select-wrap generate-model-select-wrap--emoji">
-      <button
-        type="button"
-        className="generate-model-select-trigger generate-model-select-trigger--emoji"
-        onClick={() => {
-          setSourceStripExpanded(false);
-          if (!disabled) {
-            setEmojiDropdownOpen(v => !v);
-          }
-        }}
-        disabled={disabled}
-        aria-label="Выбор эмодзи"
-        aria-expanded={emojiDropdownOpen}
+  // Авто-скрытие toast-алерта через 4 секунды
+  useEffect(() => {
+    if (!errorMessage) return;
+    const t = setTimeout(() => {
+      setErrorMessage(null);
+      setErrorKind(null);
+      setPageState((prev) => (prev === 'error' ? 'idle' : prev));
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [errorMessage]);
+
+  // Сворачиваем source strip при клике вне его контейнера
+  useEffect(() => {
+    if (!sourceStripExpanded) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        sourceStripContainerRef.current &&
+        !sourceStripContainerRef.current.contains(e.target as Node)
+      ) {
+        setSourceStripExpanded(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [sourceStripExpanded]);
+
+  const renderEmojiSelect = (disabled: boolean, caption: string | null) => {
+    const hasCaption = Boolean(caption);
+    return (
+      <div
+        ref={emojiDropdownRef}
+        className={cn(
+          'generate-model-select-wrap',
+          'generate-model-select-wrap--emoji',
+          hasCaption && 'generate-model-select-wrap--emoji-wide',
+        )}
       >
-        <span className="generate-model-select-value generate-model-select-value--emoji">{selectedEmoji}</span>
-      </button>
-      {emojiDropdownOpen && (
-        <div className="generate-model-select-dropdown generate-model-select-dropdown--emoji">
-          {POPULAR_EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              className={cn(
-                'generate-model-select-option',
-                'generate-model-select-option--emoji',
-                emoji === selectedEmoji && 'generate-model-select-option--selected',
-              )}
-              onClick={() => handleEmojiSelect(emoji)}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+        <button
+          type="button"
+          className={cn(
+            'generate-model-select-trigger',
+            'generate-model-select-trigger--emoji',
+            hasCaption && 'generate-model-select-trigger--emoji--with-caption',
+          )}
+          onClick={() => {
+            setSourceStripExpanded(false);
+            if (!disabled) {
+              setEmojiDropdownOpen((v) => !v);
+            }
+          }}
+          disabled={disabled}
+          aria-label={hasCaption ? `${caption}, выбрано ${selectedEmoji}` : 'Выбор эмодзи'}
+          aria-expanded={emojiDropdownOpen}
+        >
+          {hasCaption && <span className="generate-emoji-caption">{caption}</span>}
+          <span className="generate-model-select-value generate-model-select-value--emoji">{selectedEmoji}</span>
+        </button>
+        {emojiDropdownOpen && (
+          <div className="generate-model-select-dropdown generate-model-select-dropdown--emoji">
+            {POPULAR_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className={cn(
+                  'generate-model-select-option',
+                  'generate-model-select-option--emoji',
+                  emoji === selectedEmoji && 'generate-model-select-option--selected',
+                )}
+                onClick={() => handleEmojiSelect(emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderInputFooter = (disabled: boolean) => (
     <div className="generate-input-footer">
       <div className="generate-input-toolbar">
-        {renderEmojiSelect(disabled)}
+        {renderEmojiSelect(disabled, stickerEmojiCaption)}
+        {renderRemoveBgToggle(disabled)}
       </div>
+    </div>
+  );
+
+  const renderMainInputBlock = (cfg: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    showPromptError: boolean;
+    withWrapperHandlers: boolean;
+    withActiveState: boolean;
+  }) => (
+    <div
+      className={cn(
+        'generate-input-wrapper',
+        cfg.withActiveState && hasPromptText && 'generate-input-wrapper--active',
+        cfg.showPromptError && 'generate-input-wrapper--error',
+        (showPromptInput && selectedPresetFieldDefs.length > 0) && 'generate-input-wrapper--with-preset-stack',
+        !showPromptInput && selectedPresetFieldDefs.length > 0 && 'generate-input-wrapper--preset-only',
+      )}
+      onPaste={cfg.withWrapperHandlers ? handleInputWrapperPaste : undefined}
+      onMouseDownCapture={cfg.withWrapperHandlers ? handleInputWrapperAction : undefined}
+      onClickCapture={cfg.withWrapperHandlers ? handleInputWrapperAction : undefined}
+    >
+      {showPromptInput && (
+        <textarea
+          className={cn(
+            'generate-input',
+            cfg.showPromptError && 'generate-input--error',
+            cfg.readOnly && 'generate-input--readonly',
+          )}
+          rows={PROMPT_ROWS}
+          readOnly={cfg.readOnly}
+          placeholder={effectivePromptPlaceholder}
+          value={prompt}
+          onChange={(e) => handlePromptChange(e.target.value)}
+          maxLength={effectiveMaxPromptLen}
+          disabled={cfg.textDisabled}
+          onFocus={handlePromptFocusIn}
+          onBlur={handlePromptFocusOut}
+        />
+      )}
+      {selectedPresetFieldDefs.length > 0 && (
+        <div
+          className={cn(
+            'generate-input-preset-stack',
+            showPromptInput && 'generate-input-preset-stack--after-prompt',
+          )}
+        >
+          <PresetFieldsForm
+            fields={selectedPresetFieldDefs}
+            values={presetFields}
+            onChange={handlePresetFieldChange}
+            disabled={cfg.readOnly || cfg.textDisabled}
+            emojiOptions={POPULAR_EMOJIS}
+          />
+        </div>
+      )}
+      {renderInputFooter(cfg.readOnly || cfg.textDisabled)}
     </div>
   );
 
@@ -2157,27 +2276,14 @@ export const GeneratePage: FC = () => {
       </div>
       {renderSourceImageStrip(true)}
       <div className="generate-form-block">
-        <div className="generate-input-wrapper">
-          {showPromptInput && (
-            <textarea
-              className="generate-input generate-input--readonly"
-              rows={PROMPT_ROWS}
-              readOnly
-              value={prompt}
-              maxLength={effectiveMaxPromptLen}
-              onFocus={handlePromptFocusIn}
-              onBlur={handlePromptFocusOut}
-            />
-          )}
-          {renderInputFooter(true)}
-        </div>
+        {renderMainInputBlock({
+          readOnly: true,
+          textDisabled: false,
+          showPromptError: false,
+          withWrapperHandlers: false,
+          withActiveState: false,
+        })}
         {renderPresetStrip(true)}
-        <PresetFieldsForm
-          fields={selectedPresetFieldDefs}
-          values={presetFields}
-          onChange={handlePresetFieldChange}
-          disabled
-        />
         <Button
           variant="primary"
           size="medium"
@@ -2244,44 +2350,14 @@ export const GeneratePage: FC = () => {
       <div className="generate-success-section generate-new-request">
         {renderSourceImageStrip(isGenerating)}
         <div className="generate-form-block">
-          <div
-            className={cn(
-              'generate-input-wrapper',
-              hasPromptText && 'generate-input-wrapper--active',
-              shouldShowPromptError && 'generate-input-wrapper--error',
-            )}
-            onPaste={handleInputWrapperPaste}
-            onMouseDownCapture={handleInputWrapperAction}
-            onClickCapture={handleInputWrapperAction}
-          >
-            {showPromptInput && (
-              <textarea
-                className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
-                rows={PROMPT_ROWS}
-                placeholder={effectivePromptPlaceholder}
-                value={prompt}
-                onChange={(e) => handlePromptChange(e.target.value)}
-                maxLength={effectiveMaxPromptLen}
-                disabled={isGenerating}
-                onFocus={handlePromptFocusIn}
-                onBlur={handlePromptFocusOut}
-              />
-            )}
-            {renderInputFooter(isGenerating)}
-            {shouldShowPromptError && (
-              <div className="generate-error-inline">
-                <span className="generate-error-icon">!</span>
-                <span className="tg-error__message">{errorMessage}</span>
-              </div>
-            )}
-          </div>
+          {renderMainInputBlock({
+            readOnly: false,
+            textDisabled: isGenerating,
+            showPromptError: shouldShowPromptError,
+            withWrapperHandlers: true,
+            withActiveState: true,
+          })}
           {renderPresetStrip(isGenerating)}
-          <PresetFieldsForm
-            fields={selectedPresetFieldDefs}
-            values={presetFields}
-            onChange={handlePresetFieldChange}
-            disabled={isGenerating}
-          />
 
           <Button
             variant="primary"
@@ -2303,50 +2379,15 @@ export const GeneratePage: FC = () => {
     <div className="generate-error-container">
       {renderBrandBlock()}
       {renderSourceImageStrip(false)}
-      {shouldShowGeneralError && (
-        <div className="generate-error-banner">
-          <span className="generate-error-icon">!</span>
-          <span className="tg-error__message">{errorMessage}</span>
-        </div>
-      )}
       <div className="generate-form-block">
-        <div
-          className={cn(
-            'generate-input-wrapper',
-            hasPromptText && 'generate-input-wrapper--active',
-            shouldShowPromptError && 'generate-input-wrapper--error',
-          )}
-          onPaste={handleInputWrapperPaste}
-          onMouseDownCapture={handleInputWrapperAction}
-          onClickCapture={handleInputWrapperAction}
-        >
-          {showPromptInput && (
-            <textarea
-              className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
-              rows={PROMPT_ROWS}
-              placeholder={effectivePromptPlaceholder}
-              value={prompt}
-              onChange={(e) => handlePromptChange(e.target.value)}
-              maxLength={effectiveMaxPromptLen}
-              onFocus={handlePromptFocusIn}
-              onBlur={handlePromptFocusOut}
-            />
-          )}
-          {renderInputFooter(false)}
-          {shouldShowPromptError && (
-            <div className="generate-error-inline">
-              <span className="generate-error-icon">!</span>
-              <span className="tg-error__message">{errorMessage}</span>
-            </div>
-          )}
-        </div>
+        {renderMainInputBlock({
+          readOnly: false,
+          textDisabled: false,
+          showPromptError: true,
+          withWrapperHandlers: true,
+          withActiveState: true,
+        })}
         {renderPresetStrip(false)}
-        <PresetFieldsForm
-          fields={selectedPresetFieldDefs}
-          values={presetFields}
-          onChange={handlePresetFieldChange}
-          disabled={false}
-        />
         <Button
           variant="primary"
           size="medium"
@@ -2367,33 +2408,14 @@ export const GeneratePage: FC = () => {
       {renderSourceImageStrip(isGenerating)}
 
       <div className="generate-form-block">
-        <div
-          className={cn('generate-input-wrapper', hasPromptText && 'generate-input-wrapper--active')}
-          onPaste={handleInputWrapperPaste}
-          onMouseDownCapture={handleInputWrapperAction}
-          onClickCapture={handleInputWrapperAction}
-        >
-          {showPromptInput && (
-            <textarea
-              className="generate-input"
-              rows={PROMPT_ROWS}
-              placeholder={effectivePromptPlaceholder}
-              value={prompt}
-              onChange={(e) => handlePromptChange(e.target.value)}
-              maxLength={effectiveMaxPromptLen}
-              onFocus={handlePromptFocusIn}
-              onBlur={handlePromptFocusOut}
-            />
-          )}
-          {renderInputFooter(isGenerating)}
-        </div>
+        {renderMainInputBlock({
+          readOnly: false,
+          textDisabled: isGenerating,
+          showPromptError: false,
+          withWrapperHandlers: true,
+          withActiveState: true,
+        })}
         {renderPresetStrip(isGenerating)}
-        <PresetFieldsForm
-          fields={selectedPresetFieldDefs}
-          values={presetFields}
-          onChange={handlePresetFieldChange}
-          disabled={isGenerating}
-        />
 
         <Button
           variant="primary"
@@ -2469,6 +2491,17 @@ export const GeneratePage: FC = () => {
         {pageState === 'success' && renderSuccessState()}
         {pageState === 'error' && renderErrorState()}
       </StixlyPageContainer>
+      {errorMessage && (
+        <div
+          className="generate-error-toast"
+          role="alert"
+          aria-live="assertive"
+          onClick={dismissErrorToast}
+        >
+          <span className="generate-error-toast__icon">!</span>
+          <span>{errorMessage}</span>
+        </div>
+      )}
       <SaveToStickerSetModal
         isOpen={saveModalOpen}
         onClose={handleCloseSaveModal}
