@@ -8,7 +8,7 @@
   --page-dynamic-gradient:
     radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
-  padding-bottom: 100px;
+  padding-bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -448,14 +448,23 @@
 .generate-page .generate-inner.generate-inner--compact {
   position: relative;
   min-height: calc(
-    var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) -
+    var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100dvh))) -
     var(--stixly-header-height, 80px) -
     var(--stixly-taskbar-height, 90px) -
     34px
   );
-  justify-content: center;
+  justify-content: safe center;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   z-index: 1;
-  transition: min-height 0.25s ease, padding-top 0.25s ease, gap 0.25s ease;
+  transition: min-height 0.25s ease, padding-top 0.25s ease, padding-bottom 0.25s ease, gap 0.25s ease;
+}
+
+@supports not (justify-content: safe center) {
+  @media (max-height: 760px) {
+    .generate-page .generate-inner.generate-inner--compact {
+      justify-content: flex-start;
+    }
+  }
 }
 
 .generate-page .generate-inner.generate-inner--prompt-focused {
@@ -1246,7 +1255,7 @@
 @media (max-width: 420px) {
   .generate-page .generate-inner.generate-inner--compact {
     min-height: calc(
-      var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100vh))) -
+      var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100dvh))) -
       var(--stixly-header-height, 80px) -
       var(--stixly-taskbar-height, 90px) -
       21px
@@ -1358,7 +1367,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   width: 100%;
   min-height: 0;
   max-height: calc(
@@ -1421,7 +1430,7 @@
 
 .generate-new-request {
   width: 100%;
-  padding-top: var(--spacing-sm);
+  padding-top: 0;
 }
 
 .generate-section-title {

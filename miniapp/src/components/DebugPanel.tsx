@@ -12,7 +12,7 @@ interface DebugPanelProps {
 export const DebugPanel: FC<DebugPanelProps> = ({ initData }) => {
   const { tg, isInTelegramApp, isMockMode } = useTelegram();
   const { authStatus, authError } = useStickerStore();
-  const [expanded, setExpanded] = useState(() => isDevToolsUnlocked());
+  const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const buildInfo = getBuildInfo();
   

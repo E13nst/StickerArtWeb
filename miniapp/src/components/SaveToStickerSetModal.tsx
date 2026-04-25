@@ -99,6 +99,9 @@ function isTrustedUserStickerSet(set: StickerSetResponse, effectiveUserId: numbe
 const DISMISS_THRESHOLD = 100;
 const DRAG_ANIMATION_MS = 200;
 
+const getStickerProcessorFileId = (imageId: string | null): string | undefined =>
+  imageId?.startsWith('ws_') ? imageId : undefined;
+
 export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   isOpen,
   onClose,
@@ -265,6 +268,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
       if (taskId && effectiveUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
+          file_id: getStickerProcessorFileId(imageId),
           userId: effectiveUserId,
           name: set.name,
           title: set.title || set.name,
@@ -324,6 +328,7 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
       if (taskId && effectiveUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
+          file_id: getStickerProcessorFileId(imageId),
           userId: effectiveUserId,
           name: nextStickerSetName,
           title,

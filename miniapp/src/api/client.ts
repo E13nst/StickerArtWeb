@@ -485,6 +485,7 @@ export interface SaveImageResponse {
 
 export interface SaveToSetV2Request {
   taskId: string;
+  file_id?: string;
   userId: number;
   name: string;
   title: string;

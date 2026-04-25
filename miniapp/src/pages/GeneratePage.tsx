@@ -86,6 +86,9 @@ const parseGenerationMetadata = (
   return parsedMetadata as { background_remove_fallback_applied?: boolean };
 };
 
+const getStickerProcessorFileId = (imageId: string | null): string | undefined =>
+  imageId?.startsWith('ws_') ? imageId : undefined;
+
 const stripPresetName = (name: string) =>
   name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
 
@@ -1565,6 +1568,7 @@ export const GeneratePage: FC = () => {
 
       const response = await apiClient.saveToStickerSetV2({
         taskId,
+        file_id: getStickerProcessorFileId(imageId),
         userId: effectiveUserId,
         name: targetSetName,
         title: targetSetTitle,
