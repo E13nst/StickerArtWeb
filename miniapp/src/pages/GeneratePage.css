@@ -843,11 +843,11 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 16px;
-  gap: 13px;
+  padding: 12px 14px 10px;
+  gap: 8px;
   width: 100%;
   max-width: 370px;
-  min-height: clamp(176px, 26vh, 228px);
+  min-height: clamp(104px, 14vh, 142px);
   background: rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1254,8 +1254,8 @@
   }
 
   .generate-input-wrapper {
-    min-height: clamp(188px, 31vh, 248px);
-    padding: 16px 14px 14px;
+    min-height: clamp(112px, 16vh, 168px);
+    padding: 12px 12px 10px;
   }
 
   .generate-input {
@@ -1360,7 +1360,19 @@
   align-items: center;
   gap: 16px;
   width: 100%;
+  min-height: 0;
+  max-height: calc(
+    var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100dvh))) -
+    var(--stixly-header-height, 80px) -
+    var(--stixly-taskbar-height, 90px) -
+    16px
+  );
   padding-top: var(--generate-history-toggle-clearance);
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
@@ -1423,8 +1435,8 @@
 
 /* Figma Result: 232×232, #262626, 16px radius, shadow */
 .generate-result-image-wrapper {
-  width: 232px;
-  height: 232px;
+  width: clamp(168px, 32dvh, 232px);
+  height: clamp(168px, 32dvh, 232px);
   flex-shrink: 0;
   display: flex;
   justify-content: center;

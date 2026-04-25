@@ -73,7 +73,12 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
                 .join(' ')}
               onClick={() => handleSelect(opt.id)}
             >
-              <div className="style-preset-strip__preview" aria-hidden="true">
+              <div
+                className={['style-preset-strip__media', !opt.previewUrl && 'style-preset-strip__media--empty']
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-hidden="true"
+              >
                 {opt.previewUrl ? (
                   <img
                     src={opt.previewUrl}

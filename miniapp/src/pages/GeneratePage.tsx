@@ -40,7 +40,7 @@ const POLLING_INTERVAL = 2000;
 const POLLING_TIMEOUT_MS = 600000;
 const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
-const PROMPT_ROWS = 6;
+const PROMPT_ROWS = 3;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
 const BACKGROUND_REMOVE_FALLBACK_NOTICE =
   'Не удалось удалить фон, поэтому показан вариант без удаления фона.';
