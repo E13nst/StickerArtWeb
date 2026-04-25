@@ -2159,7 +2159,11 @@ class ApiClient {
   // API endpoint: GET /api/generation/style-presets
   async getStylePresets(): Promise<StylePreset[]> {
     try {
-      const response = await this.client.get<StylePreset[]>('/generation/style-presets');
+      const response = await this.client.get<StylePreset[]>('/generation/style-presets', {
+        params: {
+          includeUi: true,
+        },
+      });
       // Сортируем по sortOrder и фильтруем только активные
       const activePresets = response.data
         .filter(preset => preset.isEnabled)

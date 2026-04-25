@@ -20,7 +20,7 @@ type StylePresetOption = {
 };
 
 const getServerPreviewUrl = (preset: StylePreset): string | null => {
-  return preset.previewWebpUrl ?? preset.previewUrl ?? preset.thumbnailUrl ?? null;
+  return preset.previewWebpUrl ?? preset.previewUrl ?? null;
 };
 
 /** Horizontal inspiration cards for generation presets. */
