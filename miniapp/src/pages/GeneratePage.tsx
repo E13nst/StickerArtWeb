@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { KeyboardArrowDownIcon } from '@/components/ui/Icons';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { StylePresetStrip } from '@/components/StylePresetStrip';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -55,6 +55,7 @@ const DEFAULT_REMOVE_BACKGROUND = true;
 const TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY = 'generate_telegram_avatar_dismissed';
 const LAST_USED_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-last-used-save-target:v1';
 const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-target:v1';
+const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -292,8 +293,6 @@ export const GeneratePage: FC = () => {
   
   // Polling ref
   const pollingIntervalRef = useRef<number | null>(null);
-  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
-  const styleDropdownRef = useRef<HTMLDivElement | null>(null);
   const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false);
   const emojiDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
@@ -1858,13 +1857,25 @@ export const GeneratePage: FC = () => {
     }
   };
 
-  const handleStyleSelect = (presetId: number) => {
+  const presetPreviewById = useMemo(() => {
+    const previewMap = new Map<number, string>();
+    historyEntries.forEach((entry) => {
+      if (
+        entry.stylePresetId != null &&
+        entry.pageState === 'success' &&
+        entry.resultImageUrl &&
+        !previewMap.has(entry.stylePresetId)
+      ) {
+        previewMap.set(entry.stylePresetId, entry.resultImageUrl);
+      }
+    });
+    return previewMap;
+  }, [historyEntries]);
+
+  const handlePresetChange = (presetId: number | null) => {
     setSourceStripExpanded(false);
-    const nextStylePresetId = selectedStylePresetId === presetId ? null : presetId;
-    setSelectedStylePresetId(nextStylePresetId);
-    persistGeneratePreferences({ stylePresetId: nextStylePresetId });
-    setStyleDropdownOpen(false);
-    tg?.HapticFeedback?.impactOccurred('light');
+    setSelectedStylePresetId(presetId);
+    persistGeneratePreferences({ stylePresetId: presetId });
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -1874,30 +1885,6 @@ export const GeneratePage: FC = () => {
     setEmojiDropdownOpen(false);
     tg?.HapticFeedback?.impactOccurred('light');
   };
-
-  const handleRemoveBackgroundChange = (checked: boolean) => {
-    setSourceStripExpanded(false);
-    setRemoveBackground(checked);
-    persistGeneratePreferences({ removeBackground: checked });
-  };
-
-  const styleSelectOptions = stylePresets.map((p) => ({ id: p.id, name: stripPresetName(p.name) }));
-  const selectedPreset = stylePresets.find((p) => p.id === selectedStylePresetId);
-  const styleButtonLabel = selectedPreset ? stripPresetName(selectedPreset.name) : 'Без стиля';
-
-  useEffect(() => {
-    if (!styleDropdownOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (styleDropdownRef.current && !styleDropdownRef.current.contains(e.target as Node)) {
-        setStyleDropdownOpen(false);
-      }
-    };
-    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [styleDropdownOpen]);
 
   useEffect(() => {
     if (!emojiDropdownOpen) return;
@@ -1954,60 +1941,20 @@ export const GeneratePage: FC = () => {
   const renderInputFooter = (disabled: boolean) => (
     <div className="generate-input-footer">
       <div className="generate-input-toolbar">
-        {renderStyleSelect(disabled)}
         {renderEmojiSelect(disabled)}
       </div>
-      <label className="generate-checkbox-label generate-checkbox-label--inline">
-        <span>Удалить фон</span>
-        <input
-          type="checkbox"
-          checked={removeBackground}
-          onChange={(e) => handleRemoveBackgroundChange(e.target.checked)}
-          disabled={disabled}
-          className="generate-checkbox"
-          readOnly={disabled}
-        />
-      </label>
     </div>
   );
 
-  const renderStyleSelect = (disabled: boolean) => (
-    <div ref={styleDropdownRef} className="generate-model-select-wrap generate-model-select-wrap--style">
-      <button
-        type="button"
-        className="generate-model-select-trigger"
-        onClick={() => {
-          setSourceStripExpanded(false);
-          if (!disabled) {
-            setStyleDropdownOpen((v) => !v);
-          }
-        }}
-        disabled={disabled}
-        aria-label="Выберите стиль"
-        aria-expanded={styleDropdownOpen}
-      >
-        <span className="generate-model-select-value">{styleButtonLabel}</span>
-        <KeyboardArrowDownIcon
-          size={14}
-          color="var(--color-text-secondary)"
-          style={{ transform: styleDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-        />
-      </button>
-      {styleDropdownOpen && (
-        <div className="generate-model-select-dropdown generate-model-select-dropdown--style">
-          {styleSelectOptions.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className={cn('generate-model-select-option', opt.id === selectedStylePresetId && 'generate-model-select-option--selected')}
-              onClick={() => handleStyleSelect(opt.id)}
-            >
-              {opt.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+  const renderPresetStrip = (disabled: boolean) => (
+    <StylePresetStrip
+      presets={stylePresets}
+      selectedPresetId={selectedStylePresetId}
+      onPresetChange={handlePresetChange}
+      previewByPresetId={presetPreviewById}
+      fallbackPreviewByPresetCode={PRESET_PREVIEW_FALLBACK_BY_CODE}
+      disabled={disabled}
+    />
   );
 
   const primarySourcePreview = sourceImagePreviews[0] ?? null;
@@ -2175,6 +2122,7 @@ export const GeneratePage: FC = () => {
           />
           {renderInputFooter(true)}
         </div>
+        {renderPresetStrip(true)}
         <Button
           variant="primary"
           size="medium"
@@ -2270,6 +2218,7 @@ export const GeneratePage: FC = () => {
               </div>
             )}
           </div>
+          {renderPresetStrip(isGenerating)}
 
           <Button
             variant="primary"
@@ -2326,6 +2275,7 @@ export const GeneratePage: FC = () => {
             </div>
           )}
         </div>
+        {renderPresetStrip(false)}
         <Button
           variant="primary"
           size="medium"
@@ -2364,6 +2314,7 @@ export const GeneratePage: FC = () => {
           />
           {renderInputFooter(isGenerating)}
         </div>
+        {renderPresetStrip(isGenerating)}
 
         <Button
           variant="primary"

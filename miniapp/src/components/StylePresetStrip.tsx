@@ -7,14 +7,29 @@ interface StylePresetStripProps {
   presets: StylePreset[];
   selectedPresetId: number | null;
   onPresetChange: (presetId: number | null) => void;
+  previewByPresetId?: Map<number, string>;
+  fallbackPreviewByPresetCode?: Partial<Record<string, string>>;
   disabled?: boolean;
 }
 
-/** Figma: horizontal row 70×70 preview + 12px label, 16px radius, #262626 */
+type StylePresetOption = {
+  id: number | null;
+  name: string;
+  code?: string;
+  previewUrl?: string | null;
+};
+
+const getServerPreviewUrl = (preset: StylePreset): string | null => {
+  return preset.previewWebpUrl ?? preset.previewUrl ?? preset.thumbnailUrl ?? null;
+};
+
+/** Horizontal inspiration cards for generation presets. */
 export const StylePresetStrip: FC<StylePresetStripProps> = ({
   presets,
   selectedPresetId,
   onPresetChange,
+  previewByPresetId,
+  fallbackPreviewByPresetCode,
   disabled = false,
 }) => {
   const { tg } = useTelegram();
@@ -22,9 +37,17 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
   const stripPresetName = (name: string) =>
     name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
 
-  const options: { id: number | null; name: string }[] = [
-    { id: null, name: 'Без стиля' },
-    ...presets.map((p) => ({ id: p.id, name: stripPresetName(p.name) })),
+  const options: StylePresetOption[] = [
+    { id: null, name: 'Свой prompt', code: 'custom' },
+    ...presets.map((p) => ({
+      id: p.id,
+      name: stripPresetName(p.name),
+      code: p.code,
+      previewUrl:
+        previewByPresetId?.get(p.id) ??
+        (p.code ? fallbackPreviewByPresetCode?.[p.code] : undefined) ??
+        getServerPreviewUrl(p),
+    })),
   ];
 
   const handleSelect = (presetId: number | null) => {
@@ -50,7 +73,21 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
                 .join(' ')}
               onClick={() => handleSelect(opt.id)}
             >
-              <div className="style-preset-strip__preview" />
+              <div className="style-preset-strip__preview" aria-hidden="true">
+                {opt.previewUrl ? (
+                  <img
+                    src={opt.previewUrl}
+                    alt=""
+                    className="style-preset-strip__image"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="style-preset-strip__placeholder">
+                    {opt.id === null ? '+' : opt.name.slice(0, 1)}
+                  </span>
+                )}
+              </div>
               <span className="style-preset-strip__label">{opt.name}</span>
             </button>
           );

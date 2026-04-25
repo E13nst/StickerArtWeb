@@ -413,6 +413,9 @@ export interface StylePreset {
   isGlobal: boolean;
   isEnabled: boolean;
   sortOrder: number;
+  previewUrl?: string | null;
+  previewWebpUrl?: string | null;
+  thumbnailUrl?: string | null;
 }
 
 export interface GenerateRequest {
