@@ -5,8 +5,9 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
+import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import './GeneratePage.css';
-import { apiClient, GenerateModelType, GenerationStatus, StylePreset } from '@/api/client';
+import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
@@ -253,6 +254,7 @@ export const GeneratePage: FC = () => {
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
+  const [presetFields, setPresetFields] = useState<Record<string, string>>({});
   const [selectedModel, setSelectedModel] = useState<GenerateModelType>(DEFAULT_GENERATE_MODEL);
   const [selectedEmoji, setSelectedEmoji] = useState(DEFAULT_GENERATE_EMOJI);
   const [removeBackground, setRemoveBackground] = useState<boolean>(DEFAULT_REMOVE_BACKGROUND);
@@ -1094,22 +1096,47 @@ export const GeneratePage: FC = () => {
     preferencesAppliedRef.current = true;
   }, [historyUserScopeId, stylePresets]);
 
+  // Метаданные UI выбранного пресета
+  const selectedPreset: StylePreset | null =
+    selectedStylePresetId != null
+      ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null
+      : null;
+  const promptInputCfg = selectedPreset?.promptInput ?? null;
+  /** Показывать ли основное поле prompt (скрывается только когда enabled явно false) */
+  const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
+  /** Является ли prompt обязательным */
+  const promptIsRequired = showPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
+  const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
+  const effectivePromptPlaceholder =
+    promptInputCfg?.placeholder ?? 'Опишите стикер, например: собака летит на ракете';
+  const selectedPresetFieldDefs: StylePresetField[] = selectedPreset?.fields ?? [];
+
   // Обработка отправки формы
   const handleGenerate = async () => {
     setSourceStripExpanded(false);
     const trimmedPrompt = prompt.trim();
     const canGenerateWithoutPrompt = sourceImageFiles.length > 0 && selectedStylePresetId != null;
-    if (!canGenerateWithoutPrompt && (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH)) {
-      setErrorMessage('Введите описание стикера');
+    if (showPromptInput && promptIsRequired && !canGenerateWithoutPrompt) {
+      if (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH) {
+        setErrorMessage('Введите описание стикера');
+        setErrorKind('prompt');
+        setPageState('error');
+        return;
+      }
+    }
+    if (showPromptInput && trimmedPrompt.length > effectiveMaxPromptLen) {
+      setErrorMessage(`Слишком длинное описание (макс. ${effectiveMaxPromptLen} символов)`);
       setErrorKind('prompt');
       setPageState('error');
       return;
     }
-    if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
-      setErrorMessage(`Слишком длинное описание (макс. ${MAX_PROMPT_LENGTH} символов)`);
-      setErrorKind('prompt');
-      setPageState('error');
-      return;
+    for (const field of selectedPresetFieldDefs) {
+      if (field.required && !(presetFields[field.key]?.trim())) {
+        setErrorMessage(`Заполните поле «${field.label}»`);
+        setErrorKind('prompt');
+        setPageState('error');
+        return;
+      }
     }
 
     setErrorMessage(null);
@@ -1170,14 +1197,21 @@ export const GeneratePage: FC = () => {
       setPageState('generating');
       setCurrentStatus('PROCESSING_PROMPT');
 
+      const fieldsToSend: Record<string, string> = {};
+      for (const field of selectedPresetFieldDefs) {
+        const val = presetFields[field.key]?.trim();
+        if (val) fieldsToSend[field.key] = val;
+      }
+
       const response = await apiClient.generateStickerV2({
-        prompt: trimmedPrompt,
+        prompt: showPromptInput ? trimmedPrompt : '',
         model: selectedModel,
         stylePresetId: selectedStylePresetId,
         num_images: 1,
         remove_background: removeBackground,
         ...(uploadedImageIds.length === 1 ? { image_id: uploadedImageIds[0] } : {}),
         ...(uploadedImageIds.length > 1 ? { image_ids: uploadedImageIds } : {}),
+        ...(Object.keys(fieldsToSend).length > 0 ? { preset_fields: fieldsToSend } : {}),
       });
       
       setTaskId(response.taskId);
@@ -1621,9 +1655,13 @@ export const GeneratePage: FC = () => {
   const hasSourceImage = sourceImageFiles.length > 0;
   const trimmedPrompt = prompt.trim();
   const canGenerateWithoutPrompt = hasSourceImage && selectedStylePresetId != null;
-  const isFormValid =
-    (trimmedPrompt.length >= MIN_PROMPT_LENGTH && trimmedPrompt.length <= MAX_PROMPT_LENGTH) ||
-    canGenerateWithoutPrompt;
+  const promptOk =
+    !promptIsRequired ||
+    (trimmedPrompt.length >= MIN_PROMPT_LENGTH && trimmedPrompt.length <= effectiveMaxPromptLen);
+  const presetFieldsOk = selectedPresetFieldDefs.every(
+    (f) => !f.required || !!(presetFields[f.key]?.trim()),
+  );
+  const isFormValid = (promptOk || canGenerateWithoutPrompt) && presetFieldsOk;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
@@ -1879,7 +1917,12 @@ export const GeneratePage: FC = () => {
   const handlePresetChange = (presetId: number | null) => {
     setSourceStripExpanded(false);
     setSelectedStylePresetId(presetId);
+    setPresetFields({});
     persistGeneratePreferences({ stylePresetId: presetId });
+  };
+
+  const handlePresetFieldChange = (key: string, value: string) => {
+    setPresetFields((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -2115,18 +2158,26 @@ export const GeneratePage: FC = () => {
       {renderSourceImageStrip(true)}
       <div className="generate-form-block">
         <div className="generate-input-wrapper">
-          <textarea
-            className="generate-input generate-input--readonly"
-            rows={PROMPT_ROWS}
-            readOnly
-            value={prompt}
-            maxLength={MAX_PROMPT_LENGTH}
-            onFocus={handlePromptFocusIn}
-            onBlur={handlePromptFocusOut}
-          />
+          {showPromptInput && (
+            <textarea
+              className="generate-input generate-input--readonly"
+              rows={PROMPT_ROWS}
+              readOnly
+              value={prompt}
+              maxLength={effectiveMaxPromptLen}
+              onFocus={handlePromptFocusIn}
+              onBlur={handlePromptFocusOut}
+            />
+          )}
           {renderInputFooter(true)}
         </div>
         {renderPresetStrip(true)}
+        <PresetFieldsForm
+          fields={selectedPresetFieldDefs}
+          values={presetFields}
+          onChange={handlePresetFieldChange}
+          disabled
+        />
         <Button
           variant="primary"
           size="medium"
@@ -2203,17 +2254,19 @@ export const GeneratePage: FC = () => {
             onMouseDownCapture={handleInputWrapperAction}
             onClickCapture={handleInputWrapperAction}
           >
-            <textarea
-              className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
-              rows={PROMPT_ROWS}
-              placeholder="Опишите стикер, например: собака летит на ракете"
-              value={prompt}
-              onChange={(e) => handlePromptChange(e.target.value)}
-              maxLength={MAX_PROMPT_LENGTH}
-              disabled={isGenerating}
-              onFocus={handlePromptFocusIn}
-              onBlur={handlePromptFocusOut}
-            />
+            {showPromptInput && (
+              <textarea
+                className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
+                rows={PROMPT_ROWS}
+                placeholder={effectivePromptPlaceholder}
+                value={prompt}
+                onChange={(e) => handlePromptChange(e.target.value)}
+                maxLength={effectiveMaxPromptLen}
+                disabled={isGenerating}
+                onFocus={handlePromptFocusIn}
+                onBlur={handlePromptFocusOut}
+              />
+            )}
             {renderInputFooter(isGenerating)}
             {shouldShowPromptError && (
               <div className="generate-error-inline">
@@ -2223,6 +2276,12 @@ export const GeneratePage: FC = () => {
             )}
           </div>
           {renderPresetStrip(isGenerating)}
+          <PresetFieldsForm
+            fields={selectedPresetFieldDefs}
+            values={presetFields}
+            onChange={handlePresetFieldChange}
+            disabled={isGenerating}
+          />
 
           <Button
             variant="primary"
@@ -2261,16 +2320,18 @@ export const GeneratePage: FC = () => {
           onMouseDownCapture={handleInputWrapperAction}
           onClickCapture={handleInputWrapperAction}
         >
-          <textarea
-            className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
-            rows={PROMPT_ROWS}
-            placeholder="Опишите стикер, например: собака летит на ракете"
-            value={prompt}
-            onChange={(e) => handlePromptChange(e.target.value)}
-            maxLength={MAX_PROMPT_LENGTH}
-            onFocus={handlePromptFocusIn}
-            onBlur={handlePromptFocusOut}
-          />
+          {showPromptInput && (
+            <textarea
+              className={cn('generate-input', shouldShowPromptError && 'generate-input--error')}
+              rows={PROMPT_ROWS}
+              placeholder={effectivePromptPlaceholder}
+              value={prompt}
+              onChange={(e) => handlePromptChange(e.target.value)}
+              maxLength={effectiveMaxPromptLen}
+              onFocus={handlePromptFocusIn}
+              onBlur={handlePromptFocusOut}
+            />
+          )}
           {renderInputFooter(false)}
           {shouldShowPromptError && (
             <div className="generate-error-inline">
@@ -2280,6 +2341,12 @@ export const GeneratePage: FC = () => {
           )}
         </div>
         {renderPresetStrip(false)}
+        <PresetFieldsForm
+          fields={selectedPresetFieldDefs}
+          values={presetFields}
+          onChange={handlePresetFieldChange}
+          disabled={false}
+        />
         <Button
           variant="primary"
           size="medium"
@@ -2306,19 +2373,27 @@ export const GeneratePage: FC = () => {
           onMouseDownCapture={handleInputWrapperAction}
           onClickCapture={handleInputWrapperAction}
         >
-          <textarea
-            className="generate-input"
-            rows={PROMPT_ROWS}
-            placeholder="Опишите стикер, например: собака летит на ракете"
-            value={prompt}
-            onChange={(e) => handlePromptChange(e.target.value)}
-            maxLength={MAX_PROMPT_LENGTH}
-            onFocus={handlePromptFocusIn}
-            onBlur={handlePromptFocusOut}
-          />
+          {showPromptInput && (
+            <textarea
+              className="generate-input"
+              rows={PROMPT_ROWS}
+              placeholder={effectivePromptPlaceholder}
+              value={prompt}
+              onChange={(e) => handlePromptChange(e.target.value)}
+              maxLength={effectiveMaxPromptLen}
+              onFocus={handlePromptFocusIn}
+              onBlur={handlePromptFocusOut}
+            />
+          )}
           {renderInputFooter(isGenerating)}
         </div>
         {renderPresetStrip(isGenerating)}
+        <PresetFieldsForm
+          fields={selectedPresetFieldDefs}
+          values={presetFields}
+          onChange={handlePresetFieldChange}
+          disabled={isGenerating}
+        />
 
         <Button
           variant="primary"

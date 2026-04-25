@@ -1,0 +1,82 @@
+.preset-fields-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.preset-fields-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preset-fields-form__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.01em;
+}
+
+.preset-fields-form__required {
+  color: rgba(238, 68, 159, 0.9);
+}
+
+.preset-fields-form__description {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.4;
+}
+
+.preset-fields-form__input,
+.preset-fields-form__select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 15px;
+  font-family: var(--font-family-base, inherit);
+  outline: none;
+  transition: border-color 0.18s ease, background 0.18s ease;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.preset-fields-form__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.preset-fields-form__select option {
+  background: #1a1f2e;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.preset-fields-form__input:focus,
+.preset-fields-form__select:focus {
+  border-color: rgba(238, 68, 159, 0.5);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.preset-fields-form__input:disabled,
+.preset-fields-form__select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preset-fields-form__input--error,
+.preset-fields-form__select--error {
+  border-color: rgba(255, 80, 80, 0.6);
+}
+
+.preset-fields-form__error-msg {
+  font-size: 12px;
+  color: rgba(255, 80, 80, 0.9);
+}

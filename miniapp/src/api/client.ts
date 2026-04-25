@@ -404,6 +404,29 @@ export interface ArtTariffsResponse {
   credits?: ArtTariffDebit[];
 }
 
+export interface StylePresetPromptInput {
+  enabled: boolean;
+  required?: boolean | null;
+  placeholder?: string | null;
+  maxLength?: number | null;
+}
+
+export interface StylePresetFieldOption {
+  value: string;
+  label: string;
+}
+
+export interface StylePresetField {
+  key: string;
+  label: string;
+  description?: string | null;
+  placeholder?: string | null;
+  type: 'text' | 'emoji' | 'select';
+  required?: boolean | null;
+  maxLength?: number | null;
+  options?: StylePresetFieldOption[] | null;
+}
+
 export interface StylePreset {
   id: number;
   code: string;
@@ -416,6 +439,9 @@ export interface StylePreset {
   previewUrl?: string | null;
   previewWebpUrl?: string | null;
   thumbnailUrl?: string | null;
+  uiMode?: string | null;
+  promptInput?: StylePresetPromptInput | null;
+  fields?: StylePresetField[] | null;
 }
 
 export interface GenerateRequest {
@@ -436,6 +462,7 @@ export interface GenerateRequestV2 {
   remove_background?: boolean;
   image_id?: string;
   image_ids?: string[];
+  preset_fields?: Record<string, string>;
 }
 
 export interface GenerateResponse {
