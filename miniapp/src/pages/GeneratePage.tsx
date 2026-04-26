@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
+import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -188,6 +189,16 @@ const blobToDataUrl = (blob: Blob): Promise<string> =>
 const getSourceImageLimitMessage = (): string =>
   `Можно прикрепить не больше ${MAX_SOURCE_IMAGE_FILES} изображений. Лишние изображения не добавлены.`;
 
+const collectUniqueReferenceImageIds = (assignments: Record<string, string[]>): Set<string> => {
+  const s = new Set<string>();
+  Object.values(assignments).forEach((arr) => {
+    arr.forEach((id) => {
+      if (id) s.add(id);
+    });
+  });
+  return s;
+};
+
 const bytesToHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -240,6 +251,9 @@ export const GeneratePage: FC = () => {
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
   const [presetFields, setPresetFields] = useState<Record<string, string>>({});
+  const [referenceAssignments, setReferenceAssignments] = useState<Record<string, string[]>>({});
+  const [referencePreviewById, setReferencePreviewById] = useState<Record<string, string>>({});
+  const [referenceUploadingKey, setReferenceUploadingKey] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<GenerateModelType>(DEFAULT_GENERATE_MODEL);
   const [selectedEmoji, setSelectedEmoji] = useState(DEFAULT_GENERATE_EMOJI);
   const [removeBackground, setRemoveBackground] = useState<boolean>(DEFAULT_REMOVE_BACKGROUND);
@@ -572,6 +586,9 @@ export const GeneratePage: FC = () => {
     if (typeof effectiveAvatarUrl !== 'string' || effectiveAvatarUrl.length === 0) return 'MISSING_AVATAR_SOURCE';
     if (hasPendingAvatarTrigger) return null;
     if (telegramAvatarDismissed) return 'DISMISSED_BY_USER';
+    if (Object.values(referenceAssignments).some((arr) => (arr?.length ?? 0) > 0)) {
+      return 'MANUAL_SOURCE_PRESENT';
+    }
     if (sourceImageFiles.length > 0) {
       return sourceImageOrigin === 'telegram-avatar' ? 'AVATAR_ALREADY_APPLIED' : 'MANUAL_SOURCE_PRESENT';
     }
@@ -580,6 +597,7 @@ export const GeneratePage: FC = () => {
     effectiveAvatarUrl,
     hasActiveGeneration,
     hasPendingAvatarTrigger,
+    referenceAssignments,
     sourceImageFiles.length,
     sourceImageOrigin,
     telegramAvatarDismissed,
@@ -1096,6 +1114,21 @@ export const GeneratePage: FC = () => {
   const effectivePromptPlaceholder =
     promptInputCfg?.placeholder ?? 'Опишите стикер, например: собака летит на ракете';
   const selectedPresetFieldDefs: StylePresetField[] = selectedPreset?.fields ?? [];
+  const referenceFieldDefs = useMemo(
+    () => selectedPresetFieldDefs.filter((f) => f.type === 'reference'),
+    [selectedPresetFieldDefs],
+  );
+  const effectiveReferenceMaxUnique = useMemo(() => {
+    const raw = selectedPreset?.promptInput?.referenceImages?.maxCount;
+    if (raw == null || !Number.isFinite(raw) || raw <= 0) {
+      return MAX_SOURCE_IMAGE_FILES;
+    }
+    return Math.min(MAX_SOURCE_IMAGE_FILES, Math.floor(raw));
+  }, [selectedPreset]);
+  const hasReferenceSlotsFilled = useMemo(
+    () => referenceFieldDefs.some((f) => (referenceAssignments[f.key] ?? []).length > 0),
+    [referenceAssignments, referenceFieldDefs],
+  );
   const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
 
   const removeBgResolved = resolveRemoveBackground(
@@ -1122,11 +1155,133 @@ export const GeneratePage: FC = () => {
       </label>
     ) : null;
 
+  const applyReferenceMove = useCallback(
+    (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => {
+      const { imageId, fromKey, fromIndex, toKey, toIndex } = payload;
+
+      setReferenceAssignments((prev) => {
+        const getMax = (key: string) => {
+          const f = selectedPresetFieldDefs.find((x) => x.key === key && x.type === 'reference');
+          return Math.max(1, f?.maxImages ?? 1);
+        };
+
+        const clone: Record<string, string[]> = {};
+        for (const k of Object.keys(prev)) {
+          clone[k] = [...(prev[k] ?? [])];
+        }
+        for (const f of selectedPresetFieldDefs) {
+          if (f.type === 'reference' && clone[f.key] === undefined) {
+            clone[f.key] = [];
+          }
+        }
+
+        const fromMax = getMax(fromKey);
+        const fromList = [...(clone[fromKey] ?? [])];
+        if (fromList[fromIndex] !== imageId) {
+          return prev;
+        }
+
+        if (fromKey === toKey) {
+          const list = [...fromList];
+          const [moved] = list.splice(fromIndex, 1);
+          if (!moved) return prev;
+          let idx = toIndex;
+          if (fromIndex < toIndex) idx -= 1;
+          idx = Math.max(0, Math.min(idx, list.length));
+          list.splice(idx, 0, moved);
+          if (list.length > fromMax) return prev;
+          clone[fromKey] = list;
+          return clone;
+        }
+
+        fromList.splice(fromIndex, 1);
+        clone[fromKey] = fromList;
+
+        const maxTo = getMax(toKey);
+        let toList = [...(clone[toKey] ?? [])].filter((x) => x !== imageId);
+
+        if (maxTo <= 1) {
+          clone[toKey] = [imageId];
+          return clone;
+        }
+
+        if (toList.length >= maxTo) {
+          return prev;
+        }
+        const idx = Math.min(Math.max(0, toIndex), toList.length);
+        toList.splice(idx, 0, imageId);
+        clone[toKey] = toList;
+        return clone;
+      });
+    },
+    [selectedPresetFieldDefs],
+  );
+
+  const handleReferenceRemove = useCallback((fieldKey: string, index: number) => {
+    setReferenceAssignments((prev) => {
+      const list = [...(prev[fieldKey] ?? [])];
+      list.splice(index, 1);
+      return { ...prev, [fieldKey]: list };
+    });
+  }, []);
+
+  const handleReferenceAddFiles = useCallback(
+    async (fieldKey: string, files: File[]) => {
+      const field = selectedPresetFieldDefs.find((f) => f.key === fieldKey && f.type === 'reference');
+      if (!field || field.type !== 'reference' || !files.length) return;
+
+      const maxSlot = Math.max(1, field.maxImages ?? 1);
+      const listSnapshot = referenceAssignments[fieldKey] ?? [];
+      const room = maxSlot - listSnapshot.length;
+      if (room <= 0) return;
+
+      const slice = files.slice(0, room);
+      setReferenceUploadingKey(fieldKey);
+      setErrorMessage(null);
+      try {
+        const { imageIds } = await apiClient.uploadSourceImages(slice);
+        const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
+
+        setReferencePreviewById((prev) => {
+          const next = { ...prev };
+          imageIds.forEach((id, i) => {
+            if (previews[i]) next[id] = previews[i];
+          });
+          return next;
+        });
+
+        setReferenceAssignments((prev) => {
+          const effMax = effectiveReferenceMaxUnique;
+          const uniques = collectUniqueReferenceImageIds(prev);
+          const list = [...(prev[fieldKey] ?? [])];
+          for (let i = 0; i < imageIds.length && list.length < maxSlot; i++) {
+            const id = imageIds[i];
+            if (!id || list.includes(id)) continue;
+            if (!uniques.has(id) && uniques.size >= effMax) {
+              break;
+            }
+            uniques.add(id);
+            list.push(id);
+          }
+          return { ...prev, [fieldKey]: list };
+        });
+      } catch (e: any) {
+        setErrorMessage(typeof e?.message === 'string' ? e.message : 'Не удалось загрузить изображение');
+        setErrorKind('upload');
+        setPageState('error');
+      } finally {
+        setReferenceUploadingKey(null);
+      }
+    },
+    [effectiveReferenceMaxUnique, referenceAssignments, selectedPresetFieldDefs],
+  );
+
   // Обработка отправки формы
   const handleGenerate = async () => {
     setSourceStripExpanded(false);
     const trimmedPrompt = prompt.trim();
-    const canGenerateWithoutPrompt = sourceImageFiles.length > 0 && selectedStylePresetId != null;
+    const canGenerateWithoutPrompt =
+      selectedStylePresetId != null && (sourceImageFiles.length > 0 || hasReferenceSlotsFilled);
     if (showPromptInput && promptIsRequired && !canGenerateWithoutPrompt) {
       if (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH) {
         setErrorMessage('Введите описание стикера');
@@ -1141,7 +1296,30 @@ export const GeneratePage: FC = () => {
       setPageState('error');
       return;
     }
+    if (referenceFieldDefs.length > 0) {
+      const minGlobal = selectedPreset?.promptInput?.referenceImages?.minCount ?? 0;
+      if (minGlobal > 0) {
+        const u = collectUniqueReferenceImageIds(referenceAssignments);
+        if (u.size < minGlobal) {
+          setErrorMessage(`Добавьте не меньше ${minGlobal} уникальных референсных изображений`);
+          setErrorKind('prompt');
+          setPageState('error');
+          return;
+        }
+      }
+    }
     for (const field of selectedPresetFieldDefs) {
+      if (field.type === 'reference') {
+        const n = (referenceAssignments[field.key] ?? []).length;
+        const minI = field.minImages ?? (field.required ? 1 : 0);
+        if (n < minI) {
+          setErrorMessage(`Заполните слот «${field.label}»`);
+          setErrorKind('prompt');
+          setPageState('error');
+          return;
+        }
+        continue;
+      }
       if (field.required && !(presetFields[field.key]?.trim())) {
         setErrorMessage(`Заполните поле «${field.label}»`);
         setErrorKind('prompt');
@@ -1182,9 +1360,11 @@ export const GeneratePage: FC = () => {
           stylePresetId: selectedStylePresetId,
           selectedEmoji,
           removeBackground,
-          hasSourceImage: sourceImageFiles.length > 0,
-          pageState: sourceImageFiles.length > 0 ? 'uploading' : 'generating',
-          generationStatus: sourceImageFiles.length > 0 ? null : 'PROCESSING_PROMPT',
+          hasSourceImage: sourceImageFiles.length > 0 || hasReferenceSlotsFilled,
+          pageState:
+            sourceImageFiles.length > 0 && !hasReferenceSlotsFilled ? 'uploading' : 'generating',
+          generationStatus:
+            sourceImageFiles.length > 0 && !hasReferenceSlotsFilled ? null : 'PROCESSING_PROMPT',
           resultImageUrl: null,
           imageId: null,
           fileId: null,
@@ -1196,7 +1376,7 @@ export const GeneratePage: FC = () => {
         setHistoryEntries(upsertGenerateHistoryEntry(historyUserScopeId, baseEntry));
       }
 
-      if (sourceImageFiles.length > 0) {
+      if (sourceImageFiles.length > 0 && !hasReferenceSlotsFilled) {
         setPageState('uploading');
         uploadedImageIds = await ensureUploadedSourceImageIds();
         patchHistoryEntry(
@@ -1208,11 +1388,30 @@ export const GeneratePage: FC = () => {
       setPageState('generating');
       setCurrentStatus('PROCESSING_PROMPT');
 
-      const fieldsToSend: Record<string, string> = {};
+      const fieldsToSend: Record<string, string | string[]> = {};
       for (const field of selectedPresetFieldDefs) {
+        if (field.type === 'reference') {
+          const ids = referenceAssignments[field.key] ?? [];
+          if (!ids.length) continue;
+          const maxI = Math.max(1, field.maxImages ?? 1);
+          if (maxI <= 1) {
+            fieldsToSend[field.key] = ids[0];
+          } else {
+            fieldsToSend[field.key] = ids;
+          }
+          continue;
+        }
         const val = presetFields[field.key]?.trim();
         if (val) fieldsToSend[field.key] = val;
       }
+
+      const legacyImagePayload =
+        referenceFieldDefs.length > 0 && hasReferenceSlotsFilled
+          ? {}
+          : {
+              ...(uploadedImageIds.length === 1 ? { image_id: uploadedImageIds[0] } : {}),
+              ...(uploadedImageIds.length > 1 ? { image_ids: uploadedImageIds } : {}),
+            };
 
       const response = await apiClient.generateStickerV2({
         prompt: showPromptInput ? trimmedPrompt : '',
@@ -1220,8 +1419,7 @@ export const GeneratePage: FC = () => {
         stylePresetId: selectedStylePresetId,
         num_images: 1,
         remove_background: effectiveRemoveBackground,
-        ...(uploadedImageIds.length === 1 ? { image_id: uploadedImageIds[0] } : {}),
-        ...(uploadedImageIds.length > 1 ? { image_ids: uploadedImageIds } : {}),
+        ...legacyImagePayload,
         ...(Object.keys(fieldsToSend).length > 0 ? { preset_fields: fieldsToSend } : {}),
       });
       
@@ -1663,15 +1861,27 @@ export const GeneratePage: FC = () => {
   };
 
   // Валидация формы
-  const hasSourceImage = sourceImageFiles.length > 0;
   const trimmedPrompt = prompt.trim();
-  const canGenerateWithoutPrompt = hasSourceImage && selectedStylePresetId != null;
+  const canGenerateWithoutPrompt =
+    selectedStylePresetId != null && (sourceImageFiles.length > 0 || hasReferenceSlotsFilled);
   const promptOk =
     !promptIsRequired ||
     (trimmedPrompt.length >= MIN_PROMPT_LENGTH && trimmedPrompt.length <= effectiveMaxPromptLen);
-  const presetFieldsOk = selectedPresetFieldDefs.every(
-    (f) => !f.required || !!(presetFields[f.key]?.trim()),
-  );
+  const referenceMinGlobal = selectedPreset?.promptInput?.referenceImages?.minCount ?? 0;
+  const referenceUniqueOk =
+    referenceFieldDefs.length === 0 ||
+    referenceMinGlobal <= 0 ||
+    collectUniqueReferenceImageIds(referenceAssignments).size >= referenceMinGlobal;
+  const presetFieldsOk =
+    referenceUniqueOk &&
+    selectedPresetFieldDefs.every((f) => {
+      if (f.type === 'reference') {
+        const n = (referenceAssignments[f.key] ?? []).length;
+        const minI = f.minImages ?? (f.required ? 1 : 0);
+        return n >= minI;
+      }
+      return !f.required || !!(presetFields[f.key]?.trim());
+    });
   const isFormValid = (promptOk || canGenerateWithoutPrompt) && presetFieldsOk;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid;
@@ -1929,6 +2139,9 @@ export const GeneratePage: FC = () => {
     setSourceStripExpanded(false);
     setSelectedStylePresetId(presetId);
     setPresetFields({});
+    setReferenceAssignments({});
+    setReferencePreviewById({});
+    setReferenceUploadingKey(null);
     persistGeneratePreferences({ stylePresetId: presetId });
   };
 
@@ -2105,6 +2318,15 @@ export const GeneratePage: FC = () => {
             onChange={handlePresetFieldChange}
             disabled={cfg.readOnly || cfg.textDisabled}
             emojiOptions={POPULAR_EMOJIS}
+            referenceAssignments={referenceAssignments}
+            referencePreviewById={referencePreviewById}
+            referenceUploadingKey={referenceUploadingKey}
+            effectiveReferenceMaxUnique={effectiveReferenceMaxUnique}
+            onReferenceRemove={handleReferenceRemove}
+            onReferenceAddFiles={(key, files) => {
+              void handleReferenceAddFiles(key, files);
+            }}
+            onReferenceMove={applyReferenceMove}
           />
         </div>
       )}

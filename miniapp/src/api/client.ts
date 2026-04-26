@@ -406,11 +406,18 @@ export interface ArtTariffsResponse {
 
 export type StylePresetRemoveBgMode = 'FORCE_ON' | 'FORCE_OFF' | 'PRESET_DEFAULT';
 
+export interface StylePresetReferenceImagesPolicy {
+  minCount?: number | null;
+  /** Максимум уникальных референсов; не больше 14 на клиенте */
+  maxCount?: number | null;
+}
+
 export interface StylePresetPromptInput {
   enabled: boolean;
   required?: boolean | null;
   placeholder?: string | null;
   maxLength?: number | null;
+  referenceImages?: StylePresetReferenceImagesPolicy | null;
 }
 
 export interface StylePresetFieldOption {
@@ -423,10 +430,14 @@ export interface StylePresetField {
   label: string;
   description?: string | null;
   placeholder?: string | null;
-  type: 'text' | 'emoji' | 'select';
+  type: 'text' | 'emoji' | 'select' | 'reference';
   required?: boolean | null;
   maxLength?: number | null;
   options?: StylePresetFieldOption[] | null;
+  /** Для type === 'reference' */
+  minImages?: number | null;
+  maxImages?: number | null;
+  promptTemplate?: string | null;
 }
 
 export interface StylePreset {
@@ -467,7 +478,7 @@ export interface GenerateRequestV2 {
   remove_background?: boolean;
   image_id?: string;
   image_ids?: string[];
-  preset_fields?: Record<string, string>;
+  preset_fields?: Record<string, string | string[]>;
 }
 
 export interface GenerateResponse {

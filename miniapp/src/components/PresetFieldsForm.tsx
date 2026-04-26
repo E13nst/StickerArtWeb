@@ -1,5 +1,6 @@
 import { FC, ChangeEvent, useState, useEffect, useRef, useCallback } from 'react';
 import { StylePresetField } from '@/api/client';
+import { PresetReferenceField, PresetReferenceMovePayload } from '@/components/PresetReferenceField';
 import './PresetFieldsForm.css';
 
 interface PresetFieldsFormProps {
@@ -10,6 +11,13 @@ interface PresetFieldsFormProps {
   fieldErrors?: Record<string, string>;
   /** Список эмодзи для полей type=emoji (как в выборе стикера по умолчанию) */
   emojiOptions: string[];
+  referenceAssignments?: Record<string, string[]>;
+  referencePreviewById?: Record<string, string>;
+  referenceUploadingKey?: string | null;
+  effectiveReferenceMaxUnique?: number;
+  onReferenceRemove?: (key: string, index: number) => void;
+  onReferenceAddFiles?: (key: string, files: File[]) => void;
+  onReferenceMove?: (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => void;
 }
 
 const cn = (...classes: (string | false | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -21,6 +29,13 @@ export const PresetFieldsForm: FC<PresetFieldsFormProps> = ({
   disabled = false,
   fieldErrors = {},
   emojiOptions,
+  referenceAssignments,
+  referencePreviewById,
+  referenceUploadingKey = null,
+  effectiveReferenceMaxUnique,
+  onReferenceRemove,
+  onReferenceAddFiles,
+  onReferenceMove,
 }) => {
   const [openEmojiKey, setOpenEmojiKey] = useState<string | null>(null);
   const fieldWrapRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -54,6 +69,35 @@ export const PresetFieldsForm: FC<PresetFieldsFormProps> = ({
         const error = fieldErrors[field.key];
         const hasError = !!error;
         const isFirst = index === 0;
+
+        if (field.type === 'reference') {
+          if (
+            referenceAssignments == null ||
+            referencePreviewById == null ||
+            effectiveReferenceMaxUnique == null ||
+            !onReferenceRemove ||
+            !onReferenceAddFiles ||
+            !onReferenceMove
+          ) {
+            return null;
+          }
+          return (
+            <PresetReferenceField
+              key={field.key}
+              field={field}
+              isFirst={isFirst}
+              disabled={disabled}
+              assignedIds={referenceAssignments[field.key] ?? []}
+              previewById={referencePreviewById}
+              uploading={referenceUploadingKey === field.key}
+              effectiveMaxUnique={effectiveReferenceMaxUnique}
+              allAssignments={referenceAssignments}
+              onRemoveAt={onReferenceRemove}
+              onAddFiles={onReferenceAddFiles}
+              onMoveImage={onReferenceMove}
+            />
+          );
+        }
 
         if (field.type === 'emoji') {
           return (
