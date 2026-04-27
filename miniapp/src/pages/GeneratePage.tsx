@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
-import { DND_SOURCE_STRIP_MIME, hasExternalFilesDrag } from '@/components/referenceDnd';
+import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
 import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
+import { AttachmentPointerDragProvider } from '@/components/AttachmentPointerDragContext';
+import type { DraggingPayload, DropTarget } from '@/components/AttachmentPointerDragContext';
+import { SourceImageStripItem } from '@/components/SourceImageStripItem';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -1028,11 +1031,13 @@ export const GeneratePage: FC = () => {
 
     const avatarSourceKey = profileAvatarFileId || effectiveAvatarUrl;
     const avatarUrlToFetch = effectiveAvatarUrl ?? '';
-    const autofillKey = `${telegramUserId}:${avatarSourceKey}:${hasPendingAvatarTrigger ? avatarTriggerToken : 'default'}`;
-    if (avatarAutofillAppliedRef.current === autofillKey) {
+    // Стабильный ключ без ?avatar= токена: иначе после обработки триггера hasPendingAvatarTrigger
+    // меняется с true на false, ключ `…:ts` сменится на `…:default` и guard не сработает — повторный fetch/append.
+    const stableAutofillKey = `${telegramUserId}:${avatarSourceKey}`;
+    if (avatarAutofillAppliedRef.current === stableAutofillKey) {
       return;
     }
-    avatarAutofillAppliedRef.current = autofillKey;
+    avatarAutofillAppliedRef.current = stableAutofillKey;
 
     const abortController = new AbortController();
 
@@ -1336,51 +1341,27 @@ export const GeneratePage: FC = () => {
     [selectedPresetFieldDefs],
   );
 
+  /** Снимает imageId только из слота пресета. Ленту вложений не трогает; refImageId→fingerprint оставляем для удаления с ленты. */
   const handleReferenceRemove = useCallback((fieldKey: string, index: number) => {
-    let removedId: string | undefined;
-    const newStateWrapper: { ass: Record<string, string[]> | null } = { ass: null };
-
     setReferenceAssignments((prev) => {
       const list = [...(prev[fieldKey] ?? [])];
       if (index < 0 || index >= list.length) return prev;
-      removedId = list[index];
+      const removedId = list[index];
       if (!removedId) return prev;
       list.splice(index, 1);
-      const newAss = { ...prev, [fieldKey]: list };
-      newStateWrapper.ass = newAss;
-      return newAss;
+      const next = { ...prev, [fieldKey]: list };
+      queueMicrotask(() => {
+        setReferencePreviewById((p) => {
+          if (collectUniqueReferenceImageIds(next).has(removedId)) return p;
+          if (!p[removedId]) return p;
+          const n = { ...p };
+          delete n[removedId];
+          return n;
+        });
+      });
+      return next;
     });
-
-    if (!removedId) return;
-    const fp = refImageIdToFingerprintRef.current[removedId];
-    setReferencePreviewById((p) => {
-      if (!p[removedId!]) return p;
-      const n = { ...p };
-      delete n[removedId!];
-      return n;
-    });
-    delete refImageIdToFingerprintRef.current[removedId];
-    if (fp == null) {
-      return;
-    }
-    queueMicrotask(() => {
-      const ass = newStateWrapper.ass;
-      if (!ass) return;
-      const remaining = collectUniqueReferenceImageIds(ass);
-      const stillUsed = [...remaining].some((id) => refImageIdToFingerprintRef.current[id] === fp);
-      if (stillUsed) return;
-      const i = sourceFingerprintByIndexRef.current.indexOf(fp);
-      if (i < 0) return;
-      if (sourceFingerprintByIndexRef.current.length === 1) {
-        clearSourceImageRef.current?.();
-        return;
-      }
-      sourceFingerprintByIndexRef.current = sourceFingerprintByIndexRef.current.filter((_, j) => j !== i);
-      setSourceImageFiles((prev) => prev.filter((_, j) => j !== i));
-      setSourceImagePreviews((prev) => prev.filter((_, j) => j !== i));
-      resetUploadedSourceImageCache();
-    });
-  }, [resetUploadedSourceImageCache]);
+  }, []);
 
   const handleReferenceAddFiles = useCallback(
     async (fieldKey: string, files: File[]) => {
@@ -1771,9 +1752,12 @@ export const GeneratePage: FC = () => {
   );
 
   const handleGenerateFormDragOver = useCallback((e: ReactDragEvent) => {
+    // Иначе родитель не помечает зону как допустимую для drop — дочерние слоты могут не получить drop
+    e.preventDefault();
     if (hasExternalFilesDrag(e.dataTransfer)) {
-      e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
+    } else {
+      e.dataTransfer.dropEffect = 'move';
     }
   }, []);
 
@@ -1794,6 +1778,7 @@ export const GeneratePage: FC = () => {
       setTelegramAvatarDismissed(true);
       persistTelegramAvatarDismissed(true);
     }
+    avatarAutofillAppliedRef.current = null;
     refImageIdToFingerprintRef.current = {};
     sourceFingerprintByIndexRef.current = [];
     setSourceImageFiles([]);
@@ -1895,6 +1880,29 @@ export const GeneratePage: FC = () => {
     setSourceImagePreviews((prev) => reorder(prev));
     resetUploadedSourceImageCache();
   }, [resetUploadedSourceImageCache, sourceImageFiles.length]);
+
+  const handleAttachmentPointerInternalDrop = useCallback(
+    (e: { drag: DraggingPayload; target: DropTarget | null; clientX: number; clientY: number }) => {
+      const { drag, target } = e;
+      if (!target) return;
+      if (drag.kind === 'ref' && target.type === 'preset') {
+        applyReferenceMove({
+          ...drag.data,
+          toKey: target.fieldKey,
+          toIndex: target.slotIndex,
+        });
+        return;
+      }
+      if (drag.kind === 'source' && target.type === 'preset') {
+        void handleReferenceAddFromSource(target.fieldKey, target.slotIndex, drag.sourceIndex);
+        return;
+      }
+      if (drag.kind === 'source' && target.type === 'source') {
+        moveSourceImage(drag.sourceIndex, target.sourceIndex);
+      }
+    },
+    [applyReferenceMove, handleReferenceAddFromSource, moveSourceImage],
+  );
 
   const openChatPicker = useCallback((stickerFileId: string) => {
     const cleanFileId = removeInvisibleChars(stickerFileId).trim();
@@ -2329,16 +2337,15 @@ export const GeneratePage: FC = () => {
           <div className="generate-source-strip__scroll-shell">
             <div ref={sourceStripInnerRef} className="generate-source-strip__inner horiz-scroll-bleed">
               {sourceImagePreviews.map((preview, index) => (
-                <div
+                <SourceImageStripItem
                   key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
-                  className="generate-source-strip__item"
-                  style={{
-                    animationDelay: `${Math.max(0, sourceImagePreviews.length - index - 1) * 45}ms`,
-                  }}
-                  draggable={!disabled}
-                  onDragStart={(e) => {
+                  index={index}
+                  preview={preview}
+                  disabled={disabled}
+                  animationDelay={`${Math.max(0, sourceImagePreviews.length - index - 1) * 45}ms`}
+                  onNativeDragStart={(e) => {
                     draggedSourceImageIndexRef.current = index;
-                    e.dataTransfer.setData(DND_SOURCE_STRIP_MIME, JSON.stringify({ sourceIndex: index }));
+                    setSourceStripDragData(e.dataTransfer, { sourceIndex: index });
                     e.dataTransfer.effectAllowed = 'copyMove';
                   }}
                   onDragOver={(event) => {
@@ -2368,29 +2375,11 @@ export const GeneratePage: FC = () => {
                   onDragEnd={() => {
                     draggedSourceImageIndexRef.current = null;
                   }}
-                >
-                  <img
-                    src={preview}
-                    alt={`Исходное изображение ${index + 1}`}
-                    className="generate-source-strip__image"
-                    draggable={false}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  {!disabled && (
-                    <button
-                      type="button"
-                      className="generate-source-strip__remove"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        removeSourceImageAt(index);
-                      }}
-                      aria-label={`Удалить изображение ${index + 1}`}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
+                  onRemoveClick={(event) => {
+                    event.stopPropagation();
+                    removeSourceImageAt(index);
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -2748,16 +2737,24 @@ export const GeneratePage: FC = () => {
   const showAvatarCenterCard =
     selectedStylePresetId == null && stripIsOnlyTelegramAvatars && Boolean(primarySourcePreview);
   const renderBrandBlock = () => (
-    <div className="generate-brand">
+    <div
+      className={cn(
+        'generate-brand',
+        selectedStylePresetId != null &&
+          selectedStylePresetCardPreview &&
+          'generate-brand--preset-hero',
+      )}
+    >
       {selectedStylePresetId != null && selectedStylePresetCardPreview ? (
-        <img
-          src={selectedStylePresetCardPreview}
-          alt=""
-          className="generate-brand-logo"
-          loading="eager"
-          decoding="async"
-          aria-hidden="true"
-        />
+        <div className="generate-result-image-wrapper">
+          <img
+            src={selectedStylePresetCardPreview}
+            alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
+            className="generate-result-image"
+            loading="eager"
+            decoding="async"
+          />
+        </div>
       ) : showAvatarCenterCard ? (
         <div className="generate-brand-avatar-card">
           <button
@@ -3053,19 +3050,21 @@ export const GeneratePage: FC = () => {
     >
       <OtherAccountBackground />
       {renderHistoryModal()}
-      <StixlyPageContainer
-        className={cn(
-          'generate-inner',
-          isCompactState && 'generate-inner--compact',
-          isPromptFocused && 'generate-inner--prompt-focused'
-        )}
-      >
-        {pageState === 'idle' && renderIdleState()}
-        {pageState === 'uploading' && renderGeneratingState()}
-        {pageState === 'generating' && renderGeneratingState()}
-        {pageState === 'success' && renderSuccessState()}
-        {pageState === 'error' && renderErrorState()}
-      </StixlyPageContainer>
+      <AttachmentPointerDragProvider enabled={!isGenerating} onInternalDrop={handleAttachmentPointerInternalDrop}>
+        <StixlyPageContainer
+          className={cn(
+            'generate-inner',
+            isCompactState && 'generate-inner--compact',
+            isPromptFocused && 'generate-inner--prompt-focused',
+          )}
+        >
+          {pageState === 'idle' && renderIdleState()}
+          {pageState === 'uploading' && renderGeneratingState()}
+          {pageState === 'generating' && renderGeneratingState()}
+          {pageState === 'success' && renderSuccessState()}
+          {pageState === 'error' && renderErrorState()}
+        </StixlyPageContainer>
+      </AttachmentPointerDragProvider>
       {errorMessage && (
         <div
           className="generate-error-toast"

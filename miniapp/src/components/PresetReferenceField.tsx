@@ -1,13 +1,15 @@
 import { FC, useCallback, useRef, ChangeEvent, DragEvent } from 'react';
 import { StylePresetField } from '@/api/client';
 import {
-  DND_PRESET_REF_IMAGE_MIME,
   hasExternalFilesDrag,
   hasSourceStripDrag,
   parsePresetReferenceDrag,
   parseSourceStripDrag,
+  setPresetReferenceDragData,
   type PresetReferenceMovePayload,
 } from '@/components/referenceDnd';
+import { useOptionalAttachmentPointerDrag } from '@/components/AttachmentPointerDragContext';
+import { useMatchPointerCoarse } from '@/hooks/useMatchPointerCoarse';
 import './PresetReferenceField.css';
 
 export type { PresetReferenceMovePayload } from '@/components/referenceDnd';
@@ -58,6 +60,8 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   onAddExternalFilesAt,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const ptrDnd = useOptionalAttachmentPointerDrag();
+  const coarsePointer = useMatchPointerCoarse();
   const maxSlot = Math.max(1, field.maxImages ?? 1);
   const minSlot = Math.max(0, field.minImages ?? 0);
   const slotFull = assignedIds.length >= maxSlot;
@@ -79,8 +83,12 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
 
   const handleDragStart = (e: DragEvent, imageId: string, index: number) => {
     if (disabled) return;
+    if ((e.target as HTMLElement | null)?.closest?.('button')) {
+      e.preventDefault();
+      return;
+    }
     const payload: PresetReferenceMovePayload = { imageId, fromKey: field.key, fromIndex: index };
-    e.dataTransfer.setData(DND_PRESET_REF_IMAGE_MIME, JSON.stringify(payload));
+    setPresetReferenceDragData(e.dataTransfer, payload);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -169,21 +177,37 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
             <div
               key={`${cell.id}-${cell.index}`}
               className="preset-reference-field__cell preset-reference-field__cell--filled"
+              data-stixly-drop="preset"
+              data-field-key={field.key}
+              data-slot-index={String(cell.index)}
+              draggable={!disabled && !coarsePointer}
+              onDragStart={(e) => handleDragStart(e, cell.id, cell.index)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDropOnCell(e, cell.index)}
+              onPointerDown={(e) => {
+                if (!ptrDnd?.enabled) return;
+                const url = previewById[cell.id] ?? '';
+                ptrDnd.onRefCellPointerDown(e, {
+                  imageId: cell.id,
+                  fromKey: field.key,
+                  fromIndex: cell.index,
+                  previewUrl: url,
+                });
+              }}
             >
               <img
                 src={previewById[cell.id] ?? ''}
                 alt=""
                 className="preset-reference-field__thumb"
-                draggable={!disabled}
-                onDragStart={(e) => handleDragStart(e, cell.id, cell.index)}
+                draggable={false}
               />
               {!disabled && (
                 <button
                   type="button"
                   className="preset-reference-field__remove"
                   onClick={() => onRemoveAt(field.key, cell.index)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   aria-label="Убрать из слота"
                 >
                   ×
@@ -196,6 +220,9 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
               type="button"
               className="preset-reference-field__cell preset-reference-field__cell--empty"
               disabled={disabled || uploading || !canAddMore}
+              data-stixly-drop="preset"
+              data-field-key={field.key}
+              data-slot-index={String(cell.index)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDropOnCell(e, cell.index)}
               onClick={openPicker}

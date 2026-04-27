@@ -377,6 +377,12 @@
   flex-grow: 0;
 }
 
+.generate-brand--preset-hero {
+  width: 100%;
+  min-height: unset;
+  /* тот же центральный блок, что и .generate-result-image-wrapper в успехе */
+}
+
 .generate-brand-logo {
   width: 280px;
   height: 160px;
