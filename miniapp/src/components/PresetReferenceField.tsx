@@ -30,6 +30,8 @@ interface PresetReferenceFieldProps {
   field: StylePresetField;
   isFirst: boolean;
   disabled: boolean;
+  /** Предустановленный референс пресета — только просмотр */
+  locked?: boolean;
   assignedIds: string[];
   previewById: Record<string, string>;
   uploading: boolean;
@@ -48,6 +50,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   field,
   isFirst,
   disabled,
+  locked = false,
   assignedIds,
   previewById,
   uploading,
@@ -67,13 +70,13 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   const slotFull = assignedIds.length >= maxSlot;
   const uniques = collectUniqueIds(allAssignments);
   const atGlobalCap = uniques.size >= effectiveMaxUnique;
-  const canAddMore = !slotFull && uniques.size < effectiveMaxUnique;
+  const canAddMore = !locked && !slotFull && uniques.size < effectiveMaxUnique;
 
   const openPicker = useCallback(() => {
-    if (disabled || uploading || slotFull) return;
+    if (disabled || locked || uploading || slotFull) return;
     if (uniques.size >= effectiveMaxUnique) return;
     inputRef.current?.click();
-  }, [disabled, effectiveMaxUnique, slotFull, uniques.size, uploading]);
+  }, [disabled, effectiveMaxUnique, locked, slotFull, uniques.size, uploading]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/'));
@@ -82,7 +85,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   };
 
   const handleDragStart = (e: DragEvent, imageId: string, index: number) => {
-    if (disabled) return;
+    if (disabled || locked) return;
     if ((e.target as HTMLElement | null)?.closest?.('button')) {
       e.preventDefault();
       return;
@@ -93,11 +96,11 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   };
 
   const isExternalFileDrag = (e: DragEvent) => {
-    return hasExternalFilesDrag(e.dataTransfer) && onAddExternalFilesAt && canAddMore;
+    return !locked && hasExternalFilesDrag(e.dataTransfer) && onAddExternalFilesAt && canAddMore;
   };
 
   const handleDragOver = (e: DragEvent) => {
-    if (disabled) return;
+    if (disabled || locked) return;
     e.preventDefault();
     if (isExternalFileDrag(e)) {
       e.dataTransfer.dropEffect = 'copy';
@@ -180,7 +183,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
               data-stixly-drop="preset"
               data-field-key={field.key}
               data-slot-index={String(cell.index)}
-              draggable={!disabled && !coarsePointer}
+              draggable={!disabled && !locked && !coarsePointer}
               onDragStart={(e) => handleDragStart(e, cell.id, cell.index)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDropOnCell(e, cell.index)}
@@ -201,7 +204,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
                 className="preset-reference-field__thumb"
                 draggable={false}
               />
-              {!disabled && (
+              {!disabled && !locked && (
                 <button
                   type="button"
                   className="preset-reference-field__remove"
@@ -219,7 +222,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
               key={`empty-${cell.index}`}
               type="button"
               className="preset-reference-field__cell preset-reference-field__cell--empty"
-              disabled={disabled || uploading || !canAddMore}
+              disabled={disabled || locked || uploading || !canAddMore}
               data-stixly-drop="preset"
               data-field-key={field.key}
               data-slot-index={String(cell.index)}

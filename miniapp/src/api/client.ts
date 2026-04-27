@@ -431,6 +431,8 @@ export interface StylePresetField {
   description?: string | null;
   placeholder?: string | null;
   type: 'text' | 'emoji' | 'select' | 'reference';
+  /** Системное поле (например слот preset_ref), не произвольное поле формы */
+  system?: boolean | null;
   required?: boolean | null;
   maxLength?: number | null;
   options?: StylePresetFieldOption[] | null;
@@ -438,6 +440,13 @@ export interface StylePresetField {
   minImages?: number | null;
   maxImages?: number | null;
   promptTemplate?: string | null;
+}
+
+export interface StylePresetCategoryDto {
+  id: number;
+  code: string;
+  name: string;
+  sortOrder: number;
 }
 
 export interface StylePreset {
@@ -448,7 +457,9 @@ export interface StylePreset {
   promptSuffix: string;
   isGlobal: boolean;
   isEnabled: boolean;
+  /** Порядок внутри категории (раньше был глобальным sortOrder). */
   sortOrder: number;
+  category?: StylePresetCategoryDto | null;
   previewUrl?: string | null;
   previewWebpUrl?: string | null;
   thumbnailUrl?: string | null;
@@ -458,6 +469,10 @@ export interface StylePreset {
   removeBackgroundMode?: StylePresetRemoveBgMode | null;
   promptInput?: StylePresetPromptInput | null;
   fields?: StylePresetField[] | null;
+  /** URL превью предустановленного референса стиля (includeUi) */
+  presetReferenceImageUrl?: string | null;
+  /** Id изображения для слота preset_ref в генерации (например img_sagref_...) */
+  presetReferenceSourceImageId?: string | null;
 }
 
 export interface GenerateRequest {
@@ -2198,6 +2213,20 @@ class ApiClient {
     }
   }
 
+  // Список категорий пресетов стилей (фильтры / группы)
+  // API endpoint: GET /api/generation/style-preset-categories
+  async getStylePresetCategories(): Promise<StylePresetCategoryDto[]> {
+    try {
+      const response = await this.client.get<StylePresetCategoryDto[]>(
+        '/generation/style-preset-categories',
+      );
+      return [...response.data].sort((a, b) => a.sortOrder - b.sortOrder);
+    } catch (error: any) {
+      console.error('❌ Ошибка получения категорий пресетов стилей:', error);
+      throw error;
+    }
+  }
+
   // Получение списка доступных пресетов стилей
   // API endpoint: GET /api/generation/style-presets
   async getStylePresets(): Promise<StylePreset[]> {
@@ -2207,11 +2236,18 @@ class ApiClient {
           includeUi: true,
         },
       });
-      // Сортируем по sortOrder и фильтруем только активные
-      const activePresets = response.data
-        .filter(preset => preset.isEnabled)
-        .sort((a, b) => a.sortOrder - b.sortOrder);
-      return activePresets;
+      const activePresets = response.data.filter((preset) => preset.isEnabled);
+      const catOrder = (c: StylePresetCategoryDto | null | undefined) => c?.sortOrder ?? 0;
+      const catId = (c: StylePresetCategoryDto | null | undefined) => c?.id ?? 0;
+      return activePresets.sort((a, b) => {
+        const dCat = catOrder(a.category) - catOrder(b.category);
+        if (dCat !== 0) return dCat;
+        const dId = catId(a.category) - catId(b.category);
+        if (dId !== 0) return dId;
+        const dOrder = a.sortOrder - b.sortOrder;
+        if (dOrder !== 0) return dOrder;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      });
     } catch (error: any) {
       console.error('❌ Ошибка получения пресетов стилей:', error);
       throw error;

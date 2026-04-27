@@ -105,6 +105,11 @@ body.generate-avatar-hint-active .header-panel__avatar-wrap .header-panel__avata
   animation: header-avatar-hint-pulse 2.8s ease-in-out infinite;
 }
 
+/* Кнопка истории на /generate: пульс, пока готовая «голова» не совпала с открытым результатом (логика в GeneratePage) */
+body.generate-history-hint-active .header-panel__wallet--history {
+  animation: header-avatar-hint-pulse 2.8s ease-in-out infinite;
+}
+
 .header-panel__avatar--placeholder {
   display: flex;
   align-items: center;

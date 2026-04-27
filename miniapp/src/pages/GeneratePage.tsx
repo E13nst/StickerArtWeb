@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
+import { StylePresetCategoryChips, type StyleCategoryFilter } from '@/components/StylePresetCategoryChips';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
 import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
@@ -12,7 +13,24 @@ import { AttachmentPointerDragProvider } from '@/components/AttachmentPointerDra
 import type { DraggingPayload, DropTarget } from '@/components/AttachmentPointerDragContext';
 import { SourceImageStripItem } from '@/components/SourceImageStripItem';
 import './GeneratePage.css';
-import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
+import {
+  apiClient,
+  GenerateModelType,
+  GenerationStatus,
+  StylePreset,
+  StylePresetCategoryDto,
+  StylePresetField,
+  StylePresetRemoveBgMode,
+} from '@/api/client';
+import {
+  STYLE_PRESET_SHOWCASE_K,
+  ensureSelectedPresetInStrip,
+  fisherYatesShuffle,
+  groupByCategoryId,
+  roundRobinFromGroups,
+  sortPresetsInCategory,
+  uniqueCategoriesFromPresets,
+} from '@/utils/stylePresetCategoryUi';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useGenerateHistoryHeaderStore } from '@/store/useGenerateHistoryHeaderStore';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -32,6 +50,7 @@ import {
   upsertGenerateHistoryEntry,
   updateGenerateHistoryEntry,
 } from '@/utils/generateHistoryStorage';
+import { readHistoryHeadAck, writeHistoryHeadAck } from '@/utils/historyHeadAckStorage';
 import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/generatePreferencesStorage';
 import { POPULAR_EMOJIS } from '@/constants/popularEmojis';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
@@ -65,10 +84,27 @@ const TELEGRAM_AVATAR_DISMISSED_STORAGE_KEY = 'generate_telegram_avatar_dismisse
 const LAST_USED_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-last-used-save-target:v1';
 const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-target:v1';
 const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
+/** Ключ слота предустановленного референса стиля в preset_fields */
+const PRESET_REF_FIELD_KEY = 'preset_ref';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
+
+function getPresetReferenceSlotSourceId(preset: StylePreset | null | undefined): string | null {
+  const raw = preset?.presetReferenceSourceImageId;
+  if (typeof raw !== 'string') return null;
+  const id = raw.trim();
+  return id || null;
+}
+
+function presetHasPresetReferenceField(preset: StylePreset | null | undefined): boolean {
+  return Boolean(preset?.fields?.some((f) => f.key === PRESET_REF_FIELD_KEY && f.type === 'reference'));
+}
+
+function isLockedServerPresetReferenceSlot(preset: StylePreset | null | undefined): boolean {
+  return Boolean(getPresetReferenceSlotSourceId(preset) && presetHasPresetReferenceField(preset));
+}
 
 function resolveRemoveBackground(
   presetMode: StylePresetRemoveBgMode | null | undefined,
@@ -264,6 +300,9 @@ export const GeneratePage: FC = () => {
   // Состояние формы
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
+  const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
+  const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter>('all');
+  const [showcaseOrderTick, setShowcaseOrderTick] = useState(0);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
   const [presetFields, setPresetFields] = useState<Record<string, string>>({});
   const [referenceAssignments, setReferenceAssignments] = useState<Record<string, string[]>>({});
@@ -328,7 +367,10 @@ export const GeneratePage: FC = () => {
   const activeHistoryLocalIdRef = useRef<string | null>(null);
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
+  const showcaseCategoryOrderRef = useRef<number[] | null>(null);
+  const categoryKeyForShowcaseRef = useRef<string>('');
   const avatarAutofillAppliedRef = useRef<string | null>(null);
+  const avatarAutofillInFlightRef = useRef(false);
   const processedAvatarTriggerRef = useRef<string | null>(null);
   const lastAvatarAutofillBlockReasonRef = useRef<string | null>(null);
   /** imageId (референс) → отпечаток файла; связь с лентой вложений (source strip) */
@@ -549,20 +591,79 @@ export const GeneratePage: FC = () => {
     loadTariffs();
   }, []);
 
-  // Загрузка пресетов стилей при монтировании
+  // Загрузка пресетов стилей и категорий при монтировании
   useEffect(() => {
     const loadPresets = async () => {
       try {
-        const presets = await apiClient.getStylePresets();
+        const [presets, categories] = await Promise.all([
+          apiClient.getStylePresets(),
+          apiClient.getStylePresetCategories().catch((err) => {
+            console.warn('Категории пресетов недоступны, чипы из пресетов:', err);
+            return [] as StylePresetCategoryDto[];
+          }),
+        ]);
         setStylePresets(presets);
+        setStylePresetCategories(categories);
       } catch (error) {
         console.error('Ошибка загрузки пресетов стилей:', error);
         // Тихий fallback - форма будет работать без пресетов
       }
     };
-    
-    loadPresets();
+
+    void loadPresets();
   }, []);
+
+  const stylePresetCategoryIdsKey = useMemo(
+    () =>
+      [
+        ...new Set(
+          stylePresets.map((p) => p.category?.id).filter((x): x is number => x != null),
+        ),
+      ]
+        .sort((a, b) => a - b)
+        .join(','),
+    [stylePresets],
+  );
+
+  const styleCategoryChipsList = useMemo(() => {
+    if (stylePresetCategories.length > 0) return stylePresetCategories;
+    return uniqueCategoriesFromPresets(stylePresets);
+  }, [stylePresetCategories, stylePresets]);
+
+  useLayoutEffect(() => {
+    if (stylePresets.length === 0) return;
+    if (categoryKeyForShowcaseRef.current !== stylePresetCategoryIdsKey) {
+      categoryKeyForShowcaseRef.current = stylePresetCategoryIdsKey;
+      showcaseCategoryOrderRef.current = null;
+    }
+    if (showcaseCategoryOrderRef.current != null) return;
+    const groups = groupByCategoryId(stylePresets);
+    if (groups.size === 0) return;
+    showcaseCategoryOrderRef.current = fisherYatesShuffle([...groups.keys()]);
+    setShowcaseOrderTick((n) => n + 1);
+  }, [stylePresets, stylePresetCategoryIdsKey]);
+
+  const stripStylePresets = useMemo(() => {
+    if (styleCategoryFilter !== 'all') {
+      const list = stylePresets.filter((p) => p.category?.id === styleCategoryFilter);
+      return ensureSelectedPresetInStrip(
+        sortPresetsInCategory(list),
+        stylePresets,
+        selectedStylePresetId,
+      );
+    }
+    const order = showcaseCategoryOrderRef.current;
+    if (order == null || order.length === 0) {
+      return ensureSelectedPresetInStrip(
+        sortPresetsInCategory([...stylePresets]),
+        stylePresets,
+        selectedStylePresetId,
+      );
+    }
+    const groups = groupByCategoryId(stylePresets);
+    const interleaved = roundRobinFromGroups(groups, order, STYLE_PRESET_SHOWCASE_K);
+    return ensureSelectedPresetInStrip(interleaved, stylePresets, selectedStylePresetId);
+  }, [styleCategoryFilter, stylePresets, selectedStylePresetId, showcaseOrderTick]);
 
   // Актуальный баланс ART и профиль «меня» в сторе (источник истины: /api/profiles/me)
   // Всегда кладём в стор полный объект me, чтобы хедер показывал правильный аватар и баланс
@@ -813,6 +914,44 @@ export const GeneratePage: FC = () => {
     };
   }, [location.pathname, sourceImageOrigin]);
 
+  /** Пульс кнопки истории: голова готова и ещё не подтверждена в sessionStorage; «увидел» — при совпадении результата с head (см. write внутри). */
+  useEffect(() => {
+    if (!historyUserScopeId) {
+      document.body.classList.remove('generate-history-hint-active');
+      return;
+    }
+    const head = historyEntries[0];
+    const headHasReadyResult = Boolean(
+      head &&
+        head.resultImageUrl &&
+        (head.pageState === 'success' || head.generationStatus === 'COMPLETED')
+    );
+    const isViewingHeadResult = Boolean(
+      headHasReadyResult &&
+        head &&
+        pageState === 'success' &&
+        resultImageUrl &&
+        resultImageUrl === head.resultImageUrl
+    );
+    if (isViewingHeadResult && head) {
+      writeHistoryHeadAck(historyUserScopeId, { localId: head.localId, updatedAt: head.updatedAt });
+    }
+    const ack = readHistoryHeadAck(historyUserScopeId);
+    const headAcked = Boolean(
+      head && ack && ack.localId === head.localId && ack.updatedAt === head.updatedAt
+    );
+    const shouldShowHistoryReadyHint = headHasReadyResult && !headAcked;
+
+    if (shouldShowHistoryReadyHint) {
+      document.body.classList.add('generate-history-hint-active');
+    } else {
+      document.body.classList.remove('generate-history-hint-active');
+    }
+    return () => {
+      document.body.classList.remove('generate-history-hint-active');
+    };
+  }, [historyEntries, historyUserScopeId, pageState, resultImageUrl]);
+
   // Polling статуса генерации
   const startPolling = useCallback((taskIdToCheck: string, historyLocalIdForPoll: string) => {
     // Очищаем предыдущий интервал
@@ -942,8 +1081,8 @@ export const GeneratePage: FC = () => {
     uploadedSourceImageSignatureRef.current = null;
   }, []);
 
-  const appendSourceImages = useCallback(async (files: File[]) => {
-    if (!files.length) return;
+  const appendSourceImages = useCallback(async (files: File[]): Promise<boolean> => {
+    if (!files.length) return false;
 
     const currentSourceCount = sourceImageFiles.length;
     const existingFiles = sourceImageFiles;
@@ -960,7 +1099,7 @@ export const GeneratePage: FC = () => {
     }
 
     if (!uniqueIncomingFiles.length) {
-      return;
+      return false;
     }
 
     const remainingSlots = MAX_SOURCE_IMAGE_FILES - currentSourceCount;
@@ -968,7 +1107,7 @@ export const GeneratePage: FC = () => {
       setErrorMessage(getSourceImageLimitMessage());
       setErrorKind('upload');
       setPageState('error');
-      return;
+      return false;
     }
 
     const filesToAppend = uniqueIncomingFiles.slice(0, remainingSlots);
@@ -999,12 +1138,94 @@ export const GeneratePage: FC = () => {
           setPageState('idle');
         }
       }
+      return true;
     } catch {
       setErrorMessage('Не удалось загрузить файл');
       setErrorKind('upload');
       setPageState('error');
+      return false;
     }
   }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, resetUploadedSourceImageCache, selectedModel, sourceImageFiles]);
+
+  /** Вставка в начало ленты (явный клик по аватару в шапке с ?avatar=). */
+  const prependSourceImages = useCallback(
+    async (files: File[]): Promise<boolean> => {
+      if (!files.length) return false;
+
+      const existingFiles = sourceImageFiles;
+      const existingPreviews = sourceImagePreviews;
+      const existingFingerprints = new Set(
+        await Promise.all(existingFiles.map((file) => buildSourceImageFingerprint(file)))
+      );
+      const uniqueIncoming: File[] = [];
+      for (const file of files) {
+        const fingerprint = await buildSourceImageFingerprint(file);
+        if (existingFingerprints.has(fingerprint)) {
+          continue;
+        }
+        existingFingerprints.add(fingerprint);
+        uniqueIncoming.push(file);
+      }
+      if (!uniqueIncoming.length) {
+        return false;
+      }
+
+      const maxTotal = MAX_SOURCE_IMAGE_FILES;
+      const room = maxTotal - existingFiles.length;
+      if (room <= 0) {
+        setErrorMessage(getSourceImageLimitMessage());
+        setErrorKind('upload');
+        setPageState('error');
+        return false;
+      }
+
+      const toAdd = uniqueIncoming.slice(0, room);
+      const skipped = uniqueIncoming.length - toAdd.length;
+      try {
+        const addPreviews = await Promise.all(toAdd.map((file) => blobToDataUrl(file)));
+        const nextFiles = [...toAdd, ...existingFiles].slice(0, maxTotal);
+        const nextPreviews = [...addPreviews, ...existingPreviews].slice(0, nextFiles.length);
+        const nextFps = await Promise.all(nextFiles.map((file) => buildSourceImageFingerprint(file)));
+
+        sourceFingerprintByIndexRef.current = nextFps;
+        setSourceImageFiles(nextFiles);
+        setSourceImagePreviews(nextPreviews);
+        setSourceImageOrigin(computeSourceImageOriginFromFiles(nextFiles));
+        setSourceStripExpanded(true);
+        resetUploadedSourceImageCache();
+        if (selectedModel !== SOURCE_IMAGE_MODEL) {
+          setSelectedModel(SOURCE_IMAGE_MODEL);
+          persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
+        }
+        if (skipped > 0) {
+          setErrorMessage(getSourceImageLimitMessage());
+          setErrorKind('upload');
+          setPageState('error');
+        } else {
+          setErrorMessage(null);
+          setErrorKind(null);
+          if (pageState === 'error') {
+            setPageState('idle');
+          }
+        }
+        return true;
+      } catch {
+        setErrorMessage('Не удалось загрузить файл');
+        setErrorKind('upload');
+        setPageState('error');
+        return false;
+      }
+    },
+    [
+      buildSourceImageFingerprint,
+      pageState,
+      persistGeneratePreferences,
+      resetUploadedSourceImageCache,
+      selectedModel,
+      sourceImageFiles,
+      sourceImagePreviews,
+    ]
+  );
 
   useEffect(() => {
     const canAutofill = avatarAutofillBlockReason == null;
@@ -1025,21 +1246,26 @@ export const GeneratePage: FC = () => {
     }
     lastAvatarAutofillBlockReasonRef.current = null;
 
-    if (hasPendingAvatarTrigger) {
-      processedAvatarTriggerRef.current = avatarTriggerToken;
-    }
-
     const avatarSourceKey = profileAvatarFileId || effectiveAvatarUrl;
     const avatarUrlToFetch = effectiveAvatarUrl ?? '';
     // Стабильный ключ без ?avatar= токена: иначе после обработки триггера hasPendingAvatarTrigger
     // меняется с true на false, ключ `…:ts` сменится на `…:default` и guard не сработает — повторный fetch/append.
     const stableAutofillKey = `${telegramUserId}:${avatarSourceKey}`;
-    if (avatarAutofillAppliedRef.current === stableAutofillKey) {
+    if (avatarAutofillAppliedRef.current === stableAutofillKey && !hasPendingAvatarTrigger) {
       return;
     }
-    avatarAutofillAppliedRef.current = stableAutofillKey;
+
+    if (avatarAutofillInFlightRef.current) {
+      return;
+    }
+
+    // Раньше processedAvatarTriggerRef выставляли до fetch: при повторном запуске эффекта hasPendingAvatarTrigger
+    // становился false, вторая итерация делала append — в ленте два «telegram-avatar».
+    const insertAsPrepend = hasPendingAvatarTrigger;
+    const triggerTokenToConsume = avatarTriggerToken;
 
     const abortController = new AbortController();
+    avatarAutofillInFlightRef.current = true;
 
     (async () => {
       try {
@@ -1078,8 +1304,16 @@ export const GeneratePage: FC = () => {
 
         if (abortController.signal.aborted) return;
 
-        await appendSourceImages([avatarFile]);
-        if (hasPendingAvatarTrigger) {
+        const didAdd = insertAsPrepend
+          ? await prependSourceImages([avatarFile])
+          : await appendSourceImages([avatarFile]);
+        if (insertAsPrepend && triggerTokenToConsume) {
+          processedAvatarTriggerRef.current = triggerTokenToConsume;
+        }
+        if (didAdd) {
+          avatarAutofillAppliedRef.current = stableAutofillKey;
+        }
+        if (insertAsPrepend) {
           setPageState('idle');
           setCurrentStatus(null);
           setTaskId(null);
@@ -1103,10 +1337,15 @@ export const GeneratePage: FC = () => {
           persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
         }
       } catch (error) {
+        if (!abortController.signal.aborted && insertAsPrepend && triggerTokenToConsume) {
+          processedAvatarTriggerRef.current = triggerTokenToConsume;
+        }
         // Тихий fallback: при недоступном photo_url оставляем текущий UI без ошибки.
         if (!abortController.signal.aborted) {
           console.info('Автоподстановка Telegram-аватара недоступна:', error);
         }
+      } finally {
+        avatarAutofillInFlightRef.current = false;
       }
     })();
 
@@ -1115,6 +1354,7 @@ export const GeneratePage: FC = () => {
     };
   }, [
     appendSourceImages,
+    prependSourceImages,
     avatarAutofillBlockReason,
     persistGeneratePreferences,
     resetUploadedSourceImageCache,
@@ -1253,6 +1493,29 @@ export const GeneratePage: FC = () => {
     () => referenceFieldDefs.some((f) => (referenceAssignments[f.key] ?? []).length > 0),
     [referenceAssignments, referenceFieldDefs],
   );
+  const lockedPresetRefFieldKeys = useMemo(
+    () =>
+      isLockedServerPresetReferenceSlot(selectedPreset)
+        ? new Set<string>([PRESET_REF_FIELD_KEY])
+        : new Set<string>(),
+    [selectedPreset],
+  );
+
+  /** Синхронизация слота preset_ref с DTO пресета (после смены стиля или загрузки списка пресетов). */
+  useEffect(() => {
+    if (!selectedPreset) return;
+    const srcId = getPresetReferenceSlotSourceId(selectedPreset);
+    if (!srcId || !presetHasPresetReferenceField(selectedPreset)) return;
+    setReferenceAssignments((prev) => ({ ...prev, [PRESET_REF_FIELD_KEY]: [srcId] }));
+    const srcUrl =
+      typeof selectedPreset.presetReferenceImageUrl === 'string'
+        ? selectedPreset.presetReferenceImageUrl.trim()
+        : '';
+    if (srcUrl) {
+      setReferencePreviewById((prev) => (prev[srcId] ? prev : { ...prev, [srcId]: srcUrl }));
+    }
+  }, [selectedPreset]);
+
   const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
 
   const removeBgResolved = resolveRemoveBackground(
@@ -1281,6 +1544,9 @@ export const GeneratePage: FC = () => {
 
   const applyReferenceMove = useCallback(
     (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => {
+      if (lockedPresetRefFieldKeys.has(payload.fromKey) || lockedPresetRefFieldKeys.has(payload.toKey)) {
+        return;
+      }
       const { imageId, fromKey, fromIndex, toKey, toIndex } = payload;
 
       setReferenceAssignments((prev) => {
@@ -1338,11 +1604,12 @@ export const GeneratePage: FC = () => {
         return clone;
       });
     },
-    [selectedPresetFieldDefs],
+    [lockedPresetRefFieldKeys, selectedPresetFieldDefs],
   );
 
   /** Снимает imageId только из слота пресета. Ленту вложений не трогает; refImageId→fingerprint оставляем для удаления с ленты. */
   const handleReferenceRemove = useCallback((fieldKey: string, index: number) => {
+    if (lockedPresetRefFieldKeys.has(fieldKey)) return;
     setReferenceAssignments((prev) => {
       const list = [...(prev[fieldKey] ?? [])];
       if (index < 0 || index >= list.length) return prev;
@@ -1361,10 +1628,11 @@ export const GeneratePage: FC = () => {
       });
       return next;
     });
-  }, []);
+  }, [lockedPresetRefFieldKeys]);
 
   const handleReferenceAddFiles = useCallback(
     async (fieldKey: string, files: File[]) => {
+      if (lockedPresetRefFieldKeys.has(fieldKey)) return;
       const field = selectedPresetFieldDefs.find((f) => f.key === fieldKey && f.type === 'reference');
       if (!field || field.type !== 'reference' || !files.length) return;
 
@@ -1413,11 +1681,12 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [appendSourceImages, effectiveReferenceMaxUnique, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
+    [appendSourceImages, effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
   );
 
   const handleReferenceAddFromSource = useCallback(
     async (fieldKey: string, toIndex: number, sourceIndex: number) => {
+      if (lockedPresetRefFieldKeys.has(fieldKey)) return;
       const file = sourceImageFiles[sourceIndex];
       if (!file || !file.type.startsWith('image/')) return;
 
@@ -1472,7 +1741,7 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [effectiveReferenceMaxUnique, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, sourceImageFiles],
+    [effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, sourceImageFiles],
   );
 
   // Обработка отправки формы
@@ -1604,6 +1873,15 @@ export const GeneratePage: FC = () => {
         if (val) fieldsToSend[field.key] = val;
       }
 
+      const serverPresetRefId = getPresetReferenceSlotSourceId(selectedPreset);
+      if (serverPresetRefId) {
+        const refField = selectedPresetFieldDefs.find(
+          (f) => f.key === PRESET_REF_FIELD_KEY && f.type === 'reference',
+        );
+        const maxI = refField ? Math.max(1, refField.maxImages ?? 1) : 1;
+        fieldsToSend[PRESET_REF_FIELD_KEY] = maxI <= 1 ? serverPresetRefId : [serverPresetRefId];
+      }
+
       const legacyImagePayload =
         referenceFieldDefs.length > 0 && hasReferenceSlotsFilled
           ? {}
@@ -1680,6 +1958,7 @@ export const GeneratePage: FC = () => {
 
   const handleReferenceAddFilesAtSlot = useCallback(
     async (fieldKey: string, toIndex: number, files: File[]) => {
+      if (lockedPresetRefFieldKeys.has(fieldKey)) return;
       const imageFiles = files.filter((f) => f.type.startsWith('image/'));
       if (!imageFiles.length) return;
 
@@ -1748,7 +2027,7 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [appendSourceImages, effectiveReferenceMaxUnique, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
+    [appendSourceImages, effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
   );
 
   const handleGenerateFormDragOver = useCallback((e: ReactDragEvent) => {
@@ -1786,17 +2065,37 @@ export const GeneratePage: FC = () => {
     setSourceImageOrigin('none');
     setSourceStripExpanded(false);
     resetUploadedSourceImageCache();
-    setReferencePreviewById({});
+    const presetForRef =
+      selectedStylePresetId != null ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null : null;
+    const presetRefId = getPresetReferenceSlotSourceId(presetForRef);
+    const presetRefUrl =
+      typeof presetForRef?.presetReferenceImageUrl === 'string' ? presetForRef.presetReferenceImageUrl.trim() : '';
+    const keepPresetRef = Boolean(presetRefId && presetHasPresetReferenceField(presetForRef));
+    setReferencePreviewById(() => {
+      if (keepPresetRef && presetRefUrl && presetRefId) return { [presetRefId]: presetRefUrl };
+      return {};
+    });
     setReferenceAssignments((prev) => {
       const next = { ...prev };
       for (const f of selectedPresetFieldDefs) {
         if (f.type === 'reference') {
+          if (keepPresetRef && presetRefId && f.key === PRESET_REF_FIELD_KEY) {
+            next[f.key] = [presetRefId];
+            continue;
+          }
           next[f.key] = [];
         }
       }
       return next;
     });
-  }, [persistTelegramAvatarDismissed, resetUploadedSourceImageCache, selectedPresetFieldDefs, sourceImageFiles]);
+  }, [
+    persistTelegramAvatarDismissed,
+    resetUploadedSourceImageCache,
+    selectedPresetFieldDefs,
+    selectedStylePresetId,
+    sourceImageFiles,
+    stylePresets,
+  ]);
   clearSourceImageRef.current = clearSourceImage;
 
   const removeSourceImageAt = useCallback((index: number) => {
@@ -2200,10 +2499,7 @@ export const GeneratePage: FC = () => {
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
   const latestHistoryEntry = historyEntries[0] ?? null;
-  const historyPreviewImage =
-    pageState === 'success' && resultImageUrl
-      ? resultImageUrl
-      : latestHistoryEntry?.resultImageUrl ?? null;
+  const historyPreviewImage = latestHistoryEntry?.resultImageUrl ?? null;
   const historyPreviewFallback = latestHistoryEntry?.selectedEmoji ?? '🕘';
   const setHistoryHeaderSlot = useGenerateHistoryHeaderStore((s) => s.setSlot);
   const toggleHistoryOpen = useCallback(() => {
@@ -2264,6 +2560,28 @@ export const GeneratePage: FC = () => {
 
   const openHistoryEntry = (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
+    setPresetFields({});
+    setReferencePreviewById({});
+    refImageIdToFingerprintRef.current = {};
+    sourceFingerprintByIndexRef.current = [];
+    setSourceImageFiles([]);
+    setSourceImagePreviews([]);
+    setSourceImageOrigin('none');
+    setSourceStripExpanded(false);
+    resetUploadedSourceImageCache();
+    setReferenceUploadingKey(null);
+    avatarAutofillAppliedRef.current = null;
+    {
+      const entryPreset =
+        entry.stylePresetId != null ? stylePresets.find((p) => p.id === entry.stylePresetId) : null;
+      const nextRefs: Record<string, string[]> = {};
+      for (const f of entryPreset?.fields ?? []) {
+        if (f.type === 'reference') {
+          nextRefs[f.key] = [];
+        }
+      }
+      setReferenceAssignments(nextRefs);
+    }
     setPrompt(entry.prompt);
     setSelectedModel(normalizeGenerateModel(entry.model));
     setSelectedStylePresetId(entry.stylePresetId);
@@ -2668,6 +2986,7 @@ export const GeneratePage: FC = () => {
               void handleReferenceAddFilesAtSlot(key, toIndex, files);
             }}
             onReferenceMove={applyReferenceMove}
+            lockedReferenceFieldKeys={lockedPresetRefFieldKeys}
           />
         </div>
       )}
@@ -2677,7 +2996,7 @@ export const GeneratePage: FC = () => {
 
   const renderPresetStrip = (disabled: boolean) => (
     <StylePresetStrip
-      presets={stylePresets}
+      presets={stripStylePresets}
       selectedPresetId={selectedStylePresetId}
       onPresetChange={handlePresetChange}
       previewByPresetId={presetPreviewById}
@@ -2715,6 +3034,14 @@ export const GeneratePage: FC = () => {
         withWrapperHandlers: cfg.withWrapperHandlers,
         withActiveState: cfg.withActiveState,
       })}
+      {styleCategoryChipsList.length > 0 && (
+        <StylePresetCategoryChips
+          categories={styleCategoryChipsList}
+          value={styleCategoryFilter}
+          onChange={setStyleCategoryFilter}
+          disabled={cfg.presetDisabled}
+        />
+      )}
       {renderPresetStrip(cfg.presetDisabled)}
 
       <Button

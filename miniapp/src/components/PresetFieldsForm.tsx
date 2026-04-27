@@ -20,6 +20,8 @@ interface PresetFieldsFormProps {
   onReferenceAddFromSource?: (key: string, toIndex: number, sourceIndex: number) => void;
   onReferenceAddExternalAt?: (key: string, toIndex: number, files: File[]) => void;
   onReferenceMove?: (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => void;
+  /** Слоты без DnD/замены (предустановленный preset_ref с бэка) */
+  lockedReferenceFieldKeys?: ReadonlySet<string>;
 }
 
 const cn = (...classes: (string | false | undefined | null)[]) => classes.filter(Boolean).join(' ');
@@ -40,6 +42,7 @@ export const PresetFieldsForm: FC<PresetFieldsFormProps> = ({
   onReferenceAddFromSource,
   onReferenceAddExternalAt,
   onReferenceMove,
+  lockedReferenceFieldKeys,
 }) => {
   const [openEmojiKey, setOpenEmojiKey] = useState<string | null>(null);
   const fieldWrapRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -91,6 +94,7 @@ export const PresetFieldsForm: FC<PresetFieldsFormProps> = ({
               field={field}
               isFirst={isFirst}
               disabled={disabled}
+              locked={Boolean(lockedReferenceFieldKeys?.has(field.key))}
               assignedIds={referenceAssignments[field.key] ?? []}
               previewById={referencePreviewById}
               uploading={referenceUploadingKey === field.key}

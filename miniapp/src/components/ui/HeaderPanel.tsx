@@ -29,6 +29,8 @@ export const HeaderPanel: FC = () => {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
   const suppressAvatarClickRef = useRef(false);
+  /** touch → touchend и синтетический onClick: без этого два `navigate` с разными `?avatar=` и дубли в ленте. */
+  const ignoreNextClickAfterTouchRef = useRef(false);
 
   // На /author/ и /profile/:id показываем placeholder — аватар автора не в шапке, а на странице
   const isViewingOtherUser = /\/author\/|\/profile\/[^/]+/.test(pathname);
@@ -120,7 +122,7 @@ export const HeaderPanel: FC = () => {
     }, DEBUG_PANEL_LONG_PRESS_MS);
   }, [tg]);
 
-  const handleAvatarActivate = useCallback(() => {
+  const navigateToGenerateWithAvatar = useCallback(() => {
     if (suppressAvatarClickRef.current || longPressTriggeredRef.current) {
       suppressAvatarClickRef.current = false;
       longPressTriggeredRef.current = false;
@@ -129,15 +131,25 @@ export const HeaderPanel: FC = () => {
     navigate(`/generate?avatar=${Date.now()}`);
   }, [navigate]);
 
+  /** onClick: отдельно от touch, иначе touchend + ghost click дадут два navigate. */
+  const handleHeaderAvatarClick = useCallback(() => {
+    if (ignoreNextClickAfterTouchRef.current) {
+      ignoreNextClickAfterTouchRef.current = false;
+      return;
+    }
+    navigateToGenerateWithAvatar();
+  }, [navigateToGenerateWithAvatar]);
+
   const handleAvatarTouchEnd = useCallback((event?: TouchEvent | MouseEvent) => {
     clearLongPress();
     if (event && 'type' in event && event.type === 'touchend') {
       event.preventDefault();
       if (!suppressAvatarClickRef.current && !longPressTriggeredRef.current) {
-        handleAvatarActivate();
+        ignoreNextClickAfterTouchRef.current = true;
+        navigateToGenerateWithAvatar();
       }
     }
-  }, [clearLongPress, handleAvatarActivate]);
+  }, [clearLongPress, navigateToGenerateWithAvatar]);
 
   useEffect(() => () => {
     clearLongPress();
@@ -162,11 +174,11 @@ export const HeaderPanel: FC = () => {
             onMouseDown={handleAvatarTouchStart}
             onMouseUp={handleAvatarTouchEnd}
             onMouseLeave={handleAvatarTouchEnd}
-            onClick={handleAvatarActivate}
+            onClick={handleHeaderAvatarClick}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                handleAvatarActivate();
+                handleHeaderAvatarClick();
               }
             }}
           >
