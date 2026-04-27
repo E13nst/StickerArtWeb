@@ -2,9 +2,11 @@ import { FC, useCallback, useRef, ChangeEvent, DragEvent } from 'react';
 import { StylePresetField } from '@/api/client';
 import {
   DND_PRESET_REF_IMAGE_MIME,
-  DND_SOURCE_STRIP_MIME,
+  hasExternalFilesDrag,
+  hasSourceStripDrag,
+  parsePresetReferenceDrag,
+  parseSourceStripDrag,
   type PresetReferenceMovePayload,
-  type SourceStripDragPayload,
 } from '@/components/referenceDnd';
 import './PresetReferenceField.css';
 
@@ -83,8 +85,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   };
 
   const isExternalFileDrag = (e: DragEvent) => {
-    const t = [...e.dataTransfer.types];
-    return t.includes('Files') && onAddExternalFilesAt && canAddMore;
+    return hasExternalFilesDrag(e.dataTransfer) && onAddExternalFilesAt && canAddMore;
   };
 
   const handleDragOver = (e: DragEvent) => {
@@ -94,7 +95,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
       e.dataTransfer.dropEffect = 'copy';
       return;
     }
-    if ([...e.dataTransfer.types].includes(DND_SOURCE_STRIP_MIME)) {
+    if (hasSourceStripDrag(e.dataTransfer)) {
       e.dataTransfer.dropEffect = onAddFromSourceIndex ? 'copy' : 'none';
     } else {
       e.dataTransfer.dropEffect = 'move';
@@ -110,32 +111,21 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
       onAddExternalFilesAt(toIndex, fromDisk);
       return;
     }
-    const rawRef = e.dataTransfer.getData(DND_PRESET_REF_IMAGE_MIME);
-    if (rawRef) {
-      try {
-        const parsed = JSON.parse(rawRef) as PresetReferenceMovePayload;
-        if (!parsed?.imageId || typeof parsed.fromKey !== 'string' || typeof parsed.fromIndex !== 'number') return;
-        onMoveImage({
-          ...parsed,
-          toKey: field.key,
-          toIndex,
-        });
-        e.stopPropagation();
-      } catch {
-        /* ignore */
-      }
+    const refPayload = parsePresetReferenceDrag(e.dataTransfer);
+    if (refPayload) {
+      onMoveImage({
+        ...refPayload,
+        toKey: field.key,
+        toIndex,
+      });
+      e.stopPropagation();
       return;
     }
     if (!onAddFromSourceIndex) return;
-    const rawSrc = e.dataTransfer.getData(DND_SOURCE_STRIP_MIME);
-    if (!rawSrc) return;
-    try {
-      const parsed = JSON.parse(rawSrc) as SourceStripDragPayload;
-      if (typeof parsed?.sourceIndex !== 'number' || parsed.sourceIndex < 0) return;
+    const sourcePayload = parseSourceStripDrag(e.dataTransfer);
+    if (sourcePayload) {
       e.stopPropagation();
-      onAddFromSourceIndex(toIndex, parsed.sourceIndex);
-    } catch {
-      /* ignore */
+      onAddFromSourceIndex(toIndex, sourcePayload.sourceIndex);
     }
   };
 

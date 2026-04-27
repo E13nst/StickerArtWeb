@@ -563,6 +563,7 @@
 }
 
 .generate-source-strip__item {
+  /* Здесь grab означает reorder миниатюр; pan-scroll мышью у source strip отключён в useHorizontalScrollStrip. */
   cursor: grab;
 }
 
@@ -1280,18 +1281,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  min-height: 0;
-  max-height: calc(
-    var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100dvh))) -
-    var(--stixly-header-height, 80px) -
-    var(--stixly-taskbar-height, 90px) -
-    16px
-  );
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scroll-padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 

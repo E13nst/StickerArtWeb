@@ -39,6 +39,10 @@
   cursor: grabbing;
 }
 
+.style-preset-strip__scroll.horizontal-strip--dragging .style-preset-strip__card {
+  cursor: grabbing;
+}
+
 .style-preset-strip__card {
   /* Чуть меньше 1.5×96, но визуально по-прежнему крупно */
   --preset-card-w: 128px;

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
-import { DND_SOURCE_STRIP_MIME } from '@/components/referenceDnd';
+import { DND_SOURCE_STRIP_MIME, hasExternalFilesDrag } from '@/components/referenceDnd';
 import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
@@ -207,6 +207,15 @@ const bytesToHex = (bytes: Uint8Array): string =>
 
 const isTelegramAvatarSourceFile = (file?: File | null): boolean =>
   Boolean(file && /^telegram-avatar\./i.test(file.name));
+
+const computeSourceImageOriginFromFiles = (files: File[]): 'none' | 'manual' | 'telegram-avatar' => {
+  if (files.length === 0) return 'none';
+  if (files.every((f) => isTelegramAvatarSourceFile(f))) return 'telegram-avatar';
+  return 'manual';
+};
+
+const getServerStylePresetCardPreview = (preset: StylePreset): string | null =>
+  preset.previewWebpUrl ?? preset.previewUrl ?? null;
 
 const getLastUsedSaveTargetStorageKey = (userScopeId: string): string =>
   `${LAST_USED_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
@@ -775,135 +784,6 @@ export const GeneratePage: FC = () => {
     [buildSourceImageFingerprint],
   );
 
-  useEffect(() => {
-    const canAutofill = avatarAutofillBlockReason == null;
-
-    if (!canAutofill) {
-      if (import.meta.env.DEV && avatarAutofillBlockReason && lastAvatarAutofillBlockReasonRef.current !== avatarAutofillBlockReason) {
-        console.info('[GeneratePage] Автоподстановка аватара пропущена:', {
-          reason: avatarAutofillBlockReason,
-          hasPendingAvatarTrigger,
-          telegramUserId,
-          sourceImageOrigin,
-          sourceImageFilesLength: sourceImageFiles.length,
-          pageState,
-        });
-        lastAvatarAutofillBlockReasonRef.current = avatarAutofillBlockReason;
-      }
-      return;
-    }
-    lastAvatarAutofillBlockReasonRef.current = null;
-
-    if (hasPendingAvatarTrigger) {
-      processedAvatarTriggerRef.current = avatarTriggerToken;
-    }
-
-    const avatarSourceKey = profileAvatarFileId || effectiveAvatarUrl;
-    const avatarUrlToFetch = effectiveAvatarUrl ?? '';
-    const autofillKey = `${telegramUserId}:${avatarSourceKey}:${hasPendingAvatarTrigger ? avatarTriggerToken : 'default'}`;
-    if (avatarAutofillAppliedRef.current === autofillKey) {
-      return;
-    }
-    avatarAutofillAppliedRef.current = autofillKey;
-
-    const abortController = new AbortController();
-
-    (async () => {
-      try {
-        let blob: Blob;
-
-        if (profileAvatarFileId && userInfo?.id) {
-          blob = await apiClient.getUserPhotoBlob(userInfo.id, profileAvatarFileId);
-        } else {
-          const response = await fetch(avatarUrlToFetch, {
-            mode: 'cors',
-            credentials: 'omit',
-            cache: 'no-store',
-            signal: abortController.signal,
-          });
-          if (!response.ok) {
-            throw new Error(`AVATAR_FETCH_FAILED_${response.status}`);
-          }
-
-          blob = await response.blob();
-        }
-        const mimeType = (blob.type || '').toLowerCase();
-        const looksLikeSvg =
-          mimeType.includes('svg') ||
-          (!profileAvatarFileId && /\.svg(?:$|[?#])/i.test(avatarUrlToFetch));
-        if (looksLikeSvg) {
-          throw new Error('AVATAR_SVG_UNSUPPORTED');
-        }
-
-        const previewDataUrl = await blobToDataUrl(blob);
-        const fileExt = mimeType.includes('png')
-          ? 'png'
-          : mimeType.includes('webp')
-            ? 'webp'
-            : 'jpg';
-        const fileType = mimeType || 'image/jpeg';
-        const avatarFile = new File([blob], `telegram-avatar.${fileExt}`, { type: fileType });
-
-        if (abortController.signal.aborted) return;
-
-        setSourceImageFiles([avatarFile]);
-        setSourceImagePreviews([previewDataUrl]);
-        setSourceImageOrigin('telegram-avatar');
-        setSourceStripExpanded(true);
-        try {
-          const avFp = await buildSourceImageFingerprint(avatarFile);
-          sourceFingerprintByIndexRef.current = [avFp];
-        } catch {
-          sourceFingerprintByIndexRef.current = [];
-        }
-        if (hasPendingAvatarTrigger) {
-          setPageState('idle');
-          setCurrentStatus(null);
-          setTaskId(null);
-          setResultImageUrl(null);
-          setImageId(null);
-          setFileId(null);
-          setStickerSaved(false);
-          setSavedStickerSetName(null);
-          setSavedStickerSetTitle(null);
-          showSaveNotice(null);
-          setSaveError(null);
-          setHistoryOpen(false);
-        }
-        resetUploadedSourceImageCache();
-        setErrorMessage(null);
-        setErrorKind(null);
-
-        if (selectedModel !== SOURCE_IMAGE_MODEL) {
-          setSelectedModel(SOURCE_IMAGE_MODEL);
-          persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
-        }
-      } catch (error) {
-        // Тихий fallback: при недоступном photo_url оставляем текущий UI без ошибки.
-        if (!abortController.signal.aborted) {
-          console.info('Автоподстановка Telegram-аватара недоступна:', error);
-        }
-      }
-    })();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [
-    avatarAutofillBlockReason,
-    persistGeneratePreferences,
-    selectedModel,
-    avatarTriggerToken,
-    effectiveAvatarUrl,
-    hasPendingAvatarTrigger,
-    pageState,
-    profileAvatarFileId,
-    telegramUserId,
-    userInfo?.id,
-    sourceImageFiles.length,
-    sourceImageOrigin,
-  ]);
-
   // Очистка polling при размонтировании
   useEffect(() => {
     return () => {
@@ -1095,9 +975,10 @@ export const GeneratePage: FC = () => {
       const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
       const newFps = await Promise.all(filesToAppend.map((file) => buildSourceImageFingerprint(file)));
       sourceFingerprintByIndexRef.current = [...sourceFingerprintByIndexRef.current, ...newFps];
-      setSourceImageFiles((prev) => [...prev, ...filesToAppend]);
+      const mergedFiles = [...sourceImageFiles, ...filesToAppend];
+      setSourceImageFiles(mergedFiles);
       setSourceImagePreviews((prev) => [...prev, ...previews]);
-      setSourceImageOrigin('manual');
+      setSourceImageOrigin(computeSourceImageOriginFromFiles(mergedFiles));
       setSourceStripExpanded(true);
       resetUploadedSourceImageCache();
       if (selectedModel !== SOURCE_IMAGE_MODEL) {
@@ -1121,6 +1002,128 @@ export const GeneratePage: FC = () => {
       setPageState('error');
     }
   }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, resetUploadedSourceImageCache, selectedModel, sourceImageFiles]);
+
+  useEffect(() => {
+    const canAutofill = avatarAutofillBlockReason == null;
+
+    if (!canAutofill) {
+      if (import.meta.env.DEV && avatarAutofillBlockReason && lastAvatarAutofillBlockReasonRef.current !== avatarAutofillBlockReason) {
+        console.info('[GeneratePage] Автоподстановка аватара пропущена:', {
+          reason: avatarAutofillBlockReason,
+          hasPendingAvatarTrigger,
+          telegramUserId,
+          sourceImageOrigin,
+          sourceImageFilesLength: sourceImageFiles.length,
+          pageState,
+        });
+        lastAvatarAutofillBlockReasonRef.current = avatarAutofillBlockReason;
+      }
+      return;
+    }
+    lastAvatarAutofillBlockReasonRef.current = null;
+
+    if (hasPendingAvatarTrigger) {
+      processedAvatarTriggerRef.current = avatarTriggerToken;
+    }
+
+    const avatarSourceKey = profileAvatarFileId || effectiveAvatarUrl;
+    const avatarUrlToFetch = effectiveAvatarUrl ?? '';
+    const autofillKey = `${telegramUserId}:${avatarSourceKey}:${hasPendingAvatarTrigger ? avatarTriggerToken : 'default'}`;
+    if (avatarAutofillAppliedRef.current === autofillKey) {
+      return;
+    }
+    avatarAutofillAppliedRef.current = autofillKey;
+
+    const abortController = new AbortController();
+
+    (async () => {
+      try {
+        let blob: Blob;
+
+        if (profileAvatarFileId && userInfo?.id) {
+          blob = await apiClient.getUserPhotoBlob(userInfo.id, profileAvatarFileId);
+        } else {
+          const response = await fetch(avatarUrlToFetch, {
+            mode: 'cors',
+            credentials: 'omit',
+            cache: 'no-store',
+            signal: abortController.signal,
+          });
+          if (!response.ok) {
+            throw new Error(`AVATAR_FETCH_FAILED_${response.status}`);
+          }
+
+          blob = await response.blob();
+        }
+        const mimeType = (blob.type || '').toLowerCase();
+        const looksLikeSvg =
+          mimeType.includes('svg') ||
+          (!profileAvatarFileId && /\.svg(?:$|[?#])/i.test(avatarUrlToFetch));
+        if (looksLikeSvg) {
+          throw new Error('AVATAR_SVG_UNSUPPORTED');
+        }
+
+        const fileExt = mimeType.includes('png')
+          ? 'png'
+          : mimeType.includes('webp')
+            ? 'webp'
+            : 'jpg';
+        const fileType = mimeType || 'image/jpeg';
+        const avatarFile = new File([blob], `telegram-avatar.${fileExt}`, { type: fileType });
+
+        if (abortController.signal.aborted) return;
+
+        await appendSourceImages([avatarFile]);
+        if (hasPendingAvatarTrigger) {
+          setPageState('idle');
+          setCurrentStatus(null);
+          setTaskId(null);
+          setResultImageUrl(null);
+          setImageId(null);
+          setFileId(null);
+          setStickerSaved(false);
+          setSavedStickerSetName(null);
+          setSavedStickerSetTitle(null);
+          showSaveNotice(null);
+          setSaveError(null);
+          setHistoryOpen(false);
+        }
+        // Сбрасываем кэш imageId: append вызывает reset при фактическом добавлении; при дедупе — здесь
+        resetUploadedSourceImageCache();
+        setErrorMessage(null);
+        setErrorKind(null);
+
+        if (selectedModel !== SOURCE_IMAGE_MODEL) {
+          setSelectedModel(SOURCE_IMAGE_MODEL);
+          persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
+        }
+      } catch (error) {
+        // Тихий fallback: при недоступном photo_url оставляем текущий UI без ошибки.
+        if (!abortController.signal.aborted) {
+          console.info('Автоподстановка Telegram-аватара недоступна:', error);
+        }
+      }
+    })();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    appendSourceImages,
+    avatarAutofillBlockReason,
+    persistGeneratePreferences,
+    resetUploadedSourceImageCache,
+    selectedModel,
+    avatarTriggerToken,
+    effectiveAvatarUrl,
+    hasPendingAvatarTrigger,
+    pageState,
+    profileAvatarFileId,
+    telegramUserId,
+    userInfo?.id,
+    sourceImageFiles.length,
+    sourceImageOrigin,
+  ]);
 
   const buildSourceImageSignature = useCallback((files: File[]): string => {
     if (!files.length) {
@@ -1768,7 +1771,7 @@ export const GeneratePage: FC = () => {
   );
 
   const handleGenerateFormDragOver = useCallback((e: ReactDragEvent) => {
-    if ([...e.dataTransfer.types].includes('Files')) {
+    if (hasExternalFilesDrag(e.dataTransfer)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
@@ -1854,10 +1857,20 @@ export const GeneratePage: FC = () => {
     }
 
     sourceFingerprintByIndexRef.current = sourceFingerprintByIndexRef.current.filter((_, j) => j !== index);
-    setSourceImageFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
-    setSourceImagePreviews((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    const nextFiles = sourceImageFiles.filter((_, itemIndex) => itemIndex !== index);
+    const nextPreviews = sourceImagePreviews.filter((_, itemIndex) => itemIndex !== index);
+    setSourceImageFiles(nextFiles);
+    setSourceImagePreviews(nextPreviews);
+    setSourceImageOrigin(computeSourceImageOriginFromFiles(nextFiles));
     resetUploadedSourceImageCache();
-  }, [clearSourceImage, persistTelegramAvatarDismissed, resetUploadedSourceImageCache, sourceImageFiles, sourceImageOrigin]);
+  }, [
+    clearSourceImage,
+    persistTelegramAvatarDismissed,
+    resetUploadedSourceImageCache,
+    sourceImageFiles,
+    sourceImageOrigin,
+    sourceImagePreviews,
+  ]);
 
   const moveSourceImage = useCallback((fromIndex: number, toIndex: number) => {
     if (
@@ -2330,7 +2343,7 @@ export const GeneratePage: FC = () => {
                   }}
                   onDragOver={(event) => {
                     if (disabled) return;
-                    if ([...event.dataTransfer.types].includes('Files')) {
+                    if (hasExternalFilesDrag(event.dataTransfer)) {
                       event.preventDefault();
                       event.dataTransfer.dropEffect = 'copy';
                       return;
@@ -2454,6 +2467,16 @@ export const GeneratePage: FC = () => {
     });
     return previewMap;
   }, [historyEntries]);
+
+  const selectedStylePresetCardPreview = useMemo(() => {
+    if (selectedStylePresetId == null || !selectedPreset) return null;
+    return (
+      presetPreviewById.get(selectedStylePresetId) ??
+      (selectedPreset.code ? PRESET_PREVIEW_FALLBACK_BY_CODE[selectedPreset.code] : undefined) ??
+      getServerStylePresetCardPreview(selectedPreset) ??
+      null
+    );
+  }, [presetPreviewById, selectedPreset, selectedStylePresetId]);
 
   const handlePresetChange = (presetId: number | null) => {
     setSourceStripExpanded(false);
@@ -2592,6 +2615,7 @@ export const GeneratePage: FC = () => {
   const renderMainInputBlock = (cfg: {
     readOnly: boolean;
     textDisabled: boolean;
+    referenceDndEnabled: boolean;
     showPromptError: boolean;
     withWrapperHandlers: boolean;
     withActiveState: boolean;
@@ -2638,7 +2662,7 @@ export const GeneratePage: FC = () => {
             fields={selectedPresetFieldDefs}
             values={presetFields}
             onChange={handlePresetFieldChange}
-            disabled={cfg.readOnly || cfg.textDisabled}
+            disabled={cfg.readOnly || cfg.textDisabled || !cfg.referenceDndEnabled}
             emojiOptions={POPULAR_EMOJIS}
             referenceAssignments={referenceAssignments}
             referencePreviewById={referencePreviewById}
@@ -2673,11 +2697,68 @@ export const GeneratePage: FC = () => {
     />
   );
 
+  const renderGenerateFormBlock = (cfg: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    dropEnabled: boolean;
+    referenceDndEnabled: boolean;
+    presetDisabled: boolean;
+    showPromptError: boolean;
+    withWrapperHandlers: boolean;
+    withActiveState: boolean;
+    buttonDisabled: boolean;
+    buttonText: string;
+    buttonLoading?: boolean;
+    buttonClassName?: string;
+    buttonAriaLabel?: string;
+    onButtonClick?: () => void;
+  }) => (
+    <div
+      className="generate-form-block"
+      onDragOver={cfg.dropEnabled ? handleGenerateFormDragOver : undefined}
+      onDrop={cfg.dropEnabled ? handleGenerateFormDrop : undefined}
+    >
+      {renderMainInputBlock({
+        readOnly: cfg.readOnly,
+        textDisabled: cfg.textDisabled,
+        referenceDndEnabled: cfg.referenceDndEnabled,
+        showPromptError: cfg.showPromptError,
+        withWrapperHandlers: cfg.withWrapperHandlers,
+        withActiveState: cfg.withActiveState,
+      })}
+      {renderPresetStrip(cfg.presetDisabled)}
+
+      <Button
+        variant="primary"
+        size="medium"
+        onClick={cfg.onButtonClick}
+        disabled={cfg.buttonDisabled}
+        loading={cfg.buttonLoading}
+        className={cn('generate-button-submit', cfg.buttonClassName)}
+        aria-label={cfg.buttonAriaLabel}
+      >
+        {cfg.buttonText}
+      </Button>
+    </div>
+  );
+
   const primarySourcePreview = sourceImagePreviews[0] ?? null;
-  const hasTelegramAvatarInForm = sourceImageOrigin === 'telegram-avatar' && !!primarySourcePreview;
+  const stripIsOnlyTelegramAvatars =
+    sourceImageFiles.length > 0 && sourceImageFiles.every((f) => isTelegramAvatarSourceFile(f));
+  const showAvatarCenterCard =
+    selectedStylePresetId == null && stripIsOnlyTelegramAvatars && Boolean(primarySourcePreview);
   const renderBrandBlock = () => (
     <div className="generate-brand">
-      {hasTelegramAvatarInForm ? (
+      {selectedStylePresetId != null && selectedStylePresetCardPreview ? (
+        <img
+          src={selectedStylePresetCardPreview}
+          alt=""
+          className="generate-brand-logo"
+          loading="eager"
+          decoding="async"
+          aria-hidden="true"
+        />
+      ) : showAvatarCenterCard ? (
         <div className="generate-brand-avatar-card">
           <button
             type="button"
@@ -2825,25 +2906,20 @@ export const GeneratePage: FC = () => {
         <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
       </div>
       {renderSourceImageStrip(true)}
-      <div className="generate-form-block">
-        {renderMainInputBlock({
-          readOnly: true,
-          textDisabled: false,
-          showPromptError: false,
-          withWrapperHandlers: false,
-          withActiveState: false,
-        })}
-        {renderPresetStrip(true)}
-        <Button
-          variant="primary"
-          size="medium"
-          loading
-          className="generate-button-submit"
-          aria-label="Идет генерация"
-        >
-          Подождите
-        </Button>
-      </div>
+      {renderGenerateFormBlock({
+        readOnly: true,
+        textDisabled: false,
+        dropEnabled: false,
+        referenceDndEnabled: false,
+        presetDisabled: true,
+        showPromptError: false,
+        withWrapperHandlers: false,
+        withActiveState: false,
+        buttonDisabled: true,
+        buttonLoading: true,
+        buttonAriaLabel: 'Идет генерация',
+        buttonText: 'Подождите',
+      })}
     </>
   );
 
@@ -2899,31 +2975,20 @@ export const GeneratePage: FC = () => {
 
       <div className="generate-success-section generate-new-request">
         {renderSourceImageStrip(isGenerating)}
-        <div
-          className="generate-form-block"
-          onDragOver={handleGenerateFormDragOver}
-          onDrop={handleGenerateFormDrop}
-        >
-          {renderMainInputBlock({
-            readOnly: false,
-            textDisabled: isGenerating,
-            showPromptError: shouldShowPromptError,
-            withWrapperHandlers: true,
-            withActiveState: true,
-          })}
-          {renderPresetStrip(isGenerating)}
-
-          <Button
-            variant="primary"
-            size="medium"
-            onClick={handleGenerate}
-            disabled={isDisabled}
-            loading={isGenerating}
-            className="generate-button-submit"
-          >
-            {generateLabel}
-          </Button>
-        </div>
+        {renderGenerateFormBlock({
+          readOnly: false,
+          textDisabled: isGenerating,
+          dropEnabled: !isGenerating,
+          referenceDndEnabled: !isGenerating,
+          presetDisabled: isGenerating,
+          showPromptError: shouldShowPromptError,
+          withWrapperHandlers: true,
+          withActiveState: true,
+          buttonDisabled: isDisabled,
+          buttonLoading: isGenerating,
+          buttonText: generateLabel,
+          onButtonClick: handleGenerate,
+        })}
       </div>
     </div>
   );
@@ -2933,29 +2998,20 @@ export const GeneratePage: FC = () => {
     <div className="generate-error-container">
       {renderBrandBlock()}
       {renderSourceImageStrip(false)}
-      <div
-        className="generate-form-block"
-        onDragOver={handleGenerateFormDragOver}
-        onDrop={handleGenerateFormDrop}
-      >
-        {renderMainInputBlock({
-          readOnly: false,
-          textDisabled: false,
-          showPromptError: true,
-          withWrapperHandlers: true,
-          withActiveState: true,
-        })}
-        {renderPresetStrip(false)}
-        <Button
-          variant="primary"
-          size="medium"
-          onClick={handleGenerate}
-          disabled={!isFormValid}
-          className="generate-button-submit generate-button-retry"
-        >
-          {generateLabel}
-        </Button>
-      </div>
+      {renderGenerateFormBlock({
+        readOnly: false,
+        textDisabled: false,
+        dropEnabled: true,
+        referenceDndEnabled: true,
+        presetDisabled: false,
+        showPromptError: true,
+        withWrapperHandlers: true,
+        withActiveState: true,
+        buttonDisabled: !isFormValid,
+        buttonClassName: 'generate-button-retry',
+        buttonText: generateLabel,
+        onButtonClick: handleGenerate,
+      })}
     </div>
   );
 
@@ -2965,31 +3021,20 @@ export const GeneratePage: FC = () => {
       {renderBrandBlock()}
       {renderSourceImageStrip(isGenerating)}
 
-      <div
-        className="generate-form-block"
-        onDragOver={handleGenerateFormDragOver}
-        onDrop={handleGenerateFormDrop}
-      >
-        {renderMainInputBlock({
-          readOnly: false,
-          textDisabled: isGenerating,
-          showPromptError: false,
-          withWrapperHandlers: true,
-          withActiveState: true,
-        })}
-        {renderPresetStrip(isGenerating)}
-
-        <Button
-          variant="primary"
-          size="medium"
-          onClick={handleGenerate}
-          disabled={isDisabled}
-          loading={isGenerating}
-          className="generate-button-submit"
-        >
-          {isGenerating ? 'Идет генерация...' : generateLabel}
-        </Button>
-      </div>
+      {renderGenerateFormBlock({
+        readOnly: false,
+        textDisabled: isGenerating,
+        dropEnabled: !isGenerating,
+        referenceDndEnabled: !isGenerating,
+        presetDisabled: isGenerating,
+        showPromptError: false,
+        withWrapperHandlers: true,
+        withActiveState: true,
+        buttonDisabled: isDisabled,
+        buttonLoading: isGenerating,
+        buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
+        onButtonClick: handleGenerate,
+      })}
     </>
   );
 
