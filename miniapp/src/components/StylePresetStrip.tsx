@@ -1,5 +1,6 @@
-import { FC } from 'react';
+import { FC, useRef } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
+import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { StylePreset } from '@/api/client';
 import './StylePresetStrip.css';
 
@@ -33,6 +34,8 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
   disabled = false,
 }) => {
   const { tg } = useTelegram();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  useHorizontalScrollStrip(scrollRef, { pointerDrag: !disabled, disabled });
 
   const stripPresetName = (name: string) =>
     name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();
@@ -58,7 +61,7 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
 
   return (
     <div className="style-preset-strip">
-      <div className="style-preset-strip__scroll" role="listbox" aria-label="Стиль">
+      <div ref={scrollRef} className="style-preset-strip__scroll" role="listbox" aria-label="Стиль">
         {options.map((opt) => {
           const isSelected = selectedPresetId === opt.id;
           return (

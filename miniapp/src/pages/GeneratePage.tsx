@@ -11,6 +11,7 @@ import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
+import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
@@ -359,6 +360,9 @@ export const GeneratePage: FC = () => {
     const nextScrollLeft = Math.max(0, strip.scrollWidth - strip.clientWidth);
     strip.scrollTo({ left: nextScrollLeft, behavior });
   }, []);
+
+  /* Колесо → горизонтальный скролл; без drag — конфликт с HTML5 reorder миниатюр. */
+  useHorizontalScrollStrip(sourceStripInnerRef, { pointerDrag: false });
 
   const showSaveNotice = useCallback((message: string | null) => {
     if (saveNoticeTimeoutRef.current) {

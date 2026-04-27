@@ -14,6 +14,7 @@
   padding: 2px 2px 8px;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
+  cursor: grab;
   scrollbar-width: none;
   -ms-overflow-style: none;
   mask-image: linear-gradient(
@@ -32,6 +33,10 @@
 
 .style-preset-strip__scroll::-webkit-scrollbar {
   display: none;
+}
+
+.style-preset-strip__scroll.horizontal-strip--dragging {
+  cursor: grabbing;
 }
 
 .style-preset-strip__card {
