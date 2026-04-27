@@ -1,0 +1,63 @@
+.preset-publish-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border-radius: var(--border-radius-full, 32px);
+  border: none;
+  background: var(--color-primary, #ee449f);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.preset-publish-btn:active {
+  opacity: 0.8;
+}
+
+/* ── Бейджи статуса модерации ── */
+.preset-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.preset-status--draft {
+  background: rgba(138, 138, 138, 0.2);
+  color: var(--color-text-secondary, #8a8a8a);
+}
+
+.preset-status--pending {
+  background: rgba(255, 196, 0, 0.2);
+  color: #ffc400;
+}
+
+.preset-status--approved {
+  background: rgba(0, 175, 18, 0.2);
+  color: var(--color-success, #00af12);
+}
+
+.preset-status--rejected {
+  background: rgba(224, 49, 49, 0.2);
+  color: var(--color-error, #e03131);
+}
+
+/* ── Содержимое диалога ── */
+.preset-publish-dialog__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text, #ffffff);
+}
+
+.preset-publish-dialog__error {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-error, #e03131);
+}

@@ -1,0 +1,227 @@
+.meme-feed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  min-height: 100%;
+}
+
+/* ── Карточка ── */
+.meme-feed-card {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-surface, #262626);
+  border-radius: var(--border-radius-lg, 16px);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+}
+
+.meme-feed-card:active {
+  cursor: grabbing;
+}
+
+/* ── Изображение ── */
+.meme-feed-card__image-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--color-background, #191818);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meme-feed-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+.meme-feed-card__image-placeholder {
+  font-size: 64px;
+  opacity: 0.3;
+}
+
+/* ── Футер карточки ── */
+.meme-feed-card__footer {
+  padding: 10px 14px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.meme-feed-card__preset {
+  font-size: 12px;
+  color: var(--color-text-secondary, #8a8a8a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meme-feed-card__counts {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.meme-feed-card__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Индикаторы свайпа ── */
+.meme-feed-card__indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 56px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.meme-feed-card__indicator--like {
+  right: 20px;
+}
+
+.meme-feed-card__indicator--dislike {
+  left: 20px;
+}
+
+/* ── Кнопки действий ── */
+.meme-feed__actions {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.meme-feed__action-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface, #262626);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.meme-feed__action-btn:active {
+  transform: scale(0.9);
+}
+
+.meme-feed__action-btn--like {
+  background: rgba(0, 175, 18, 0.15);
+}
+
+.meme-feed__action-btn--dislike {
+  background: rgba(224, 49, 49, 0.15);
+}
+
+/* ── Подсказка ── */
+.meme-feed__hint {
+  font-size: 11px;
+  color: var(--color-text-secondary, #8a8a8a);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Состояния (пусто / лимит / загрузка) ── */
+.meme-feed__state-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 360px;
+  padding: 24px;
+  text-align: center;
+}
+
+.meme-feed__state-icon {
+  font-size: 56px;
+}
+
+.meme-feed__state-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text, #ffffff);
+}
+
+.meme-feed__state-desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary, #8a8a8a);
+}
+
+.meme-feed__state-btn {
+  margin-top: 8px;
+  padding: 10px 24px;
+  border-radius: var(--border-radius-full, 32px);
+  border: none;
+  background: var(--color-primary, #ee449f);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.meme-feed__state-btn:active {
+  opacity: 0.8;
+}
+
+/* ── Спиннер загрузки ── */
+.meme-feed__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--color-primary, #ee449f);
+  border-radius: 50%;
+  animation: meme-feed-spin 0.75s linear infinite;
+}
+
+@keyframes meme-feed-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Ошибка ── */
+.meme-feed__error {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(224, 49, 49, 0.15);
+  border: 1px solid rgba(224, 49, 49, 0.4);
+  border-radius: var(--border-radius-sm, 8px);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--color-text, #ffffff);
+}
+
+.meme-feed__error-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary, #8a8a8a);
+  font-size: 14px;
+  padding: 0 2px;
+  flex-shrink: 0;
+}

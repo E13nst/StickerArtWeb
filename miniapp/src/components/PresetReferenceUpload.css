@@ -1,0 +1,110 @@
+.preset-ref-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-ref-upload__label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #8a8a8a);
+}
+
+/* ── Зона перетаскивания ── */
+.preset-ref-upload__dropzone {
+  position: relative;
+  width: 100%;
+  min-height: 180px;
+  border-radius: var(--border-radius-lg, 16px);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: var(--color-surface, #262626);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-ref-upload__dropzone:hover:not(.preset-ref-upload__dropzone--uploading) {
+  border-color: var(--color-primary, #ee449f);
+  background: rgba(238, 68, 159, 0.05);
+}
+
+.preset-ref-upload__dropzone--active {
+  border-color: var(--color-primary, #ee449f);
+  background: rgba(238, 68, 159, 0.08);
+}
+
+.preset-ref-upload__dropzone--uploading {
+  cursor: wait;
+}
+
+/* ── Заглушка (нет изображения) ── */
+.preset-ref-upload__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.preset-ref-upload__icon {
+  font-size: 40px;
+  opacity: 0.5;
+}
+
+.preset-ref-upload__hint {
+  font-size: 13px;
+  color: var(--color-text-secondary, #8a8a8a);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── Превью ── */
+.preset-ref-upload__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Прогресс-бар ── */
+.preset-ref-upload__progress-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.preset-ref-upload__progress-bar {
+  height: 100%;
+  background: var(--color-primary, #ee449f);
+  border-radius: 2px;
+  transition: width 0.15s ease;
+}
+
+/* ── Вспомогательный текст ── */
+.preset-ref-upload__formats {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-secondary, #8a8a8a);
+}
+
+/* ── Ошибка ── */
+.preset-ref-upload__error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-error, #e03131);
+}
+
+/* ── Скрытый input ── */
+.preset-ref-upload__input {
+  display: none;
+}

@@ -449,6 +449,12 @@ export interface StylePresetCategoryDto {
   sortOrder: number;
 }
 
+export type StylePresetModerationStatus =
+  | 'DRAFT'
+  | 'PENDING_MODERATION'
+  | 'APPROVED'
+  | 'REJECTED';
+
 export interface StylePreset {
   id: number;
   code: string;
@@ -473,6 +479,10 @@ export interface StylePreset {
   presetReferenceImageUrl?: string | null;
   /** Id изображения для слота preset_ref в генерации (например img_sagref_...) */
   presetReferenceSourceImageId?: string | null;
+  /** Статус модерации (только для пользовательских пресетов) */
+  moderationStatus?: StylePresetModerationStatus | null;
+  /** ID владельца пресета (null для глобальных) */
+  ownerId?: number | null;
 }
 
 export interface GenerateRequest {
