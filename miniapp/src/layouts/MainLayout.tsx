@@ -88,11 +88,14 @@ export default function MainLayout({ children }: Props) {
       className="stixly-main-layout"
       style={{
         position: 'relative',
+        /* Ровно один экран: иначе высота скролла (100dvh − низ) + шапка в потоке > вьюпорт — полосы и артефакты */
         minHeight: viewportHeightCss,
+        height: viewportHeightCss,
+        maxHeight: viewportHeightCss,
         display: 'flex',
         flexDirection: 'column',
         overflowX: 'hidden',
-        overflowY: isSwipePage ? 'hidden' : 'visible',
+        overflowY: 'hidden',
         ...layoutCompactBottomStyle,
       }}
     >
@@ -120,10 +123,8 @@ export default function MainLayout({ children }: Props) {
           className={`stixly-main-scroll${pathname === '/profile' ? ' stixly-main-scroll--account' : ''}`}
           style={{
             position: 'relative',
-            flex: '1 1 auto',
-            height: isSwipePage
-              ? `calc(${viewportHeightCss} - var(--stixly-header-height, 80px))`
-              : `calc(${viewportHeightCss} - var(--stixly-bottom-nav-height, 0px))`,
+            flex: '1 1 0%',
+            minHeight: 0,
             overflowY: isSwipePage ? 'hidden' : 'auto',
             overflowX: 'hidden',
             paddingBottom: isSwipePage ? 0 : 'var(--stixly-taskbar-height, 90.25px)', // Taskbar: Navbar + Home Indicator (Figma)

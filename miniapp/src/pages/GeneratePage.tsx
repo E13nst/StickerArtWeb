@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, MouseEvent as ReactMouseEvent, useMemo, CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, useMemo, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetStrip } from '@/components/StylePresetStrip';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
+import { DND_SOURCE_STRIP_MIME } from '@/components/referenceDnd';
 import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
 import './GeneratePage.css';
 import { apiClient, GenerateModelType, GenerationStatus, StylePreset, StylePresetField, StylePresetRemoveBgMode } from '@/api/client';
 import { useProfileStore } from '@/store/useProfileStore';
+import { useGenerateHistoryHeaderStore } from '@/store/useGenerateHistoryHeaderStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
@@ -317,6 +319,11 @@ export const GeneratePage: FC = () => {
   const avatarAutofillAppliedRef = useRef<string | null>(null);
   const processedAvatarTriggerRef = useRef<string | null>(null);
   const lastAvatarAutofillBlockReasonRef = useRef<string | null>(null);
+  /** imageId (референс) → отпечаток файла; связь с лентой вложений (source strip) */
+  const refImageIdToFingerprintRef = useRef<Record<string, string>>({});
+  /** индексы 1:1 с sourceImageFiles */
+  const sourceFingerprintByIndexRef = useRef<string[]>([]);
+  const clearSourceImageRef = useRef<((options?: { markAvatarDismissed?: boolean }) => void) | null>(null);
 
   const scrollPromptIntoView = useCallback((element: HTMLElement, behavior: ScrollBehavior = 'smooth') => {
     const getKeyboardInset = (): number => {
@@ -729,6 +736,45 @@ export const GeneratePage: FC = () => {
     persistTelegramAvatarDismissed(false);
   }, [avatarTriggerToken, persistTelegramAvatarDismissed, telegramUserId]);
 
+  const buildSourceImageFingerprint = useCallback(async (file: File): Promise<string> => {
+    const fallbackFingerprint = [file.type, file.size, file.lastModified, file.name].join(':');
+    if (typeof crypto === 'undefined' || !crypto.subtle || typeof TextEncoder === 'undefined') {
+      return fallbackFingerprint;
+    }
+
+    try {
+      const encoder = new TextEncoder();
+      const metadataBytes = encoder.encode(`${file.type}:${file.size}`);
+      const headBytes = new Uint8Array(
+        await file.slice(0, SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES).arrayBuffer()
+      );
+      const tailStart = Math.max(0, file.size - SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES);
+      const tailBytes = tailStart > 0
+        ? new Uint8Array(await file.slice(tailStart).arrayBuffer())
+        : new Uint8Array();
+      const payload = new Uint8Array(metadataBytes.length + headBytes.length + tailBytes.length);
+      payload.set(metadataBytes, 0);
+      payload.set(headBytes, metadataBytes.length);
+      payload.set(tailBytes, metadataBytes.length + headBytes.length);
+      const digest = await crypto.subtle.digest('SHA-256', payload);
+      return `${file.type}:${file.size}:${bytesToHex(new Uint8Array(digest))}`;
+    } catch {
+      return fallbackFingerprint;
+    }
+  }, []);
+
+  const registerRefImageIdsForFiles = useCallback(
+    async (imageIds: (string | null | undefined)[], files: File[]) => {
+      const n = Math.min(imageIds.length, files.length);
+      for (let i = 0; i < n; i++) {
+        const id = imageIds[i];
+        if (!id) continue;
+        refImageIdToFingerprintRef.current[id] = await buildSourceImageFingerprint(files[i]);
+      }
+    },
+    [buildSourceImageFingerprint],
+  );
+
   useEffect(() => {
     const canAutofill = avatarAutofillBlockReason == null;
 
@@ -804,6 +850,12 @@ export const GeneratePage: FC = () => {
         setSourceImagePreviews([previewDataUrl]);
         setSourceImageOrigin('telegram-avatar');
         setSourceStripExpanded(true);
+        try {
+          const avFp = await buildSourceImageFingerprint(avatarFile);
+          sourceFingerprintByIndexRef.current = [avFp];
+        } catch {
+          sourceFingerprintByIndexRef.current = [];
+        }
         if (hasPendingAvatarTrigger) {
           setPageState('idle');
           setCurrentStatus(null);
@@ -852,20 +904,6 @@ export const GeneratePage: FC = () => {
     sourceImageOrigin,
   ]);
 
-  // Разрешаем скролл для этой страницы
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = 'auto';
-    document.documentElement.style.overflow = 'auto';
-
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-    };
-  }, []);
-
   // Очистка polling при размонтировании
   useEffect(() => {
     return () => {
@@ -893,7 +931,7 @@ export const GeneratePage: FC = () => {
   }, [location.pathname, sourceImageOrigin]);
 
   // Polling статуса генерации
-  const startPolling = useCallback((taskIdToCheck: string) => {
+  const startPolling = useCallback((taskIdToCheck: string, historyLocalIdForPoll: string) => {
     // Очищаем предыдущий интервал
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -901,6 +939,8 @@ export const GeneratePage: FC = () => {
     pollingStartedAtRef.current = Date.now();
 
     const poll = async () => {
+      const shouldSyncPollToUi = () => activeHistoryLocalIdRef.current === historyLocalIdForPoll;
+
       if (
         pollingStartedAtRef.current &&
         Date.now() - pollingStartedAtRef.current >= POLLING_TIMEOUT_MS
@@ -910,12 +950,8 @@ export const GeneratePage: FC = () => {
           pollingIntervalRef.current = null;
         }
         pollingStartedAtRef.current = null;
-        setCurrentStatus('TIMEOUT');
-        setErrorMessage('Генерация заняла слишком много времени. Попробуйте снова.');
-        setErrorKind('general');
-        setPageState('error');
         patchHistoryEntry(
-          { taskId: taskIdToCheck, localId: activeHistoryLocalIdRef.current ?? undefined },
+          { taskId: taskIdToCheck },
           {
             pageState: 'error',
             generationStatus: 'TIMEOUT',
@@ -923,6 +959,12 @@ export const GeneratePage: FC = () => {
             isActive: false,
           }
         );
+        if (shouldSyncPollToUi()) {
+          setCurrentStatus('TIMEOUT');
+          setErrorMessage('Генерация заняла слишком много времени. Попробуйте снова.');
+          setErrorKind('general');
+          setPageState('error');
+        }
         return;
       }
 
@@ -931,9 +973,9 @@ export const GeneratePage: FC = () => {
         const generationMetadata = parseGenerationMetadata(statusData.metadata);
         const backgroundRemoveFallbackApplied =
           generationMetadata?.background_remove_fallback_applied === true;
-        setCurrentStatus(statusData.status);
+        // Только taskId: иначе при просмотре другой записи истории OR-матч в storage затронет две строки сразу.
         patchHistoryEntry(
-          { taskId: taskIdToCheck, localId: activeHistoryLocalIdRef.current ?? undefined },
+          { taskId: taskIdToCheck },
           {
             generationStatus: statusData.status,
             pageState:
@@ -952,6 +994,9 @@ export const GeneratePage: FC = () => {
             isActive: !TERMINAL_GENERATION_STATUSES.includes(statusData.status),
           }
         );
+        if (shouldSyncPollToUi()) {
+          setCurrentStatus(statusData.status);
+        }
 
         if (statusData.status === 'COMPLETED') {
           // Успешное завершение
@@ -960,21 +1005,23 @@ export const GeneratePage: FC = () => {
             pollingIntervalRef.current = null;
           }
           pollingStartedAtRef.current = null;
-          setResultImageUrl(statusData.imageUrl || null);
-          setImageId(statusData.imageId || null);
-          // Сохраняем fileId для последующей отправки боту
-          const receivedFileId = statusData.telegramSticker?.fileId || null;
-          setFileId(receivedFileId);
-          if (receivedFileId) {
-            console.log('✅ Получен fileId из ответа API:', receivedFileId);
+          if (shouldSyncPollToUi()) {
+            setResultImageUrl(statusData.imageUrl || null);
+            setImageId(statusData.imageId || null);
+            // Сохраняем fileId для последующей отправки боту
+            const receivedFileId = statusData.telegramSticker?.fileId || null;
+            setFileId(receivedFileId);
+            if (receivedFileId) {
+              console.log('✅ Получен fileId из ответа API:', receivedFileId);
+            }
+            setErrorMessage(null);
+            setErrorKind(null);
+            showSaveNotice(
+              backgroundRemoveFallbackApplied ? BACKGROUND_REMOVE_FALLBACK_NOTICE : null
+            );
+            setPageState('success');
           }
-          setErrorMessage(null);
-          setErrorKind(null);
-          showSaveNotice(
-            backgroundRemoveFallbackApplied ? BACKGROUND_REMOVE_FALLBACK_NOTICE : null
-          );
-          setPageState('success');
-          // Обновляем профиль/баланс в сторе, чтобы хедер сразу показал новый баланс и аватар
+          // Баланс в хедере обновляем при любом завершении задачи на сервере
           refreshMyProfile();
         } else if (statusData.status === 'FAILED' || statusData.status === 'TIMEOUT') {
           // Ошибка
@@ -983,12 +1030,14 @@ export const GeneratePage: FC = () => {
             pollingIntervalRef.current = null;
           }
           pollingStartedAtRef.current = null;
-          setErrorMessage(
-            statusData.errorMessage || 
-            (statusData.status === 'TIMEOUT' ? 'Превышено время ожидания' : 'Произошла ошибка при генерации')
-          );
-          setErrorKind('general');
-          setPageState('error');
+          if (shouldSyncPollToUi()) {
+            setErrorMessage(
+              statusData.errorMessage ||
+                (statusData.status === 'TIMEOUT' ? 'Превышено время ожидания' : 'Произошла ошибка при генерации')
+            );
+            setErrorKind('general');
+            setPageState('error');
+          }
         }
         // Для PENDING, GENERATING, REMOVING_BACKGROUND - продолжаем polling
       } catch (error) {
@@ -1009,6 +1058,69 @@ export const GeneratePage: FC = () => {
     uploadedSourceImageAtRef.current = null;
     uploadedSourceImageSignatureRef.current = null;
   }, []);
+
+  const appendSourceImages = useCallback(async (files: File[]) => {
+    if (!files.length) return;
+
+    const currentSourceCount = sourceImageFiles.length;
+    const existingFiles = sourceImageFiles;
+    const existingFingerprints = new Set(await Promise.all(existingFiles.map((file) => buildSourceImageFingerprint(file))));
+    const uniqueIncomingFiles: File[] = [];
+
+    for (const file of files) {
+      const fingerprint = await buildSourceImageFingerprint(file);
+      if (existingFingerprints.has(fingerprint)) {
+        continue;
+      }
+      existingFingerprints.add(fingerprint);
+      uniqueIncomingFiles.push(file);
+    }
+
+    if (!uniqueIncomingFiles.length) {
+      return;
+    }
+
+    const remainingSlots = MAX_SOURCE_IMAGE_FILES - currentSourceCount;
+    if (remainingSlots <= 0) {
+      setErrorMessage(getSourceImageLimitMessage());
+      setErrorKind('upload');
+      setPageState('error');
+      return;
+    }
+
+    const filesToAppend = uniqueIncomingFiles.slice(0, remainingSlots);
+    const skippedFilesCount = uniqueIncomingFiles.length - filesToAppend.length;
+
+    try {
+      const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
+      const newFps = await Promise.all(filesToAppend.map((file) => buildSourceImageFingerprint(file)));
+      sourceFingerprintByIndexRef.current = [...sourceFingerprintByIndexRef.current, ...newFps];
+      setSourceImageFiles((prev) => [...prev, ...filesToAppend]);
+      setSourceImagePreviews((prev) => [...prev, ...previews]);
+      setSourceImageOrigin('manual');
+      setSourceStripExpanded(true);
+      resetUploadedSourceImageCache();
+      if (selectedModel !== SOURCE_IMAGE_MODEL) {
+        setSelectedModel(SOURCE_IMAGE_MODEL);
+        persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
+      }
+      if (skippedFilesCount > 0) {
+        setErrorMessage(getSourceImageLimitMessage());
+        setErrorKind('upload');
+        setPageState('error');
+      } else {
+        setErrorMessage(null);
+        setErrorKind(null);
+        if (pageState === 'error') {
+          setPageState('idle');
+        }
+      }
+    } catch {
+      setErrorMessage('Не удалось загрузить файл');
+      setErrorKind('upload');
+      setPageState('error');
+    }
+  }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, resetUploadedSourceImageCache, selectedModel, sourceImageFiles]);
 
   const buildSourceImageSignature = useCallback((files: File[]): string => {
     if (!files.length) {
@@ -1079,7 +1191,7 @@ export const GeneratePage: FC = () => {
     setPageState('generating');
     activeHistoryLocalIdRef.current = activeEntry.localId;
     preferencesAppliedRef.current = true;
-    startPolling(activeEntry.taskId);
+    startPolling(activeEntry.taskId, activeEntry.localId);
   }, [historyUserScopeId, startPolling]);
 
   useEffect(() => {
@@ -1222,12 +1334,50 @@ export const GeneratePage: FC = () => {
   );
 
   const handleReferenceRemove = useCallback((fieldKey: string, index: number) => {
+    let removedId: string | undefined;
+    const newStateWrapper: { ass: Record<string, string[]> | null } = { ass: null };
+
     setReferenceAssignments((prev) => {
       const list = [...(prev[fieldKey] ?? [])];
+      if (index < 0 || index >= list.length) return prev;
+      removedId = list[index];
+      if (!removedId) return prev;
       list.splice(index, 1);
-      return { ...prev, [fieldKey]: list };
+      const newAss = { ...prev, [fieldKey]: list };
+      newStateWrapper.ass = newAss;
+      return newAss;
     });
-  }, []);
+
+    if (!removedId) return;
+    const fp = refImageIdToFingerprintRef.current[removedId];
+    setReferencePreviewById((p) => {
+      if (!p[removedId!]) return p;
+      const n = { ...p };
+      delete n[removedId!];
+      return n;
+    });
+    delete refImageIdToFingerprintRef.current[removedId];
+    if (fp == null) {
+      return;
+    }
+    queueMicrotask(() => {
+      const ass = newStateWrapper.ass;
+      if (!ass) return;
+      const remaining = collectUniqueReferenceImageIds(ass);
+      const stillUsed = [...remaining].some((id) => refImageIdToFingerprintRef.current[id] === fp);
+      if (stillUsed) return;
+      const i = sourceFingerprintByIndexRef.current.indexOf(fp);
+      if (i < 0) return;
+      if (sourceFingerprintByIndexRef.current.length === 1) {
+        clearSourceImageRef.current?.();
+        return;
+      }
+      sourceFingerprintByIndexRef.current = sourceFingerprintByIndexRef.current.filter((_, j) => j !== i);
+      setSourceImageFiles((prev) => prev.filter((_, j) => j !== i));
+      setSourceImagePreviews((prev) => prev.filter((_, j) => j !== i));
+      resetUploadedSourceImageCache();
+    });
+  }, [resetUploadedSourceImageCache]);
 
   const handleReferenceAddFiles = useCallback(
     async (fieldKey: string, files: File[]) => {
@@ -1244,6 +1394,8 @@ export const GeneratePage: FC = () => {
       setErrorMessage(null);
       try {
         const { imageIds } = await apiClient.uploadSourceImages(slice);
+        await registerRefImageIdsForFiles(imageIds, slice);
+        void appendSourceImages(slice);
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
 
         setReferencePreviewById((prev) => {
@@ -1277,7 +1429,66 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [effectiveReferenceMaxUnique, referenceAssignments, selectedPresetFieldDefs],
+    [appendSourceImages, effectiveReferenceMaxUnique, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
+  );
+
+  const handleReferenceAddFromSource = useCallback(
+    async (fieldKey: string, toIndex: number, sourceIndex: number) => {
+      const file = sourceImageFiles[sourceIndex];
+      if (!file || !file.type.startsWith('image/')) return;
+
+      const field = selectedPresetFieldDefs.find((f) => f.key === fieldKey && f.type === 'reference');
+      if (!field || field.type !== 'reference') return;
+
+      const maxSlot = Math.max(1, field.maxImages ?? 1);
+      if (toIndex < 0 || toIndex >= maxSlot) return;
+
+      const listSnapshot = referenceAssignments[fieldKey] ?? [];
+      if (listSnapshot[toIndex]) return;
+      let used = 0;
+      for (let i = 0; i < maxSlot; i++) {
+        if (listSnapshot[i]) used++;
+      }
+      if (used >= maxSlot) return;
+
+      setReferenceUploadingKey(fieldKey);
+      setErrorMessage(null);
+      try {
+        const { imageIds } = await apiClient.uploadSourceImages([file]);
+        const newId = imageIds[0];
+        if (!newId) return;
+
+        await registerRefImageIdsForFiles([newId], [file]);
+        const preview = await blobToDataUrl(file);
+        if (preview) {
+          setReferencePreviewById((prev) => ({ ...prev, [newId]: preview }));
+        }
+
+        setReferenceAssignments((prev) => {
+          const effMax = effectiveReferenceMaxUnique;
+          const uniques = collectUniqueReferenceImageIds(prev);
+          const list = [...(prev[fieldKey] ?? [])];
+          if (list[toIndex]) return prev;
+          let c = 0;
+          for (let i = 0; i < maxSlot; i++) {
+            if (list[i]) c++;
+          }
+          if (c >= maxSlot) return prev;
+          if (list.includes(newId)) return prev;
+          if (!uniques.has(newId) && uniques.size >= effMax) return prev;
+          const next = [...list];
+          next[toIndex] = newId;
+          return { ...prev, [fieldKey]: next };
+        });
+      } catch (e: any) {
+        setErrorMessage(typeof e?.message === 'string' ? e.message : 'Не удалось загрузить изображение');
+        setErrorKind('upload');
+        setPageState('error');
+      } finally {
+        setReferenceUploadingKey(null);
+      }
+    },
+    [effectiveReferenceMaxUnique, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, sourceImageFiles],
   );
 
   // Обработка отправки формы
@@ -1429,7 +1640,7 @@ export const GeneratePage: FC = () => {
       
       setTaskId(response.taskId);
       patchHistoryEntry({ localId: localHistoryId }, { taskId: response.taskId, pageState: 'generating', isActive: true });
-      startPolling(response.taskId);
+      startPolling(response.taskId, localHistoryId);
     } catch (error: any) {
       let message = 'Не удалось запустить генерацию';
       
@@ -1483,93 +1694,96 @@ export const GeneratePage: FC = () => {
     sourceImageInputRef.current?.click();
   }, []);
 
-  const buildSourceImageFingerprint = useCallback(async (file: File): Promise<string> => {
-    const fallbackFingerprint = [file.type, file.size, file.lastModified, file.name].join(':');
-    if (typeof crypto === 'undefined' || !crypto.subtle || typeof TextEncoder === 'undefined') {
-      return fallbackFingerprint;
-    }
+  const handleReferenceAddFilesAtSlot = useCallback(
+    async (fieldKey: string, toIndex: number, files: File[]) => {
+      const imageFiles = files.filter((f) => f.type.startsWith('image/'));
+      if (!imageFiles.length) return;
 
-    try {
-      const encoder = new TextEncoder();
-      const metadataBytes = encoder.encode(`${file.type}:${file.size}`);
-      const headBytes = new Uint8Array(
-        await file.slice(0, SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES).arrayBuffer()
-      );
-      const tailStart = Math.max(0, file.size - SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES);
-      const tailBytes = tailStart > 0
-        ? new Uint8Array(await file.slice(tailStart).arrayBuffer())
-        : new Uint8Array();
-      const payload = new Uint8Array(metadataBytes.length + headBytes.length + tailBytes.length);
-      payload.set(metadataBytes, 0);
-      payload.set(headBytes, metadataBytes.length);
-      payload.set(tailBytes, metadataBytes.length + headBytes.length);
-      const digest = await crypto.subtle.digest('SHA-256', payload);
-      return `${file.type}:${file.size}:${bytesToHex(new Uint8Array(digest))}`;
-    } catch {
-      return fallbackFingerprint;
+      const field = selectedPresetFieldDefs.find((f) => f.key === fieldKey && f.type === 'reference');
+      if (!field || field.type !== 'reference') return;
+
+      const maxSlot = Math.max(1, field.maxImages ?? 1);
+      if (toIndex < 0 || toIndex >= maxSlot) return;
+
+      const listSnapshot = referenceAssignments[fieldKey] ?? [];
+      if (listSnapshot[toIndex]) return;
+
+      let used = 0;
+      for (let i = 0; i < maxSlot; i++) {
+        if (listSnapshot[i]) used++;
+      }
+      const room = maxSlot - used;
+      if (room <= 0) return;
+
+      const slice = imageFiles.slice(0, room);
+
+      setReferenceUploadingKey(fieldKey);
+      setErrorMessage(null);
+      try {
+        const { imageIds } = await apiClient.uploadSourceImages(slice);
+        await registerRefImageIdsForFiles(imageIds, slice);
+        void appendSourceImages(slice);
+        const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
+
+        setReferencePreviewById((prev) => {
+          const next = { ...prev };
+          imageIds.forEach((id, i) => {
+            if (previews[i]) next[id] = previews[i];
+          });
+          return next;
+        });
+
+        setReferenceAssignments((prev) => {
+          const effMax = effectiveReferenceMaxUnique;
+          const uniques = collectUniqueReferenceImageIds(prev);
+          const list = [...(prev[fieldKey] ?? [])];
+          if (list[toIndex]) return prev;
+
+          const placeIds = imageIds.filter(Boolean) as string[];
+          const slotOrder: number[] = [];
+          for (let s = toIndex; s < maxSlot; s++) slotOrder.push(s);
+          for (let s = 0; s < toIndex; s++) slotOrder.push(s);
+
+          let pi = 0;
+          for (const s of slotOrder) {
+            if (pi >= placeIds.length) break;
+            if (list[s]) continue;
+            const newId = placeIds[pi++];
+            if (!newId || list.includes(newId)) continue;
+            if (!uniques.has(newId) && uniques.size >= effMax) break;
+            uniques.add(newId);
+            list[s] = newId;
+          }
+          return { ...prev, [fieldKey]: list };
+        });
+      } catch (e: any) {
+        setErrorMessage(typeof e?.message === 'string' ? e.message : 'Не удалось загрузить изображение');
+        setErrorKind('upload');
+        setPageState('error');
+      } finally {
+        setReferenceUploadingKey(null);
+      }
+    },
+    [appendSourceImages, effectiveReferenceMaxUnique, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
+  );
+
+  const handleGenerateFormDragOver = useCallback((e: ReactDragEvent) => {
+    if ([...e.dataTransfer.types].includes('Files')) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
   }, []);
 
-  const appendSourceImages = useCallback(async (files: File[]) => {
-    if (!files.length) return;
-
-    const currentSourceCount = sourceImageFiles.length;
-    const existingFiles = sourceImageFiles;
-    const existingFingerprints = new Set(await Promise.all(existingFiles.map((file) => buildSourceImageFingerprint(file))));
-    const uniqueIncomingFiles: File[] = [];
-
-    for (const file of files) {
-      const fingerprint = await buildSourceImageFingerprint(file);
-      if (existingFingerprints.has(fingerprint)) {
-        continue;
-      }
-      existingFingerprints.add(fingerprint);
-      uniqueIncomingFiles.push(file);
-    }
-
-    if (!uniqueIncomingFiles.length) {
-      return;
-    }
-
-    const remainingSlots = MAX_SOURCE_IMAGE_FILES - currentSourceCount;
-    if (remainingSlots <= 0) {
-      setErrorMessage(getSourceImageLimitMessage());
-      setErrorKind('upload');
-      setPageState('error');
-      return;
-    }
-
-    const filesToAppend = uniqueIncomingFiles.slice(0, remainingSlots);
-    const skippedFilesCount = uniqueIncomingFiles.length - filesToAppend.length;
-
-    try {
-      const previews = await Promise.all(filesToAppend.map((file) => blobToDataUrl(file)));
-      setSourceImageFiles((prev) => [...prev, ...filesToAppend]);
-      setSourceImagePreviews((prev) => [...prev, ...previews]);
-      setSourceImageOrigin('manual');
-      setSourceStripExpanded(true);
-      resetUploadedSourceImageCache();
-      if (selectedModel !== SOURCE_IMAGE_MODEL) {
-        setSelectedModel(SOURCE_IMAGE_MODEL);
-        persistGeneratePreferences({ selectedModel: SOURCE_IMAGE_MODEL });
-      }
-      if (skippedFilesCount > 0) {
-        setErrorMessage(getSourceImageLimitMessage());
-        setErrorKind('upload');
-        setPageState('error');
-      } else {
-        setErrorMessage(null);
-        setErrorKind(null);
-        if (pageState === 'error') {
-          setPageState('idle');
-        }
-      }
-    } catch {
-      setErrorMessage('Не удалось загрузить файл');
-      setErrorKind('upload');
-      setPageState('error');
-    }
-  }, [buildSourceImageFingerprint, pageState, persistGeneratePreferences, resetUploadedSourceImageCache, selectedModel, sourceImageFiles]);
+  const handleGenerateFormDrop = useCallback(
+    (e: ReactDragEvent) => {
+      const files = Array.from(e.dataTransfer.files ?? []).filter((f) => f.type.startsWith('image/'));
+      if (!files.length) return;
+      e.preventDefault();
+      e.stopPropagation();
+      void appendSourceImages(files);
+    },
+    [appendSourceImages],
+  );
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
     const shouldMarkAvatarDismissed = options?.markAvatarDismissed ?? sourceImageFiles.some((file) => isTelegramAvatarSourceFile(file));
@@ -1577,17 +1791,31 @@ export const GeneratePage: FC = () => {
       setTelegramAvatarDismissed(true);
       persistTelegramAvatarDismissed(true);
     }
+    refImageIdToFingerprintRef.current = {};
+    sourceFingerprintByIndexRef.current = [];
     setSourceImageFiles([]);
     setSourceImagePreviews([]);
     setSourceImageOrigin('none');
     setSourceStripExpanded(false);
     resetUploadedSourceImageCache();
-  }, [persistTelegramAvatarDismissed, resetUploadedSourceImageCache, sourceImageFiles]);
+    setReferencePreviewById({});
+    setReferenceAssignments((prev) => {
+      const next = { ...prev };
+      for (const f of selectedPresetFieldDefs) {
+        if (f.type === 'reference') {
+          next[f.key] = [];
+        }
+      }
+      return next;
+    });
+  }, [persistTelegramAvatarDismissed, resetUploadedSourceImageCache, selectedPresetFieldDefs, sourceImageFiles]);
+  clearSourceImageRef.current = clearSourceImage;
 
   const removeSourceImageAt = useCallback((index: number) => {
     if (index < 0 || index >= sourceImageFiles.length) return;
     const removedFile = sourceImageFiles[index];
     const removedTelegramAvatar = isTelegramAvatarSourceFile(removedFile);
+    const fp = sourceFingerprintByIndexRef.current[index];
 
     if (sourceImageFiles.length === 1) {
       clearSourceImage({ markAvatarDismissed: removedTelegramAvatar || sourceImageOrigin === 'telegram-avatar' });
@@ -1599,6 +1827,33 @@ export const GeneratePage: FC = () => {
       persistTelegramAvatarDismissed(true);
     }
 
+    if (fp) {
+      const affectedIds = Object.entries(refImageIdToFingerprintRef.current)
+        .filter(([, fpr]) => fpr === fp)
+        .map(([id]) => id);
+      for (const id of affectedIds) {
+        delete refImageIdToFingerprintRef.current[id];
+      }
+      if (affectedIds.length) {
+        const idSet = new Set(affectedIds);
+        setReferencePreviewById((prev) => {
+          const n = { ...prev };
+          for (const id of affectedIds) {
+            if (n[id]) delete n[id];
+          }
+          return n;
+        });
+        setReferenceAssignments((prev) => {
+          const next: Record<string, string[]> = {};
+          for (const [k, arr] of Object.entries(prev)) {
+            next[k] = (arr ?? []).filter((id) => !id || !idSet.has(id));
+          }
+          return next;
+        });
+      }
+    }
+
+    sourceFingerprintByIndexRef.current = sourceFingerprintByIndexRef.current.filter((_, j) => j !== index);
     setSourceImageFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
     setSourceImagePreviews((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
     resetUploadedSourceImageCache();
@@ -1622,6 +1877,7 @@ export const GeneratePage: FC = () => {
       return next;
     };
 
+    sourceFingerprintByIndexRef.current = reorder(sourceFingerprintByIndexRef.current);
     setSourceImageFiles((prev) => reorder(prev));
     setSourceImagePreviews((prev) => reorder(prev));
     resetUploadedSourceImageCache();
@@ -1681,6 +1937,9 @@ export const GeneratePage: FC = () => {
   }, [handleSourceImagePick, sourceImageFiles.length, sourceStripExpanded]);
 
   const handleInputWrapperPaste = useCallback((event: ClipboardEvent<HTMLElement>) => {
+    if (!showPromptInput) {
+      return;
+    }
     const pastedImageFiles = Array.from(event.clipboardData?.items ?? [])
       .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
       .map((item, index) => {
@@ -1698,7 +1957,36 @@ export const GeneratePage: FC = () => {
 
     event.preventDefault();
     void appendSourceImages(pastedImageFiles);
-  }, [appendSourceImages]);
+  }, [appendSourceImages, showPromptInput]);
+
+  /* Без отдельного поля промпта — вставка в исходники (Ctrl+V) без фокуса на textarea */
+  useEffect(() => {
+    if (showPromptInput) return;
+    const onPaste = (e: globalThis.ClipboardEvent) => {
+      const t = e.target;
+      if (t instanceof Element && t.closest('input:not([type="hidden"]), textarea, [contenteditable="true"]')) {
+        return;
+      }
+      const pastedImageFiles = Array.from(e.clipboardData?.items ?? [])
+        .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+        .map((item, index) => {
+          const file = item.getAsFile();
+          if (!file) return null;
+          if (file.name) return file;
+          const extension = file.type.split('/')[1] || 'png';
+          return new File([file], `pasted-image-${Date.now()}-${index}.${extension}`, { type: file.type || 'image/png' });
+        })
+        .filter((file): file is File => Boolean(file));
+      if (!pastedImageFiles.length) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      void appendSourceImages(pastedImageFiles);
+    };
+    document.addEventListener('paste', onPaste, true);
+    return () => document.removeEventListener('paste', onPaste, true);
+  }, [appendSourceImages, showPromptInput]);
 
   const handleInputWrapperAction = useCallback((_event: ReactMouseEvent<HTMLElement>) => {
     setSourceStripExpanded(false);
@@ -1891,15 +2179,26 @@ export const GeneratePage: FC = () => {
   const isDisabled = isGenerating || !isFormValid;
   const hasPromptText = prompt.trim().length > 0;
   const latestHistoryEntry = historyEntries[0] ?? null;
-  const historyHasCurrentResultPreview = pageState === 'success' && !!resultImageUrl;
-  const historyHasStoredResultPreview = !!latestHistoryEntry?.resultImageUrl;
-  const historyPreviewImage = historyHasCurrentResultPreview
-    ? resultImageUrl
-    : latestHistoryEntry?.resultImageUrl ?? null;
+  const historyPreviewImage =
+    pageState === 'success' && resultImageUrl
+      ? resultImageUrl
+      : latestHistoryEntry?.resultImageUrl ?? null;
   const historyPreviewFallback = latestHistoryEntry?.selectedEmoji ?? '🕘';
-  const historyHasPreviewImage = !!historyPreviewImage;
-  const shouldCompactHistoryToggle = historyHasCurrentResultPreview;
-  const hasActiveHistoryEntry = historyEntries.some((entry) => entry.isActive);
+  const setHistoryHeaderSlot = useGenerateHistoryHeaderStore((s) => s.setSlot);
+  const toggleHistoryOpen = useCallback(() => {
+    setHistoryOpen((prev) => !prev);
+  }, []);
+  useLayoutEffect(() => {
+    setHistoryHeaderSlot({
+      previewImageUrl: historyPreviewImage,
+      fallbackEmoji: historyPreviewFallback,
+      open: historyOpen,
+      toggle: toggleHistoryOpen,
+    });
+    return () => {
+      setHistoryHeaderSlot(null);
+    };
+  }, [historyPreviewImage, historyPreviewFallback, historyOpen, toggleHistoryOpen, setHistoryHeaderSlot]);
 
   const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
@@ -1972,7 +2271,7 @@ export const GeneratePage: FC = () => {
     setPageState('generating');
     if (entry.taskId) {
       patchHistoryEntry({ localId: entry.localId }, { isActive: true });
-      startPolling(entry.taskId);
+      startPolling(entry.taskId, entry.localId);
     }
   };
 
@@ -2010,10 +2309,12 @@ export const GeneratePage: FC = () => {
           isStripExpanded ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed'
         )}
         aria-label="Прикрепленные изображения"
+        onDragOver={disabled ? undefined : handleGenerateFormDragOver}
+        onDrop={disabled ? undefined : handleGenerateFormDrop}
       >
         {isStripExpanded && (
           <div className="generate-source-strip__scroll-shell">
-            <div ref={sourceStripInnerRef} className="generate-source-strip__inner">
+            <div ref={sourceStripInnerRef} className="generate-source-strip__inner horiz-scroll-bleed">
               {sourceImagePreviews.map((preview, index) => (
                 <div
                   key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
@@ -2021,17 +2322,31 @@ export const GeneratePage: FC = () => {
                   style={{
                     animationDelay: `${Math.max(0, sourceImagePreviews.length - index - 1) * 45}ms`,
                   }}
-                  draggable={!disabled && sourceImageFiles.length > 1}
-                  onDragStart={() => {
+                  draggable={!disabled}
+                  onDragStart={(e) => {
                     draggedSourceImageIndexRef.current = index;
+                    e.dataTransfer.setData(DND_SOURCE_STRIP_MIME, JSON.stringify({ sourceIndex: index }));
+                    e.dataTransfer.effectAllowed = 'copyMove';
                   }}
                   onDragOver={(event) => {
                     if (disabled) return;
+                    if ([...event.dataTransfer.types].includes('Files')) {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = 'copy';
+                      return;
+                    }
                     event.preventDefault();
                   }}
                   onDrop={(event) => {
                     if (disabled) return;
                     event.preventDefault();
+                    const fromDisk = Array.from(event.dataTransfer?.files ?? []).filter((f) => f.type.startsWith('image/'));
+                    if (fromDisk.length) {
+                      event.stopPropagation();
+                      void appendSourceImages(fromDisk);
+                      draggedSourceImageIndexRef.current = null;
+                      return;
+                    }
                     const draggedIndex = draggedSourceImageIndexRef.current;
                     if (draggedIndex == null) return;
                     moveSourceImage(draggedIndex, index);
@@ -2045,6 +2360,7 @@ export const GeneratePage: FC = () => {
                     src={preview}
                     alt={`Исходное изображение ${index + 1}`}
                     className="generate-source-strip__image"
+                    draggable={false}
                     loading="lazy"
                     decoding="async"
                   />
@@ -2146,6 +2462,7 @@ export const GeneratePage: FC = () => {
     setReferenceAssignments({});
     setReferencePreviewById({});
     setReferenceUploadingKey(null);
+    refImageIdToFingerprintRef.current = {};
     persistGeneratePreferences({ stylePresetId: presetId });
   };
 
@@ -2287,6 +2604,7 @@ export const GeneratePage: FC = () => {
         (showPromptInput && selectedPresetFieldDefs.length > 0) && 'generate-input-wrapper--with-preset-stack',
         !showPromptInput && selectedPresetFieldDefs.length > 0 && 'generate-input-wrapper--preset-only',
       )}
+      tabIndex={cfg.withWrapperHandlers && !showPromptInput ? 0 : undefined}
       onPaste={cfg.withWrapperHandlers ? handleInputWrapperPaste : undefined}
       onMouseDownCapture={cfg.withWrapperHandlers ? handleInputWrapperAction : undefined}
       onClickCapture={cfg.withWrapperHandlers ? handleInputWrapperAction : undefined}
@@ -2329,6 +2647,12 @@ export const GeneratePage: FC = () => {
             onReferenceRemove={handleReferenceRemove}
             onReferenceAddFiles={(key, files) => {
               void handleReferenceAddFiles(key, files);
+            }}
+            onReferenceAddFromSource={(key, toIndex, sourceIndex) => {
+              void handleReferenceAddFromSource(key, toIndex, sourceIndex);
+            }}
+            onReferenceAddExternalAt={(key, toIndex, files) => {
+              void handleReferenceAddFilesAtSlot(key, toIndex, files);
             }}
             onReferenceMove={applyReferenceMove}
           />
@@ -2575,7 +2899,11 @@ export const GeneratePage: FC = () => {
 
       <div className="generate-success-section generate-new-request">
         {renderSourceImageStrip(isGenerating)}
-        <div className="generate-form-block">
+        <div
+          className="generate-form-block"
+          onDragOver={handleGenerateFormDragOver}
+          onDrop={handleGenerateFormDrop}
+        >
           {renderMainInputBlock({
             readOnly: false,
             textDisabled: isGenerating,
@@ -2605,7 +2933,11 @@ export const GeneratePage: FC = () => {
     <div className="generate-error-container">
       {renderBrandBlock()}
       {renderSourceImageStrip(false)}
-      <div className="generate-form-block">
+      <div
+        className="generate-form-block"
+        onDragOver={handleGenerateFormDragOver}
+        onDrop={handleGenerateFormDrop}
+      >
         {renderMainInputBlock({
           readOnly: false,
           textDisabled: false,
@@ -2633,7 +2965,11 @@ export const GeneratePage: FC = () => {
       {renderBrandBlock()}
       {renderSourceImageStrip(isGenerating)}
 
-      <div className="generate-form-block">
+      <div
+        className="generate-form-block"
+        onDragOver={handleGenerateFormDragOver}
+        onDrop={handleGenerateFormDrop}
+      >
         {renderMainInputBlock({
           readOnly: false,
           textDisabled: isGenerating,
@@ -2671,38 +3007,6 @@ export const GeneratePage: FC = () => {
       style={generatePageStyle}
     >
       <OtherAccountBackground />
-      <button
-        type="button"
-        className={cn(
-          'generate-history-toggle',
-          shouldCompactHistoryToggle && 'generate-history-toggle--compact',
-          historyHasPreviewImage && 'generate-history-toggle--preview-image',
-          historyHasCurrentResultPreview && 'generate-history-toggle--current-preview',
-          historyHasStoredResultPreview && !historyHasCurrentResultPreview && 'generate-history-toggle--history-preview'
-        )}
-        onClick={() => setHistoryOpen((prev) => !prev)}
-        aria-label="Открыть историю генераций"
-        aria-expanded={historyOpen}
-        aria-controls="generate-history-modal"
-      >
-        <div className="generate-history-toggle__content">
-          <span className="generate-history-toggle__title">История</span>
-        </div>
-        <div className="generate-history-toggle__preview" aria-hidden="true">
-          {historyPreviewImage ? (
-            <img
-              className="generate-history-toggle__preview-image"
-              src={historyPreviewImage}
-              alt=""
-            />
-          ) : (
-            <span className="generate-history-toggle__preview-fallback">
-              {historyPreviewFallback}
-            </span>
-          )}
-        </div>
-        {hasActiveHistoryEntry && <span className="generate-history-toggle__dot" />}
-      </button>
       {renderHistoryModal()}
       <StixlyPageContainer
         className={cn(

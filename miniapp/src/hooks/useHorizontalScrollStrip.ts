@@ -9,9 +9,9 @@ type Options = {
 const DRAG_THRESHOLD_PX = 6;
 
 /**
- * Вертикальное колесо и горизонтальные жесты трекпада — в scrollLeft, чтобы лента
- * вела себя ожидаемо на десктопе. У краёв прокрутка «протекает» на страницу.
- * Опционально — пан-скролл мышью (для зон без конфликта с drag-reorder).
+ * Горизонтальный скролл ленты: Shift+колесо, либо жест трекпада с |deltaX| > |deltaY|.
+ * Вертикальное колесо без Shift не перехватываем — иначе курсор над лентой блокирует
+ * прокрутку страницы (форма генерации, кнопка снизу). Пан-скролл мышью — опционально.
  */
 export function useHorizontalScrollStrip(
   ref: RefObject<HTMLElement | null>,
@@ -32,9 +32,15 @@ export function useHorizontalScrollStrip(
       const prev = el.scrollLeft;
 
       let d = 0;
-      if (e.shiftKey) d = e.deltaY;
-      else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) d = e.deltaX;
-      else d = e.deltaY;
+      if (e.shiftKey) {
+        d = e.deltaY;
+      } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        d = e.deltaX;
+      } else {
+        // Вертикальная прокрутка мыши — не превращаем в горизонтальную, иначе страница
+        // не крутится, пока курсор над лентой (см. GeneratePage, кнопка «Сгенерировать»).
+        return;
+      }
 
       if (d === 0) return;
 

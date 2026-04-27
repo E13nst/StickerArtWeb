@@ -61,7 +61,12 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
 
   return (
     <div className="style-preset-strip">
-      <div ref={scrollRef} className="style-preset-strip__scroll" role="listbox" aria-label="Стиль">
+      <div
+        ref={scrollRef}
+        className="style-preset-strip__scroll horiz-scroll-bleed"
+        role="listbox"
+        aria-label="Стиль"
+      >
         {options.map((opt) => {
           const isSelected = selectedPresetId === opt.id;
           return (

@@ -1,14 +1,14 @@
 import { FC, useCallback, useRef, ChangeEvent, DragEvent } from 'react';
 import { StylePresetField } from '@/api/client';
+import {
+  DND_PRESET_REF_IMAGE_MIME,
+  DND_SOURCE_STRIP_MIME,
+  type PresetReferenceMovePayload,
+  type SourceStripDragPayload,
+} from '@/components/referenceDnd';
 import './PresetReferenceField.css';
 
-const DND_MIME = 'application/x-stixly-ref-image';
-
-export interface PresetReferenceMovePayload {
-  imageId: string;
-  fromKey: string;
-  fromIndex: number;
-}
+export type { PresetReferenceMovePayload } from '@/components/referenceDnd';
 
 const cn = (...classes: (string | false | undefined | null)[]) => classes.filter(Boolean).join(' ');
 
@@ -34,6 +34,10 @@ interface PresetReferenceFieldProps {
   onRemoveAt: (key: string, index: number) => void;
   onAddFiles: (key: string, files: File[]) => void;
   onMoveImage: (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => void;
+  /** Перетаскивание с Source Strip: файл по индексу в исходниках */
+  onAddFromSourceIndex?: (toIndex: number, sourceIndex: number) => void;
+  /** Файлы с диска / проводника в слот(ы), начиная с toIndex */
+  onAddExternalFilesAt?: (toIndex: number, files: File[]) => void;
 }
 
 export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
@@ -48,18 +52,22 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   onRemoveAt,
   onAddFiles,
   onMoveImage,
+  onAddFromSourceIndex,
+  onAddExternalFilesAt,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const maxSlot = Math.max(1, field.maxImages ?? 1);
   const minSlot = Math.max(0, field.minImages ?? 0);
   const slotFull = assignedIds.length >= maxSlot;
+  const uniques = collectUniqueIds(allAssignments);
+  const atGlobalCap = uniques.size >= effectiveMaxUnique;
+  const canAddMore = !slotFull && uniques.size < effectiveMaxUnique;
 
   const openPicker = useCallback(() => {
     if (disabled || uploading || slotFull) return;
-    const uniques = collectUniqueIds(allAssignments);
     if (uniques.size >= effectiveMaxUnique) return;
     inputRef.current?.click();
-  }, [allAssignments, disabled, effectiveMaxUnique, slotFull, uploading]);
+  }, [disabled, effectiveMaxUnique, slotFull, uniques.size, uploading]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/'));
@@ -70,29 +78,62 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   const handleDragStart = (e: DragEvent, imageId: string, index: number) => {
     if (disabled) return;
     const payload: PresetReferenceMovePayload = { imageId, fromKey: field.key, fromIndex: index };
-    e.dataTransfer.setData(DND_MIME, JSON.stringify(payload));
+    e.dataTransfer.setData(DND_PRESET_REF_IMAGE_MIME, JSON.stringify(payload));
     e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const isExternalFileDrag = (e: DragEvent) => {
+    const t = [...e.dataTransfer.types];
+    return t.includes('Files') && onAddExternalFilesAt && canAddMore;
   };
 
   const handleDragOver = (e: DragEvent) => {
     if (disabled) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (isExternalFileDrag(e)) {
+      e.dataTransfer.dropEffect = 'copy';
+      return;
+    }
+    if ([...e.dataTransfer.types].includes(DND_SOURCE_STRIP_MIME)) {
+      e.dataTransfer.dropEffect = onAddFromSourceIndex ? 'copy' : 'none';
+    } else {
+      e.dataTransfer.dropEffect = 'move';
+    }
   };
 
   const handleDropOnCell = (e: DragEvent, toIndex: number) => {
     if (disabled) return;
     e.preventDefault();
-    const raw = e.dataTransfer.getData(DND_MIME);
-    if (!raw) return;
+    const fromDisk = Array.from(e.dataTransfer?.files ?? []).filter((f) => f.type.startsWith('image/'));
+    if (fromDisk.length && onAddExternalFilesAt && canAddMore) {
+      e.stopPropagation();
+      onAddExternalFilesAt(toIndex, fromDisk);
+      return;
+    }
+    const rawRef = e.dataTransfer.getData(DND_PRESET_REF_IMAGE_MIME);
+    if (rawRef) {
+      try {
+        const parsed = JSON.parse(rawRef) as PresetReferenceMovePayload;
+        if (!parsed?.imageId || typeof parsed.fromKey !== 'string' || typeof parsed.fromIndex !== 'number') return;
+        onMoveImage({
+          ...parsed,
+          toKey: field.key,
+          toIndex,
+        });
+        e.stopPropagation();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    if (!onAddFromSourceIndex) return;
+    const rawSrc = e.dataTransfer.getData(DND_SOURCE_STRIP_MIME);
+    if (!rawSrc) return;
     try {
-      const parsed = JSON.parse(raw) as PresetReferenceMovePayload;
-      if (!parsed?.imageId || typeof parsed.fromKey !== 'string' || typeof parsed.fromIndex !== 'number') return;
-      onMoveImage({
-        ...parsed,
-        toKey: field.key,
-        toIndex,
-      });
+      const parsed = JSON.parse(rawSrc) as SourceStripDragPayload;
+      if (typeof parsed?.sourceIndex !== 'number' || parsed.sourceIndex < 0) return;
+      e.stopPropagation();
+      onAddFromSourceIndex(toIndex, parsed.sourceIndex);
     } catch {
       /* ignore */
     }
@@ -107,10 +148,6 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
       cells.push({ kind: 'empty', index: i });
     }
   }
-
-  const uniques = collectUniqueIds(allAssignments);
-  const atGlobalCap = uniques.size >= effectiveMaxUnique;
-  const canAddMore = !slotFull && uniques.size < effectiveMaxUnique;
 
   return (
     <div

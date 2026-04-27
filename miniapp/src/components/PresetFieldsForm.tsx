@@ -17,6 +17,8 @@ interface PresetFieldsFormProps {
   effectiveReferenceMaxUnique?: number;
   onReferenceRemove?: (key: string, index: number) => void;
   onReferenceAddFiles?: (key: string, files: File[]) => void;
+  onReferenceAddFromSource?: (key: string, toIndex: number, sourceIndex: number) => void;
+  onReferenceAddExternalAt?: (key: string, toIndex: number, files: File[]) => void;
   onReferenceMove?: (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => void;
 }
 
@@ -35,6 +37,8 @@ export const PresetFieldsForm: FC<PresetFieldsFormProps> = ({
   effectiveReferenceMaxUnique,
   onReferenceRemove,
   onReferenceAddFiles,
+  onReferenceAddFromSource,
+  onReferenceAddExternalAt,
   onReferenceMove,
 }) => {
   const [openEmojiKey, setOpenEmojiKey] = useState<string | null>(null);
@@ -95,6 +99,8 @@ export const PresetFieldsForm: FC<PresetFieldsFormProps> = ({
               onRemoveAt={onReferenceRemove}
               onAddFiles={onReferenceAddFiles}
               onMoveImage={onReferenceMove}
+              onAddFromSourceIndex={onReferenceAddFromSource && ((toIndex, sourceIndex) => onReferenceAddFromSource(field.key, toIndex, sourceIndex))}
+              onAddExternalFilesAt={onReferenceAddExternalAt && ((toIndex, files) => onReferenceAddExternalAt(field.key, toIndex, files))}
             />
           );
         }

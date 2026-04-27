@@ -5,6 +5,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { AccountBalanceWalletIcon } from '@/components/ui/Icons';
+import { useGenerateHistoryHeaderStore } from '@/store/useGenerateHistoryHeaderStore';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
 import './HeaderPanel.css';
 
@@ -19,6 +20,8 @@ const DEBUG_PANEL_LONG_PRESS_MS = 3000;
 
 export const HeaderPanel: FC = () => {
   const { pathname } = useLocation();
+  const historySlot = useGenerateHistoryHeaderStore((s) => s.slot);
+  const isGenerateRoute = pathname === '/generate';
   const navigate = useNavigate();
   const { user, tg, isInTelegramApp, isMockMode } = useTelegram();
   const { userInfo, currentUserId, isProfileFromAuthenticatedApi } = useProfileStore();
@@ -240,14 +243,37 @@ export const HeaderPanel: FC = () => {
             </span>
           </div>
 
-          {/* Wallet button */}
-          <button
-            className="header-panel__wallet"
-            aria-label="TON Connect"
-            onClick={handleWalletClick}
-          >
-            <AccountBalanceWalletIcon size={24} color="currentColor" />
-          </button>
+          {isGenerateRoute && historySlot ? (
+            <button
+              type="button"
+              className="header-panel__wallet header-panel__wallet--history"
+              aria-label="История генераций"
+              aria-expanded={historySlot.open}
+              aria-controls="generate-history-modal"
+              onClick={historySlot.toggle}
+            >
+              {historySlot.previewImageUrl ? (
+                <img
+                  className="header-panel__wallet-preview"
+                  src={historySlot.previewImageUrl}
+                  alt=""
+                />
+              ) : (
+                <span className="header-panel__wallet-emoji" aria-hidden>
+                  {historySlot.fallbackEmoji}
+                </span>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="header-panel__wallet"
+              aria-label="TON Connect"
+              onClick={handleWalletClick}
+            >
+              <AccountBalanceWalletIcon size={24} color="currentColor" />
+            </button>
+          )}
         </div>
       </div>
     </header>

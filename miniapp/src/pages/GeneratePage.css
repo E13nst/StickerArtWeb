@@ -3,8 +3,8 @@
 
 .generate-page {
   position: relative;
-  overscroll-behavior: none;
-  --generate-history-toggle-clearance: 44px;
+  /* Скролл в .stixly-main-scroll; не гасим вертикальную прокрутку родителя */
+  overscroll-behavior-y: auto;
   --page-dynamic-gradient:
     radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
     radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
@@ -14,103 +14,9 @@
   gap: 0;
 }
 
-.generate-history-toggle {
-  position: fixed;
-  top: calc(var(--stixly-header-height, 56px) + 8px);
-  right: 16px;
-  min-width: 0;
-  min-height: 40px;
-  padding: 4px 6px 4px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  z-index: 120;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
-  box-sizing: border-box;
-  transition: gap 0.22s ease, padding 0.22s ease, border-radius 0.22s ease, background-color 0.22s ease, border-color 0.22s ease;
-}
-
-.generate-history-toggle--compact {
-  min-width: 0;
-  padding: 4px;
-  gap: 0;
-}
-
-.generate-history-toggle__preview {
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.generate-history-toggle__preview-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.generate-history-toggle__preview-fallback {
-  font-size: 18px;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.generate-history-toggle__content {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  white-space: nowrap;
-  overflow: hidden;
-  max-width: 64px;
-  opacity: 1;
-  transform: translateX(0);
-  transition: max-width 0.22s ease, opacity 0.18s ease, transform 0.22s ease;
-}
-
-.generate-history-toggle--compact .generate-history-toggle__content {
-  flex: 0 0 0;
-  max-width: 0;
-  opacity: 0;
-  transform: translateX(4px);
-}
-
-.generate-history-toggle--compact .generate-history-toggle__preview {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
-}
-
-.generate-history-toggle__title {
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  color: rgba(255, 255, 255, 0.94);
-  text-transform: uppercase;
-  text-align: right;
-}
-
-.generate-history-toggle__dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-primary);
+/* Поверх .page-container { min-height: 100vh }: высота по контенту — длинные формы не режутся */
+.generate-page.page-container {
+  min-height: unset;
 }
 
 .generate-history-modal {
@@ -405,10 +311,6 @@
 }
 
 @media (max-width: 560px) {
-  .generate-history-toggle {
-    right: 12px;
-  }
-
   .generate-history-modal {
     max-width: 100%;
     min-height: min(64vh, 560px);
@@ -442,34 +344,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Едино для idle / аватар / клавиатура: рост вниз, скролл в .stixly-main-scroll */
+  justify-content: flex-start;
   gap: 16px;
 }
 
 .generate-page .generate-inner.generate-inner--compact {
   position: relative;
-  min-height: calc(
-    var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100dvh))) -
-    var(--stixly-header-height, 80px) -
-    var(--stixly-taskbar-height, 90px) -
-    34px
-  );
-  justify-content: safe center;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   z-index: 1;
-  transition: min-height 0.25s ease, padding-top 0.25s ease, padding-bottom 0.25s ease, gap 0.25s ease;
-}
-
-@supports not (justify-content: safe center) {
-  @media (max-height: 760px) {
-    .generate-page .generate-inner.generate-inner--compact {
-      justify-content: flex-start;
-    }
-  }
+  transition: padding-top 0.25s ease, padding-bottom 0.25s ease, gap 0.25s ease;
 }
 
 .generate-page .generate-inner.generate-inner--prompt-focused {
   min-height: auto;
-  justify-content: flex-start;
   padding-top: 13px;
   padding-bottom: calc(21px + var(--generate-keyboard-inset, 0px));
   transition: padding-bottom 0.22s ease, padding-top 0.22s ease;
@@ -1285,15 +1173,6 @@
 }
 
 @media (max-width: 420px) {
-  .generate-page .generate-inner.generate-inner--compact {
-    min-height: calc(
-      var(--tg-viewport-stable-height, var(--tg-viewport-height, var(--stixly-viewport-height, 100dvh))) -
-      var(--stixly-header-height, 80px) -
-      var(--stixly-taskbar-height, 90px) -
-      21px
-    );
-  }
-
   .generate-input-wrapper {
     min-height: clamp(112px, 16vh, 168px);
     padding: 12px 12px 10px;
@@ -1408,7 +1287,6 @@
     var(--stixly-taskbar-height, 90px) -
     16px
   );
-  padding-top: var(--generate-history-toggle-clearance);
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1666,4 +1544,9 @@ body.generate-prompt-focused .navbar {
 @keyframes fieldsFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Скролл — в .stixly-main-scroll (MainLayout). Контент растёт вместе с полями пресета; padding не даёт кнопке прилипать к таскбару */
+.stixly-main-scroll:has(.generate-page) {
+  scroll-padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }

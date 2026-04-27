@@ -97,12 +97,13 @@ header.stixlytopheader > .stixly-top-header > * {
   }
 }
 
-/* Main scroll container — фон задаётся инлайном в MainLayout (transparent), чтобы под хедером на iOS был виден градиент страницы; fallback для страниц без градиента */
+/* Main scroll container — фон задаётся инлайном в MainLayout (transparent), чтобы под хедером на iOS был виден градиент страницы; fallback для страниц без градиента
+   Высоту не задаём: .stixly-main-layout = 100% вьюпорта, зона — flex:1 1 0% + min-height:0 (инлайн в MainLayout). */
 .stixly-main-scroll {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
+  min-height: 0;
   position: relative;
   isolation: isolate;
-  height: calc(100vh - var(--stixly-bottom-nav-height, 0px));
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;

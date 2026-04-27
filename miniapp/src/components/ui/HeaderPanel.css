@@ -232,6 +232,7 @@ body.generate-avatar-hint-active .header-panel__avatar-wrap .header-panel__avata
   cursor: pointer;
   transition: opacity 0.2s ease;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .header-panel__wallet:hover {
@@ -240,6 +241,27 @@ body.generate-avatar-hint-active .header-panel__avatar-wrap .header-panel__avata
 
 .header-panel__wallet:active {
   opacity: 0.7;
+}
+
+.header-panel__wallet--history {
+  background: transparent;
+}
+
+/* Превью последней генерации в слоте кошелька на /generate */
+.header-panel__wallet-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+.header-panel__wallet-emoji {
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Responsive: на узких экранах баланс не сжимает кнопки */
