@@ -1,0 +1,49 @@
+/* Сетка как у VirtualizedGallery: 2 колонки, отступы 8px */
+
+.style-preset-pack-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width:100%;
+  padding: 0 8px 8px;
+  box-sizing: border-box;
+}
+
+.style-preset-pack-grid__card {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  scroll-margin-top: 12px;
+  scroll-margin-bottom: 8px;
+}
+
+.style-preset-pack-grid__card:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.style-preset-pack-grid__card:not(:disabled):hover {
+  transform: scale(1.02);
+}
+
+/* Выбранный пресет — акцент как у strip «selected» */
+.style-preset-pack-grid__card.style-preset-pack-grid__card--selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 1px rgba(238, 68, 159, 0.35),
+    0 10px 28px rgba(238, 68, 159, 0.14),
+    0 2px 8px var(--color-overlay-dark);
+}
+
+.style-preset-pack-grid__card.style-preset-pack-grid__card--selected:focus-visible {
+  outline: 2px solid var(--color-primary);
+}

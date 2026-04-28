@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { StylePresetStrip } from '@/components/StylePresetStrip';
+import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetCategoryChips, type StyleCategoryFilter } from '@/components/StylePresetCategoryChips';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
@@ -2994,8 +2994,8 @@ export const GeneratePage: FC = () => {
     </div>
   );
 
-  const renderPresetStrip = (disabled: boolean) => (
-    <StylePresetStrip
+  const renderPresetGrid = (disabled: boolean) => (
+    <StylePresetPackGrid
       presets={stripStylePresets}
       selectedPresetId={selectedStylePresetId}
       onPresetChange={handlePresetChange}
@@ -3026,35 +3026,47 @@ export const GeneratePage: FC = () => {
       onDragOver={cfg.dropEnabled ? handleGenerateFormDragOver : undefined}
       onDrop={cfg.dropEnabled ? handleGenerateFormDrop : undefined}
     >
-      {renderMainInputBlock({
-        readOnly: cfg.readOnly,
-        textDisabled: cfg.textDisabled,
-        referenceDndEnabled: cfg.referenceDndEnabled,
-        showPromptError: cfg.showPromptError,
-        withWrapperHandlers: cfg.withWrapperHandlers,
-        withActiveState: cfg.withActiveState,
-      })}
-      {styleCategoryChipsList.length > 0 && (
-        <StylePresetCategoryChips
-          categories={styleCategoryChipsList}
-          value={styleCategoryFilter}
-          onChange={setStyleCategoryFilter}
-          disabled={cfg.presetDisabled}
-        />
-      )}
-      {renderPresetStrip(cfg.presetDisabled)}
-
-      <Button
-        variant="primary"
-        size="medium"
-        onClick={cfg.onButtonClick}
-        disabled={cfg.buttonDisabled}
-        loading={cfg.buttonLoading}
-        className={cn('generate-button-submit', cfg.buttonClassName)}
-        aria-label={cfg.buttonAriaLabel}
-      >
-        {cfg.buttonText}
-      </Button>
+      <div className="generate-form-layout">
+        <div className="generate-form-layout__compose">
+          {renderMainInputBlock({
+            readOnly: cfg.readOnly,
+            textDisabled: cfg.textDisabled,
+            referenceDndEnabled: cfg.referenceDndEnabled,
+            showPromptError: cfg.showPromptError,
+            withWrapperHandlers: cfg.withWrapperHandlers,
+            withActiveState: cfg.withActiveState,
+          })}
+          {styleCategoryChipsList.length > 0 && (
+            <StylePresetCategoryChips
+              categories={styleCategoryChipsList}
+              value={styleCategoryFilter}
+              onChange={setStyleCategoryFilter}
+              disabled={cfg.presetDisabled}
+              compact
+            />
+          )}
+        </div>
+        <div className="generate-form-layout__preset-scroll">
+          <div className="generate-form-layout__preset-heading">
+            <span className="generate-form-layout__preset-title">Стили</span>
+            <span className="generate-form-layout__preset-hint">Выберите шаблон</span>
+          </div>
+          {renderPresetGrid(cfg.presetDisabled)}
+        </div>
+        <div className="generate-form-layout__submit">
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={cfg.onButtonClick}
+            disabled={cfg.buttonDisabled}
+            loading={cfg.buttonLoading}
+            className={cn('generate-button-submit', cfg.buttonClassName)}
+            aria-label={cfg.buttonAriaLabel}
+          >
+            {cfg.buttonText}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
