@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, useMemo, CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, DragEvent as ReactDragEvent, useMemo, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
@@ -23,11 +23,7 @@ import {
   StylePresetRemoveBgMode,
 } from '@/api/client';
 import {
-  STYLE_PRESET_SHOWCASE_K,
   ensureSelectedPresetInStrip,
-  fisherYatesShuffle,
-  groupByCategoryId,
-  roundRobinFromGroups,
   sortPresetsInCategory,
   uniqueCategoriesFromPresets,
 } from '@/utils/stylePresetCategoryUi';
@@ -301,8 +297,7 @@ export const GeneratePage: FC = () => {
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
-  const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter>('all');
-  const [showcaseOrderTick, setShowcaseOrderTick] = useState(0);
+  const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
   const [presetFields, setPresetFields] = useState<Record<string, string>>({});
   const [referenceAssignments, setReferenceAssignments] = useState<Record<string, string[]>>({});
@@ -314,7 +309,6 @@ export const GeneratePage: FC = () => {
   const [sourceImageFiles, setSourceImageFiles] = useState<File[]>([]);
   const [sourceImagePreviews, setSourceImagePreviews] = useState<string[]>([]);
   const [sourceImageOrigin, setSourceImageOrigin] = useState<'none' | 'manual' | 'telegram-avatar'>('none');
-  const [sourceStripExpanded, setSourceStripExpanded] = useState(false);
   const [telegramAvatarDismissed, setTelegramAvatarDismissed] = useState(false);
   const [keyboardInsetPx, setKeyboardInsetPx] = useState(0);
   
@@ -358,7 +352,6 @@ export const GeneratePage: FC = () => {
   const draggedSourceImageIndexRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
   const sourceStripInnerRef = useRef<HTMLDivElement | null>(null);
-  const sourceStripContainerRef = useRef<HTMLDivElement | null>(null);
   const previousSourceImageCountRef = useRef(0);
   const uploadedSourceImageIdsRef = useRef<string[]>([]);
   const uploadedSourceImageAtRef = useRef<number | null>(null);
@@ -367,8 +360,7 @@ export const GeneratePage: FC = () => {
   const activeHistoryLocalIdRef = useRef<string | null>(null);
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
-  const showcaseCategoryOrderRef = useRef<number[] | null>(null);
-  const categoryKeyForShowcaseRef = useRef<string>('');
+
   const avatarAutofillAppliedRef = useRef<string | null>(null);
   const avatarAutofillInFlightRef = useRef(false);
   const processedAvatarTriggerRef = useRef<string | null>(null);
@@ -457,7 +449,6 @@ export const GeneratePage: FC = () => {
   const handlePromptFocusIn = useCallback((e: React.FocusEvent) => {
     const target = e.target as HTMLElement;
     if (target?.classList?.contains?.('generate-input')) {
-      setSourceStripExpanded(false);
       if (promptFocusTimeoutRef.current) {
         clearTimeout(promptFocusTimeoutRef.current);
         promptFocusTimeoutRef.current = null;
@@ -551,12 +542,6 @@ export const GeneratePage: FC = () => {
     previousSourceImageCountRef.current = currentCount;
   }, [scrollSourceStripToEnd, sourceImageFiles.length]);
 
-  useEffect(() => {
-    if (sourceImageFiles.length === 0 && sourceStripExpanded) {
-      setSourceStripExpanded(false);
-    }
-  }, [sourceImageFiles.length, sourceStripExpanded]);
-
   // Извлечение параметров из URL при инициализации
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -613,57 +598,39 @@ export const GeneratePage: FC = () => {
     void loadPresets();
   }, []);
 
-  const stylePresetCategoryIdsKey = useMemo(
-    () =>
-      [
-        ...new Set(
-          stylePresets.map((p) => p.category?.id).filter((x): x is number => x != null),
-        ),
-      ]
-        .sort((a, b) => a - b)
-        .join(','),
-    [stylePresets],
-  );
-
   const styleCategoryChipsList = useMemo(() => {
     if (stylePresetCategories.length > 0) return stylePresetCategories;
     return uniqueCategoriesFromPresets(stylePresets);
   }, [stylePresetCategories, stylePresets]);
 
   useLayoutEffect(() => {
-    if (stylePresets.length === 0) return;
-    if (categoryKeyForShowcaseRef.current !== stylePresetCategoryIdsKey) {
-      categoryKeyForShowcaseRef.current = stylePresetCategoryIdsKey;
-      showcaseCategoryOrderRef.current = null;
+    if (styleCategoryChipsList.length === 0) {
+      setStyleCategoryFilter(null);
+      return;
     }
-    if (showcaseCategoryOrderRef.current != null) return;
-    const groups = groupByCategoryId(stylePresets);
-    if (groups.size === 0) return;
-    showcaseCategoryOrderRef.current = fisherYatesShuffle([...groups.keys()]);
-    setShowcaseOrderTick((n) => n + 1);
-  }, [stylePresets, stylePresetCategoryIdsKey]);
+    setStyleCategoryFilter((prev) => {
+      const ids = new Set(styleCategoryChipsList.map((c) => c.id));
+      if (prev != null && ids.has(prev)) return prev;
+      return styleCategoryChipsList[0]!.id;
+    });
+  }, [styleCategoryChipsList]);
 
   const stripStylePresets = useMemo(() => {
-    if (styleCategoryFilter !== 'all') {
-      const list = stylePresets.filter((p) => p.category?.id === styleCategoryFilter);
+    if (styleCategoryChipsList.length === 0 || styleCategoryFilter == null) {
+      const enabled = stylePresets.filter((p) => p.isEnabled);
       return ensureSelectedPresetInStrip(
-        sortPresetsInCategory(list),
+        sortPresetsInCategory(enabled),
         stylePresets,
         selectedStylePresetId,
       );
     }
-    const order = showcaseCategoryOrderRef.current;
-    if (order == null || order.length === 0) {
-      return ensureSelectedPresetInStrip(
-        sortPresetsInCategory([...stylePresets]),
-        stylePresets,
-        selectedStylePresetId,
-      );
-    }
-    const groups = groupByCategoryId(stylePresets);
-    const interleaved = roundRobinFromGroups(groups, order, STYLE_PRESET_SHOWCASE_K);
-    return ensureSelectedPresetInStrip(interleaved, stylePresets, selectedStylePresetId);
-  }, [styleCategoryFilter, stylePresets, selectedStylePresetId, showcaseOrderTick]);
+    const list = stylePresets.filter((p) => p.isEnabled && p.category?.id === styleCategoryFilter);
+    return ensureSelectedPresetInStrip(
+      sortPresetsInCategory(list),
+      stylePresets,
+      selectedStylePresetId,
+    );
+  }, [styleCategoryFilter, stylePresets, selectedStylePresetId, styleCategoryChipsList.length]);
 
   // Актуальный баланс ART и профиль «меня» в сторе (источник истины: /api/profiles/me)
   // Всегда кладём в стор полный объект me, чтобы хедер показывал правильный аватар и баланс
@@ -1121,7 +1088,6 @@ export const GeneratePage: FC = () => {
       setSourceImageFiles(mergedFiles);
       setSourceImagePreviews((prev) => [...prev, ...previews]);
       setSourceImageOrigin(computeSourceImageOriginFromFiles(mergedFiles));
-      setSourceStripExpanded(true);
       resetUploadedSourceImageCache();
       if (selectedModel !== SOURCE_IMAGE_MODEL) {
         setSelectedModel(SOURCE_IMAGE_MODEL);
@@ -1191,7 +1157,6 @@ export const GeneratePage: FC = () => {
         setSourceImageFiles(nextFiles);
         setSourceImagePreviews(nextPreviews);
         setSourceImageOrigin(computeSourceImageOriginFromFiles(nextFiles));
-        setSourceStripExpanded(true);
         resetUploadedSourceImageCache();
         if (selectedModel !== SOURCE_IMAGE_MODEL) {
           setSelectedModel(SOURCE_IMAGE_MODEL);
@@ -1476,7 +1441,7 @@ export const GeneratePage: FC = () => {
   const promptIsRequired = showPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
   const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
   const effectivePromptPlaceholder =
-    promptInputCfg?.placeholder ?? 'Опишите стикер, например: собака летит на ракете';
+    promptInputCfg?.placeholder ?? 'Опишите свою идею или используйте готовые стили!';
   const selectedPresetFieldDefs: StylePresetField[] = selectedPreset?.fields ?? [];
   const referenceFieldDefs = useMemo(
     () => selectedPresetFieldDefs.filter((f) => f.type === 'reference'),
@@ -1746,7 +1711,6 @@ export const GeneratePage: FC = () => {
 
   // Обработка отправки формы
   const handleGenerate = async () => {
-    setSourceStripExpanded(false);
     const trimmedPrompt = prompt.trim();
     const canGenerateWithoutPrompt =
       selectedStylePresetId != null && (sourceImageFiles.length > 0 || hasReferenceSlotsFilled);
@@ -2063,7 +2027,6 @@ export const GeneratePage: FC = () => {
     setSourceImageFiles([]);
     setSourceImagePreviews([]);
     setSourceImageOrigin('none');
-    setSourceStripExpanded(false);
     resetUploadedSourceImageCache();
     const presetForRef =
       selectedStylePresetId != null ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null : null;
@@ -2244,17 +2207,11 @@ export const GeneratePage: FC = () => {
   }, [appendSourceImages]);
 
   const handleSourcePickerAction = useCallback(() => {
-    if (sourceImageFiles.length > 0 && !sourceStripExpanded) {
-      setSourceStripExpanded(true);
-      return;
-    }
-
     if (sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES) {
       return;
     }
-
     handleSourceImagePick();
-  }, [handleSourceImagePick, sourceImageFiles.length, sourceStripExpanded]);
+  }, [handleSourceImagePick, sourceImageFiles.length]);
 
   const handleInputWrapperPaste = useCallback((event: ClipboardEvent<HTMLElement>) => {
     if (!showPromptInput) {
@@ -2307,10 +2264,6 @@ export const GeneratePage: FC = () => {
     document.addEventListener('paste', onPaste, true);
     return () => document.removeEventListener('paste', onPaste, true);
   }, [appendSourceImages, showPromptInput]);
-
-  const handleInputWrapperAction = useCallback((_event: ReactMouseEvent<HTMLElement>) => {
-    setSourceStripExpanded(false);
-  }, []);
 
   const handleSavedFromModal = useCallback((payload?: {
     stickerFileId?: string | null;
@@ -2517,7 +2470,8 @@ export const GeneratePage: FC = () => {
     };
   }, [historyPreviewImage, historyPreviewFallback, historyOpen, toggleHistoryOpen, setHistoryHeaderSlot]);
 
-  const generateLabel = generateCost != null ? `Сгенерировать ${generateCost} ART` : 'Сгенерировать 10 ART';
+  const generateLabel =
+    generateCost != null ? `Создать стикер • ${generateCost} ART` : 'Создать стикер • 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
   const isCompactState = pageState !== 'success';
   const formatHistoryStatus = (entry: GenerateHistoryEntry): string => {
@@ -2567,7 +2521,6 @@ export const GeneratePage: FC = () => {
     setSourceImageFiles([]);
     setSourceImagePreviews([]);
     setSourceImageOrigin('none');
-    setSourceStripExpanded(false);
     resetUploadedSourceImageCache();
     setReferenceUploadingKey(null);
     avatarAutofillAppliedRef.current = null;
@@ -2629,7 +2582,6 @@ export const GeneratePage: FC = () => {
 
   const renderSourceImageStrip = (disabled: boolean) => {
     const hasAttachedImages = sourceImageFiles.length > 0;
-    const isStripExpanded = hasAttachedImages && sourceStripExpanded;
 
     return (
     <>
@@ -2642,16 +2594,15 @@ export const GeneratePage: FC = () => {
         onChange={handleSourceImageChange}
       />
       <div
-        ref={sourceStripContainerRef}
         className={cn(
           'generate-source-strip',
-          isStripExpanded ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed'
+          hasAttachedImages ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed'
         )}
         aria-label="Прикрепленные изображения"
         onDragOver={disabled ? undefined : handleGenerateFormDragOver}
         onDrop={disabled ? undefined : handleGenerateFormDrop}
       >
-        {isStripExpanded && (
+        {hasAttachedImages && (
           <div className="generate-source-strip__scroll-shell">
             <div ref={sourceStripInnerRef} className="generate-source-strip__inner horiz-scroll-bleed">
               {sourceImagePreviews.map((preview, index) => (
@@ -2702,7 +2653,7 @@ export const GeneratePage: FC = () => {
             </div>
           </div>
         )}
-        {isStripExpanded && sourceImageFiles.length >= 2 && (
+        {hasAttachedImages && sourceImageFiles.length >= 2 && (
           <button
             type="button"
             className="generate-source-strip__clear-link"
@@ -2719,9 +2670,9 @@ export const GeneratePage: FC = () => {
           onClick={handleSourcePickerAction}
           disabled={disabled}
           aria-label={
-            hasAttachedImages && !isStripExpanded
-              ? `Показать прикрепленные изображения. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`
-              : `${hasAttachedImages ? 'Добавить ещё исходные изображения' : 'Добавить исходные изображения'}. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`
+            hasAttachedImages
+              ? `Добавить ещё исходные изображения. Прикреплено ${sourceImageFiles.length} из ${MAX_SOURCE_IMAGE_FILES}.`
+              : `Добавить исходные изображения. Прикреплено 0 из ${MAX_SOURCE_IMAGE_FILES}.`
           }
         >
           {sourceImageFiles.length < MAX_SOURCE_IMAGE_FILES && (
@@ -2751,7 +2702,6 @@ export const GeneratePage: FC = () => {
   };
 
   const handlePromptChange = (value: string) => {
-    setSourceStripExpanded(false);
     setPrompt(value);
     if (pageState === 'error' && errorKind === 'prompt') {
       setErrorMessage(null);
@@ -2786,7 +2736,6 @@ export const GeneratePage: FC = () => {
   }, [presetPreviewById, selectedPreset, selectedStylePresetId]);
 
   const handlePresetChange = (presetId: number | null) => {
-    setSourceStripExpanded(false);
     setSelectedStylePresetId(presetId);
     setPresetFields({});
     setReferenceAssignments({});
@@ -2807,7 +2756,6 @@ export const GeneratePage: FC = () => {
   };
 
   const handleEmojiSelect = (emoji: string) => {
-    setSourceStripExpanded(false);
     setSelectedEmoji(emoji);
     persistGeneratePreferences({ selectedEmoji: emoji });
     setEmojiDropdownOpen(false);
@@ -2839,24 +2787,6 @@ export const GeneratePage: FC = () => {
     return () => clearTimeout(t);
   }, [errorMessage]);
 
-  // Сворачиваем source strip при клике вне его контейнера
-  useEffect(() => {
-    if (!sourceStripExpanded) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        sourceStripContainerRef.current &&
-        !sourceStripContainerRef.current.contains(e.target as Node)
-      ) {
-        setSourceStripExpanded(false);
-      }
-    };
-    const t = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [sourceStripExpanded]);
-
   const renderEmojiSelect = (disabled: boolean, caption: string | null) => {
     const hasCaption = Boolean(caption);
     return (
@@ -2876,7 +2806,6 @@ export const GeneratePage: FC = () => {
             hasCaption && 'generate-model-select-trigger--emoji--with-caption',
           )}
           onClick={() => {
-            setSourceStripExpanded(false);
             if (!disabled) {
               setEmojiDropdownOpen((v) => !v);
             }
@@ -2937,8 +2866,6 @@ export const GeneratePage: FC = () => {
       )}
       tabIndex={cfg.withWrapperHandlers && !showPromptInput ? 0 : undefined}
       onPaste={cfg.withWrapperHandlers ? handleInputWrapperPaste : undefined}
-      onMouseDownCapture={cfg.withWrapperHandlers ? handleInputWrapperAction : undefined}
-      onClickCapture={cfg.withWrapperHandlers ? handleInputWrapperAction : undefined}
     >
       {showPromptInput && (
         <textarea
@@ -3036,20 +2963,20 @@ export const GeneratePage: FC = () => {
             withWrapperHandlers: cfg.withWrapperHandlers,
             withActiveState: cfg.withActiveState,
           })}
-          {styleCategoryChipsList.length > 0 && (
-            <StylePresetCategoryChips
-              categories={styleCategoryChipsList}
-              value={styleCategoryFilter}
-              onChange={setStyleCategoryFilter}
-              disabled={cfg.presetDisabled}
-              compact
-            />
-          )}
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
             <span className="generate-form-layout__preset-title">Стили</span>
             <span className="generate-form-layout__preset-hint">Выберите шаблон</span>
+            {styleCategoryChipsList.length > 0 && styleCategoryFilter != null && (
+              <StylePresetCategoryChips
+                categories={styleCategoryChipsList}
+                value={styleCategoryFilter}
+                onChange={setStyleCategoryFilter}
+                disabled={cfg.presetDisabled}
+                variant="gallery"
+              />
+            )}
           </div>
           {renderPresetGrid(cfg.presetDisabled)}
         </div>

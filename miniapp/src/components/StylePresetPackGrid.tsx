@@ -40,9 +40,7 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
 }) => {
   const { tg } = useTelegram();
 
-  const options: PresetGridOption[] = [
-    { id: null, name: 'Свой prompt', code: 'custom' },
-    ...presets.map((p) => ({
+  const options: PresetGridOption[] = presets.map((p) => ({
       id: p.id,
       name: stripPresetName(p.name),
       code: p.code,
@@ -50,8 +48,7 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
         previewByPresetId?.get(p.id) ??
         (p.code ? fallbackPreviewByPresetCode?.[p.code] : undefined) ??
         getServerPreviewUrl(p),
-    })),
-  ];
+    }));
 
   const handleSelect = (presetId: number | null) => {
     if (disabled) return;
@@ -60,45 +57,65 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
   };
 
   return (
-    <div className="style-preset-pack-grid" role="listbox" aria-label="Стиль генерации">
-      {options.map((opt) => {
-        const isSelected = selectedPresetId === opt.id;
-        return (
-          <button
-            key={opt.id === null ? 'none' : opt.id}
-            type="button"
-            role="option"
-            aria-selected={isSelected}
-            disabled={disabled}
-            className={[
-              'style-preset-pack-grid__card',
-              'pack-card',
-              isSelected && 'style-preset-pack-grid__card--selected',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() => handleSelect(opt.id)}
-          >
-            <div className="pack-card__content">
-              {opt.previewUrl ? (
-                <img
-                  src={opt.previewUrl}
-                  alt=""
-                  className="pack-card-image"
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                />
-              ) : (
-                <div className="pack-card__placeholder" aria-hidden="true">
-                  {opt.id === null ? '+' : opt.name.slice(0, 1)}
-                </div>
-              )}
-            </div>
-            <div className="pack-card__title-overlay">{opt.name}</div>
-          </button>
-        );
-      })}
+    <div
+      className="preset-grid optimized-gallery optimized-gallery--gallery"
+      role="listbox"
+      aria-label="Стиль генерации"
+    >
+      <div className="preset-grid__row optimized-gallery__row-grid">
+        <button
+          type="button"
+          className={[
+            'preset-grid__create-btn',
+            selectedPresetId === null && 'preset-grid__create-btn--active',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          onClick={() => handleSelect(null)}
+          disabled={disabled}
+        >
+          + Создать свой пресет
+        </button>
+        {options.map((opt) => {
+          const isSelected = selectedPresetId === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              role="option"
+              aria-selected={isSelected}
+              disabled={disabled}
+              className={[
+                'preset-grid__card',
+                'pack-card',
+                isSelected && 'preset-grid__card--selected',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => handleSelect(opt.id)}
+            >
+              <div className="pack-card__content">
+                {opt.previewUrl ? (
+                  <img
+                    src={opt.previewUrl}
+                    alt=""
+                    className="pack-card-image"
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="pack-card__placeholder" aria-hidden="true">
+                    {opt.name.slice(0, 1)}
+                  </div>
+                )}
+              </div>
+              <div className="pack-card__title-overlay">{opt.name}</div>
+              {isSelected && <span className="preset-grid__selected-dot" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

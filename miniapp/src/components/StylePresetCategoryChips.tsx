@@ -3,24 +3,24 @@ import type { StylePresetCategoryDto } from '@/api/client';
 import { useTelegram } from '@/hooks/useTelegram';
 import './StylePresetCategoryChips.css';
 
-export type StyleCategoryFilter = 'all' | number;
+export type StyleCategoryFilter = number;
 
 interface StylePresetCategoryChipsProps {
   categories: StylePresetCategoryDto[];
   value: StyleCategoryFilter;
   onChange: (next: StyleCategoryFilter) => void;
-  allLabel?: string;
   disabled?: boolean;
   compact?: boolean;
+  variant?: 'default' | 'gallery';
 }
 
 export const StylePresetCategoryChips: FC<StylePresetCategoryChipsProps> = ({
   categories,
   value,
   onChange,
-  allLabel = 'Все',
   disabled = false,
   compact = false,
+  variant = 'default',
 }) => {
   const { tg } = useTelegram();
   const padding = compact ? '0.35rem 0.7rem' : '0.45rem 0.9rem';
@@ -43,28 +43,18 @@ export const StylePresetCategoryChips: FC<StylePresetCategoryChipsProps> = ({
 
   return (
     <div
-      className="style-preset-category-chips horiz-scroll-bleed category-filter-scroller"
+      className={[
+        'style-preset-category-chips',
+        'horiz-scroll-bleed',
+        'category-filter-scroller',
+        variant === 'gallery' && 'style-preset-category-chips--gallery',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="tablist"
       aria-label="Категория стиля"
       aria-disabled={disabled || undefined}
     >
-      <div
-        role="tab"
-        tabIndex={0}
-        aria-selected={value === 'all'}
-        className="style-preset-category-chips__chip"
-        data-selected={value === 'all' ? 'true' : undefined}
-        style={{
-          padding,
-          fontSize,
-          opacity: value === 'all' ? 1 : baseOpacityUnselected,
-        }}
-        onClick={() => handlePick('all')}
-        onKeyDown={(e) => onChipKey(e, 'all')}
-        aria-disabled={disabled || undefined}
-      >
-        {allLabel}
-      </div>
       {categories.map((c) => {
         const selected = value === c.id;
         return (

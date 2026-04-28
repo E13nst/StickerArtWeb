@@ -5,9 +5,16 @@
   position: relative;
   /* Скролл в .stixly-main-scroll; не гасим вертикальную прокрутку родителя */
   overscroll-behavior-y: auto;
+  /* Акцент: яркий pink вместо серо-фиолетового; вторичный текст светлее; чипы/интерактив — в тон primary */
+  --color-primary: #ff4fab;
+  --color-text-secondary: #c4c1d2;
+  --color-overlay-primary: rgba(255, 79, 175, 0.38);
+  --color-button: var(--color-primary);
+  --page-bg-accent-primary: color-mix(in srgb, var(--color-primary) 32%, transparent);
+  --page-bg-accent-secondary: rgba(255, 92, 168, 0.2);
   --page-dynamic-gradient:
-    radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
-    radial-gradient(circle at 80% 75%, var(--page-bg-accent-secondary) 0%, transparent 45%);
+    radial-gradient(circle at 18% 16%, var(--page-bg-accent-primary) 0%, transparent 48%),
+    radial-gradient(circle at 82% 78%, var(--page-bg-accent-secondary) 0%, transparent 50%);
   padding-bottom: 0;
   display: flex;
   flex-direction: column;
@@ -465,21 +472,14 @@
   align-items: stretch;
   gap: 8px;
   overflow: visible;
-  transition: transform 0.2s ease, margin-bottom 0.2s ease;
 }
 
 .generate-source-strip--collapsed {
   justify-content: flex-end;
-  transform: translateY(20px);
-  margin-bottom: -20px;
-  z-index: 0;
 }
 
 .generate-source-strip--expanded {
   justify-content: flex-start;
-  transform: translateY(0);
-  margin-bottom: 0;
-  z-index: 2;
 }
 
 .generate-source-strip__scroll-shell {
@@ -605,12 +605,6 @@
   text-decoration: none;
 }
 
-.generate-source-picker {
-  flex: 0 0 auto;
-  align-self: flex-start;
-  margin-left: 0;
-}
-
 .generate-source-strip__image {
   width: 100%;
   height: 100%;
@@ -637,9 +631,11 @@
   cursor: pointer;
 }
 
+/* Как у .generate-source-strip__item: без backdrop-filter — меньше ореолов/бликов на градиентном фоне */
 .generate-source-picker {
   position: relative;
   flex: 0 0 auto;
+  align-self: flex-start;
   margin-left: 0;
   width: 55px;
   height: 55px;
@@ -653,8 +649,6 @@
   justify-content: center;
   cursor: pointer;
   overflow: visible;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .generate-source-picker:disabled {
@@ -670,10 +664,6 @@
   filter: brightness(0) saturate(100%) invert(100%);
   opacity: 0.9;
   transition: transform 0.2s ease;
-}
-
-.generate-source-strip--collapsed .generate-source-picker__icon {
-  transform: translate(-4px, -8px);
 }
 
 @keyframes generateSourceItemReveal {
@@ -698,16 +688,15 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.82);
+  background: rgba(24, 24, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 }
 
 .generate-source-picker__badge--full {
@@ -717,13 +706,12 @@
   transform: translate(50%, -50%);
 }
 
-.generate-source-picker__badge--limit {
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(52, 120, 246, 0.34);
+.generate-page .generate-source-strip__item,
+.generate-page .generate-source-picker {
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
 }
 
-/* Input block (Inpit) — #262626, 16px radius, 370px, Figma gap 16px */
 .generate-form-block {
   position: relative;
   z-index: 1;
@@ -741,6 +729,8 @@
   flex-direction: column;
   gap: 0;
   width: 100%;
+  box-sizing: border-box;
+  padding-bottom: calc(58px + var(--generate-keyboard-inset, 0px));
 }
 
 .generate-form-layout__compose {
@@ -749,29 +739,20 @@
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 2px 0 10px;
-  /* Не занимать весь экран: при длинной форме — скролл внутри блока (рекомендации к sticky + mobile viewport). */
-  max-height: min(55vh, 480px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
-  background: linear-gradient(
-    180deg,
-    rgba(25, 24, 24, 0.97) 0%,
-    rgba(25, 24, 24, 0.97) 55%,
-    rgba(25, 24, 24, 0.88) 100%
-  );
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  gap: 8px;
+  padding: 2px 0 8px;
+  max-height: none;
+  overflow: visible;
+  background: transparent;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none;
+  box-shadow: none !important;
 }
 
 @media (max-height: 640px) {
   .generate-form-layout__compose {
-    max-height: min(42vh, 340px);
+    max-height: none;
   }
 }
 
@@ -779,7 +760,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 4px 6px;
+  padding: 8px 4px 4px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -793,8 +774,44 @@
 
 .generate-form-layout__preset-hint {
   font-size: 12px;
-  color: var(--color-text-secondary, #8a8a8a);
+  color: var(--color-text-secondary);
   line-height: 1.35;
+}
+
+.generate-form-layout__preset-heading .style-preset-category-chips--gallery {
+  margin-top: 2px;
+}
+
+/* Чипы категорий (только страница генерации): стекло как кнопка добавления фото */
+.generate-page .style-preset-category-chips--gallery .style-preset-category-chips__chip {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  font-weight: 600;
+}
+
+.generate-page .style-preset-category-chips--gallery .style-preset-category-chips__chip:hover:not([aria-disabled='true']) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  transform: translateY(-1px);
+  opacity: 1 !important;
+}
+
+.generate-page .style-preset-category-chips--gallery .style-preset-category-chips__chip[data-selected='true'] {
+  background: color-mix(in srgb, #ee449f 42%, rgba(255, 255, 255, 0.06)) !important;
+  border: 1px solid color-mix(in srgb, #ee449f 55%, rgba(255, 255, 255, 0.12)) !important;
+  color: #fff !important;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(238, 68, 159, 0.35);
+}
+
+.generate-page .style-preset-category-chips--gallery .style-preset-category-chips__chip:focus-visible {
+  box-shadow: 0 0 0 2px rgba(238, 68, 159, 0.45);
 }
 
 .generate-form-layout__preset-scroll {
@@ -803,30 +820,32 @@
 }
 
 .generate-form-layout__submit {
-  position: sticky;
-  bottom: calc(var(--stixly-taskbar-height, 96.25px) + var(--generate-keyboard-inset, 0px) + 6px);
-  z-index: 5;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 370px;
+  bottom: calc(var(--stixly-taskbar-height, 96.25px) + var(--generate-keyboard-inset, 0px) + 8px);
+  z-index: 110;
   display: flex;
   justify-content: center;
-  padding-top: 14px;
-  padding-bottom: 6px;
-  margin-top: 4px;
-  background: linear-gradient(
-    0deg,
-    rgba(25, 24, 24, 0.99) 0%,
-    rgba(25, 24, 24, 0.96) 50%,
-    rgba(25, 24, 24, 0.82) 100%
-  );
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.35);
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: none;
+  box-shadow: none;
+  pointer-events: none;
 }
 
 /* Полноширинный primary CTA на мобильных паттернах (крупная зона нажатия). */
 .generate-form-layout__submit .generate-button-submit {
-  width: 100%;
-  max-width: 100%;
+  width: 100% !important;
+  max-width: 370px !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -834,17 +853,17 @@
     transition: none;
   }
 
-  .style-preset-pack-grid__card:not(:disabled):hover {
+  .preset-grid__card:not(:disabled):hover {
     transform: none;
   }
 }
 
-.generate-form-layout .style-preset-pack-grid {
+.generate-form-layout .preset-grid {
   width: 100%;
   max-width: 370px;
 }
 
-/* Тёмное стекло (не эталонное) */
+/* Контейнер поля ввода: тёмная заливка без blur (как раньше) */
 .generate-input-wrapper {
   position: relative;
   display: flex;
@@ -855,18 +874,37 @@
   width: 100%;
   max-width: 370px;
   min-height: clamp(104px, 14vh, 142px);
-  background: rgba(0, 0, 0, 0.48);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.44);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
   border-radius: 16px;
   flex: none;
   order: 0;
   align-self: stretch;
   flex-grow: 0;
   box-sizing: border-box;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.2s ease;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .generate-page .generate-source-strip__item,
+  .generate-page .generate-source-picker {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .generate-page .style-preset-category-chips--gallery .style-preset-category-chips__chip {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .generate-page .generate-checkbox-label--inline,
+  .generate-page .generate-model-select-trigger {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .generate-input-footer {
@@ -888,15 +926,69 @@
   min-width: 0;
 }
 
-/* Подсвечиваем весь контейнер при вводе/фокусе */
-.generate-input-wrapper:focus-within,
-.generate-input-wrapper--active {
-  box-shadow: 0 0 0 2px var(--color-overlay-primary), 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+/* Эмодзи + «Удалить фон»: стекло как navbar; акцент как активная вкладка Gallery (#ee449f) */
+.generate-page .generate-model-select-trigger {
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
 }
 
-/* Input error state */
+.generate-page .generate-model-select-trigger:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.56);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.generate-page .generate-emoji-caption {
+  color: #ee449f;
+  filter: drop-shadow(0 0 5px rgba(238, 68, 159, 0.55));
+}
+
+.generate-page .generate-model-select-value--emoji {
+  color: #ee449f;
+  filter: drop-shadow(0 0 7.6px #ee449f);
+}
+
+.generate-page .generate-checkbox-label--inline {
+  margin: 0;
+  min-height: 42px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 8px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+}
+
+.generate-page .generate-checkbox-label--inline span {
+  color: #ee449f;
+  font-weight: 600;
+  filter: drop-shadow(0 0 5px rgba(238, 68, 159, 0.55));
+}
+
+.generate-page .generate-checkbox-label--inline .generate-checkbox:not(:checked) {
+  border-color: rgba(238, 68, 159, 0.45);
+}
+
+.generate-page .generate-checkbox-label--inline .generate-checkbox:checked {
+  background-color: #ee449f;
+  border-color: #ee449f;
+}
+
+.generate-input-wrapper:focus-within,
+.generate-input-wrapper--active {
+  border-color: var(--color-overlay-primary);
+  box-shadow: none;
+}
+
 .generate-input-wrapper--error {
-  box-shadow: 0 0 0 1px var(--color-error), 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border-color: var(--color-error);
 }
 
 .generate-input--error {
@@ -934,6 +1026,7 @@
 
 .generate-input::placeholder {
   color: var(--color-text-secondary);
+  opacity: 0.92;
 }
 
 /* Model select / Style select — единый стиль триггера и выпадающего меню */
@@ -1255,9 +1348,17 @@
   font-weight: 700 !important;
   line-height: 16px !important;
   border-radius: 16px !important;
-  background-color: var(--color-primary) !important;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 92%, #ffffff 14%),
+    var(--color-primary)
+  ) !important;
   color: #ffffff !important;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow:
+    0 4px 24px color-mix(in srgb, var(--color-primary) 52%, transparent),
+    0 12px 32px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .generate-page .button-loading {
@@ -1618,7 +1719,7 @@ body.generate-prompt-focused .navbar {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Блок динамических полей пресета внутри тёмного input-wrapper */
+/* Блок динамических полей пресета внутри input-wrapper */
 .generate-input-preset-stack {
   width: 100%;
   display: flex;

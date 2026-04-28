@@ -1,16 +1,52 @@
-/* Сетка как у VirtualizedGallery: 2 колонки, отступы 8px */
+/* Сетка в том же контексте, что и Gallery: .optimized-gallery */
 
-.style-preset-pack-grid {
+.preset-grid {
+  width: 100%;
+  padding: 0;
+  overflow: visible;
+}
+
+.preset-grid__row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  width:100%;
-  padding: 0 8px 8px;
+  grid-template-columns: repeat(2, 177px);
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 0 8px;
   box-sizing: border-box;
 }
 
-.style-preset-pack-grid__card {
-  width: 100%;
+.preset-grid__create-btn {
+  grid-column: 1 / -1;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-family: 'Manrope', var(--font-family-base);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.preset-grid__create-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.preset-grid__create-btn--active {
+  border-color: rgba(238, 68, 159, 0.65);
+  background: rgba(238, 68, 159, 0.16);
+}
+
+.preset-grid__create-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.preset-grid__card {
+  position: relative;
+  width: 177px;
   margin: 0;
   padding: 0;
   font: inherit;
@@ -24,26 +60,48 @@
   scroll-margin-bottom: 8px;
 }
 
-.style-preset-pack-grid__card:disabled {
+.preset-grid__card:disabled {
   cursor: not-allowed;
   opacity: 0.55;
   transform: none;
 }
 
-.style-preset-pack-grid__card:not(:disabled):hover {
-  transform: scale(1.02);
+.preset-grid__card.preset-grid__card--selected {
+  border-color: rgba(255, 255, 255, 0.16) !important;
 }
 
-/* Выбранный пресет — акцент как у strip «selected» */
-.style-preset-pack-grid__card.style-preset-pack-grid__card--selected {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  box-shadow:
-    0 0 0 1px rgba(238, 68, 159, 0.35),
-    0 10px 28px rgba(238, 68, 159, 0.14),
-    0 2px 8px var(--color-overlay-dark);
+.preset-grid__selected-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(238, 68, 159, 0.2);
+  z-index: 2;
 }
 
-.style-preset-pack-grid__card.style-preset-pack-grid__card--selected:focus-visible {
-  outline: 2px solid var(--color-primary);
+@media (max-width: 400px) {
+  .preset-grid__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .preset-grid__card {
+    width: 100%;
+    max-width: 177px;
+  }
+}
+
+@media (max-width: 375px) {
+  .preset-grid__row {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .preset-grid__row {
+    gap: 8px;
+  }
 }

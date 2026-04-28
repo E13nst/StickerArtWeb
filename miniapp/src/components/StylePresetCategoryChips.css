@@ -43,3 +43,40 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* Вариант как в Gallery/CompactControlsBar */
+.style-preset-category-chips--gallery {
+  gap: 8px;
+  padding: 6px 0 8px;
+}
+
+.style-preset-category-chips--gallery .style-preset-category-chips__chip {
+  border: none;
+  border-radius: 16px;
+  background: #8A8A8A;
+  color: #FFFFFF;
+  font-family: 'Manrope', var(--font-family-base);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px !important;
+  min-height: 28px;
+  opacity: 1 !important;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.style-preset-category-chips--gallery .style-preset-category-chips__chip:hover:not([aria-disabled='true']) {
+  background: #8A8A8A;
+  opacity: 0.92 !important;
+  transform: translateY(-1px);
+  border: none;
+}
+
+.style-preset-category-chips--gallery .style-preset-category-chips__chip[data-selected='true'] {
+  background: #EE449F;
+  border: none;
+}
+
+.style-preset-category-chips--gallery .style-preset-category-chips__chip:focus-visible {
+  box-shadow: 0 0 0 2px rgba(238, 68, 159, 0.35);
+}
