@@ -765,19 +765,6 @@
   box-sizing: border-box;
 }
 
-.generate-form-layout__preset-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text, #fff);
-  line-height: 1.2;
-}
-
-.generate-form-layout__preset-hint {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  line-height: 1.35;
-}
-
 .generate-form-layout__preset-heading .style-preset-category-chips--gallery {
   margin-top: 2px;
 }
@@ -817,6 +804,16 @@
 .generate-form-layout__preset-scroll {
   width: 100%;
   min-height: 120px;
+}
+
+.generate-form-layout__preset-ref-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
 }
 
 .generate-form-layout__submit {
@@ -1505,8 +1502,8 @@
 
 .generate-actions {
   display: flex;
-  flex-direction: row;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   align-items: stretch;
   justify-content: center;
   width: 100%;
@@ -1514,8 +1511,17 @@
   margin: 0 auto;
 }
 
-/* Единая форма для кнопок в блоке результата */
-.generate-actions .generate-action-button {
+.generate-actions__pair {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Единая форма для кнопок «Сохранить» / «Отправить» */
+.generate-actions__pair .generate-action-button {
   flex: 1 1 0;
   min-width: 0;
   width: 100%;
@@ -1600,15 +1606,30 @@
   color: #ffffff !important;
 }
 
-.generate-actions {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 232px;
-  margin: 0 auto;
+.generate-action-button.publish-style {
+  flex: none !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 44px !important;
+  padding: 8px 12px !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  line-height: 1.2 !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+}
+
+.publish-style-btn__title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+}
+
+.publish-style-btn__cost {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  opacity: 0.9;
 }
 
 /* ========== ERROR (Figma: same layout as idle, message inside form) ========== */

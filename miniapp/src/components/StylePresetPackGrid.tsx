@@ -11,6 +11,10 @@ interface StylePresetPackGridProps {
   previewByPresetId?: Map<number, string>;
   fallbackPreviewByPresetCode?: Partial<Record<string, string>>;
   disabled?: boolean;
+  /** Поток «свой стиль» по blueprint с бэка: подсветка «+», когда выбран пресет из этого флоу */
+  creationHighlightPresetId?: number | null;
+  /** Запуск флоу «Создать свой стиль» (GET blueprints, без модалки публикации) */
+  onCreatePreset?: () => void;
 }
 
 type PresetGridOption = {
@@ -37,6 +41,8 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
   previewByPresetId,
   fallbackPreviewByPresetCode,
   disabled = false,
+  creationHighlightPresetId = null,
+  onCreatePreset,
 }) => {
   const { tg } = useTelegram();
 
@@ -67,14 +73,22 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
           type="button"
           className={[
             'preset-grid__create-btn',
-            selectedPresetId === null && 'preset-grid__create-btn--active',
+            creationHighlightPresetId != null &&
+              selectedPresetId === creationHighlightPresetId &&
+              'preset-grid__create-btn--active',
           ]
             .filter(Boolean)
             .join(' ')}
-          onClick={() => handleSelect(null)}
+          onClick={() => {
+            if (onCreatePreset) {
+              onCreatePreset();
+              return;
+            }
+            handleSelect(null);
+          }}
           disabled={disabled}
         >
-          + Создать свой пресет
+          + Создать свой стиль
         </button>
         {options.map((opt) => {
           const isSelected = selectedPresetId === opt.id;
@@ -92,7 +106,7 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
               ]
                 .filter(Boolean)
                 .join(' ')}
-              onClick={() => handleSelect(opt.id)}
+              onClick={() => handleSelect(isSelected ? null : opt.id)}
             >
               <div className="pack-card__content">
                 {opt.previewUrl ? (

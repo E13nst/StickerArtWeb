@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { PresetPublicationRequestDto } from './client';
 import { StylePreset } from './client';
 import { apiClient } from './client';
 
@@ -69,18 +70,17 @@ export async function unlikeStylePreset(presetId: number): Promise<void> {
 
 /**
  * POST /api/style-presets/{presetId}/publish
- * Публикует пресет: списывает 10 ART и переводит в PENDING_MODERATION.
- * idempotencyKey — UUID v4, генерируется клиентом, одинаковый при ретраях.
+ * Переводит пресет из DRAFT на модерацию; списание ART по правилам бэкенда (часто 10 ART).
  */
 export async function publishStylePreset(
   presetId: number,
-  idempotencyKey: string
+  body: PresetPublicationRequestDto
 ): Promise<StylePreset> {
   const cfg = getAxiosConfig();
   try {
     const response = await axios.post<StylePreset>(
       `${cfg.baseURL}/style-presets/${presetId}/publish`,
-      { idempotencyKey },
+      body,
       { headers: cfg.headers }
     );
     return response.data;
@@ -139,6 +139,92 @@ export async function uploadPresetReference(
           const msg = body['message'] ?? body['error'];
           if (typeof msg === 'string' && msg.length > 0) message = msg;
         } catch {}
+        reject(new Error(message));
+      }
+    });
+
+    xhr.addEventListener('error', () =>
+      reject(new Error('Ошибка сети при загрузке изображения'))
+    );
+    xhr.addEventListener('abort', () =>
+      reject(new Error('Загрузка отменена'))
+    );
+
+    xhr.send(formData);
+  });
+}
+
+export interface GenerationPresetUploadOptions {
+  onProgress?: (percent: number) => void;
+}
+
+/**
+ * POST /api/generation/style-presets/{presetId}/preview — превью карточки стиля после создания черновика.
+ */
+export async function uploadGenerationStylePresetPreview(
+  presetId: number,
+  file: File,
+  options: GenerationPresetUploadOptions = {}
+): Promise<StylePreset> {
+  return uploadGenerationPresetMultipart(presetId, file, '/generation/style-presets', 'preview', options);
+}
+
+/**
+ * POST /api/generation/style-presets/{presetId}/reference — референс / второе фото после создания черновика.
+ */
+export async function uploadGenerationStylePresetReference(
+  presetId: number,
+  file: File,
+  options: GenerationPresetUploadOptions = {}
+): Promise<StylePreset> {
+  return uploadGenerationPresetMultipart(presetId, file, '/generation/style-presets', 'reference', options);
+}
+
+function uploadGenerationPresetMultipart(
+  presetId: number,
+  file: File,
+  basePath: string,
+  segment: 'preview' | 'reference',
+  options: GenerationPresetUploadOptions
+): Promise<StylePreset> {
+  return new Promise<StylePreset>((resolve, reject) => {
+    const cfg = getAxiosConfig();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${cfg.baseURL}${basePath}/${presetId}/${segment}`);
+
+    Object.entries(cfg.headers).forEach(([key, value]) => {
+      if (key !== 'Content-Type') {
+        xhr.setRequestHeader(key, String(value));
+      }
+    });
+
+    if (options.onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          options.onProgress!(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+    }
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as StylePreset);
+        } catch {
+          reject(new Error('Некорректный ответ сервера'));
+        }
+      } else {
+        let message = 'Не удалось загрузить изображение';
+        try {
+          const body = JSON.parse(xhr.responseText) as Record<string, unknown>;
+          const msg = body['message'] ?? body['error'];
+          if (typeof msg === 'string' && msg.length > 0) message = msg;
+        } catch {
+          /* ignore */
+        }
         reject(new Error(message));
       }
     });

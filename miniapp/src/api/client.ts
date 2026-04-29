@@ -407,6 +407,8 @@ export interface ArtTariffsResponse {
 export type StylePresetRemoveBgMode = 'FORCE_ON' | 'FORCE_OFF' | 'PRESET_DEFAULT';
 
 export interface StylePresetReferenceImagesPolicy {
+  enabled?: boolean | null;
+  required?: boolean | null;
   minCount?: number | null;
   /** Максимум уникальных референсов; не больше 14 на клиенте */
   maxCount?: number | null;
@@ -454,6 +456,73 @@ export type StylePresetModerationStatus =
   | 'PENDING_MODERATION'
   | 'APPROVED'
   | 'REJECTED';
+
+export type StylePresetUiMode =
+  | 'CUSTOM_PROMPT'
+  | 'STYLE_WITH_PROMPT'
+  | 'LOCKED_TEMPLATE'
+  | 'STRUCTURED_FIELDS';
+
+/** Тело POST/PUT /api/generation/style-presets (CreateStylePresetRequest на бэкенде). */
+export interface CreateStylePresetRequest {
+  code: string;
+  name: string;
+  promptSuffix: string;
+  description?: string | null;
+  categoryId?: number | null;
+  sortOrder?: number | null;
+  uiMode?: StylePresetUiMode | null;
+  promptInput?: StylePresetPromptInput | null;
+  fields?: StylePresetField[] | null;
+  removeBackground?: boolean | null;
+  removeBackgroundMode?: StylePresetRemoveBgMode | null;
+}
+
+/** GET /api/generation/user-preset-creation-blueprints — варианты из админки/бэка (не настраиваются пользователем на фронте). */
+export interface UserPresetCreationBlueprintDto {
+  /** Id записи blueprint в админке (если отдаёт бэк); по «+ Создать свой стиль» открывается шаблон с id = 1, если он есть в ответе */
+  id?: number;
+  /** Код варианта (например style_anchor_standard); показывается при выборе из нескольких blueprint */
+  code: string;
+  /** Базовые поля для слияния с телом POST /generation/style-presets */
+  presetDefaults: Partial<CreateStylePresetRequest> & Record<string, unknown>;
+  /** Подписи и подсказки экрана (структура задаётся бэкендом / админкой) */
+  uiHints: Record<string, unknown>;
+  /** Оценка стоимости будущей публикации в ART (может быть null) */
+  estimatedPublicationCostArt?: number | null;
+}
+
+/** POST /api/style-presets/{id}/publish */
+export interface PresetPublicationRequestDto {
+  idempotencyKey: string;
+  /** Публичное название в каталоге (до 100 символов на бэкенде) */
+  displayName: string;
+  consentResultPublicShow: boolean;
+}
+
+/** Объединяет каталог и «мои» пресеты без дубликатов id (каталог перекрывает совпадения по полям). */
+export function mergeStylePresetLists(catalog: StylePreset[], mine: StylePreset[]): StylePreset[] {
+  const byId = new Map<number, StylePreset>();
+  for (const p of mine) {
+    byId.set(p.id, p);
+  }
+  for (const p of catalog) {
+    const prev = byId.get(p.id);
+    byId.set(p.id, prev ? { ...prev, ...p } : p);
+  }
+  const list = [...byId.values()];
+  const catOrder = (c: StylePresetCategoryDto | null | undefined) => c?.sortOrder ?? 0;
+  const catIdSort = (c: StylePresetCategoryDto | null | undefined) => c?.id ?? 0;
+  return list.sort((a, b) => {
+    const dCat = catOrder(a.category) - catOrder(b.category);
+    if (dCat !== 0) return dCat;
+    const dId = catIdSort(a.category) - catIdSort(b.category);
+    if (dId !== 0) return dId;
+    const dOrder = a.sortOrder - b.sortOrder;
+    if (dOrder !== 0) return dOrder;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
 
 export interface StylePreset {
   id: number;
@@ -2262,6 +2331,80 @@ class ApiClient {
       console.error('❌ Ошибка получения пресетов стилей:', error);
       throw error;
     }
+  }
+
+  /** GET /api/generation/style-presets/my — пресеты текущего пользователя. */
+  async getMyStylePresets(includeUi = false): Promise<StylePreset[]> {
+    try {
+      const response = await this.client.get<StylePreset[]>('/generation/style-presets/my', {
+        params: includeUi ? { includeUi: true } : {},
+      });
+      return response.data ?? [];
+    } catch (error: any) {
+      console.error('❌ Ошибка загрузки своих пресетов:', error);
+      throw error;
+    }
+  }
+
+  /** GET /api/generation/user-preset-creation-blueprints — шаблоны формы «создать свой стиль». */
+  async getUserPresetCreationBlueprints(): Promise<UserPresetCreationBlueprintDto[]> {
+    try {
+      const response = await this.client.get<UserPresetCreationBlueprintDto[]>(
+        '/generation/user-preset-creation-blueprints',
+      );
+      return response.data ?? [];
+    } catch (error: unknown) {
+      console.error('❌ Ошибка загрузки шаблонов создания пресета:', error);
+      throw new Error(getErrorMessage(error, 'Не удалось загрузить шаблоны пресета'));
+    }
+  }
+
+  /** POST /api/generation/style-presets — создание пользовательского пресета. */
+  async createStylePreset(request: CreateStylePresetRequest): Promise<StylePreset> {
+    try {
+      const response = await this.client.post<StylePreset>('/generation/style-presets', request);
+      return response.data;
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401) {
+        throw new Error('Требуется авторизация');
+      }
+      throw new Error(getErrorMessage(error, 'Не удалось создать пресет'));
+    }
+  }
+
+  /** PUT /api/generation/style-presets/{id} — обновление своего пресета. */
+  async updateStylePreset(id: number, request: CreateStylePresetRequest): Promise<StylePreset> {
+    try {
+      const response = await this.client.put<StylePreset>(`/generation/style-presets/${id}`, request);
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        throw new Error('Требуется авторизация');
+      }
+      throw new Error(getErrorMessage(error, 'Не удалось сохранить пресет'));
+    }
+  }
+
+  /** DELETE /api/generation/style-presets/{id} — удаление своего пресета. */
+  async deleteStylePreset(id: number): Promise<void> {
+    try {
+      await this.client.delete(`/generation/style-presets/${id}`);
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        throw new Error('Требуется авторизация');
+      }
+      throw new Error(getErrorMessage(error, 'Не удалось удалить пресет'));
+    }
+  }
+
+  /** Каталог (включённые глобальные и свои) + «мои» с полным UI, без дубликатов по id. */
+  async loadStylePresetsMerged(): Promise<StylePreset[]> {
+    const [catalog, mine] = await Promise.all([
+      this.getStylePresets(),
+      this.getMyStylePresets(true).catch(() => [] as StylePreset[]),
+    ]);
+    return mergeStylePresetLists(catalog, mine);
   }
 
   // Сохранение сгенерированного изображения в стикерсет

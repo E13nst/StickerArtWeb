@@ -5,6 +5,14 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
+import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
+import { mergeCreateStylePresetRequest } from '@/utils/mergeCreateStylePresetRequest';
+import {
+  blueprintNeedsPresetReferenceSlot,
+  buildAutoStylePresetCode,
+  resolveCreationBlueprint,
+} from '@/utils/ownStyleBlueprint';
+import { uploadPresetReference } from '@/api/stylePresets';
 import { StylePresetCategoryChips, type StyleCategoryFilter } from '@/components/StylePresetCategoryChips';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
@@ -15,12 +23,14 @@ import { SourceImageStripItem } from '@/components/SourceImageStripItem';
 import './GeneratePage.css';
 import {
   apiClient,
+  type CreateStylePresetRequest,
   GenerateModelType,
   GenerationStatus,
   StylePreset,
   StylePresetCategoryDto,
   StylePresetField,
   StylePresetRemoveBgMode,
+  UserPresetCreationBlueprintDto,
 } from '@/api/client';
 import {
   ensureSelectedPresetInStrip,
@@ -82,6 +92,18 @@ const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-
 const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 /** Ключ слота предустановленного референса стиля в preset_fields */
 const PRESET_REF_FIELD_KEY = 'preset_ref';
+
+/** Категория основных пресетов: code `general` или имя General / «Общая» (локализация). */
+function preferDefaultStyleCategoryId(categories: StylePresetCategoryDto[]): number {
+  const generalByCode = categories.find((c) => c.code?.trim().toLowerCase() === 'general');
+  if (generalByCode) return generalByCode.id;
+  const generalByName = categories.find((c) => {
+    const n = c.name?.trim().toLowerCase() ?? '';
+    return n === 'общая' || n === 'general';
+  });
+  if (generalByName) return generalByName.id;
+  return categories[0]!.id;
+}
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
@@ -299,6 +321,22 @@ export const GeneratePage: FC = () => {
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
   const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
+  const [creationFlowPresetId, setCreationFlowPresetId] = useState<number | null>(null);
+  const [bootstrappingOwnStyle, setBootstrappingOwnStyle] = useState(false);
+  const ownStyleBootstrapRef = useRef(false);
+  const [publishPresetModalOpen, setPublishPresetModalOpen] = useState(false);
+  const [publishCostHint, setPublishCostHint] = useState<number | null>(null);
+  const [publishUiHints, setPublishUiHints] = useState<Record<string, unknown> | null>(null);
+  const [userPresetCreationBlueprints, setUserPresetCreationBlueprints] = useState<
+    UserPresetCreationBlueprintDto[]
+  >([]);
+  const [awaitingPresetRefPutPresetId, setAwaitingPresetRefPutPresetId] = useState<number | null>(null);
+  const [uploadingPresetAnchorReference, setUploadingPresetAnchorReference] = useState(false);
+  const awaitingPresetRefPutIdRef = useRef<number | null>(null);
+  const updateAwaitingPresetRefPut = useCallback((id: number | null) => {
+    awaitingPresetRefPutIdRef.current = id;
+    setAwaitingPresetRefPutPresetId(id);
+  }, []);
   const [presetFields, setPresetFields] = useState<Record<string, string>>({});
   const [referenceAssignments, setReferenceAssignments] = useState<Record<string, string[]>>({});
   const [referencePreviewById, setReferencePreviewById] = useState<Record<string, string>>({});
@@ -342,6 +380,13 @@ export const GeneratePage: FC = () => {
   const setUserInfo = useProfileStore((state) => state.setUserInfo);
   const isProfileFromAuthenticatedApi = useProfileStore((state) => state.isProfileFromAuthenticatedApi);
   const [, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
+
+  /** Глобальные пресеты по флагу enabled; свои черновики показываем владельцу даже если выключены в каталоге. */
+  const isPresetShownInStrip = useCallback(
+    (p: StylePreset) =>
+      p.isEnabled || (userInfo?.id != null && p.ownerId === userInfo.id),
+    [userInfo?.id],
+  );
   
   // Polling ref
   const pollingIntervalRef = useRef<number | null>(null);
@@ -361,6 +406,8 @@ export const GeneratePage: FC = () => {
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
 
+  const creationPresetRefInputRef = useRef<HTMLInputElement>(null);
+  const creationPresetRefPresetIdRef = useRef<number | null>(null);
   const avatarAutofillAppliedRef = useRef<string | null>(null);
   const avatarAutofillInFlightRef = useRef(false);
   const processedAvatarTriggerRef = useRef<string | null>(null);
@@ -576,22 +623,32 @@ export const GeneratePage: FC = () => {
     loadTariffs();
   }, []);
 
-  // Загрузка пресетов стилей и категорий при монтировании
+  // Загрузка пресетов стилей, категорий и blueprint создания своего стиля при монтировании
   useEffect(() => {
     const loadPresets = async () => {
+      let presets: StylePreset[] = [];
       try {
-        const [presets, categories] = await Promise.all([
-          apiClient.getStylePresets(),
+        presets = await apiClient.loadStylePresetsMerged();
+      } catch (error) {
+        console.error('Ошибка загрузки пресетов стилей:', error);
+      }
+      setStylePresets(presets);
+
+      try {
+        const [categories, blueprints] = await Promise.all([
           apiClient.getStylePresetCategories().catch((err) => {
             console.warn('Категории пресетов недоступны, чипы из пресетов:', err);
             return [] as StylePresetCategoryDto[];
           }),
+          apiClient.getUserPresetCreationBlueprints().catch((err) => {
+            console.warn('Blueprint создания пресета недоступен:', err);
+            return [] as UserPresetCreationBlueprintDto[];
+          }),
         ]);
-        setStylePresets(presets);
         setStylePresetCategories(categories);
+        setUserPresetCreationBlueprints(blueprints);
       } catch (error) {
-        console.error('Ошибка загрузки пресетов стилей:', error);
-        // Тихий fallback - форма будет работать без пресетов
+        console.error('Ошибка загрузки категорий или blueprint пресетов:', error);
       }
     };
 
@@ -611,26 +668,34 @@ export const GeneratePage: FC = () => {
     setStyleCategoryFilter((prev) => {
       const ids = new Set(styleCategoryChipsList.map((c) => c.id));
       if (prev != null && ids.has(prev)) return prev;
-      return styleCategoryChipsList[0]!.id;
+      return preferDefaultStyleCategoryId(styleCategoryChipsList);
     });
   }, [styleCategoryChipsList]);
 
   const stripStylePresets = useMemo(() => {
     if (styleCategoryChipsList.length === 0 || styleCategoryFilter == null) {
-      const enabled = stylePresets.filter((p) => p.isEnabled);
+      const strip = stylePresets.filter((p) => isPresetShownInStrip(p));
       return ensureSelectedPresetInStrip(
-        sortPresetsInCategory(enabled),
+        sortPresetsInCategory(strip),
         stylePresets,
         selectedStylePresetId,
       );
     }
-    const list = stylePresets.filter((p) => p.isEnabled && p.category?.id === styleCategoryFilter);
+    const list = stylePresets.filter(
+      (p) => isPresetShownInStrip(p) && p.category?.id === styleCategoryFilter,
+    );
     return ensureSelectedPresetInStrip(
       sortPresetsInCategory(list),
       stylePresets,
       selectedStylePresetId,
     );
-  }, [styleCategoryFilter, stylePresets, selectedStylePresetId, styleCategoryChipsList.length]);
+  }, [
+    styleCategoryFilter,
+    stylePresets,
+    selectedStylePresetId,
+    styleCategoryChipsList,
+    isPresetShownInStrip,
+  ]);
 
   // Актуальный баланс ART и профиль «меня» в сторе (источник истины: /api/profiles/me)
   // Всегда кладём в стор полный объект me, чтобы хедер показывал правильный аватар и баланс
@@ -1434,6 +1499,12 @@ export const GeneratePage: FC = () => {
     selectedStylePresetId != null
       ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null
       : null;
+  const publishStyleCostLabel = useMemo(() => {
+    if (publishCostHint != null && Number.isFinite(publishCostHint)) {
+      return `${publishCostHint} ART`;
+    }
+    return '10 ART';
+  }, [publishCostHint]);
   const promptInputCfg = selectedPreset?.promptInput ?? null;
   /** Показывать ли основное поле prompt (скрывается только когда enabled явно false) */
   const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
@@ -1480,6 +1551,22 @@ export const GeneratePage: FC = () => {
       setReferencePreviewById((prev) => (prev[srcId] ? prev : { ...prev, [srcId]: srcUrl }));
     }
   }, [selectedPreset]);
+
+  /** После успешного PUT reference бэк отдаёт presetReferenceSourceImageId — снимаем блокировку генерации. */
+  useEffect(() => {
+    if (awaitingPresetRefPutPresetId == null || selectedStylePresetId == null) return;
+    if (selectedStylePresetId !== awaitingPresetRefPutPresetId) return;
+    if (!selectedPreset) return;
+    const src = getPresetReferenceSlotSourceId(selectedPreset);
+    if (src) {
+      updateAwaitingPresetRefPut(null);
+    }
+  }, [
+    awaitingPresetRefPutPresetId,
+    selectedPreset,
+    selectedStylePresetId,
+    updateAwaitingPresetRefPut,
+  ]);
 
   const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
 
@@ -2447,9 +2534,17 @@ export const GeneratePage: FC = () => {
       }
       return !f.required || !!(presetFields[f.key]?.trim());
     });
+  /** Пока не залит опорный preset_ref (PUT reference), генерация с выбранным пресетом недоступна. */
+  const isBlockedByPendingPresetReferencePut =
+    awaitingPresetRefPutPresetId != null &&
+    awaitingPresetRefPutPresetId === selectedStylePresetId;
   const isFormValid = (promptOk || canGenerateWithoutPrompt) && presetFieldsOk;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
-  const isDisabled = isGenerating || !isFormValid;
+  const isDisabled =
+    isGenerating ||
+    !isFormValid ||
+    isBlockedByPendingPresetReferencePut ||
+    uploadingPresetAnchorReference;
   const hasPromptText = prompt.trim().length > 0;
   const latestHistoryEntry = historyEntries[0] ?? null;
   const historyPreviewImage = latestHistoryEntry?.resultImageUrl ?? null;
@@ -2735,7 +2830,20 @@ export const GeneratePage: FC = () => {
     );
   }, [presetPreviewById, selectedPreset, selectedStylePresetId]);
 
-  const handlePresetChange = (presetId: number | null) => {
+  const handlePresetChange = (
+    presetId: number | null,
+    opts?: { skipPublishHintReset?: boolean },
+  ) => {
+    if (
+      awaitingPresetRefPutIdRef.current != null &&
+      presetId !== awaitingPresetRefPutIdRef.current
+    ) {
+      updateAwaitingPresetRefPut(null);
+    }
+    if (!opts?.skipPublishHintReset) {
+      setPublishCostHint(null);
+      setPublishUiHints(null);
+    }
     setSelectedStylePresetId(presetId);
     setPresetFields({});
     setReferenceAssignments({});
@@ -2744,6 +2852,112 @@ export const GeneratePage: FC = () => {
     refImageIdToFingerprintRef.current = {};
     persistGeneratePreferences({ stylePresetId: presetId });
   };
+
+  const handleCreationPresetRefFileChange = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0] ?? null;
+      e.target.value = '';
+      const presetId =
+        creationPresetRefPresetIdRef.current ?? awaitingPresetRefPutIdRef.current;
+      creationPresetRefPresetIdRef.current = null;
+      if (!file) {
+        return;
+      }
+      if (presetId == null) return;
+      setUploadingPresetAnchorReference(true);
+      try {
+        await uploadPresetReference(presetId, file);
+        const list = await apiClient.loadStylePresetsMerged();
+        setStylePresets(list);
+        updateAwaitingPresetRefPut(null);
+      } catch (err: unknown) {
+        setErrorMessage(
+          err instanceof Error ? err.message : 'Не удалось загрузить опорный референс стиля',
+        );
+        setErrorKind('general');
+      } finally {
+        setUploadingPresetAnchorReference(false);
+      }
+    },
+    [updateAwaitingPresetRefPut],
+  );
+
+  /**
+   * «Создать свой стиль»: blueprint с префетча + merge + POST; сразу обычная форма созданного пресета.
+   */
+  const handleSelectOwnStylePreset = async () => {
+    if (ownStyleBootstrapRef.current || bootstrappingOwnStyle) return;
+    ownStyleBootstrapRef.current = true;
+    setBootstrappingOwnStyle(true);
+    tg?.HapticFeedback?.impactOccurred?.('light');
+    try {
+      let blueprints = userPresetCreationBlueprints;
+      if (!blueprints.length) {
+        try {
+          blueprints = await apiClient.getUserPresetCreationBlueprints();
+          setUserPresetCreationBlueprints(blueprints);
+        } catch {
+          blueprints = [];
+        }
+      }
+      const bp = resolveCreationBlueprint(blueprints);
+      if (!bp) {
+        setErrorMessage('Создание своего стиля сейчас недоступно.');
+        setErrorKind('general');
+        return;
+      }
+
+      const sortedCats = [...stylePresetCategories].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+      const firstCatId = sortedCats[0]?.id;
+      const defaults = bp.presetDefaults as Partial<CreateStylePresetRequest>;
+      const overlay: Partial<CreateStylePresetRequest> = {
+        code: buildAutoStylePresetCode(user?.id),
+        name: 'Мой стиль',
+      };
+      if (defaults.categoryId == null && firstCatId !== undefined) {
+        overlay.categoryId = firstCatId;
+      }
+
+      const mergedReq = mergeCreateStylePresetRequest(bp.presetDefaults, overlay);
+      const created = await apiClient.createStylePreset(mergedReq);
+      const needsRef = blueprintNeedsPresetReferenceSlot(bp);
+      if (needsRef) {
+        updateAwaitingPresetRefPut(created.id);
+        creationPresetRefPresetIdRef.current = created.id;
+        window.requestAnimationFrame(() => {
+          creationPresetRefInputRef.current?.click();
+        });
+      } else {
+        updateAwaitingPresetRefPut(null);
+      }
+
+      const mergedPresets = await apiClient.loadStylePresetsMerged();
+      setStylePresets(mergedPresets);
+      setCreationFlowPresetId(created.id);
+      handlePresetChange(created.id, { skipPublishHintReset: true });
+      setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
+      setPublishUiHints(bp.uiHints ?? null);
+    } catch (e: unknown) {
+      setErrorMessage(e instanceof Error ? e.message : 'Не удалось создать свой стиль');
+      setErrorKind('general');
+    } finally {
+      ownStyleBootstrapRef.current = false;
+      setBootstrappingOwnStyle(false);
+    }
+  };
+
+  const handlePublicationPublished = useCallback(async (_updated: StylePreset) => {
+    try {
+      const list = await apiClient.loadStylePresetsMerged();
+      setStylePresets(list);
+    } catch (e) {
+      console.error('Не удалось обновить пресеты после публикации:', e);
+    }
+    setPublishPresetModalOpen(false);
+    setPublishCostHint(null);
+    setPublishUiHints(null);
+    setCreationFlowPresetId(null);
+  }, []);
 
   const handlePresetFieldChange = (key: string, value: string) => {
     setPresetFields((prev) => ({ ...prev, [key]: value }));
@@ -2928,7 +3142,9 @@ export const GeneratePage: FC = () => {
       onPresetChange={handlePresetChange}
       previewByPresetId={presetPreviewById}
       fallbackPreviewByPresetCode={PRESET_PREVIEW_FALLBACK_BY_CODE}
-      disabled={disabled}
+      disabled={disabled || bootstrappingOwnStyle}
+      creationHighlightPresetId={creationFlowPresetId}
+      onCreatePreset={() => void handleSelectOwnStylePreset()}
     />
   );
 
@@ -2966,8 +3182,6 @@ export const GeneratePage: FC = () => {
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
-            <span className="generate-form-layout__preset-title">Стили</span>
-            <span className="generate-form-layout__preset-hint">Выберите шаблон</span>
             {styleCategoryChipsList.length > 0 && styleCategoryFilter != null && (
               <StylePresetCategoryChips
                 categories={styleCategoryChipsList}
@@ -2980,6 +3194,28 @@ export const GeneratePage: FC = () => {
           </div>
           {renderPresetGrid(cfg.presetDisabled)}
         </div>
+        {isBlockedByPendingPresetReferencePut ? (
+          <div className="generate-form-layout__preset-ref-hint">
+            <Text variant="bodySmall" align="center">
+              Загрузите опорное изображение стиля (preset_ref). Пока файл не отправлен на сервер, генерация
+              недоступна.
+            </Text>
+            <Button
+              type="button"
+              variant="secondary"
+              size="small"
+              disabled={uploadingPresetAnchorReference}
+              loading={uploadingPresetAnchorReference}
+              onClick={() => {
+                if (awaitingPresetRefPutPresetId == null) return;
+                creationPresetRefPresetIdRef.current = awaitingPresetRefPutPresetId;
+                creationPresetRefInputRef.current?.click();
+              }}
+            >
+              Выбрать файл
+            </Button>
+          </div>
+        ) : null}
         <div className="generate-form-layout__submit">
           <Button
             variant="primary"
@@ -3207,27 +3443,47 @@ export const GeneratePage: FC = () => {
         )}
 
         <div className="generate-actions">
-          {(taskId || imageId) && (
+          <div className="generate-actions__pair">
+            {(taskId || imageId) && (
+              <Button
+                variant="primary"
+                size="medium"
+                onClick={handleOpenSaveModal}
+                className="generate-action-button save"
+              >
+                {stickerSaved ? 'Сохранено' : 'Сохранить'}
+              </Button>
+            )}
             <Button
               variant="primary"
               size="medium"
-              onClick={handleOpenSaveModal}
-              className="generate-action-button save"
+              onClick={handleShareSticker}
+              disabled={isSavingAndSharing}
+              loading={isSavingAndSharing}
+              className="generate-action-button share"
+              aria-label="Поделиться"
             >
-              {stickerSaved ? 'Сохранено' : 'Сохранить'}
+              {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
             </Button>
-          )}
-          <Button
-            variant="primary"
-            size="medium"
-            onClick={handleShareSticker}
-            disabled={isSavingAndSharing}
-            loading={isSavingAndSharing}
-            className="generate-action-button share"
-            aria-label="Поделиться"
-          >
-            {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
-          </Button>
+          </div>
+          {selectedPreset &&
+            creationFlowPresetId != null &&
+            creationFlowPresetId === selectedStylePresetId &&
+            userInfo?.id != null &&
+            selectedPreset.ownerId === userInfo.id &&
+            !selectedPreset.isGlobal &&
+            selectedPreset.moderationStatus === 'DRAFT' && (
+              <Button
+                variant="secondary"
+                size="medium"
+                type="button"
+                className="generate-action-button publish-style"
+                onClick={() => setPublishPresetModalOpen(true)}
+              >
+                <span className="publish-style-btn__title">Опубликовать стиль</span>
+                <span className="publish-style-btn__cost">{publishStyleCostLabel}</span>
+              </Button>
+            )}
         </div>
         {saveNoticeText && (
           <Text variant="bodySmall" className="generate-save-notice" align="center">
@@ -3316,6 +3572,31 @@ export const GeneratePage: FC = () => {
     >
       <OtherAccountBackground />
       {renderHistoryModal()}
+      <StylePresetPublicationModal
+        open={publishPresetModalOpen}
+        onClose={() => setPublishPresetModalOpen(false)}
+        preset={selectedPreset}
+        estimatedPublicationCostArt={publishCostHint}
+        publishUiHints={publishUiHints}
+        onPublished={(updated) => void handlePublicationPublished(updated)}
+      />
+      <input
+        ref={creationPresetRefInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        aria-hidden
+        tabIndex={-1}
+        className="generate-creation-preset-ref-input"
+        onChange={(e) => void handleCreationPresetRefFileChange(e)}
+        style={{
+          position: 'absolute',
+          width: 0,
+          height: 0,
+          opacity: 0,
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)',
+        }}
+      />
       <AttachmentPointerDragProvider enabled={!isGenerating} onInternalDrop={handleAttachmentPointerInternalDrop}>
         <StixlyPageContainer
           className={cn(

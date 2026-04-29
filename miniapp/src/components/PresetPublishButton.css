@@ -61,3 +61,40 @@
   font-size: 13px;
   color: var(--color-error, #e03131);
 }
+
+.preset-publish-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.preset-publish-dialog__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.preset-publish-dialog__input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.preset-publish-dialog__consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.preset-publish-dialog__consent input {
+  margin-top: 4px;
+}

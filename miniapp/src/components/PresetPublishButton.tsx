@@ -35,6 +35,8 @@ export const ModerationStatusBadge: FC<ModerationStatusBadgeProps> = ({ status }
 interface PresetPublishButtonProps {
   preset: StylePreset;
   currentUserId: number;
+  /** Оценка стоимости публикации в ART (иначе показываем «10 ART»). */
+  estimatedPublicationCostArt?: number | null;
   /** Вызывается после успешной публикации с обновлённым пресетом */
   onPublished?: (updated: StylePreset) => void;
 }
@@ -47,17 +49,20 @@ interface PresetPublishButtonProps {
  *   – preset.ownerId === currentUserId
  *   – preset.moderationStatus === 'DRAFT'
  *
- * Перед отправкой показывает диалог подтверждения.
+ * Перед отправкой показывает диалог: название в каталоге, согласие, стоимость.
  * Использует idempotencyKey (crypto.randomUUID()) для безопасного ретрая.
  */
 export const PresetPublishButton: FC<PresetPublishButtonProps> = ({
   preset,
   currentUserId,
+  estimatedPublicationCostArt,
   onPublished,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [consent, setConsent] = useState(false);
 
   const idempotencyKeyRef = useRef<string>('');
 
@@ -66,17 +71,37 @@ export const PresetPublishButton: FC<PresetPublishButtonProps> = ({
     preset.ownerId === currentUserId &&
     preset.moderationStatus === 'DRAFT';
 
+  const costLabel =
+    estimatedPublicationCostArt != null && Number.isFinite(estimatedPublicationCostArt)
+      ? `${estimatedPublicationCostArt} ART`
+      : '10 ART';
+
   const handleOpenDialog = useCallback(() => {
     idempotencyKeyRef.current = crypto.randomUUID();
+    setDisplayName(preset.name?.trim() ? preset.name.trim().slice(0, 100) : '');
+    setConsent(false);
     setError(null);
     setDialogOpen(true);
-  }, []);
+  }, [preset.name]);
 
   const handleConfirm = useCallback(async () => {
+    const name = displayName.trim();
+    if (!name) {
+      setError('Укажите название для каталога.');
+      return;
+    }
+    if (!consent) {
+      setError('Нужно согласие на публикацию.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
-      const updated = await publishStylePreset(preset.id, idempotencyKeyRef.current);
+      const updated = await publishStylePreset(preset.id, {
+        idempotencyKey: idempotencyKeyRef.current,
+        displayName: name.slice(0, 100),
+        consentResultPublicShow: true,
+      });
       setDialogOpen(false);
       onPublished?.(updated);
     } catch (e) {
@@ -84,7 +109,7 @@ export const PresetPublishButton: FC<PresetPublishButtonProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [preset.id, onPublished]);
+  }, [preset.id, displayName, consent, onPublished]);
 
   const handleClose = useCallback(() => {
     if (!isLoading) setDialogOpen(false);
@@ -107,9 +132,30 @@ export const PresetPublishButton: FC<PresetPublishButtonProps> = ({
         <DialogTitle>Опубликовать пресет?</DialogTitle>
         <DialogContent>
           <p className="preset-publish-dialog__text">
-            Публикация спишет <strong>10 ART</strong> и отправит пресет{' '}
-            <strong>«{preset.name}»</strong> на модерацию.
+            Публикация отправляет пресет на модерацию и спишет <strong>{costLabel}</strong>.
           </p>
+          <label className="preset-publish-dialog__field">
+            <span className="preset-publish-dialog__label">Название в каталоге</span>
+            <input
+              className="preset-publish-dialog__input"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              maxLength={100}
+              disabled={isLoading}
+            />
+          </label>
+          <label className="preset-publish-dialog__consent">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              disabled={isLoading}
+            />
+            <span>
+              Я согласен(на), что после модерации другие смогут использовать этот пресет, а результат
+              генераций может быть виден в каталоге.
+            </span>
+          </label>
           {error && (
             <p className="preset-publish-dialog__error" role="alert">
               {error}
@@ -120,7 +166,7 @@ export const PresetPublishButton: FC<PresetPublishButtonProps> = ({
           <Button variant="secondary" onClick={handleClose} disabled={isLoading}>
             Отмена
           </Button>
-          <Button variant="primary" onClick={handleConfirm} loading={isLoading}>
+          <Button variant="primary" onClick={() => void handleConfirm()} loading={isLoading}>
             Продолжить
           </Button>
         </DialogActions>

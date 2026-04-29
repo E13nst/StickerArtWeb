@@ -23,8 +23,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 /**
- * GET /api/meme-candidates/feed/next
- * Возвращает следующий кандидат или null при 204 (лента пуста).
+ * GET /api/style-feed/feed/next
+ * Возвращает следующую карточку ленты или null при 204 (лента пуста).
  * Бросает FeedLimitError при 429.
  */
 export interface FeedLimitError {
@@ -45,7 +45,7 @@ export async function fetchNextMemeCandidate(): Promise<MemeCandidateDto | null>
   try {
     const cfg = getAxiosConfig();
     const response = await axios.get<MemeCandidateDto>(
-      `${cfg.baseURL}/meme-candidates/feed/next`,
+      `${cfg.baseURL}/style-feed/feed/next`,
       { headers: cfg.headers, validateStatus: (s) => s < 500 }
     );
     if (response.status === 204) return null;
@@ -56,12 +56,12 @@ export async function fetchNextMemeCandidate(): Promise<MemeCandidateDto | null>
       const data = (err.response.data ?? {}) as FeedLimitError;
       throw new MemeFeedLimitReachedError(data);
     }
-    throw new Error(getErrorMessage(error, 'Не удалось загрузить следующий мем'));
+    throw new Error(getErrorMessage(error, 'Не удалось загрузить следующую карточку'));
   }
 }
 
 /**
- * POST /api/meme-candidates/{candidateId}/like
+ * POST /api/style-feed/{itemId}/like
  * isSwipe=true — свайп жест (записывает в дневной лимит и начисляет награду).
  */
 export async function likeMemeCandidate(
@@ -70,7 +70,7 @@ export async function likeMemeCandidate(
 ): Promise<MemeCandidateVoteResponseDto> {
   const cfg = getAxiosConfig();
   const response = await axios.post<MemeCandidateVoteResponseDto>(
-    `${cfg.baseURL}/meme-candidates/${candidateId}/like`,
+    `${cfg.baseURL}/style-feed/${candidateId}/like`,
     null,
     { headers: cfg.headers, params: { isSwipe } }
   );
@@ -78,7 +78,7 @@ export async function likeMemeCandidate(
 }
 
 /**
- * POST /api/meme-candidates/{candidateId}/dislike
+ * POST /api/style-feed/{itemId}/dislike
  * isSwipe=true — свайп жест.
  */
 export async function dislikeMemeCandidate(
@@ -87,7 +87,7 @@ export async function dislikeMemeCandidate(
 ): Promise<MemeCandidateVoteResponseDto> {
   const cfg = getAxiosConfig();
   const response = await axios.post<MemeCandidateVoteResponseDto>(
-    `${cfg.baseURL}/meme-candidates/${candidateId}/dislike`,
+    `${cfg.baseURL}/style-feed/${candidateId}/dislike`,
     null,
     { headers: cfg.headers, params: { isSwipe } }
   );
@@ -95,23 +95,23 @@ export async function dislikeMemeCandidate(
 }
 
 /**
- * DELETE /api/meme-candidates/{candidateId}/like
+ * DELETE /api/style-feed/{itemId}/like
  * Отмена лайка (без isSwipe).
  */
 export async function removeMemeCanditateLike(candidateId: number): Promise<void> {
   const cfg = getAxiosConfig();
-  await axios.delete(`${cfg.baseURL}/meme-candidates/${candidateId}/like`, {
+  await axios.delete(`${cfg.baseURL}/style-feed/${candidateId}/like`, {
     headers: cfg.headers,
   });
 }
 
 /**
- * DELETE /api/meme-candidates/{candidateId}/dislike
+ * DELETE /api/style-feed/{itemId}/dislike
  * Отмена дизлайка (без isSwipe).
  */
 export async function removeMemeCandidateDislike(candidateId: number): Promise<void> {
   const cfg = getAxiosConfig();
-  await axios.delete(`${cfg.baseURL}/meme-candidates/${candidateId}/dislike`, {
+  await axios.delete(`${cfg.baseURL}/style-feed/${candidateId}/dislike`, {
     headers: cfg.headers,
   });
 }
