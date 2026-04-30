@@ -2,9 +2,49 @@
  * Поток создания персонального пресета по blueprint с бэка
  * (GET /api/generation/user-preset-creation-blueprints). Не конструктор на фронте.
  */
-import type { StylePresetField, UserPresetCreationBlueprintDto } from '@/api/client';
+import type {
+  CreateStylePresetRequest,
+  StylePreset,
+  StylePresetCategoryDto,
+  StylePresetField,
+  UserPresetCreationBlueprintDto,
+} from '@/api/client';
+
+/** Виртуальный пресет в UI без строки в БД (поток «свой стиль без черновика»). */
+export const OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID = -9_000_001;
 
 const PRESET_REF_KEY = 'preset_ref';
+
+export function isOwnStyleBlueprintVirtualPreset(presetId: number | null | undefined): boolean {
+  return presetId === OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID;
+}
+
+/** Карточка стиля только для формы генерации; POST /generation/style-presets не вызывается. */
+export function buildVirtualOwnStylePreset(params: {
+  merged: CreateStylePresetRequest;
+  category: StylePresetCategoryDto | null;
+  ownerProfileId: number | null | undefined;
+}): StylePreset {
+  const { merged, category, ownerProfileId } = params;
+  return {
+    id: OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID,
+    code: merged.code,
+    name: merged.name,
+    description: merged.description ?? '',
+    promptSuffix: merged.promptSuffix,
+    isGlobal: false,
+    isEnabled: true,
+    sortOrder: typeof merged.sortOrder === 'number' ? merged.sortOrder : 0,
+    category,
+    uiMode: merged.uiMode ?? undefined,
+    removeBackgroundMode: merged.removeBackgroundMode ?? undefined,
+    promptInput: merged.promptInput ?? null,
+    fields: merged.fields ?? null,
+    presetReferenceImageUrl: null,
+    presetReferenceSourceImageId: null,
+    ownerId: ownerProfileId ?? undefined,
+  };
+}
 
 function promptTemplateImpliesPresetRef(tpl: string | null | undefined): boolean {
   if (typeof tpl !== 'string' || !tpl.trim()) return false;

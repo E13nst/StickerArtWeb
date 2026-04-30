@@ -89,6 +89,24 @@ export async function publishStylePreset(
   }
 }
 
+/**
+ * POST /api/style-presets/{presetId}/unpublish-catalog
+ * Снятие с публикации в каталоге со стороны автора (одобренный пресет).
+ */
+export async function unpublishStylePresetFromCatalog(presetId: number): Promise<StylePreset> {
+  const cfg = getAxiosConfig();
+  try {
+    const response = await axios.post<StylePreset>(
+      `${cfg.baseURL}/style-presets/${presetId}/unpublish-catalog`,
+      {},
+      { headers: cfg.headers },
+    );
+    return response.data;
+  } catch (error: unknown) {
+    throw new Error(getErrorMessage(error, 'Не удалось снять пресет с публикации'));
+  }
+}
+
 export interface UploadPresetReferenceOptions {
   onProgress?: (percent: number) => void;
 }

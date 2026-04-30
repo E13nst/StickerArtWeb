@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import type { StylePreset } from '@/api/client';
+import { apiClient } from '@/api/client';
 import { publishStylePreset } from '@/api/stylePresets';
 import { Dialog, DialogTitle, DialogContent, DialogActions } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,11 @@ export interface StylePresetPublicationModalProps {
   estimatedPublicationCostArt?: number | null;
   publishUiHints?: Record<string, unknown> | null;
   onPublished?: (updated: StylePreset) => void;
+  /** Черновик в БД — POST …/style-presets/{id}/publish; иначе публикация из завершённой задачи */
+  variant?: 'draft_preset' | 'task_completed';
+  /** Для variant === task_completed */
+  taskId?: string | null;
+  userStyleBlueprintCode?: string | null;
 }
 
 /** Один блок текста: из uiHints или дефолт (что значит публикация). */
@@ -44,7 +50,11 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
   estimatedPublicationCostArt,
   publishUiHints,
   onPublished,
+  variant = 'draft_preset',
+  taskId,
+  userStyleBlueprintCode,
 }) => {
+  const [catalogCode, setCatalogCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +62,7 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
 
   useEffect(() => {
     if (open && preset) {
+      setCatalogCode((preset.code ?? '').trim().slice(0, 50));
       setDisplayName(preset.name?.trim() ? preset.name.trim().slice(0, 100) : '');
       setError(null);
       idempotencyKeyRef.current = crypto.randomUUID();
@@ -72,9 +83,34 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
       setError('Укажите название для каталога.');
       return;
     }
+    const codeTrimmed = catalogCode.trim();
+    if (variant === 'task_completed') {
+      if (!codeTrimmed) {
+        setError('Укажите код пресета для каталога (до 50 символов).');
+        return;
+      }
+      if (!taskId?.trim()) {
+        setError('Нет идентификатора задачи генерации.');
+        return;
+      }
+    }
     setLoading(true);
     setError(null);
     try {
+      if (variant === 'task_completed') {
+        const updated = await apiClient.publishUserStyleFromTask(taskId!.trim(), {
+          code: codeTrimmed.slice(0, 50),
+          displayName: name.slice(0, 100),
+          idempotencyKey: idempotencyKeyRef.current,
+          consentResultPublicShow: true,
+          ...(typeof userStyleBlueprintCode === 'string' && userStyleBlueprintCode.trim()
+            ? { userStyleBlueprintCode: userStyleBlueprintCode.trim() }
+            : {}),
+        });
+        onPublished?.(updated);
+        onClose();
+        return;
+      }
       const updated = await publishStylePreset(preset.id, {
         idempotencyKey: idempotencyKeyRef.current,
         displayName: name.slice(0, 100),
@@ -87,7 +123,7 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
     } finally {
       setLoading(false);
     }
-  }, [preset, displayName, onPublished, onClose]);
+  }, [preset, displayName, catalogCode, variant, taskId, userStyleBlueprintCode, onPublished, onClose]);
 
   if (!preset) return null;
 
@@ -110,6 +146,20 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
             autoComplete="off"
           />
         </label>
+        {variant === 'task_completed' ? (
+          <label className="style-preset-publish-field">
+            <span className="style-preset-publish-field__label">Код в каталоге</span>
+            <input
+              className="style-preset-publish-input"
+              value={catalogCode}
+              onChange={(e) => setCatalogCode(e.target.value.slice(0, 50))}
+              maxLength={50}
+              disabled={loading}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+        ) : null}
         <p className="style-preset-publish-footnote">
           Нажимая «Опубликовать», вы подтверждаете публикацию и согласие на отображение результата
           генерации для других пользователей на условиях сервиса.

@@ -500,6 +500,20 @@ export interface PresetPublicationRequestDto {
   consentResultPublicShow: boolean;
 }
 
+/** POST /api/generation/v2/tasks/{taskId}/publish-user-style */
+export interface PublishUserStyleFromTaskRequest {
+  /** Уникальный код пресета у владельца, до 50 символов */
+  code: string;
+  displayName: string;
+  description?: string | null;
+  categoryId?: number | null;
+  sortOrder?: number | null;
+  /** Должен совпадать с metadata.userStyleBlueprintCode задачи */
+  userStyleBlueprintCode?: string | null;
+  idempotencyKey: string;
+  consentResultPublicShow: boolean;
+}
+
 /** Объединяет каталог и «мои» пресеты без дубликатов id (каталог перекрывает совпадения по полям). */
 export function mergeStylePresetLists(catalog: StylePreset[], mine: StylePreset[]): StylePreset[] {
   const byId = new Map<number, StylePreset>();
@@ -567,6 +581,8 @@ export interface GenerateRequestV2 {
   prompt: string;
   model: GenerateModelType;
   stylePresetId?: number | null;
+  /** Blueprint «свой стиль без черновика»; не передаём stylePresetId для виртуального пресета */
+  user_style_blueprint_code?: string | null;
   seed?: number | null;
   num_images?: 1;
   remove_background?: boolean;
@@ -2213,6 +2229,27 @@ class ApiClient {
                           error?.message || 
                           'Не удалось запустить генерацию. Попробуйте позже.';
       throw new Error(errorMessage);
+    }
+  }
+
+  // POST /api/generation/v2/tasks/{taskId}/publish-user-style — публикация «своего стиля» после COMPLETED
+  async publishUserStyleFromTask(
+    taskId: string,
+    body: PublishUserStyleFromTaskRequest,
+  ): Promise<StylePreset> {
+    try {
+      const response = await this.client.post<StylePreset>(
+        `/generation/v2/tasks/${encodeURIComponent(taskId)}/publish-user-style`,
+        body,
+      );
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number } };
+      const status = err?.response?.status;
+      if (status === 401) {
+        throw new Error('Требуется авторизация');
+      }
+      throw new Error(getErrorMessage(error, 'Не удалось опубликовать стиль'));
     }
   }
 

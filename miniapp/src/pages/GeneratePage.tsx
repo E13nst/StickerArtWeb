@@ -10,9 +10,11 @@ import { mergeCreateStylePresetRequest } from '@/utils/mergeCreateStylePresetReq
 import {
   blueprintNeedsPresetReferenceSlot,
   buildAutoStylePresetCode,
+  buildVirtualOwnStylePreset,
+  isOwnStyleBlueprintVirtualPreset,
+  OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID,
   resolveCreationBlueprint,
 } from '@/utils/ownStyleBlueprint';
-import { uploadPresetReference } from '@/api/stylePresets';
 import { StylePresetCategoryChips, type StyleCategoryFilter } from '@/components/StylePresetCategoryChips';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
@@ -321,22 +323,18 @@ export const GeneratePage: FC = () => {
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
   const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
-  const [creationFlowPresetId, setCreationFlowPresetId] = useState<number | null>(null);
   const [bootstrappingOwnStyle, setBootstrappingOwnStyle] = useState(false);
   const ownStyleBootstrapRef = useRef(false);
+  const [ownStyleBlueprintSession, setOwnStyleBlueprintSession] = useState<{
+    blueprint: UserPresetCreationBlueprintDto;
+    virtualPreset: StylePreset;
+  } | null>(null);
   const [publishPresetModalOpen, setPublishPresetModalOpen] = useState(false);
   const [publishCostHint, setPublishCostHint] = useState<number | null>(null);
   const [publishUiHints, setPublishUiHints] = useState<Record<string, unknown> | null>(null);
   const [userPresetCreationBlueprints, setUserPresetCreationBlueprints] = useState<
     UserPresetCreationBlueprintDto[]
   >([]);
-  const [awaitingPresetRefPutPresetId, setAwaitingPresetRefPutPresetId] = useState<number | null>(null);
-  const [uploadingPresetAnchorReference, setUploadingPresetAnchorReference] = useState(false);
-  const awaitingPresetRefPutIdRef = useRef<number | null>(null);
-  const updateAwaitingPresetRefPut = useCallback((id: number | null) => {
-    awaitingPresetRefPutIdRef.current = id;
-    setAwaitingPresetRefPutPresetId(id);
-  }, []);
   const [presetFields, setPresetFields] = useState<Record<string, string>>({});
   const [referenceAssignments, setReferenceAssignments] = useState<Record<string, string[]>>({});
   const [referencePreviewById, setReferencePreviewById] = useState<Record<string, string>>({});
@@ -406,8 +404,6 @@ export const GeneratePage: FC = () => {
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
 
-  const creationPresetRefInputRef = useRef<HTMLInputElement>(null);
-  const creationPresetRefPresetIdRef = useRef<number | null>(null);
   const avatarAutofillAppliedRef = useRef<string | null>(null);
   const avatarAutofillInFlightRef = useRef(false);
   const processedAvatarTriggerRef = useRef<string | null>(null);
@@ -672,26 +668,33 @@ export const GeneratePage: FC = () => {
     });
   }, [styleCategoryChipsList]);
 
+  const presetsWithVirtual = useMemo(() => {
+    if (!ownStyleBlueprintSession) return stylePresets;
+    const v = ownStyleBlueprintSession.virtualPreset;
+    if (styleCategoryFilter != null && v.category?.id !== styleCategoryFilter) return stylePresets;
+    return [v, ...stylePresets];
+  }, [ownStyleBlueprintSession, stylePresets, styleCategoryFilter]);
+
   const stripStylePresets = useMemo(() => {
     if (styleCategoryChipsList.length === 0 || styleCategoryFilter == null) {
-      const strip = stylePresets.filter((p) => isPresetShownInStrip(p));
+      const strip = presetsWithVirtual.filter((p) => isPresetShownInStrip(p));
       return ensureSelectedPresetInStrip(
         sortPresetsInCategory(strip),
-        stylePresets,
+        presetsWithVirtual,
         selectedStylePresetId,
       );
     }
-    const list = stylePresets.filter(
+    const list = presetsWithVirtual.filter(
       (p) => isPresetShownInStrip(p) && p.category?.id === styleCategoryFilter,
     );
     return ensureSelectedPresetInStrip(
       sortPresetsInCategory(list),
-      stylePresets,
+      presetsWithVirtual,
       selectedStylePresetId,
     );
   }, [
     styleCategoryFilter,
-    stylePresets,
+    presetsWithVirtual,
     selectedStylePresetId,
     styleCategoryChipsList,
     isPresetShownInStrip,
@@ -1494,11 +1497,14 @@ export const GeneratePage: FC = () => {
     preferencesAppliedRef.current = true;
   }, [historyUserScopeId, stylePresets]);
 
-  // Метаданные UI выбранного пресета
-  const selectedPreset: StylePreset | null =
-    selectedStylePresetId != null
-      ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null
-      : null;
+  // Метаданные UI выбранного пресета (виртуальный карточный пресет для «своего стиля» без черновика в БД)
+  const selectedPreset: StylePreset | null = useMemo(() => {
+    if (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession) {
+      return ownStyleBlueprintSession.virtualPreset;
+    }
+    if (selectedStylePresetId == null) return null;
+    return stylePresets.find((p) => p.id === selectedStylePresetId) ?? null;
+  }, [ownStyleBlueprintSession, selectedStylePresetId, stylePresets]);
   const publishStyleCostLabel = useMemo(() => {
     if (publishCostHint != null && Number.isFinite(publishCostHint)) {
       return `${publishCostHint} ART`;
@@ -1551,22 +1557,6 @@ export const GeneratePage: FC = () => {
       setReferencePreviewById((prev) => (prev[srcId] ? prev : { ...prev, [srcId]: srcUrl }));
     }
   }, [selectedPreset]);
-
-  /** После успешного PUT reference бэк отдаёт presetReferenceSourceImageId — снимаем блокировку генерации. */
-  useEffect(() => {
-    if (awaitingPresetRefPutPresetId == null || selectedStylePresetId == null) return;
-    if (selectedStylePresetId !== awaitingPresetRefPutPresetId) return;
-    if (!selectedPreset) return;
-    const src = getPresetReferenceSlotSourceId(selectedPreset);
-    if (src) {
-      updateAwaitingPresetRefPut(null);
-    }
-  }, [
-    awaitingPresetRefPutPresetId,
-    selectedPreset,
-    selectedStylePresetId,
-    updateAwaitingPresetRefPut,
-  ]);
 
   const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
 
@@ -1847,6 +1837,22 @@ export const GeneratePage: FC = () => {
       }
     }
 
+    if (
+      isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
+      ownStyleBlueprintSession &&
+      blueprintNeedsPresetReferenceSlot(ownStyleBlueprintSession.blueprint)
+    ) {
+      const pid = (referenceAssignments[PRESET_REF_FIELD_KEY] ?? [])[0] ?? '';
+      if (!pid.startsWith('img_sagref_')) {
+        setErrorMessage(
+          'Для своего стиля загрузите опорное фото в слот стиля с устройства — серверу нужен идентификатор img_sagref_… из галереи.',
+        );
+        setErrorKind('prompt');
+        setPageState('error');
+        return;
+      }
+    }
+
     setErrorMessage(null);
     setErrorKind(null);
     setResultImageUrl(null);
@@ -1944,7 +1950,12 @@ export const GeneratePage: FC = () => {
       const response = await apiClient.generateStickerV2({
         prompt: showPromptInput ? trimmedPrompt : '',
         model: selectedModel,
-        stylePresetId: selectedStylePresetId,
+        ...(isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
+          ? {
+              stylePresetId: null,
+              user_style_blueprint_code: ownStyleBlueprintSession?.blueprint.code ?? undefined,
+            }
+          : { stylePresetId: selectedStylePresetId }),
         num_images: 1,
         remove_background: effectiveRemoveBackground,
         ...legacyImagePayload,
@@ -2116,7 +2127,11 @@ export const GeneratePage: FC = () => {
     setSourceImageOrigin('none');
     resetUploadedSourceImageCache();
     const presetForRef =
-      selectedStylePresetId != null ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null : null;
+      isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession
+        ? ownStyleBlueprintSession.virtualPreset
+        : selectedStylePresetId != null
+          ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null
+          : null;
     const presetRefId = getPresetReferenceSlotSourceId(presetForRef);
     const presetRefUrl =
       typeof presetForRef?.presetReferenceImageUrl === 'string' ? presetForRef.presetReferenceImageUrl.trim() : '';
@@ -2143,6 +2158,7 @@ export const GeneratePage: FC = () => {
     resetUploadedSourceImageCache,
     selectedPresetFieldDefs,
     selectedStylePresetId,
+    ownStyleBlueprintSession,
     sourceImageFiles,
     stylePresets,
   ]);
@@ -2534,17 +2550,21 @@ export const GeneratePage: FC = () => {
       }
       return !f.required || !!(presetFields[f.key]?.trim());
     });
-  /** Пока не залит опорный preset_ref (PUT reference), генерация с выбранным пресетом недоступна. */
-  const isBlockedByPendingPresetReferencePut =
-    awaitingPresetRefPutPresetId != null &&
-    awaitingPresetRefPutPresetId === selectedStylePresetId;
-  const isFormValid = (promptOk || canGenerateWithoutPrompt) && presetFieldsOk;
+  const ownStyleNeedsGalleryPresetRef =
+    isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
+    ownStyleBlueprintSession != null &&
+    blueprintNeedsPresetReferenceSlot(ownStyleBlueprintSession.blueprint);
+  const presetRefGalleryId = (referenceAssignments[PRESET_REF_FIELD_KEY] ?? [])[0] ?? '';
+  const ownStylePresetRefFromGalleryOk =
+    !ownStyleNeedsGalleryPresetRef ||
+    (typeof presetRefGalleryId === 'string' && presetRefGalleryId.startsWith('img_sagref_'));
+  /** Опорный стиль для «своего стиля» — только загрузка в слот (img_sagref_*), без PUT черновика */
+  const isBlockedByOwnStylePresetRefGate =
+    ownStyleNeedsGalleryPresetRef && !ownStylePresetRefFromGalleryOk;
+  const isFormValid =
+    (promptOk || canGenerateWithoutPrompt) && presetFieldsOk && ownStylePresetRefFromGalleryOk;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
-  const isDisabled =
-    isGenerating ||
-    !isFormValid ||
-    isBlockedByPendingPresetReferencePut ||
-    uploadingPresetAnchorReference;
+  const isDisabled = isGenerating || !isFormValid || isBlockedByOwnStylePresetRefGate;
   const hasPromptText = prompt.trim().length > 0;
   const latestHistoryEntry = historyEntries[0] ?? null;
   const historyPreviewImage = latestHistoryEntry?.resultImageUrl ?? null;
@@ -2834,15 +2854,12 @@ export const GeneratePage: FC = () => {
     presetId: number | null,
     opts?: { skipPublishHintReset?: boolean },
   ) => {
-    if (
-      awaitingPresetRefPutIdRef.current != null &&
-      presetId !== awaitingPresetRefPutIdRef.current
-    ) {
-      updateAwaitingPresetRefPut(null);
-    }
     if (!opts?.skipPublishHintReset) {
       setPublishCostHint(null);
       setPublishUiHints(null);
+    }
+    if (!isOwnStyleBlueprintVirtualPreset(presetId)) {
+      setOwnStyleBlueprintSession(null);
     }
     setSelectedStylePresetId(presetId);
     setPresetFields({});
@@ -2850,40 +2867,15 @@ export const GeneratePage: FC = () => {
     setReferencePreviewById({});
     setReferenceUploadingKey(null);
     refImageIdToFingerprintRef.current = {};
-    persistGeneratePreferences({ stylePresetId: presetId });
+    if (isOwnStyleBlueprintVirtualPreset(presetId)) {
+      persistGeneratePreferences({ stylePresetId: null });
+    } else {
+      persistGeneratePreferences({ stylePresetId: presetId });
+    }
   };
 
-  const handleCreationPresetRefFileChange = useCallback(
-    async (e: ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0] ?? null;
-      e.target.value = '';
-      const presetId =
-        creationPresetRefPresetIdRef.current ?? awaitingPresetRefPutIdRef.current;
-      creationPresetRefPresetIdRef.current = null;
-      if (!file) {
-        return;
-      }
-      if (presetId == null) return;
-      setUploadingPresetAnchorReference(true);
-      try {
-        await uploadPresetReference(presetId, file);
-        const list = await apiClient.loadStylePresetsMerged();
-        setStylePresets(list);
-        updateAwaitingPresetRefPut(null);
-      } catch (err: unknown) {
-        setErrorMessage(
-          err instanceof Error ? err.message : 'Не удалось загрузить опорный референс стиля',
-        );
-        setErrorKind('general');
-      } finally {
-        setUploadingPresetAnchorReference(false);
-      }
-    },
-    [updateAwaitingPresetRefPut],
-  );
-
   /**
-   * «Создать свой стиль»: blueprint с префетча + merge + POST; сразу обычная форма созданного пресета.
+   * «Создать свой стиль»: blueprint без POST /generation/style-presets; виртуальная карточка и генерация по blueprint-коду.
    */
   const handleSelectOwnStylePreset = async () => {
     if (ownStyleBootstrapRef.current || bootstrappingOwnStyle) return;
@@ -2919,26 +2911,23 @@ export const GeneratePage: FC = () => {
       }
 
       const mergedReq = mergeCreateStylePresetRequest(bp.presetDefaults, overlay);
-      const created = await apiClient.createStylePreset(mergedReq);
-      const needsRef = blueprintNeedsPresetReferenceSlot(bp);
-      if (needsRef) {
-        updateAwaitingPresetRefPut(created.id);
-        creationPresetRefPresetIdRef.current = created.id;
-        window.requestAnimationFrame(() => {
-          creationPresetRefInputRef.current?.click();
-        });
-      } else {
-        updateAwaitingPresetRefPut(null);
-      }
-
-      const mergedPresets = await apiClient.loadStylePresetsMerged();
-      setStylePresets(mergedPresets);
-      setCreationFlowPresetId(created.id);
-      handlePresetChange(created.id, { skipPublishHintReset: true });
+      const categoryDto =
+        mergedReq.categoryId != null
+          ? sortedCats.find((c) => c.id === mergedReq.categoryId) ?? null
+          : firstCatId != null
+            ? sortedCats.find((c) => c.id === firstCatId) ?? null
+            : null;
+      const virtualPreset = buildVirtualOwnStylePreset({
+        merged: mergedReq,
+        category: categoryDto,
+        ownerProfileId: userInfo?.id,
+      });
+      setOwnStyleBlueprintSession({ blueprint: bp, virtualPreset });
       setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
       setPublishUiHints(bp.uiHints ?? null);
+      handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
     } catch (e: unknown) {
-      setErrorMessage(e instanceof Error ? e.message : 'Не удалось создать свой стиль');
+      setErrorMessage(e instanceof Error ? e.message : 'Не удалось открыть создание своего стиля');
       setErrorKind('general');
     } finally {
       ownStyleBootstrapRef.current = false;
@@ -2946,18 +2935,20 @@ export const GeneratePage: FC = () => {
     }
   };
 
-  const handlePublicationPublished = useCallback(async (_updated: StylePreset) => {
+  const handlePublicationPublished = useCallback(async (updated: StylePreset) => {
     try {
       const list = await apiClient.loadStylePresetsMerged();
       setStylePresets(list);
     } catch (e) {
       console.error('Не удалось обновить пресеты после публикации:', e);
     }
+    setOwnStyleBlueprintSession(null);
     setPublishPresetModalOpen(false);
     setPublishCostHint(null);
     setPublishUiHints(null);
-    setCreationFlowPresetId(null);
-  }, []);
+    setSelectedStylePresetId(updated.id);
+    persistGeneratePreferences({ stylePresetId: updated.id });
+  }, [persistGeneratePreferences]);
 
   const handlePresetFieldChange = (key: string, value: string) => {
     setPresetFields((prev) => ({ ...prev, [key]: value }));
@@ -3143,7 +3134,11 @@ export const GeneratePage: FC = () => {
       previewByPresetId={presetPreviewById}
       fallbackPreviewByPresetCode={PRESET_PREVIEW_FALLBACK_BY_CODE}
       disabled={disabled || bootstrappingOwnStyle}
-      creationHighlightPresetId={creationFlowPresetId}
+      creationHighlightPresetId={
+        isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
+          ? OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID
+          : null
+      }
       onCreatePreset={() => void handleSelectOwnStylePreset()}
     />
   );
@@ -3194,26 +3189,13 @@ export const GeneratePage: FC = () => {
           </div>
           {renderPresetGrid(cfg.presetDisabled)}
         </div>
-        {isBlockedByPendingPresetReferencePut ? (
+        {isBlockedByOwnStylePresetRefGate ? (
           <div className="generate-form-layout__preset-ref-hint">
             <Text variant="bodySmall" align="center">
-              Загрузите опорное изображение стиля (preset_ref). Пока файл не отправлен на сервер, генерация
-              недоступна.
+              Загрузите опорное изображение стиля в слот preset_ref с устройства (Drag-and-drop или «Добавить
+              фото»). Нужен идентификатор вида img_sagref_… из галереи — так результат можно будет отправить на
+              модерацию после генерации.
             </Text>
-            <Button
-              type="button"
-              variant="secondary"
-              size="small"
-              disabled={uploadingPresetAnchorReference}
-              loading={uploadingPresetAnchorReference}
-              onClick={() => {
-                if (awaitingPresetRefPutPresetId == null) return;
-                creationPresetRefPresetIdRef.current = awaitingPresetRefPutPresetId;
-                creationPresetRefInputRef.current?.click();
-              }}
-            >
-              Выбрать файл
-            </Button>
           </div>
         ) : null}
         <div className="generate-form-layout__submit">
@@ -3467,12 +3449,12 @@ export const GeneratePage: FC = () => {
             </Button>
           </div>
           {selectedPreset &&
-            creationFlowPresetId != null &&
-            creationFlowPresetId === selectedStylePresetId &&
             userInfo?.id != null &&
             selectedPreset.ownerId === userInfo.id &&
             !selectedPreset.isGlobal &&
-            selectedPreset.moderationStatus === 'DRAFT' && (
+            (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
+              ? Boolean(taskId && ownStyleBlueprintSession)
+              : selectedPreset.moderationStatus === 'DRAFT') && (
               <Button
                 variant="secondary"
                 size="medium"
@@ -3578,24 +3560,12 @@ export const GeneratePage: FC = () => {
         preset={selectedPreset}
         estimatedPublicationCostArt={publishCostHint}
         publishUiHints={publishUiHints}
+        variant={
+          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? 'task_completed' : 'draft_preset'
+        }
+        taskId={taskId}
+        userStyleBlueprintCode={ownStyleBlueprintSession?.blueprint.code ?? null}
         onPublished={(updated) => void handlePublicationPublished(updated)}
-      />
-      <input
-        ref={creationPresetRefInputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        aria-hidden
-        tabIndex={-1}
-        className="generate-creation-preset-ref-input"
-        onChange={(e) => void handleCreationPresetRefFileChange(e)}
-        style={{
-          position: 'absolute',
-          width: 0,
-          height: 0,
-          opacity: 0,
-          overflow: 'hidden',
-          clip: 'rect(0,0,0,0)',
-        }}
       />
       <AttachmentPointerDragProvider enabled={!isGenerating} onInternalDrop={handleAttachmentPointerInternalDrop}>
         <StixlyPageContainer
