@@ -54,6 +54,23 @@ function getErrorMessage(error: any, fallback: string): string {
   return fallback;
 }
 
+function toPublishUserStyleWireBody(body: PublishUserStyleFromTaskRequest): Record<string, unknown> {
+  const wire: Record<string, unknown> = {
+    code: body.code,
+    displayName: body.displayName,
+    idempotencyKey: body.idempotencyKey,
+    consentResultPublicShow: body.consentResultPublicShow,
+  };
+  if (body.description !== undefined) wire.description = body.description;
+  if (body.categoryId !== undefined) wire.categoryId = body.categoryId;
+  if (body.sortOrder !== undefined) wire.sortOrder = body.sortOrder;
+  const bp = body.userStyleBlueprintCode;
+  if (typeof bp === 'string' && bp.trim()) {
+    wire.user_style_blueprint_code = bp.trim();
+  }
+  return wire;
+}
+
 function extractUploadedImageIds(payload: any): string[] {
   const imageIds = new Set<string>();
 
@@ -508,7 +525,10 @@ export interface PublishUserStyleFromTaskRequest {
   description?: string | null;
   categoryId?: number | null;
   sortOrder?: number | null;
-  /** Должен совпадать с metadata.userStyleBlueprintCode задачи */
+  /**
+   * На wire в JSON уходит как user_style_blueprint_code (snake_case), см. publishUserStyleFromTask.
+   * Должен совпадать с metadata.userStyleBlueprintCode задачи.
+   */
   userStyleBlueprintCode?: string | null;
   idempotencyKey: string;
   consentResultPublicShow: boolean;
@@ -2240,7 +2260,7 @@ class ApiClient {
     try {
       const response = await this.client.post<StylePreset>(
         `/generation/v2/tasks/${encodeURIComponent(taskId)}/publish-user-style`,
-        body,
+        toPublishUserStyleWireBody(body),
       );
       return response.data;
     } catch (error: unknown) {
@@ -2249,15 +2269,33 @@ class ApiClient {
       if (status === 401) {
         throw new Error('Требуется авторизация');
       }
-      throw new Error(getErrorMessage(error, 'Не удалось опубликовать стиль'));
+      if (status === 402) {
+        throw new Error('Недостаточно ART для публикации стиля.');
+      }
+      const msg = getErrorMessage(error, 'Не удалось опубликовать стиль');
+      if (status === 400 && /недостаточно\s+art/i.test(msg)) {
+        throw new Error(msg);
+      }
+      throw new Error(msg);
     }
   }
 
   // Запуск генерации стикера через STICKER_PROCESSOR
   // API endpoint: POST /api/generation/v2/generate
   async generateStickerV2(request: GenerateRequestV2): Promise<GenerateResponse> {
+    const sid = request.stylePresetId;
+    const validPresetId =
+      sid != null &&
+      typeof sid === 'number' &&
+      Number.isFinite(sid) &&
+      Number.isInteger(sid) &&
+      sid > 0;
+    const payload: GenerateRequestV2 = {
+      ...request,
+      stylePresetId: validPresetId ? sid : null,
+    };
     try {
-      const response = await this.client.post<GenerateResponse>('/generation/v2/generate', request, {
+      const response = await this.client.post<GenerateResponse>('/generation/v2/generate', payload, {
         timeout: 90000
       });
       console.log('✅ V2 генерация запущена:', response.data);

@@ -2948,7 +2948,10 @@ export const GeneratePage: FC = () => {
     setPublishUiHints(null);
     setSelectedStylePresetId(updated.id);
     persistGeneratePreferences({ stylePresetId: updated.id });
-  }, [persistGeneratePreferences]);
+    if (updated.moderationStatus === 'PENDING_MODERATION') {
+      showSaveNotice('Стиль отправлен на модерацию. После одобрения он станет доступен в каталоге.');
+    }
+  }, [persistGeneratePreferences, showSaveNotice]);
 
   const handlePresetFieldChange = (key: string, value: string) => {
     setPresetFields((prev) => ({ ...prev, [key]: value }));

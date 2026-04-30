@@ -132,6 +132,12 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
       <DialogTitle>Публикация в каталог</DialogTitle>
       <DialogContent>
         <p className="style-preset-publish-body">{bodyText}</p>
+        {variant === 'task_completed' ? (
+          <p className="style-preset-publish-flow-note">
+            После успешной отправки пресет сразу переходит в статус «На модерации», а не остаётся черновиком
+            в каталоге.
+          </p>
+        ) : null}
         <p className="style-preset-publish-cost">
           Списание при подтверждении: <strong>{costLabel}</strong>
         </p>
