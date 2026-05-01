@@ -1609,27 +1609,19 @@
 .generate-action-button.publish-style {
   flex: none !important;
   width: 100% !important;
-  height: auto !important;
-  min-height: 44px !important;
-  padding: 8px 12px !important;
-  flex-direction: column !important;
-  gap: 3px !important;
-  line-height: 1.2 !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  line-height: 16px !important;
+  border-radius: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: rgba(255, 255, 255, 0.12) !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
   box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
-}
-
-.publish-style-btn__title {
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  line-height: 1.15 !important;
-}
-
-.publish-style-btn__cost {
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  opacity: 0.9;
 }
 
 .generate-style-publication-state {

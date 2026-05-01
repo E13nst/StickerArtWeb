@@ -1601,12 +1601,6 @@ export const GeneratePage: FC = () => {
     if (selectedStylePresetId == null) return null;
     return stylePresets.find((p) => p.id === selectedStylePresetId) ?? null;
   }, [ownStyleBlueprintSession, selectedStylePresetId, stylePresets]);
-  const publishStyleCostLabel = useMemo(() => {
-    if (publishCostHint != null && Number.isFinite(publishCostHint)) {
-      return `${publishCostHint} ART`;
-    }
-    return '10 ART';
-  }, [publishCostHint]);
   const promptInputCfg = selectedPreset?.promptInput ?? null;
   /** Показывать ли основное поле prompt (скрывается только когда enabled явно false) */
   const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
@@ -3617,8 +3611,7 @@ export const GeneratePage: FC = () => {
               className="generate-action-button publish-style"
               onClick={() => setPublishPresetModalOpen(true)}
             >
-              <span className="publish-style-btn__title">Опубликовать стиль</span>
-              <span className="publish-style-btn__cost">{publishStyleCostLabel}</span>
+              Опубликовать стиль
             </Button>
           )}
           {!canOpenPublishStyleModal && isOwnedSelectedStyle && publicationStateLabel && (

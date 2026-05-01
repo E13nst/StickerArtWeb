@@ -172,17 +172,14 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
             </p>
           ) : null}
         </section>
-        <section className="style-preset-publish-section">
-          <h3 className="style-preset-publish-section__title">Условия публикации</h3>
-          <p className="style-preset-publish-cost">
-            Списание при подтверждении: <strong>{costLabel}</strong>
-          </p>
-          {variant === 'task_completed' ? (
+        {variant === 'task_completed' ? (
+          <section className="style-preset-publish-section">
+            <h3 className="style-preset-publish-section__title">Условия публикации</h3>
             <p className="style-preset-publish-footnote">
               Для модерации должны быть прикреплены: 1 референсное фото и результат генерации.
             </p>
-          ) : null}
-        </section>
+          </section>
+        ) : null}
         <label className="style-preset-publish-field">
           <span className="style-preset-publish-field__label">Название в каталоге</span>
           <input
@@ -195,8 +192,8 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
           />
         </label>
         <p className="style-preset-publish-footnote">
-          Нажимая «Отправить на модерацию», вы подтверждаете публикацию и согласие на отображение
-          результата генерации для других пользователей на условиях сервиса.
+          Нажимая кнопку подтверждения ниже, вы соглашаетесь с публикацией и с отображением результата
+          генерации для других пользователей на условиях сервиса.
         </p>
         {error ? (
           <p className="style-preset-publish-error" role="alert">
@@ -209,7 +206,7 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
           Отмена
         </Button>
         <Button variant="primary" onClick={() => void handleConfirm()} loading={loading}>
-          Отправить на модерацию
+          Отправить на модерацию за {costLabel}
         </Button>
       </DialogActions>
     </Dialog>
