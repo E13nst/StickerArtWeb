@@ -9,6 +9,7 @@ interface StylePresetPackGridProps {
   selectedPresetId: number | null;
   onPresetChange: (presetId: number | null) => void;
   previewByPresetId?: Map<number, string>;
+  onHistoryPreviewError?: (presetId: number) => void;
   fallbackPreviewByPresetCode?: Partial<Record<string, string>>;
   disabled?: boolean;
   /** Поток «свой стиль» по blueprint с бэка: подсветка «+», когда выбран пресет из этого флоу */
@@ -21,6 +22,7 @@ type PresetGridOption = {
   id: number | null;
   name: string;
   code?: string;
+  historyPreviewUrl?: string | null;
   previewUrl?: string | null;
   moderationStatus?: StylePreset['moderationStatus'] | null;
   isGlobal?: boolean;
@@ -41,6 +43,7 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
   selectedPresetId,
   onPresetChange,
   previewByPresetId,
+  onHistoryPreviewError,
   fallbackPreviewByPresetCode,
   disabled = false,
   creationHighlightPresetId = null,
@@ -52,10 +55,11 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
       id: p.id,
       name: stripPresetName(p.name),
       code: p.code,
+      historyPreviewUrl: previewByPresetId?.get(p.id) ?? null,
       previewUrl:
         previewByPresetId?.get(p.id) ??
-        (p.code ? fallbackPreviewByPresetCode?.[p.code] : undefined) ??
-        getServerPreviewUrl(p),
+        getServerPreviewUrl(p) ??
+        (p.code ? fallbackPreviewByPresetCode?.[p.code] : undefined),
       moderationStatus: p.moderationStatus ?? null,
       isGlobal: p.isGlobal,
     }));
@@ -121,6 +125,16 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
                     loading="lazy"
                     decoding="async"
                     draggable={false}
+                    onError={() => {
+                      if (
+                        opt.id != null &&
+                        opt.historyPreviewUrl &&
+                        opt.previewUrl &&
+                        opt.previewUrl === opt.historyPreviewUrl
+                      ) {
+                        onHistoryPreviewError?.(opt.id);
+                      }
+                    }}
                   />
                 ) : (
                   <div className="pack-card__placeholder" aria-hidden="true">

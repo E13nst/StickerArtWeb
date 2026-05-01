@@ -354,6 +354,7 @@ export const GeneratePage: FC = () => {
   const [sourceImageOrigin, setSourceImageOrigin] = useState<'none' | 'manual' | 'telegram-avatar'>('none');
   const [telegramAvatarDismissed, setTelegramAvatarDismissed] = useState(false);
   const [keyboardInsetPx, setKeyboardInsetPx] = useState(0);
+  const [failedHistoryPresetPreviewIds, setFailedHistoryPresetPreviewIds] = useState<Set<number>>(() => new Set());
   
   // Состояние генерации
   const [pageState, setPageState] = useState<PageState>('idle');
@@ -1521,6 +1522,7 @@ export const GeneratePage: FC = () => {
   useEffect(() => {
     restoreAppliedRef.current = false;
     preferencesAppliedRef.current = false;
+    setFailedHistoryPresetPreviewIds(new Set());
   }, [historyUserScopeId]);
 
   useEffect(() => {
@@ -2979,6 +2981,7 @@ export const GeneratePage: FC = () => {
     historyEntries.forEach((entry) => {
       if (
         entry.stylePresetId != null &&
+        !failedHistoryPresetPreviewIds.has(entry.stylePresetId) &&
         entry.pageState === 'success' &&
         entry.updatedAt >= minFreshTs &&
         entry.resultImageUrl &&
@@ -2988,7 +2991,16 @@ export const GeneratePage: FC = () => {
       }
     });
     return previewMap;
-  }, [historyEntries]);
+  }, [failedHistoryPresetPreviewIds, historyEntries]);
+
+  const markHistoryPresetPreviewFailed = useCallback((presetId: number) => {
+    setFailedHistoryPresetPreviewIds((prev) => {
+      if (prev.has(presetId)) return prev;
+      const next = new Set(prev);
+      next.add(presetId);
+      return next;
+    });
+  }, []);
 
   const selectedStylePresetCardPreview = useMemo(() => {
     if (selectedStylePresetId == null || !selectedPreset) return null;
@@ -2999,6 +3011,8 @@ export const GeneratePage: FC = () => {
       null
     );
   }, [presetPreviewById, selectedPreset, selectedStylePresetId]);
+  const selectedStyleUsesHistoryPreview =
+    selectedStylePresetId != null && presetPreviewById.has(selectedStylePresetId);
 
   const handlePresetChange = (
     presetId: number | null,
@@ -3273,6 +3287,7 @@ export const GeneratePage: FC = () => {
       selectedPresetId={selectedStylePresetId}
       onPresetChange={handlePresetChange}
       previewByPresetId={presetPreviewById}
+      onHistoryPreviewError={markHistoryPresetPreviewFailed}
       fallbackPreviewByPresetCode={PRESET_PREVIEW_FALLBACK_BY_CODE}
       disabled={disabled || bootstrappingOwnStyle}
       creationHighlightPresetId={
@@ -3378,6 +3393,11 @@ export const GeneratePage: FC = () => {
             className="generate-result-image"
             loading="eager"
             decoding="async"
+            onError={() => {
+              if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
+                markHistoryPresetPreviewFailed(selectedStylePresetId);
+              }
+            }}
           />
         </div>
       ) : showAvatarCenterCard ? (
