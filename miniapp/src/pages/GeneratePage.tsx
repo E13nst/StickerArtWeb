@@ -441,6 +441,7 @@ export const GeneratePage: FC = () => {
   const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false);
   const emojiDropdownRef = useRef<HTMLDivElement | null>(null);
   const promptFocusTimeoutRef = useRef<number | null>(null);
+  const lastKeyboardInsetRef = useRef(0);
   const saveNoticeTimeoutRef = useRef<number | null>(null);
   const draggedSourceImageIndexRef = useRef<number | null>(null);
   const sourceImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -588,6 +589,7 @@ export const GeneratePage: FC = () => {
 
   useEffect(() => {
     if (!shouldUsePromptKeyboardMode || !isPromptFocused) {
+      lastKeyboardInsetRef.current = 0;
       setKeyboardInsetPx(0);
       return;
     }
@@ -599,9 +601,20 @@ export const GeneratePage: FC = () => {
         : 0;
       setKeyboardInsetPx(nextInset);
 
+      const prevInset = lastKeyboardInsetRef.current;
+      lastKeyboardInsetRef.current = nextInset;
+
       const activeElement = document.activeElement;
-      if (activeElement instanceof HTMLElement && activeElement.classList.contains('generate-input')) {
-        scrollPromptIntoView(activeElement, nextInset > 0 ? 'auto' : 'smooth');
+      const shouldRealignPrompt =
+        nextInset > 0 &&
+        (prevInset === 0 || Math.abs(nextInset - prevInset) >= 28);
+
+      if (
+        shouldRealignPrompt &&
+        activeElement instanceof HTMLElement &&
+        activeElement.classList.contains('generate-input')
+      ) {
+        scrollPromptIntoView(activeElement, 'auto');
       }
     };
 
