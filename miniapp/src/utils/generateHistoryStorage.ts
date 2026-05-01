@@ -23,6 +23,8 @@ export interface GenerateHistoryEntry {
   resultImageUrl: string | null;
   imageId: string | null;
   fileId: string | null;
+  referenceAssignmentsSnapshot?: Record<string, string[]> | null;
+  referencePreviewSnapshot?: Record<string, string> | null;
   savedStickerSetName?: string | null;
   savedStickerSetTitle?: string | null;
   errorMessage: string | null;
@@ -32,6 +34,10 @@ export interface GenerateHistoryEntry {
 const HISTORY_STORAGE_VERSION = 1;
 const HISTORY_STORAGE_PREFIX = `stixly:generate-history:v${HISTORY_STORAGE_VERSION}`;
 const HISTORY_MAX_ITEMS = 20;
+const HISTORY_REF_MAX_IDS = 24;
+const HISTORY_REF_MAX_PER_FIELD = 6;
+const HISTORY_REF_PREVIEW_MAX_CHARS = 220_000;
+const HISTORY_REF_PREVIEW_BUDGET_PER_ENTRY_CHARS = 900_000;
 
 const isBrowser = (): boolean => typeof window !== 'undefined' && !!window.localStorage;
 
@@ -57,6 +63,51 @@ const isValidModerationStatus = (value: unknown): value is StylePresetModeration
   value === 'PENDING_MODERATION' ||
   value === 'APPROVED' ||
   value === 'REJECTED';
+
+const sanitizeReferenceAssignmentsSnapshot = (value: unknown): Record<string, string[]> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const out: Record<string, string[]> = {};
+  const source = value as Record<string, unknown>;
+  const acceptedIds = new Set<string>();
+  for (const [fieldKeyRaw, rawIds] of Object.entries(source)) {
+    if (!fieldKeyRaw || typeof fieldKeyRaw !== 'string') continue;
+    if (!Array.isArray(rawIds)) continue;
+    const fieldKey = fieldKeyRaw.trim();
+    if (!fieldKey) continue;
+    const ids: string[] = [];
+    for (const raw of rawIds) {
+      if (typeof raw !== 'string') continue;
+      const id = raw.trim();
+      if (!id || acceptedIds.has(id)) continue;
+      ids.push(id);
+      acceptedIds.add(id);
+      if (ids.length >= HISTORY_REF_MAX_PER_FIELD || acceptedIds.size >= HISTORY_REF_MAX_IDS) break;
+    }
+    if (ids.length > 0) out[fieldKey] = ids;
+    if (acceptedIds.size >= HISTORY_REF_MAX_IDS) break;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+};
+
+const sanitizeReferencePreviewSnapshot = (
+  value: unknown,
+  allowedIds: Set<string>,
+): Record<string, string> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || allowedIds.size === 0) return null;
+  const out: Record<string, string> = {};
+  const source = value as Record<string, unknown>;
+  let usedBudget = 0;
+  for (const [idRaw, previewRaw] of Object.entries(source)) {
+    if (typeof idRaw !== 'string' || !allowedIds.has(idRaw)) continue;
+    if (typeof previewRaw !== 'string') continue;
+    const preview = previewRaw.trim();
+    if (!preview || preview.length > HISTORY_REF_PREVIEW_MAX_CHARS) continue;
+    if (usedBudget + preview.length > HISTORY_REF_PREVIEW_BUDGET_PER_ENTRY_CHARS) break;
+    out[idRaw] = preview;
+    usedBudget += preview.length;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+};
 
 const toEntry = (value: unknown): GenerateHistoryEntry | null => {
   if (!value || typeof value !== 'object') return null;
@@ -123,6 +174,14 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
     typeof raw.ownStyleBlueprintCode === 'string' || raw.ownStyleBlueprintCode === null
       ? raw.ownStyleBlueprintCode
       : null;
+  const referenceAssignmentsSnapshot = sanitizeReferenceAssignmentsSnapshot(raw.referenceAssignmentsSnapshot);
+  const referenceIds = new Set<string>();
+  if (referenceAssignmentsSnapshot) {
+    Object.values(referenceAssignmentsSnapshot).forEach((ids) => {
+      ids.forEach((id) => referenceIds.add(id));
+    });
+  }
+  const referencePreviewSnapshot = sanitizeReferencePreviewSnapshot(raw.referencePreviewSnapshot, referenceIds);
 
   return {
     localId: raw.localId,
@@ -144,6 +203,8 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
     resultImageUrl: raw.resultImageUrl,
     imageId: raw.imageId,
     fileId: raw.fileId,
+    referenceAssignmentsSnapshot,
+    referencePreviewSnapshot,
     savedStickerSetName,
     savedStickerSetTitle,
     errorMessage: raw.errorMessage,
@@ -257,4 +318,14 @@ export const deleteGenerateHistoryEntry = (
   });
 
   return writeEntries(userScopeId, filtered);
+};
+
+export const clearGenerateHistory = (userScopeId: string): GenerateHistoryEntry[] => {
+  if (!isBrowser()) return [];
+  try {
+    window.localStorage.removeItem(getStorageKey(userScopeId));
+  } catch {
+    // ignore storage failures in private mode / webview quirks
+  }
+  return [];
 };

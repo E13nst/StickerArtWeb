@@ -50,6 +50,7 @@ import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
 import {
+  clearGenerateHistory,
   clearActiveGenerateHistoryEntry,
   createGenerateHistoryLocalId,
   deleteGenerateHistoryEntry,
@@ -78,6 +79,8 @@ const MAX_PROMPT_LENGTH = 1000;
 const MIN_PROMPT_LENGTH = 1;
 const PROMPT_ROWS = 3;
 const SAVE_TO_SET_WAIT_TIMEOUT_SEC = 300;
+const SENSITIVE_CONTENT_ERROR_MESSAGE =
+  'NanoBanana считает, что генерация похожа на чувствительный контент (sensitive content). Попробуйте еще раз или немного перефразируйте промпт.';
 const BACKGROUND_REMOVE_FALLBACK_NOTICE =
   'Не удалось удалить фон, поэтому показан вариант без удаления фона.';
 const DEFAULT_STICKER_BOT_SUFFIX = '_by_stixlybot';
@@ -86,6 +89,8 @@ const MAX_SOURCE_IMAGE_FILES = 14;
 const SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES = 64 * 1024;
 const TERMINAL_GENERATION_STATUSES: GenerationStatus[] = ['COMPLETED', 'FAILED', 'TIMEOUT'];
 const HISTORY_PRESET_PREVIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const HISTORY_REF_CACHE_MAX_IDS = 24;
+const HISTORY_REF_CACHE_MAX_PER_FIELD = 6;
 const MODERATION_STATUS_LABELS: Record<NonNullable<StylePreset['moderationStatus']>, string> = {
   DRAFT: 'Черновик',
   PENDING_MODERATION: 'На модерации',
@@ -117,6 +122,20 @@ function preferDefaultStyleCategoryId(categories: StylePresetCategoryDto[]): num
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
+
+function mapGenerationErrorMessage(rawMessage: string | null | undefined): string | null {
+  if (!rawMessage) return null;
+  const normalizedMessage = rawMessage.toLowerCase();
+  if (
+    normalizedMessage.includes('sensitive content') ||
+    normalizedMessage.includes('sensitive') ||
+    normalizedMessage.includes('content policy') ||
+    normalizedMessage.includes('safety')
+  ) {
+    return SENSITIVE_CONTENT_ERROR_MESSAGE;
+  }
+  return rawMessage;
+}
 
 function getPresetReferenceSlotSourceId(preset: StylePreset | null | undefined): string | null {
   const raw = preset?.presetReferenceSourceImageId;
@@ -855,6 +874,40 @@ export const GeneratePage: FC = () => {
     [historyUserScopeId]
   );
 
+  const buildReferenceSnapshotsForHistory = useCallback(() => {
+    const assignmentsSnapshot: Record<string, string[]> = {};
+    const accepted = new Set<string>();
+
+    for (const [fieldKey, idsRaw] of Object.entries(referenceAssignments)) {
+      if (!Array.isArray(idsRaw) || idsRaw.length === 0) continue;
+      const list: string[] = [];
+      for (const raw of idsRaw) {
+        if (typeof raw !== 'string') continue;
+        const id = raw.trim();
+        if (!id || accepted.has(id)) continue;
+        list.push(id);
+        accepted.add(id);
+        if (list.length >= HISTORY_REF_CACHE_MAX_PER_FIELD || accepted.size >= HISTORY_REF_CACHE_MAX_IDS) break;
+      }
+      if (list.length > 0) assignmentsSnapshot[fieldKey] = list;
+      if (accepted.size >= HISTORY_REF_CACHE_MAX_IDS) break;
+    }
+
+    const previewSnapshot: Record<string, string> = {};
+    accepted.forEach((id) => {
+      const preview = referencePreviewById[id];
+      if (typeof preview === 'string' && preview.trim().length > 0) {
+        previewSnapshot[id] = preview;
+      }
+    });
+
+    return {
+      referenceAssignmentsSnapshot:
+        Object.keys(assignmentsSnapshot).length > 0 ? assignmentsSnapshot : null,
+      referencePreviewSnapshot: Object.keys(previewSnapshot).length > 0 ? previewSnapshot : null,
+    };
+  }, [referenceAssignments, referencePreviewById]);
+
   const removeHistoryEntry = useCallback((matcher: { localId?: string; taskId?: string }) => {
     if (!historyUserScopeId) return;
     const updated = deleteGenerateHistoryEntry(historyUserScopeId, matcher);
@@ -862,6 +915,13 @@ export const GeneratePage: FC = () => {
       activeHistoryLocalIdRef.current = null;
     }
     setHistoryEntries(updated);
+  }, [historyUserScopeId]);
+
+  const clearHistoryEntries = useCallback(() => {
+    if (!historyUserScopeId) return;
+    const cleared = clearGenerateHistory(historyUserScopeId);
+    setHistoryEntries(cleared);
+    activeHistoryLocalIdRef.current = null;
   }, [historyUserScopeId]);
 
   useEffect(() => {
@@ -1057,7 +1117,7 @@ export const GeneratePage: FC = () => {
             errorMessage:
               statusData.status === 'COMPLETED'
                 ? null
-                : statusData.errorMessage || null,
+                : mapGenerationErrorMessage(statusData.errorMessage) || null,
             isActive: !TERMINAL_GENERATION_STATUSES.includes(statusData.status),
           }
         );
@@ -1098,8 +1158,9 @@ export const GeneratePage: FC = () => {
           }
           pollingStartedAtRef.current = null;
           if (shouldSyncPollToUi()) {
+            const mappedStatusErrorMessage = mapGenerationErrorMessage(statusData.errorMessage);
             setErrorMessage(
-              statusData.errorMessage ||
+              mappedStatusErrorMessage ||
                 (statusData.status === 'TIMEOUT' ? 'Превышено время ожидания' : 'Произошла ошибка при генерации')
             );
             setErrorKind('general');
@@ -1625,6 +1686,25 @@ export const GeneratePage: FC = () => {
     () => referenceFieldDefs.some((f) => (referenceAssignments[f.key] ?? []).length > 0),
     [referenceAssignments, referenceFieldDefs],
   );
+  useEffect(() => {
+    const activeLocalId = activeHistoryLocalIdRef.current;
+    if (!activeLocalId || !historyUserScopeId) return;
+    const snapshots = buildReferenceSnapshotsForHistory();
+    patchHistoryEntry(
+      { localId: activeLocalId },
+      {
+        hasSourceImage: sourceImageFiles.length > 0 || hasReferenceSlotsFilled,
+        referenceAssignmentsSnapshot: snapshots.referenceAssignmentsSnapshot,
+        referencePreviewSnapshot: snapshots.referencePreviewSnapshot,
+      },
+    );
+  }, [
+    buildReferenceSnapshotsForHistory,
+    hasReferenceSlotsFilled,
+    historyUserScopeId,
+    patchHistoryEntry,
+    sourceImageFiles.length,
+  ]);
   const lockedPresetRefFieldKeys = useMemo(
     () =>
       isLockedServerPresetReferenceSlot(selectedPreset)
@@ -1962,6 +2042,7 @@ export const GeneratePage: FC = () => {
       const localHistoryId = createGenerateHistoryLocalId();
       const now = Date.now();
       activeHistoryLocalIdRef.current = localHistoryId;
+      const referenceSnapshots = buildReferenceSnapshotsForHistory();
       const isOwnStyleGeneration =
         isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession != null;
       const stylePresetNameForHistory =
@@ -1994,6 +2075,8 @@ export const GeneratePage: FC = () => {
           resultImageUrl: null,
           imageId: null,
           fileId: null,
+          referenceAssignmentsSnapshot: referenceSnapshots.referenceAssignmentsSnapshot,
+          referencePreviewSnapshot: referenceSnapshots.referencePreviewSnapshot,
           savedStickerSetName: null,
           savedStickerSetTitle: null,
           errorMessage: null,
@@ -2098,6 +2181,7 @@ export const GeneratePage: FC = () => {
         message = error.message;
         setErrorKind('general');
       }
+      message = mapGenerationErrorMessage(message) ?? message;
       
       setErrorMessage(message);
       setPageState('error');
@@ -2769,7 +2853,6 @@ export const GeneratePage: FC = () => {
   const openHistoryEntry = async (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
     setPresetFields({});
-    setReferencePreviewById({});
     refImageIdToFingerprintRef.current = {};
     sourceFingerprintByIndexRef.current = [];
     setSourceImageFiles([]);
@@ -2779,15 +2862,24 @@ export const GeneratePage: FC = () => {
     setReferenceUploadingKey(null);
     avatarAutofillAppliedRef.current = null;
     const ownStyleSessionReady = await ensureOwnStyleSessionForHistory(entry);
+    const cachedRefAssignments = entry.referenceAssignmentsSnapshot ?? null;
+    const cachedRefPreviewById = entry.referencePreviewSnapshot ?? null;
+    setReferencePreviewById(cachedRefPreviewById ?? {});
     {
       const entryPreset =
         entry.stylePresetId != null && !isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)
           ? stylePresets.find((p) => p.id === entry.stylePresetId)
           : null;
-      const nextRefs: Record<string, string[]> = {};
-      for (const f of entryPreset?.fields ?? []) {
-        if (f.type === 'reference') {
-          nextRefs[f.key] = [];
+      const nextRefs: Record<string, string[]> = cachedRefAssignments
+        ? Object.fromEntries(
+            Object.entries(cachedRefAssignments).map(([key, ids]) => [key, [...ids]]),
+          )
+        : {};
+      if (!cachedRefAssignments) {
+        for (const f of entryPreset?.fields ?? []) {
+          if (f.type === 'reference') {
+            nextRefs[f.key] = [];
+          }
         }
       }
       setReferenceAssignments(nextRefs);
@@ -3446,14 +3538,24 @@ export const GeneratePage: FC = () => {
                 История временная. Важные стикеры сохраняйте в стикерпак.
               </p>
             </div>
-            <button
-              type="button"
-              className="generate-history-modal__close"
-              onClick={() => setHistoryOpen(false)}
-              aria-label="Закрыть историю генераций"
-            >
-              ×
-            </button>
+            <div className="generate-history-modal__actions">
+              <button
+                type="button"
+                className="generate-history-modal__clear"
+                onClick={clearHistoryEntries}
+                disabled={historyEntries.length === 0}
+              >
+                Очистить
+              </button>
+              <button
+                type="button"
+                className="generate-history-modal__close"
+                onClick={() => setHistoryOpen(false)}
+                aria-label="Закрыть историю генераций"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           {historyEntries.length === 0 ? (
