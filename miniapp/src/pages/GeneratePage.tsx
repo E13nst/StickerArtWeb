@@ -2431,7 +2431,16 @@ export const GeneratePage: FC = () => {
     const expectedSetName = buildDefaultStickerSetName({ username, userId: effectiveUserId }).toLowerCase();
 
     try {
-      const response = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
+      const response = await apiClient.getUserStickerSets(
+        effectiveUserId,
+        0,
+        50,
+        'createdAt',
+        'DESC',
+        true,
+        false,
+        true,
+      );
       const ownSets = (response.content ?? []).filter((set) => isTrustedAutoSaveStickerSet(set, effectiveUserId));
       const matchedSet = ownSets.find((set) => set.name.trim().toLowerCase() === expectedSetName);
 

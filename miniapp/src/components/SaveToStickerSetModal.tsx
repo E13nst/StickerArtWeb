@@ -156,7 +156,17 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.getUserStickerSets(effectiveUserId, 0, 50, 'createdAt', 'DESC', true);
+      // Как вкладка «Мои»: только подтверждённое авторство (не смешивать с Uploaded / link-import)
+      const res = await apiClient.getUserStickerSets(
+        effectiveUserId,
+        0,
+        50,
+        'createdAt',
+        'DESC',
+        true,
+        false,
+        true,
+      );
       const ownSets = (res.content ?? []).filter((set) => isTrustedUserStickerSet(set, effectiveUserId));
       setSets(ownSets);
     } catch (e: any) {

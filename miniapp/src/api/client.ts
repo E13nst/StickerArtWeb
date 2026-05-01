@@ -6,6 +6,15 @@ import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import { getInitData } from '../telegram/launchParams';
 
+/** Сброс кэша dedup после мутаций наборов: GET `/stickersets/user/{userId}` */
+function invalidateUserStickerSetsCache(userId?: number): void {
+  if (typeof userId === 'number' && Number.isFinite(userId)) {
+    requestDeduplicator.invalidate(`/stickersets/user/${userId}`);
+    return;
+  }
+  requestDeduplicator.invalidate('/stickersets/user/');
+}
+
 function readEnv(key: string): string | undefined {
   try {
     const value = (import.meta as any).env?.[key];
@@ -1181,6 +1190,7 @@ class ApiClient {
   async createNewStickerSet(payload: CreateStickerSetCreateRequest): Promise<StickerSetResponse> {
     try {
       const response = await this.client.post<StickerSetResponse>('/stickersets/create', payload);
+      invalidateUserStickerSetsCache();
       return response.data;
     } catch (error: any) {
       const data = error?.response?.data;
@@ -2487,6 +2497,7 @@ class ApiClient {
   async saveImageToStickerSet(request: SaveImageRequest): Promise<SaveImageResponse> {
     try {
       const response = await this.client.post<SaveImageResponse>('/stickersets/save-image', request);
+      invalidateUserStickerSetsCache();
       console.log('✅ Изображение сохранено в стикерсет:', response.data);
       return response.data;
     } catch (error: any) {
@@ -2527,6 +2538,10 @@ class ApiClient {
       }
       if (!responseData.status) {
         responseData.status = String(response.status);
+      }
+      const bodyStatus = responseData.status;
+      if (bodyStatus !== '202' && bodyStatus !== 'PENDING') {
+        invalidateUserStickerSetsCache(request.userId);
       }
       console.log('✅ V2 стикер сохранён в набор:', responseData);
       return responseData;
