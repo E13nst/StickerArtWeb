@@ -16,7 +16,11 @@ import {
   OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID,
   resolveCreationBlueprint,
 } from '@/utils/ownStyleBlueprint';
-import { StylePresetCategoryChips, type StyleCategoryFilter } from '@/components/StylePresetCategoryChips';
+import {
+  StylePresetCategoryChips,
+  STYLE_CATEGORY_FILTER_MY,
+  type StyleCategoryFilter,
+} from '@/components/StylePresetCategoryChips';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
 import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
@@ -704,10 +708,11 @@ export const GeneratePage: FC = () => {
 
   useLayoutEffect(() => {
     if (styleCategoryChipsList.length === 0) {
-      setStyleCategoryFilter(null);
+      setStyleCategoryFilter((prev) => prev ?? STYLE_CATEGORY_FILTER_MY);
       return;
     }
     setStyleCategoryFilter((prev) => {
+      if (prev === STYLE_CATEGORY_FILTER_MY) return prev;
       const ids = new Set(styleCategoryChipsList.map((c) => c.id));
       if (prev != null && ids.has(prev)) return prev;
       return preferDefaultStyleCategoryId(styleCategoryChipsList);
@@ -717,6 +722,9 @@ export const GeneratePage: FC = () => {
   const presetsWithVirtual = useMemo(() => {
     if (!ownStyleBlueprintSession) return stylePresets;
     const v = ownStyleBlueprintSession.virtualPreset;
+    if (styleCategoryFilter === STYLE_CATEGORY_FILTER_MY) {
+      return [v, ...stylePresets];
+    }
     if (styleCategoryFilter != null && v.category?.id !== styleCategoryFilter) return stylePresets;
     return [v, ...stylePresets];
   }, [ownStyleBlueprintSession, stylePresets, styleCategoryFilter]);
@@ -729,6 +737,13 @@ export const GeneratePage: FC = () => {
         presetsWithVirtual,
         selectedStylePresetId,
       );
+    }
+    if (styleCategoryFilter === STYLE_CATEGORY_FILTER_MY) {
+      const uid = userInfo?.id ?? null;
+      const mine = presetsWithVirtual.filter(
+        (p) => isPresetShownInStrip(p) && !p.isGlobal && uid != null && p.ownerId === uid,
+      );
+      return sortPresetsInCategory(mine);
     }
     const list = presetsWithVirtual.filter(
       (p) => isPresetShownInStrip(p) && p.category?.id === styleCategoryFilter,
@@ -744,7 +759,11 @@ export const GeneratePage: FC = () => {
     selectedStylePresetId,
     styleCategoryChipsList,
     isPresetShownInStrip,
+    userInfo?.id,
   ]);
+
+  const isMyCategorySelected = styleCategoryFilter === STYLE_CATEGORY_FILTER_MY;
+  const myStylesEmpty = isMyCategorySelected && stripStylePresets.length === 0;
 
   // Актуальный баланс ART и профиль «меня» в сторе (источник истины: /api/profiles/me)
   // Всегда кладём в стор полный объект me, чтобы хедер показывал правильный аватар и баланс
@@ -1798,8 +1817,10 @@ export const GeneratePage: FC = () => {
   const promptInputCfg = selectedPreset?.promptInput ?? null;
   /** Показывать ли основное поле prompt (скрывается только когда enabled явно false) */
   const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
+  const hideFreestylePromptAuthorSupplied = selectedPreset?.hideFreestylePromptAuthorSupplied === true;
+  const effectiveShowPromptInput = showPromptInput && !hideFreestylePromptAuthorSupplied;
   /** Является ли prompt обязательным */
-  const promptIsRequired = showPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
+  const promptIsRequired = effectiveShowPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
   const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
   const effectivePromptPlaceholder =
     promptInputCfg?.placeholder ?? 'Опишите свою идею или используйте готовые стили!';
@@ -1851,7 +1872,13 @@ export const GeneratePage: FC = () => {
     if (!selectedPreset) return;
     const srcId = getPresetReferenceSlotSourceId(selectedPreset);
     if (!srcId || !presetHasPresetReferenceField(selectedPreset)) return;
-    setReferenceAssignments((prev) => ({ ...prev, [PRESET_REF_FIELD_KEY]: [srcId] }));
+    setReferenceAssignments((prev) => {
+      const existing = prev[PRESET_REF_FIELD_KEY] ?? [];
+      if (existing.some((id) => typeof id === 'string' && id.trim().length > 0)) {
+        return prev;
+      }
+      return { ...prev, [PRESET_REF_FIELD_KEY]: [srcId] };
+    });
     const srcUrl =
       typeof selectedPreset.presetReferenceImageUrl === 'string'
         ? selectedPreset.presetReferenceImageUrl.trim()
@@ -1867,8 +1894,10 @@ export const GeneratePage: FC = () => {
     selectedPreset?.removeBackgroundMode,
     removeBackground,
   );
-  const showRemoveBgToggle = removeBgResolved.userControlled;
-  const effectiveRemoveBackground = removeBgResolved.value;
+  const removeBgLocked = selectedPreset?.removeBackgroundLockedToPreset === true;
+  const lockedRemoveBgValue = selectedPreset?.removeBackgroundEffective ?? false;
+  const showRemoveBgToggle = removeBgLocked || removeBgResolved.userControlled;
+  const effectiveRemoveBackground = removeBgLocked ? lockedRemoveBgValue : removeBgResolved.value;
 
   const renderRemoveBgToggle = (disabled: boolean) =>
     showRemoveBgToggle ? (
@@ -1876,14 +1905,15 @@ export const GeneratePage: FC = () => {
         <input
           type="checkbox"
           className="generate-checkbox"
-          checked={removeBackground}
-          disabled={disabled}
+          checked={removeBgLocked ? lockedRemoveBgValue : removeBackground}
+          disabled={disabled || removeBgLocked}
           onChange={(e) => {
+            if (removeBgLocked) return;
             setRemoveBackground(e.target.checked);
             persistGeneratePreferences({ removeBackground: e.target.checked });
           }}
         />
-        <span>Удалить фон</span>
+        <span>{removeBgLocked ? 'Удаление фона задано стилем' : 'Удалить фон'}</span>
       </label>
     ) : null;
 
@@ -2106,7 +2136,7 @@ export const GeneratePage: FC = () => {
     const trimmedPrompt = prompt.trim();
     const canGenerateWithoutPrompt =
       selectedStylePresetId != null && (sourceImageFiles.length > 0 || hasReferenceSlotsFilled);
-    if (showPromptInput && promptIsRequired && !canGenerateWithoutPrompt) {
+    if (effectiveShowPromptInput && promptIsRequired && !canGenerateWithoutPrompt) {
       if (!trimmedPrompt || trimmedPrompt.length < MIN_PROMPT_LENGTH) {
         setErrorMessage('Введите описание стикера');
         setErrorKind('prompt');
@@ -2114,7 +2144,7 @@ export const GeneratePage: FC = () => {
         return;
       }
     }
-    if (showPromptInput && trimmedPrompt.length > effectiveMaxPromptLen) {
+    if (effectiveShowPromptInput && trimmedPrompt.length > effectiveMaxPromptLen) {
       setErrorMessage(`Слишком длинное описание (макс. ${effectiveMaxPromptLen} символов)`);
       setErrorKind('prompt');
       setPageState('error');
@@ -2168,6 +2198,8 @@ export const GeneratePage: FC = () => {
       }
     }
 
+    const promptForApi = effectiveShowPromptInput ? trimmedPrompt : '';
+
     const retryFromSuccessfulResult =
       pageState === 'success' && typeof resultImageUrl === 'string' && resultImageUrl.trim().length > 0;
     if (retryFromSuccessfulResult && resultImageUrl) {
@@ -2213,7 +2245,7 @@ export const GeneratePage: FC = () => {
           taskId: null,
           createdAt: now,
           updatedAt: now,
-          prompt: trimmedPrompt,
+          prompt: promptForApi,
           model: selectedModel,
           stylePresetId: selectedStylePresetId,
           stylePresetName: stylePresetNameForHistory,
@@ -2287,7 +2319,7 @@ export const GeneratePage: FC = () => {
             };
 
       const response = await apiClient.generateStickerV2({
-        prompt: showPromptInput ? trimmedPrompt : '',
+        prompt: promptForApi,
         model: selectedModel,
         ...(isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
           ? {
@@ -2664,7 +2696,7 @@ export const GeneratePage: FC = () => {
   }, [handleSourceImagePick, sourceImageFiles.length]);
 
   const handleInputWrapperPaste = useCallback((event: ClipboardEvent<HTMLElement>) => {
-    if (!showPromptInput) {
+    if (!effectiveShowPromptInput) {
       return;
     }
     const pastedImageFiles = Array.from(event.clipboardData?.items ?? [])
@@ -2684,11 +2716,11 @@ export const GeneratePage: FC = () => {
 
     event.preventDefault();
     void appendSourceImages(pastedImageFiles);
-  }, [appendSourceImages, showPromptInput]);
+  }, [appendSourceImages, effectiveShowPromptInput]);
 
   /* Без отдельного поля промпта — вставка в исходники (Ctrl+V) без фокуса на textarea */
   useEffect(() => {
-    if (showPromptInput) return;
+    if (effectiveShowPromptInput) return;
     const onPaste = (e: globalThis.ClipboardEvent) => {
       const t = e.target;
       if (t instanceof Element && t.closest('input:not([type="hidden"]), textarea, [contenteditable="true"]')) {
@@ -2713,7 +2745,7 @@ export const GeneratePage: FC = () => {
     };
     document.addEventListener('paste', onPaste, true);
     return () => document.removeEventListener('paste', onPaste, true);
-  }, [appendSourceImages, showPromptInput]);
+  }, [appendSourceImages, effectiveShowPromptInput]);
 
   const handleSavedFromModal = useCallback((payload?: {
     stickerFileId?: string | null;
@@ -2921,7 +2953,7 @@ export const GeneratePage: FC = () => {
     (promptOk || canGenerateWithoutPrompt) && presetFieldsOk && ownStylePresetRefFromGalleryOk;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid || isBlockedByOwnStylePresetRefGate;
-  const hasPromptText = prompt.trim().length > 0;
+  const hasPromptText = effectiveShowPromptInput && prompt.trim().length > 0;
   const hasCurrentReferenceForPublication =
     sourceImageFiles.length > 0 || collectUniqueReferenceImageIds(referenceAssignments).size > 0;
   const hasCurrentGeneratedResultForPublication = Boolean(resultImageUrl || imageId);
@@ -3423,15 +3455,13 @@ export const GeneratePage: FC = () => {
     return () => clearTimeout(t);
   }, [errorMessage]);
 
-  const renderEmojiSelect = (disabled: boolean, caption: string | null) => {
+  const renderEmojiSelectButton = (disabled: boolean, caption: string | null) => {
     const hasCaption = Boolean(caption);
     return (
       <div
-        ref={emojiDropdownRef}
         className={cn(
           'generate-model-select-wrap',
           'generate-model-select-wrap--emoji',
-          hasCaption && 'generate-model-select-wrap--emoji-wide',
         )}
       >
         <button
@@ -3453,34 +3483,34 @@ export const GeneratePage: FC = () => {
           {hasCaption && <span className="generate-emoji-caption">{caption}</span>}
           <span className="generate-model-select-value generate-model-select-value--emoji">{selectedEmoji}</span>
         </button>
-        {emojiDropdownOpen && (
-          <div className="generate-model-select-dropdown generate-model-select-dropdown--emoji">
-            {POPULAR_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className={cn(
-                  'generate-model-select-option',
-                  'generate-model-select-option--emoji',
-                  emoji === selectedEmoji && 'generate-model-select-option--selected',
-                )}
-                onClick={() => handleEmojiSelect(emoji)}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     );
   };
 
   const renderInputFooter = (disabled: boolean) => (
-    <div className="generate-input-footer">
+    <div className="generate-input-footer" ref={emojiDropdownRef}>
       <div className="generate-input-toolbar">
-        {renderEmojiSelect(disabled, stickerEmojiCaption)}
         {renderRemoveBgToggle(disabled)}
+        {renderEmojiSelectButton(disabled, stickerEmojiCaption)}
       </div>
+      {emojiDropdownOpen && (
+        <div className="generate-model-select-dropdown generate-model-select-dropdown--emoji generate-model-select-dropdown--emoji-fullwidth">
+          {POPULAR_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className={cn(
+                'generate-model-select-option',
+                'generate-model-select-option--emoji',
+                emoji === selectedEmoji && 'generate-model-select-option--selected',
+              )}
+              onClick={() => handleEmojiSelect(emoji)}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -3497,13 +3527,13 @@ export const GeneratePage: FC = () => {
         'generate-input-wrapper',
         cfg.withActiveState && hasPromptText && 'generate-input-wrapper--active',
         cfg.showPromptError && 'generate-input-wrapper--error',
-        (showPromptInput && selectedPresetFieldDefs.length > 0) && 'generate-input-wrapper--with-preset-stack',
-        !showPromptInput && selectedPresetFieldDefs.length > 0 && 'generate-input-wrapper--preset-only',
+        (effectiveShowPromptInput && selectedPresetFieldDefs.length > 0) && 'generate-input-wrapper--with-preset-stack',
+        !effectiveShowPromptInput && selectedPresetFieldDefs.length > 0 && 'generate-input-wrapper--preset-only',
       )}
-      tabIndex={cfg.withWrapperHandlers && !showPromptInput ? 0 : undefined}
+      tabIndex={cfg.withWrapperHandlers && !effectiveShowPromptInput ? 0 : undefined}
       onPaste={cfg.withWrapperHandlers ? handleInputWrapperPaste : undefined}
     >
-      {showPromptInput && (
+      {effectiveShowPromptInput && (
         <textarea
           className={cn(
             'generate-input',
@@ -3525,7 +3555,7 @@ export const GeneratePage: FC = () => {
         <div
           className={cn(
             'generate-input-preset-stack',
-            showPromptInput && 'generate-input-preset-stack--after-prompt',
+            effectiveShowPromptInput && 'generate-input-preset-stack--after-prompt',
           )}
         >
           <PresetFieldsForm
@@ -3572,6 +3602,7 @@ export const GeneratePage: FC = () => {
           : null
       }
       onCreatePreset={() => void handleSelectOwnStylePreset()}
+      emptyStateText={myStylesEmpty ? 'У вас еще нет собственных стилей.' : null}
     />
   );
 
@@ -3609,11 +3640,12 @@ export const GeneratePage: FC = () => {
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
-            {styleCategoryChipsList.length > 0 && styleCategoryFilter != null && (
+            {styleCategoryFilter != null && (
               <StylePresetCategoryChips
                 categories={styleCategoryChipsList}
                 value={styleCategoryFilter}
                 onChange={setStyleCategoryFilter}
+                showMineChip
                 disabled={cfg.presetDisabled}
                 variant="gallery"
               />

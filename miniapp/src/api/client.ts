@@ -590,6 +590,12 @@ export interface StylePreset {
   removeBackgroundMode?: StylePresetRemoveBgMode | null;
   promptInput?: StylePresetPromptInput | null;
   fields?: StylePresetField[] | null;
+  /** Если true — скрыть свободный prompt в UI потребителя витрины. */
+  hideFreestylePromptAuthorSupplied?: boolean;
+  /** Если true — remove_background зафиксирован значением removeBackgroundEffective. */
+  removeBackgroundLockedToPreset?: boolean;
+  /** Эффективное значение remove background при locked-режиме. */
+  removeBackgroundEffective?: boolean;
   /** URL превью предустановленного референса стиля (includeUi) */
   presetReferenceImageUrl?: string | null;
   /** Id изображения для слота preset_ref в генерации (например img_sagref_...) */

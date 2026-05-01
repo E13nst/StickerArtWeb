@@ -19,7 +19,11 @@
   transform: scale(1.02);
 }
 
-.pack-card:focus,
+/* Кольцо только для клавиатуры — после клика мышью фокус остаётся, но :focus-visible нет */
+.pack-card:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .pack-card:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

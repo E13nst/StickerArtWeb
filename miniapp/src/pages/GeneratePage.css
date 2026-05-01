@@ -946,9 +946,20 @@
 .generate-input-toolbar {
   display: flex;
   align-items: stretch;
+  justify-content: flex-end;
   gap: 8px;
+  width: 100%;
   flex: 0 0 auto;
   min-width: 0;
+}
+
+/* Компактная ширина «Удалить фон» рядом с эмодзи (без margin-left: auto / width:100% из общих правил) */
+.generate-input-toolbar .generate-checkbox-label--inline {
+  width: auto;
+  max-width: none;
+  flex: 0 0 auto;
+  margin-left: 0;
+  justify-content: flex-start;
 }
 
 /* Эмодзи + «Удалить фон»: стекло как navbar; акцент как активная вкладка Gallery (#ee449f) */
@@ -1075,13 +1086,6 @@
   min-width: 60px;
 }
 
-/* Развернутая кнопка эмодзи: подпись + символ (как у кнопки «История») */
-.generate-model-select-wrap--emoji-wide {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 100%;
-}
-
 .generate-emoji-caption {
   flex: 1 1 auto;
   min-width: 0;
@@ -1205,6 +1209,13 @@
   overflow-y: auto;
 }
 
+/* Панель эмодзи на всю ширину обёртки поля ввода (якорь — .generate-input-footer) */
+.generate-input-footer .generate-model-select-dropdown--emoji-fullwidth {
+  left: 0;
+  right: 0;
+  width: auto;
+}
+
 .generate-model-select-option {
   display: block;
   width: 100%;
@@ -1272,9 +1283,11 @@
 }
 
 /* hover/active для НЕотмеченного чекбокса — :checked исключён, чтобы розовый не перекрывался */
-.generate-checkbox-label:hover .generate-checkbox:not(:disabled):not(:checked) {
-  border-color: var(--color-text-secondary);
-  background-color: rgba(255, 255, 255, 0.08);
+@media (hover: hover) and (pointer: fine) {
+  .generate-checkbox-label:hover .generate-checkbox:not(:disabled):not(:checked) {
+    border-color: var(--color-text-secondary);
+    background-color: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .generate-checkbox-label:active .generate-checkbox:not(:disabled):not(:checked) {
@@ -1327,6 +1340,8 @@
   position: relative;
   transition: background-color 0.2s, border-color 0.2s;
   outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .generate-checkbox:checked {
   background-color: var(--color-primary);
@@ -1342,6 +1357,22 @@
   border: solid var(--color-text);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
+}
+
+/* WebView/Safari: иначе псевдо-галочка иногда остаётся нарисованной до следующего reflow/клика */
+.generate-checkbox:not(:checked)::after {
+  content: none;
+  border: none;
+  width: 0;
+  height: 0;
+  transform: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.generate-checkbox-label--inline .generate-checkbox:not(:checked)::after {
+  left: 0;
+  top: 0;
 }
 
 .generate-checkbox-label span {
@@ -1426,6 +1457,11 @@
     width: 100%;
     margin-left: 0;
     justify-content: space-between;
+  }
+
+  .generate-input-toolbar .generate-checkbox-label--inline {
+    width: auto;
+    justify-content: flex-start;
   }
 }
 

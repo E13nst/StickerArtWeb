@@ -16,6 +16,7 @@ interface StylePresetPackGridProps {
   creationHighlightPresetId?: number | null;
   /** Запуск флоу «Создать свой стиль» (GET blueprints, без модалки публикации) */
   onCreatePreset?: () => void;
+  emptyStateText?: string | null;
 }
 
 type PresetGridOption = {
@@ -48,6 +49,7 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
   disabled = false,
   creationHighlightPresetId = null,
   onCreatePreset,
+  emptyStateText = null,
 }) => {
   const { tg } = useTelegram();
 
@@ -98,6 +100,11 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
         >
           + Создать свой стиль
         </button>
+        {options.length === 0 && emptyStateText ? (
+          <div className="preset-grid__empty-state" role="status" aria-live="polite">
+            {emptyStateText}
+          </div>
+        ) : null}
         {options.map((opt) => {
           const isSelected = selectedPresetId === opt.id;
           return (

@@ -44,6 +44,18 @@
   cursor: not-allowed;
 }
 
+.preset-grid__empty-state {
+  grid-column: 1 / -1;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .preset-grid__card {
   position: relative;
   width: 177px;
@@ -66,8 +78,12 @@
   transform: none;
 }
 
+/* Выбранный пресет: явная рамка (не только точка в углу); фокус мышью не дублирует «выбранность» */
 .preset-grid__card.preset-grid__card--selected {
-  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(238, 68, 159, 0.75) !important;
+  box-shadow:
+    0 0 0 1px rgba(238, 68, 159, 0.35),
+    0 2px 8px var(--color-overlay-dark);
 }
 
 .preset-grid__selected-dot {

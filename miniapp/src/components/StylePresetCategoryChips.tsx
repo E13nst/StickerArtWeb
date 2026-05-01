@@ -3,12 +3,15 @@ import type { StylePresetCategoryDto } from '@/api/client';
 import { useTelegram } from '@/hooks/useTelegram';
 import './StylePresetCategoryChips.css';
 
-export type StyleCategoryFilter = number;
+export const STYLE_CATEGORY_FILTER_MY = 'my' as const;
+export type StyleCategoryFilter = number | typeof STYLE_CATEGORY_FILTER_MY;
 
 interface StylePresetCategoryChipsProps {
   categories: StylePresetCategoryDto[];
   value: StyleCategoryFilter;
   onChange: (next: StyleCategoryFilter) => void;
+  showMineChip?: boolean;
+  mineChipLabel?: string;
   disabled?: boolean;
   compact?: boolean;
   variant?: 'default' | 'gallery';
@@ -18,6 +21,8 @@ export const StylePresetCategoryChips: FC<StylePresetCategoryChipsProps> = ({
   categories,
   value,
   onChange,
+  showMineChip = false,
+  mineChipLabel = 'Мои',
   disabled = false,
   compact = false,
   variant = 'default',
@@ -55,6 +60,26 @@ export const StylePresetCategoryChips: FC<StylePresetCategoryChipsProps> = ({
       aria-label="Категория стиля"
       aria-disabled={disabled || undefined}
     >
+      {showMineChip && (
+        <div
+          role="tab"
+          tabIndex={0}
+          title={mineChipLabel}
+          aria-selected={value === STYLE_CATEGORY_FILTER_MY}
+          className="style-preset-category-chips__chip"
+          data-selected={value === STYLE_CATEGORY_FILTER_MY ? 'true' : undefined}
+          style={{
+            padding,
+            fontSize,
+            opacity: value === STYLE_CATEGORY_FILTER_MY ? 1 : baseOpacityUnselected,
+          }}
+          onClick={() => handlePick(STYLE_CATEGORY_FILTER_MY)}
+          onKeyDown={(e) => onChipKey(e, STYLE_CATEGORY_FILTER_MY)}
+          aria-disabled={disabled || undefined}
+        >
+          {mineChipLabel}
+        </div>
+      )}
       {categories.map((c) => {
         const selected = value === c.id;
         return (
