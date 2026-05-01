@@ -2,8 +2,26 @@
   max-width: min(100%, 400px);
 }
 
-.style-preset-publish-flow-note {
+.style-preset-publish-section {
   margin: 0 0 12px;
+}
+
+.style-preset-publish-section__title {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.style-preset-publish-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.style-preset-publish-flow-note {
+  margin: 8px 0 0;
   font-size: 13px;
   line-height: 1.45;
   color: rgba(255, 255, 255, 0.85);

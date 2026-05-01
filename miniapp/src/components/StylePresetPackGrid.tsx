@@ -22,6 +22,8 @@ type PresetGridOption = {
   name: string;
   code?: string;
   previewUrl?: string | null;
+  moderationStatus?: StylePreset['moderationStatus'] | null;
+  isGlobal?: boolean;
 };
 
 const getServerPreviewUrl = (preset: StylePreset): string | null =>
@@ -54,6 +56,8 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
         previewByPresetId?.get(p.id) ??
         (p.code ? fallbackPreviewByPresetCode?.[p.code] : undefined) ??
         getServerPreviewUrl(p),
+      moderationStatus: p.moderationStatus ?? null,
+      isGlobal: p.isGlobal,
     }));
 
   const handleSelect = (presetId: number | null) => {
@@ -124,6 +128,11 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
                   </div>
                 )}
               </div>
+              {opt.moderationStatus === 'PENDING_MODERATION' && !opt.isGlobal && (
+                <span className="preset-grid__moderation-badge" aria-label="На модерации">
+                  На модерации
+                </span>
+              )}
               <div className="pack-card__title-overlay">{opt.name}</div>
               {isSelected && <span className="preset-grid__selected-dot" aria-hidden="true" />}
             </button>

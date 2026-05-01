@@ -1632,6 +1632,23 @@
   opacity: 0.9;
 }
 
+.generate-style-publication-state {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
 /* ========== ERROR (Figma: same layout as idle, message inside form) ========== */
 .generate-error-container {
   display: flex;

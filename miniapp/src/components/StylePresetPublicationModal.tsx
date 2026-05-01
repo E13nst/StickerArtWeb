@@ -12,6 +12,8 @@ export interface StylePresetPublicationModalProps {
   preset: StylePreset | null;
   estimatedPublicationCostArt?: number | null;
   publishUiHints?: Record<string, unknown> | null;
+  hasReferenceImage?: boolean;
+  hasGeneratedResult?: boolean;
   onPublished?: (updated: StylePreset) => void;
   /** Черновик в БД — POST …/style-presets/{id}/publish; иначе публикация из завершённой задачи */
   variant?: 'draft_preset' | 'task_completed';
@@ -49,12 +51,13 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
   preset,
   estimatedPublicationCostArt,
   publishUiHints,
+  hasReferenceImage = false,
+  hasGeneratedResult = false,
   onPublished,
   variant = 'draft_preset',
   taskId,
   userStyleBlueprintCode,
 }) => {
-  const [catalogCode, setCatalogCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +65,6 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
 
   useEffect(() => {
     if (open && preset) {
-      setCatalogCode((preset.code ?? '').trim().slice(0, 50));
       setDisplayName(preset.name?.trim() ? preset.name.trim().slice(0, 100) : '');
       setError(null);
       idempotencyKeyRef.current = crypto.randomUUID();
@@ -83,14 +85,33 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
       setError('Укажите название для каталога.');
       return;
     }
-    const codeTrimmed = catalogCode.trim();
     if (variant === 'task_completed') {
+      const codeTrimmed = (preset.code ?? '').trim().slice(0, 50);
       if (!codeTrimmed) {
-        setError('Укажите код пресета для каталога (до 50 символов).');
+        setError('Не удалось автоматически сформировать код стиля. Перезапустите создание стиля.');
         return;
       }
       if (!taskId?.trim()) {
         setError('Нет идентификатора задачи генерации.');
+        return;
+      }
+      if (!hasReferenceImage) {
+        setError('Нужна референсная фотография: добавьте фото-референс и выполните генерацию заново.');
+        return;
+      }
+      if (!hasGeneratedResult) {
+        setError('Нет результата генерации. Сначала создайте изображение, затем отправьте стиль на модерацию.');
+        return;
+      }
+    } else {
+      const hasPresetReference = Boolean(preset.presetReferenceImageUrl);
+      const hasPresetPreview = Boolean(preset.previewWebpUrl ?? preset.previewUrl);
+      if (!hasPresetReference) {
+        setError('Нужна референсная фотография. Добавьте референс перед отправкой на модерацию.');
+        return;
+      }
+      if (!hasPresetPreview) {
+        setError('Нужно превью результата. Сгенерируйте превью перед отправкой на модерацию.');
         return;
       }
     }
@@ -98,8 +119,9 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
     setError(null);
     try {
       if (variant === 'task_completed') {
+        const codeTrimmed = (preset.code ?? '').trim().slice(0, 50);
         const updated = await apiClient.publishUserStyleFromTask(taskId!.trim(), {
-          code: codeTrimmed.slice(0, 50),
+          code: codeTrimmed,
           displayName: name.slice(0, 100),
           idempotencyKey: idempotencyKeyRef.current,
           consentResultPublicShow: true,
@@ -123,7 +145,17 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
     } finally {
       setLoading(false);
     }
-  }, [preset, displayName, catalogCode, variant, taskId, userStyleBlueprintCode, onPublished, onClose]);
+  }, [
+    preset,
+    displayName,
+    variant,
+    taskId,
+    userStyleBlueprintCode,
+    hasReferenceImage,
+    hasGeneratedResult,
+    onPublished,
+    onClose,
+  ]);
 
   if (!preset) return null;
 
@@ -131,16 +163,26 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
     <Dialog open={open} onClose={loading ? undefined : onClose} className="style-preset-publish-dialog">
       <DialogTitle>Публикация в каталог</DialogTitle>
       <DialogContent>
-        <p className="style-preset-publish-body">{bodyText}</p>
-        {variant === 'task_completed' ? (
-          <p className="style-preset-publish-flow-note">
-            После успешной отправки пресет сразу переходит в статус «На модерации», а не остаётся черновиком
-            в каталоге.
+        <section className="style-preset-publish-section">
+          <h3 className="style-preset-publish-section__title">Что произойдёт после отправки</h3>
+          <p className="style-preset-publish-body">{bodyText}</p>
+          {variant === 'task_completed' ? (
+            <p className="style-preset-publish-flow-note">
+              Стиль сразу перейдёт в статус «На модерации», без сохранения в черновики.
+            </p>
+          ) : null}
+        </section>
+        <section className="style-preset-publish-section">
+          <h3 className="style-preset-publish-section__title">Условия публикации</h3>
+          <p className="style-preset-publish-cost">
+            Списание при подтверждении: <strong>{costLabel}</strong>
           </p>
-        ) : null}
-        <p className="style-preset-publish-cost">
-          Списание при подтверждении: <strong>{costLabel}</strong>
-        </p>
+          {variant === 'task_completed' ? (
+            <p className="style-preset-publish-footnote">
+              Для модерации должны быть прикреплены: 1 референсное фото и результат генерации.
+            </p>
+          ) : null}
+        </section>
         <label className="style-preset-publish-field">
           <span className="style-preset-publish-field__label">Название в каталоге</span>
           <input
@@ -152,23 +194,9 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
             autoComplete="off"
           />
         </label>
-        {variant === 'task_completed' ? (
-          <label className="style-preset-publish-field">
-            <span className="style-preset-publish-field__label">Код в каталоге</span>
-            <input
-              className="style-preset-publish-input"
-              value={catalogCode}
-              onChange={(e) => setCatalogCode(e.target.value.slice(0, 50))}
-              maxLength={50}
-              disabled={loading}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </label>
-        ) : null}
         <p className="style-preset-publish-footnote">
-          Нажимая «Опубликовать», вы подтверждаете публикацию и согласие на отображение результата
-          генерации для других пользователей на условиях сервиса.
+          Нажимая «Отправить на модерацию», вы подтверждаете публикацию и согласие на отображение
+          результата генерации для других пользователей на условиях сервиса.
         </p>
         {error ? (
           <p className="style-preset-publish-error" role="alert">
@@ -181,7 +209,7 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
           Отмена
         </Button>
         <Button variant="primary" onClick={() => void handleConfirm()} loading={loading}>
-          Опубликовать за {costLabel}
+          Отправить на модерацию
         </Button>
       </DialogActions>
     </Dialog>

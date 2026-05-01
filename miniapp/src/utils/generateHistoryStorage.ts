@@ -1,4 +1,4 @@
-import { GenerateModelType, GenerationStatus } from '@/api/client';
+import { GenerateModelType, GenerationStatus, StylePresetModerationStatus } from '@/api/client';
 
 export type GenerateHistoryPageState = 'uploading' | 'generating' | 'success' | 'error';
 export type GenerateHistoryTerminalStatus = 'COMPLETED' | 'FAILED' | 'TIMEOUT';
@@ -11,6 +11,10 @@ export interface GenerateHistoryEntry {
   prompt: string;
   model: GenerateModelType;
   stylePresetId: number | null;
+  stylePresetName?: string | null;
+  stylePresetCode?: string | null;
+  styleModerationStatus?: StylePresetModerationStatus | null;
+  ownStyleBlueprintCode?: string | null;
   selectedEmoji: string;
   removeBackground: boolean;
   hasSourceImage: boolean;
@@ -48,6 +52,12 @@ const isValidGenerationStatus = (value: unknown): value is GenerationStatus =>
   value === 'FAILED' ||
   value === 'TIMEOUT';
 
+const isValidModerationStatus = (value: unknown): value is StylePresetModerationStatus =>
+  value === 'DRAFT' ||
+  value === 'PENDING_MODERATION' ||
+  value === 'APPROVED' ||
+  value === 'REJECTED';
+
 const toEntry = (value: unknown): GenerateHistoryEntry | null => {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
@@ -58,6 +68,24 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
   if (typeof raw.prompt !== 'string') return null;
   if (!isValidModel(raw.model)) return null;
   if (!(typeof raw.stylePresetId === 'number' || raw.stylePresetId === null)) return null;
+  if (!('stylePresetName' in raw) || !(typeof raw.stylePresetName === 'string' || raw.stylePresetName === null)) {
+    raw.stylePresetName = null;
+  }
+  if (!('stylePresetCode' in raw) || !(typeof raw.stylePresetCode === 'string' || raw.stylePresetCode === null)) {
+    raw.stylePresetCode = null;
+  }
+  if (
+    !('styleModerationStatus' in raw) ||
+    !(raw.styleModerationStatus === null || isValidModerationStatus(raw.styleModerationStatus))
+  ) {
+    raw.styleModerationStatus = null;
+  }
+  if (
+    !('ownStyleBlueprintCode' in raw) ||
+    !(typeof raw.ownStyleBlueprintCode === 'string' || raw.ownStyleBlueprintCode === null)
+  ) {
+    raw.ownStyleBlueprintCode = null;
+  }
   if (typeof raw.selectedEmoji !== 'string') return null;
   if (typeof raw.removeBackground !== 'boolean') return null;
   if (typeof raw.hasSourceImage !== 'boolean') return null;
@@ -81,6 +109,20 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
   const savedStickerSetTitle = typeof raw.savedStickerSetTitle === 'string' || raw.savedStickerSetTitle === null
     ? raw.savedStickerSetTitle
     : null;
+  const stylePresetName = typeof raw.stylePresetName === 'string' || raw.stylePresetName === null
+    ? raw.stylePresetName
+    : null;
+  const stylePresetCode = typeof raw.stylePresetCode === 'string' || raw.stylePresetCode === null
+    ? raw.stylePresetCode
+    : null;
+  const styleModerationStatus =
+    raw.styleModerationStatus === null || isValidModerationStatus(raw.styleModerationStatus)
+      ? raw.styleModerationStatus
+      : null;
+  const ownStyleBlueprintCode =
+    typeof raw.ownStyleBlueprintCode === 'string' || raw.ownStyleBlueprintCode === null
+      ? raw.ownStyleBlueprintCode
+      : null;
 
   return {
     localId: raw.localId,
@@ -90,6 +132,10 @@ const toEntry = (value: unknown): GenerateHistoryEntry | null => {
     prompt: raw.prompt,
     model: raw.model,
     stylePresetId: raw.stylePresetId,
+    stylePresetName,
+    stylePresetCode,
+    styleModerationStatus,
+    ownStyleBlueprintCode,
     selectedEmoji: raw.selectedEmoji,
     removeBackground: raw.removeBackground,
     hasSourceImage: raw.hasSourceImage,

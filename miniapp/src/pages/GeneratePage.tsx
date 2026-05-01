@@ -85,6 +85,13 @@ const SOURCE_IMAGE_ID_REUSE_WINDOW_MS = 5 * 60 * 1000;
 const MAX_SOURCE_IMAGE_FILES = 14;
 const SOURCE_IMAGE_FINGERPRINT_SAMPLE_BYTES = 64 * 1024;
 const TERMINAL_GENERATION_STATUSES: GenerationStatus[] = ['COMPLETED', 'FAILED', 'TIMEOUT'];
+const HISTORY_PRESET_PREVIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const MODERATION_STATUS_LABELS: Record<NonNullable<StylePreset['moderationStatus']>, string> = {
+  DRAFT: 'Черновик',
+  PENDING_MODERATION: 'На модерации',
+  APPROVED: 'Опубликован',
+  REJECTED: 'Отклонён',
+};
 const DEFAULT_GENERATE_MODEL: GenerateModelType = 'nanabanana';
 const DEFAULT_GENERATE_EMOJI = '🎨';
 const DEFAULT_REMOVE_BACKGROUND = true;
@@ -1439,6 +1446,74 @@ export const GeneratePage: FC = () => {
     return uploadResponse.imageIds;
   }, [buildSourceImageSignature, sourceImageFiles]);
 
+  const buildOwnStyleSessionFromBlueprint = useCallback((params: {
+    blueprint: UserPresetCreationBlueprintDto;
+    code?: string | null;
+    name?: string | null;
+  }) => {
+    const { blueprint, code, name } = params;
+    const sortedCats = [...stylePresetCategories].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+    const firstCatId = sortedCats[0]?.id;
+    const defaults = blueprint.presetDefaults as Partial<CreateStylePresetRequest>;
+    const overlay: Partial<CreateStylePresetRequest> = {
+      code: typeof code === 'string' && code.trim() ? code.trim() : buildAutoStylePresetCode(user?.id),
+      name: typeof name === 'string' && name.trim() ? name.trim() : 'Мой стиль',
+    };
+    if (defaults.categoryId == null && firstCatId !== undefined) {
+      overlay.categoryId = firstCatId;
+    }
+    const mergedReq = mergeCreateStylePresetRequest(blueprint.presetDefaults, overlay);
+    const categoryDto =
+      mergedReq.categoryId != null
+        ? sortedCats.find((c) => c.id === mergedReq.categoryId) ?? null
+        : firstCatId != null
+          ? sortedCats.find((c) => c.id === firstCatId) ?? null
+          : null;
+    const virtualPreset = buildVirtualOwnStylePreset({
+      merged: mergedReq,
+      category: categoryDto,
+      ownerProfileId: userInfo?.id,
+    });
+    return { blueprint, virtualPreset };
+  }, [stylePresetCategories, user?.id, userInfo?.id]);
+
+  const ensureOwnStyleSessionForHistory = useCallback(async (entry: GenerateHistoryEntry): Promise<boolean> => {
+    if (!isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) return true;
+    const blueprintCode = entry.ownStyleBlueprintCode?.trim();
+    if (!blueprintCode) return false;
+
+    if (ownStyleBlueprintSession?.blueprint.code === blueprintCode) {
+      return true;
+    }
+
+    let blueprints = userPresetCreationBlueprints;
+    if (!blueprints.length) {
+      try {
+        blueprints = await apiClient.getUserPresetCreationBlueprints();
+        setUserPresetCreationBlueprints(blueprints);
+      } catch {
+        blueprints = [];
+      }
+    }
+
+    const bp = blueprints.find((item) => item.code === blueprintCode);
+    if (!bp) return false;
+
+    const session = buildOwnStyleSessionFromBlueprint({
+      blueprint: bp,
+      code: entry.stylePresetCode,
+      name: entry.stylePresetName,
+    });
+    setOwnStyleBlueprintSession(session);
+    setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
+    setPublishUiHints(bp.uiHints ?? null);
+    return true;
+  }, [
+    buildOwnStyleSessionFromBlueprint,
+    ownStyleBlueprintSession?.blueprint.code,
+    userPresetCreationBlueprints,
+  ]);
+
   useEffect(() => {
     syncHistoryEntries();
   }, [syncHistoryEntries]);
@@ -1456,26 +1531,43 @@ export const GeneratePage: FC = () => {
     const activeEntry =
       entries.find((entry) => entry.isActive) ??
       entries.find((entry) => !TERMINAL_GENERATION_STATUSES.includes(entry.generationStatus ?? 'PENDING'));
-    if (!activeEntry || !activeEntry.taskId) return;
+    if (!activeEntry) return;
 
-    setPrompt(activeEntry.prompt);
-    setSelectedModel(normalizeGenerateModel(activeEntry.model));
-    setSelectedStylePresetId(activeEntry.stylePresetId);
-    setSelectedEmoji(activeEntry.selectedEmoji);
-    setRemoveBackground(activeEntry.removeBackground);
-    setTaskId(activeEntry.taskId);
-    setCurrentStatus(activeEntry.generationStatus ?? 'PENDING');
-    setFileId(activeEntry.fileId);
-    setStickerSaved(Boolean(activeEntry.fileId));
-    setSavedStickerSetName(activeEntry.savedStickerSetName ?? null);
-    setSavedStickerSetTitle(activeEntry.savedStickerSetTitle ?? null);
-    setErrorMessage(null);
-    setErrorKind(null);
-    setPageState('generating');
-    activeHistoryLocalIdRef.current = activeEntry.localId;
-    preferencesAppliedRef.current = true;
-    startPolling(activeEntry.taskId, activeEntry.localId);
-  }, [historyUserScopeId, startPolling]);
+    let cancelled = false;
+    (async () => {
+      const ownStyleSessionReady = await ensureOwnStyleSessionForHistory(activeEntry);
+      if (cancelled) return;
+
+      setPrompt(activeEntry.prompt);
+      setSelectedModel(normalizeGenerateModel(activeEntry.model));
+      setSelectedStylePresetId(
+        isOwnStyleBlueprintVirtualPreset(activeEntry.stylePresetId) && !ownStyleSessionReady
+          ? null
+          : activeEntry.stylePresetId,
+      );
+      setSelectedEmoji(activeEntry.selectedEmoji);
+      setRemoveBackground(activeEntry.removeBackground);
+      setTaskId(activeEntry.taskId);
+      setCurrentStatus(activeEntry.generationStatus ?? 'PENDING');
+      setFileId(activeEntry.fileId);
+      setStickerSaved(Boolean(activeEntry.fileId));
+      setSavedStickerSetName(activeEntry.savedStickerSetName ?? null);
+      setSavedStickerSetTitle(activeEntry.savedStickerSetTitle ?? null);
+      setErrorMessage(null);
+      setErrorKind(null);
+      setPageState('generating');
+      activeHistoryLocalIdRef.current = activeEntry.localId;
+      preferencesAppliedRef.current = true;
+
+      if (activeEntry.taskId) {
+        startPolling(activeEntry.taskId, activeEntry.localId);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureOwnStyleSessionForHistory, historyUserScopeId, startPolling]);
 
   useEffect(() => {
     if (!historyUserScopeId || preferencesAppliedRef.current) return;
@@ -1874,6 +1966,13 @@ export const GeneratePage: FC = () => {
       const localHistoryId = createGenerateHistoryLocalId();
       const now = Date.now();
       activeHistoryLocalIdRef.current = localHistoryId;
+      const isOwnStyleGeneration =
+        isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession != null;
+      const stylePresetNameForHistory =
+        selectedPreset?.name?.trim() || (isOwnStyleGeneration ? 'Мой стиль' : null);
+      const stylePresetCodeForHistory =
+        selectedPreset?.code?.trim() || ownStyleBlueprintSession?.virtualPreset.code || null;
+      const styleModerationStatusForHistory = selectedPreset?.moderationStatus ?? (isOwnStyleGeneration ? 'DRAFT' : null);
 
       if (historyUserScopeId) {
         clearActiveGenerateHistoryEntry(historyUserScopeId);
@@ -1885,6 +1984,10 @@ export const GeneratePage: FC = () => {
           prompt: trimmedPrompt,
           model: selectedModel,
           stylePresetId: selectedStylePresetId,
+          stylePresetName: stylePresetNameForHistory,
+          stylePresetCode: stylePresetCodeForHistory,
+          styleModerationStatus: styleModerationStatusForHistory,
+          ownStyleBlueprintCode: ownStyleBlueprintSession?.blueprint.code ?? null,
           selectedEmoji,
           removeBackground,
           hasSourceImage: sourceImageFiles.length > 0 || hasReferenceSlotsFilled,
@@ -2577,6 +2680,26 @@ export const GeneratePage: FC = () => {
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid || isBlockedByOwnStylePresetRefGate;
   const hasPromptText = prompt.trim().length > 0;
+  const hasReferenceForPublication =
+    sourceImageFiles.length > 0 || collectUniqueReferenceImageIds(referenceAssignments).size > 0;
+  const hasGeneratedResultForPublication = Boolean(resultImageUrl || imageId);
+  const isOwnedSelectedStyle =
+    selectedPreset != null &&
+    userInfo?.id != null &&
+    selectedPreset.ownerId === userInfo.id &&
+    !selectedPreset.isGlobal;
+  const selectedStyleModerationStatus =
+    selectedPreset?.moderationStatus ??
+    (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession ? 'DRAFT' : null);
+  const canOpenPublishStyleModal =
+    isOwnedSelectedStyle &&
+    (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
+      ? Boolean(taskId && ownStyleBlueprintSession)
+      : selectedStyleModerationStatus === 'DRAFT');
+  const publicationStateLabel =
+    selectedStyleModerationStatus && selectedStyleModerationStatus !== 'DRAFT'
+      ? MODERATION_STATUS_LABELS[selectedStyleModerationStatus]
+      : null;
   const latestHistoryEntry = historyEntries[0] ?? null;
   const historyPreviewImage = latestHistoryEntry?.resultImageUrl ?? null;
   const historyPreviewFallback = latestHistoryEntry?.selectedEmoji ?? '🕘';
@@ -2620,9 +2743,14 @@ export const GeneratePage: FC = () => {
   };
 
   const getHistoryStyleLabel = (entry: GenerateHistoryEntry): string => {
+    if (isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) {
+      return stripPresetName(entry.stylePresetName ?? 'Мой стиль');
+    }
     if (entry.stylePresetId == null) return 'Без стиля';
     const preset = stylePresets.find((item) => item.id === entry.stylePresetId);
-    return preset ? stripPresetName(preset.name) : 'Без стиля';
+    if (preset) return stripPresetName(preset.name);
+    if (entry.stylePresetName?.trim()) return stripPresetName(entry.stylePresetName);
+    return 'Без стиля';
   };
 
   const getHistoryPrimaryChip = (entry: GenerateHistoryEntry): string => {
@@ -2632,13 +2760,17 @@ export const GeneratePage: FC = () => {
 
   const getHistorySecondaryChip = (entry: GenerateHistoryEntry): string | null => {
     const styleLabel = getHistoryStyleLabel(entry);
+    const moderationStatus = entry.styleModerationStatus;
+    if (moderationStatus && moderationStatus !== 'DRAFT') {
+      return MODERATION_STATUS_LABELS[moderationStatus];
+    }
     if (styleLabel !== 'Без стиля') {
       return entry.hasSourceImage ? 'С фото' : 'Только текст';
     }
     return null;
   };
 
-  const openHistoryEntry = (entry: GenerateHistoryEntry) => {
+  const openHistoryEntry = async (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
     setPresetFields({});
     setReferencePreviewById({});
@@ -2650,9 +2782,12 @@ export const GeneratePage: FC = () => {
     resetUploadedSourceImageCache();
     setReferenceUploadingKey(null);
     avatarAutofillAppliedRef.current = null;
+    const ownStyleSessionReady = await ensureOwnStyleSessionForHistory(entry);
     {
       const entryPreset =
-        entry.stylePresetId != null ? stylePresets.find((p) => p.id === entry.stylePresetId) : null;
+        entry.stylePresetId != null && !isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)
+          ? stylePresets.find((p) => p.id === entry.stylePresetId)
+          : null;
       const nextRefs: Record<string, string[]> = {};
       for (const f of entryPreset?.fields ?? []) {
         if (f.type === 'reference') {
@@ -2663,7 +2798,9 @@ export const GeneratePage: FC = () => {
     }
     setPrompt(entry.prompt);
     setSelectedModel(normalizeGenerateModel(entry.model));
-    setSelectedStylePresetId(entry.stylePresetId);
+    setSelectedStylePresetId(
+      isOwnStyleBlueprintVirtualPreset(entry.stylePresetId) && !ownStyleSessionReady ? null : entry.stylePresetId,
+    );
     setSelectedEmoji(entry.selectedEmoji);
     setRemoveBackground(entry.removeBackground);
     setTaskId(entry.taskId);
@@ -2837,11 +2974,13 @@ export const GeneratePage: FC = () => {
   };
 
   const presetPreviewById = useMemo(() => {
+    const minFreshTs = Date.now() - HISTORY_PRESET_PREVIEW_TTL_MS;
     const previewMap = new Map<number, string>();
     historyEntries.forEach((entry) => {
       if (
         entry.stylePresetId != null &&
         entry.pageState === 'success' &&
+        entry.updatedAt >= minFreshTs &&
         entry.resultImageUrl &&
         !previewMap.has(entry.stylePresetId)
       ) {
@@ -2909,31 +3048,7 @@ export const GeneratePage: FC = () => {
         setErrorKind('general');
         return;
       }
-
-      const sortedCats = [...stylePresetCategories].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
-      const firstCatId = sortedCats[0]?.id;
-      const defaults = bp.presetDefaults as Partial<CreateStylePresetRequest>;
-      const overlay: Partial<CreateStylePresetRequest> = {
-        code: buildAutoStylePresetCode(user?.id),
-        name: 'Мой стиль',
-      };
-      if (defaults.categoryId == null && firstCatId !== undefined) {
-        overlay.categoryId = firstCatId;
-      }
-
-      const mergedReq = mergeCreateStylePresetRequest(bp.presetDefaults, overlay);
-      const categoryDto =
-        mergedReq.categoryId != null
-          ? sortedCats.find((c) => c.id === mergedReq.categoryId) ?? null
-          : firstCatId != null
-            ? sortedCats.find((c) => c.id === firstCatId) ?? null
-            : null;
-      const virtualPreset = buildVirtualOwnStylePreset({
-        merged: mergedReq,
-        category: categoryDto,
-        ownerProfileId: userInfo?.id,
-      });
-      setOwnStyleBlueprintSession({ blueprint: bp, virtualPreset });
+      setOwnStyleBlueprintSession(buildOwnStyleSessionFromBlueprint({ blueprint: bp }));
       setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
       setPublishUiHints(bp.uiHints ?? null);
       handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
@@ -2947,6 +3062,18 @@ export const GeneratePage: FC = () => {
   };
 
   const handlePublicationPublished = useCallback(async (updated: StylePreset) => {
+    if (activeHistoryLocalIdRef.current) {
+      patchHistoryEntry(
+        { localId: activeHistoryLocalIdRef.current },
+        {
+          stylePresetId: updated.id,
+          stylePresetName: updated.name ?? null,
+          stylePresetCode: updated.code ?? null,
+          styleModerationStatus: updated.moderationStatus ?? null,
+          ownStyleBlueprintCode: null,
+        },
+      );
+    }
     try {
       const list = await apiClient.loadStylePresetsMerged();
       setStylePresets(list);
@@ -2962,7 +3089,7 @@ export const GeneratePage: FC = () => {
     if (updated.moderationStatus === 'PENDING_MODERATION') {
       showSaveNotice('Стиль отправлен на модерацию. После одобрения он станет доступен в каталоге.');
     }
-  }, [persistGeneratePreferences, showSaveNotice]);
+  }, [patchHistoryEntry, persistGeneratePreferences, showSaveNotice]);
 
   const handlePresetFieldChange = (key: string, value: string) => {
     setPresetFields((prev) => ({ ...prev, [key]: value }));
@@ -3338,7 +3465,7 @@ export const GeneratePage: FC = () => {
                     <button
                       type="button"
                       className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
-                      onClick={() => openHistoryEntry(entry)}
+                      onClick={() => void openHistoryEntry(entry)}
                     >
                       <div className="generate-history-item__preview-wrap" aria-hidden="true">
                         {entry.resultImageUrl ? (
@@ -3462,24 +3589,23 @@ export const GeneratePage: FC = () => {
               {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
             </Button>
           </div>
-          {selectedPreset &&
-            userInfo?.id != null &&
-            selectedPreset.ownerId === userInfo.id &&
-            !selectedPreset.isGlobal &&
-            (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
-              ? Boolean(taskId && ownStyleBlueprintSession)
-              : selectedPreset.moderationStatus === 'DRAFT') && (
-              <Button
-                variant="secondary"
-                size="medium"
-                type="button"
-                className="generate-action-button publish-style"
-                onClick={() => setPublishPresetModalOpen(true)}
-              >
-                <span className="publish-style-btn__title">Опубликовать стиль</span>
-                <span className="publish-style-btn__cost">{publishStyleCostLabel}</span>
-              </Button>
-            )}
+          {canOpenPublishStyleModal && (
+            <Button
+              variant="secondary"
+              size="medium"
+              type="button"
+              className="generate-action-button publish-style"
+              onClick={() => setPublishPresetModalOpen(true)}
+            >
+              <span className="publish-style-btn__title">Опубликовать стиль</span>
+              <span className="publish-style-btn__cost">{publishStyleCostLabel}</span>
+            </Button>
+          )}
+          {!canOpenPublishStyleModal && isOwnedSelectedStyle && publicationStateLabel && (
+            <div className="generate-style-publication-state" role="status" aria-live="polite">
+              Статус стиля: {publicationStateLabel}
+            </div>
+          )}
         </div>
         {saveNoticeText && (
           <Text variant="bodySmall" className="generate-save-notice" align="center">
@@ -3574,6 +3700,8 @@ export const GeneratePage: FC = () => {
         preset={selectedPreset}
         estimatedPublicationCostArt={publishCostHint}
         publishUiHints={publishUiHints}
+        hasReferenceImage={hasReferenceForPublication}
+        hasGeneratedResult={hasGeneratedResultForPublication}
         variant={
           isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? 'task_completed' : 'draft_preset'
         }
