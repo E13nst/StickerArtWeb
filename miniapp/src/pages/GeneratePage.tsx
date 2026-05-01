@@ -7,6 +7,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
 import { mergeCreateStylePresetRequest } from '@/utils/mergeCreateStylePresetRequest';
+import { uploadPresetReference } from '@/api/stylePresets';
 import {
   blueprintNeedsPresetReferenceSlot,
   buildAutoStylePresetCode,
@@ -28,6 +29,7 @@ import {
   type CreateStylePresetRequest,
   GenerateModelType,
   GenerationStatus,
+  type UploadImagesResponse,
   StylePreset,
   StylePresetCategoryDto,
   StylePresetField,
@@ -107,6 +109,14 @@ const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 /** Ключ слота предустановленного референса стиля в preset_fields */
 const PRESET_REF_FIELD_KEY = 'preset_ref';
 
+function assertPresetRefGalleryImageIds(ids: readonly string[]): void {
+  const bad = ids.find((id) => id && !String(id).startsWith('img_sagref_'));
+  if (!bad) return;
+  throw new Error(
+    'Опорное фото должно быть сохранено в галерее как img_sagref_* (через /style-presets/{id}/reference); сервер вернул другой идентификатор.',
+  );
+}
+
 /** Категория основных пресетов: code `general` или имя General / «Общая» (локализация). */
 function preferDefaultStyleCategoryId(categories: StylePresetCategoryDto[]): number {
   const generalByCode = categories.find((c) => c.code?.trim().toLowerCase() === 'general');
@@ -141,7 +151,10 @@ function getPresetReferenceSlotSourceId(preset: StylePreset | null | undefined):
   const raw = preset?.presetReferenceSourceImageId;
   if (typeof raw !== 'string') return null;
   const id = raw.trim();
-  return id || null;
+  // В slot preset_ref должны уходить только gallery/processor image-id формата img_*.
+  // Некоторые старые записи могут содержать UUID файла — такой id ломает /generation/v2/generate.
+  if (!id || !id.startsWith('img_')) return null;
+  return id;
 }
 
 function presetHasPresetReferenceField(preset: StylePreset | null | undefined): boolean {
@@ -354,6 +367,8 @@ export const GeneratePage: FC = () => {
   const [ownStyleBlueprintSession, setOwnStyleBlueprintSession] = useState<{
     blueprint: UserPresetCreationBlueprintDto;
     virtualPreset: StylePreset;
+    draftPresetId: number | null;
+    createRequest: CreateStylePresetRequest;
   } | null>(null);
   const [publishPresetModalOpen, setPublishPresetModalOpen] = useState(false);
   const [publishCostHint, setPublishCostHint] = useState<number | null>(null);
@@ -395,6 +410,10 @@ export const GeneratePage: FC = () => {
   const [historyEntries, setHistoryEntries] = useState<GenerateHistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isPromptFocused, setIsPromptFocused] = useState(false);
+  /** Последний успешный результат, показывается во время upload/generating при повторном запуске без «мерцания» макета. */
+  const [duringJobPreviousResultUrl, setDuringJobPreviousResultUrl] = useState<string | null>(null);
+  /** Не анимируем миниатюры ленты при повторной генерации с того же успешного экрана на том же наборе вложений. */
+  const [suppressSourceStripItemReveal, setSuppressSourceStripItemReveal] = useState(false);
   
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);
@@ -925,6 +944,13 @@ export const GeneratePage: FC = () => {
   }, [historyUserScopeId]);
 
   useEffect(() => {
+    if (pageState === 'idle') {
+      setSuppressSourceStripItemReveal(false);
+      setDuringJobPreviousResultUrl(null);
+    }
+  }, [pageState]);
+
+  useEffect(() => {
     refreshMyProfile();
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -1091,6 +1117,7 @@ export const GeneratePage: FC = () => {
           setErrorMessage('Генерация заняла слишком много времени. Попробуйте снова.');
           setErrorKind('general');
           setPageState('error');
+          setDuringJobPreviousResultUrl(null);
         }
         return;
       }
@@ -1143,6 +1170,8 @@ export const GeneratePage: FC = () => {
             }
             setErrorMessage(null);
             setErrorKind(null);
+            setDuringJobPreviousResultUrl(null);
+            setSuppressSourceStripItemReveal(false);
             showSaveNotice(
               backgroundRemoveFallbackApplied ? BACKGROUND_REMOVE_FALLBACK_NOTICE : null
             );
@@ -1164,6 +1193,7 @@ export const GeneratePage: FC = () => {
                 (statusData.status === 'TIMEOUT' ? 'Превышено время ожидания' : 'Произошла ошибка при генерации')
             );
             setErrorKind('general');
+            setDuringJobPreviousResultUrl(null);
             setPageState('error');
           }
         }
@@ -1227,6 +1257,7 @@ export const GeneratePage: FC = () => {
       setSourceImageFiles(mergedFiles);
       setSourceImagePreviews((prev) => [...prev, ...previews]);
       setSourceImageOrigin(computeSourceImageOriginFromFiles(mergedFiles));
+      setSuppressSourceStripItemReveal(false);
       resetUploadedSourceImageCache();
       if (selectedModel !== SOURCE_IMAGE_MODEL) {
         setSelectedModel(SOURCE_IMAGE_MODEL);
@@ -1296,6 +1327,7 @@ export const GeneratePage: FC = () => {
         setSourceImageFiles(nextFiles);
         setSourceImagePreviews(nextPreviews);
         setSourceImageOrigin(computeSourceImageOriginFromFiles(nextFiles));
+        setSuppressSourceStripItemReveal(false);
         resetUploadedSourceImageCache();
         if (selectedModel !== SOURCE_IMAGE_MODEL) {
           setSelectedModel(SOURCE_IMAGE_MODEL);
@@ -1536,8 +1568,109 @@ export const GeneratePage: FC = () => {
       category: categoryDto,
       ownerProfileId: userInfo?.id,
     });
-    return { blueprint, virtualPreset };
+    return {
+      blueprint,
+      virtualPreset,
+      draftPresetId: null,
+      createRequest: mergedReq,
+    };
   }, [stylePresetCategories, user?.id, userInfo?.id]);
+
+  const ensureOwnStyleDraftPresetId = useCallback(async (): Promise<number> => {
+    const session = ownStyleBlueprintSession;
+    if (!session) {
+      throw new Error('Сессия своего стиля не инициализирована');
+    }
+    if (typeof session.draftPresetId === 'number' && session.draftPresetId > 0) {
+      return session.draftPresetId;
+    }
+    const targetCode = (session.createRequest.code ?? '').trim();
+    if (!targetCode) {
+      throw new Error('Не удалось определить код пользовательского пресета.');
+    }
+    let created: StylePreset;
+    try {
+      created = await apiClient.createStylePreset(session.createRequest);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message.toLowerCase() : '';
+      const duplicateCode = msg.includes('already exists') || msg.includes('уже существует');
+      if (!duplicateCode) {
+        throw e;
+      }
+      const merged = await apiClient.loadStylePresetsMerged();
+      const existing = merged.find((item) => {
+        const itemCode = (item.code ?? '').trim();
+        if (!itemCode || itemCode.toLowerCase() !== targetCode.toLowerCase()) return false;
+        if (item.isGlobal) return false;
+        return userInfo?.id == null || item.ownerId === userInfo.id;
+      });
+      if (!existing) {
+        throw e;
+      }
+      created = existing;
+    }
+    setOwnStyleBlueprintSession((prev) => {
+      if (!prev) return prev;
+      if (prev.blueprint.code !== session.blueprint.code) return prev;
+      return {
+        ...prev,
+        draftPresetId: created.id,
+        virtualPreset: {
+          ...prev.virtualPreset,
+          presetReferenceImageUrl: created.presetReferenceImageUrl ?? prev.virtualPreset.presetReferenceImageUrl,
+          presetReferenceSourceImageId:
+            created.presetReferenceSourceImageId ?? prev.virtualPreset.presetReferenceSourceImageId,
+        },
+      };
+    });
+    return created.id;
+  }, [ownStyleBlueprintSession, userInfo?.id]);
+
+  const uploadPresetReferenceSlotToGallery = useCallback(async (files: File[]): Promise<UploadImagesResponse> => {
+    if (!files.length) return { imageIds: [] };
+    const firstFile = files[0];
+    const usingOwnStyleVirtual = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId);
+    const selectedPresetForUpload =
+      selectedStylePresetId != null ? stylePresets.find((p) => p.id === selectedStylePresetId) ?? null : null;
+    const ownerOwnsSelectedPreset =
+      selectedPresetForUpload != null &&
+      selectedPresetForUpload.id > 0 &&
+      !selectedPresetForUpload.isGlobal &&
+      userInfo?.id != null &&
+      selectedPresetForUpload.ownerId === userInfo.id;
+
+    let presetIdForUpload: number;
+    if (usingOwnStyleVirtual) {
+      presetIdForUpload = await ensureOwnStyleDraftPresetId();
+    } else if (ownerOwnsSelectedPreset) {
+      presetIdForUpload = selectedPresetForUpload!.id;
+    } else {
+      throw new Error('Для загрузки preset_ref нужен ваш черновик пресета.');
+    }
+
+    const updated = await uploadPresetReference(presetIdForUpload, firstFile);
+    const sourceId = updated.presetReferenceSourceImageId?.trim() ?? '';
+    assertPresetRefGalleryImageIds([sourceId]);
+    if (!usingOwnStyleVirtual && ownerOwnsSelectedPreset) {
+      setStylePresets((prev) => prev.map((item) => (item.id === presetIdForUpload ? { ...item, ...updated } : item)));
+    }
+    if (usingOwnStyleVirtual) {
+      setOwnStyleBlueprintSession((prev) => {
+        if (!prev) return prev;
+        if (typeof prev.draftPresetId !== 'number' || prev.draftPresetId !== presetIdForUpload) return prev;
+        return {
+          ...prev,
+          virtualPreset: {
+            ...prev.virtualPreset,
+            presetReferenceImageUrl: updated.presetReferenceImageUrl ?? prev.virtualPreset.presetReferenceImageUrl,
+            presetReferenceSourceImageId:
+              updated.presetReferenceSourceImageId ?? prev.virtualPreset.presetReferenceSourceImageId,
+          },
+        };
+      });
+    }
+    return { imageIds: [sourceId] };
+  }, [ensureOwnStyleDraftPresetId, selectedStylePresetId, stylePresets, userInfo?.id]);
 
   const ensureOwnStyleSessionForHistory = useCallback(async (entry: GenerateHistoryEntry): Promise<boolean> => {
     if (!isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) return true;
@@ -1654,7 +1787,7 @@ export const GeneratePage: FC = () => {
     preferencesAppliedRef.current = true;
   }, [historyUserScopeId, stylePresets]);
 
-  // Метаданные UI выбранного пресета (виртуальный карточный пресет для «своего стиля» без черновика в БД)
+  // Метаданные UI выбранного пресета (виртуальная карточка «своего стиля»; при загрузке preset_ref черновик создаётся лениво).
   const selectedPreset: StylePreset | null = useMemo(() => {
     if (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession) {
       return ownStyleBlueprintSession.virtualPreset;
@@ -1759,6 +1892,7 @@ export const GeneratePage: FC = () => {
       if (lockedPresetRefFieldKeys.has(payload.fromKey) || lockedPresetRefFieldKeys.has(payload.toKey)) {
         return;
       }
+      setSuppressSourceStripItemReveal(false);
       const { imageId, fromKey, fromIndex, toKey, toIndex } = payload;
 
       setReferenceAssignments((prev) => {
@@ -1822,6 +1956,7 @@ export const GeneratePage: FC = () => {
   /** Снимает imageId только из слота пресета. Ленту вложений не трогает; refImageId→fingerprint оставляем для удаления с ленты. */
   const handleReferenceRemove = useCallback((fieldKey: string, index: number) => {
     if (lockedPresetRefFieldKeys.has(fieldKey)) return;
+    setSuppressSourceStripItemReveal(false);
     setReferenceAssignments((prev) => {
       const list = [...(prev[fieldKey] ?? [])];
       if (index < 0 || index >= list.length) return prev;
@@ -1857,7 +1992,12 @@ export const GeneratePage: FC = () => {
       setReferenceUploadingKey(fieldKey);
       setErrorMessage(null);
       try {
-        const { imageIds } = await apiClient.uploadSourceImages(slice);
+        setSuppressSourceStripItemReveal(false);
+        const uploadFn =
+          fieldKey === PRESET_REF_FIELD_KEY
+            ? (filesInner: File[]) => uploadPresetReferenceSlotToGallery(filesInner)
+            : (filesInner: File[]) => apiClient.uploadSourceImages(filesInner);
+        const { imageIds } = await uploadFn(slice);
         await registerRefImageIdsForFiles(imageIds, slice);
         void appendSourceImages(slice);
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
@@ -1893,7 +2033,7 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [appendSourceImages, effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
+    [appendSourceImages, effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, uploadPresetReferenceSlotToGallery],
   );
 
   const handleReferenceAddFromSource = useCallback(
@@ -1919,7 +2059,12 @@ export const GeneratePage: FC = () => {
       setReferenceUploadingKey(fieldKey);
       setErrorMessage(null);
       try {
-        const { imageIds } = await apiClient.uploadSourceImages([file]);
+        setSuppressSourceStripItemReveal(false);
+        const uploadFn =
+          fieldKey === PRESET_REF_FIELD_KEY
+            ? uploadPresetReferenceSlotToGallery
+            : apiClient.uploadSourceImages.bind(apiClient);
+        const { imageIds } = await uploadFn([file]);
         const newId = imageIds[0];
         if (!newId) return;
 
@@ -1953,7 +2098,7 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, sourceImageFiles],
+    [effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, sourceImageFiles, uploadPresetReferenceSlotToGallery],
   );
 
   // Обработка отправки формы
@@ -2021,6 +2166,16 @@ export const GeneratePage: FC = () => {
         setPageState('error');
         return;
       }
+    }
+
+    const retryFromSuccessfulResult =
+      pageState === 'success' && typeof resultImageUrl === 'string' && resultImageUrl.trim().length > 0;
+    if (retryFromSuccessfulResult && resultImageUrl) {
+      setDuringJobPreviousResultUrl(resultImageUrl);
+      setSuppressSourceStripItemReveal(true);
+    } else {
+      setDuringJobPreviousResultUrl(null);
+      setSuppressSourceStripItemReveal(false);
     }
 
     setErrorMessage(null);
@@ -2161,9 +2316,6 @@ export const GeneratePage: FC = () => {
       } else if (error.message === 'UPLOAD_TOO_LARGE') {
         message = 'Фото слишком большое. Уменьшите изображение или выберите другое и попробуйте снова.';
         setErrorKind('upload');
-      } else if (error.message === 'INVALID_GENERATION_PARAMS') {
-        message = 'Некорректные параметры генерации.';
-        setErrorKind(sourceImageFiles.length > 0 ? 'upload' : 'general');
       } else if (error.message === 'SOURCE_IMAGE_NOT_FOUND') {
         resetUploadedSourceImageCache();
         message = 'Исходное изображение не найдено или истек срок хранения. Загрузите фото заново.';
@@ -2182,7 +2334,10 @@ export const GeneratePage: FC = () => {
         setErrorKind('general');
       }
       message = mapGenerationErrorMessage(message) ?? message;
-      
+
+      setDuringJobPreviousResultUrl(null);
+      setSuppressSourceStripItemReveal(false);
+
       setErrorMessage(message);
       setPageState('error');
       patchHistoryEntry(
@@ -2230,7 +2385,12 @@ export const GeneratePage: FC = () => {
       setReferenceUploadingKey(fieldKey);
       setErrorMessage(null);
       try {
-        const { imageIds } = await apiClient.uploadSourceImages(slice);
+        setSuppressSourceStripItemReveal(false);
+        const uploadFn =
+          fieldKey === PRESET_REF_FIELD_KEY
+            ? (filesInner: File[]) => uploadPresetReferenceSlotToGallery(filesInner)
+            : (filesInner: File[]) => apiClient.uploadSourceImages(filesInner);
+        const { imageIds } = await uploadFn(slice);
         await registerRefImageIdsForFiles(imageIds, slice);
         void appendSourceImages(slice);
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
@@ -2274,7 +2434,7 @@ export const GeneratePage: FC = () => {
         setReferenceUploadingKey(null);
       }
     },
-    [appendSourceImages, effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs],
+    [appendSourceImages, effectiveReferenceMaxUnique, lockedPresetRefFieldKeys, referenceAssignments, registerRefImageIdsForFiles, selectedPresetFieldDefs, uploadPresetReferenceSlotToGallery],
   );
 
   const handleGenerateFormDragOver = useCallback((e: ReactDragEvent) => {
@@ -2299,6 +2459,7 @@ export const GeneratePage: FC = () => {
   );
 
   const clearSourceImage = useCallback((options?: { markAvatarDismissed?: boolean }) => {
+    setSuppressSourceStripItemReveal(false);
     const shouldMarkAvatarDismissed = options?.markAvatarDismissed ?? sourceImageFiles.some((file) => isTelegramAvatarSourceFile(file));
     if (shouldMarkAvatarDismissed) {
       setTelegramAvatarDismissed(true);
@@ -2351,6 +2512,7 @@ export const GeneratePage: FC = () => {
 
   const removeSourceImageAt = useCallback((index: number) => {
     if (index < 0 || index >= sourceImageFiles.length) return;
+    setSuppressSourceStripItemReveal(false);
     const removedFile = sourceImageFiles[index];
     const removedTelegramAvatar = isTelegramAvatarSourceFile(removedFile);
     const fp = sourceFingerprintByIndexRef.current[index];
@@ -2752,7 +2914,7 @@ export const GeneratePage: FC = () => {
   const ownStylePresetRefFromGalleryOk =
     !ownStyleNeedsGalleryPresetRef ||
     (typeof presetRefGalleryId === 'string' && presetRefGalleryId.startsWith('img_sagref_'));
-  /** Опорный стиль для «своего стиля» — только загрузка в слот (img_sagref_*), без PUT черновика */
+  /** Опорный стиль для «своего стиля» — в слот должен попасть id вида img_sagref_* для последующей публикации. */
   const isBlockedByOwnStylePresetRefGate =
     ownStyleNeedsGalleryPresetRef && !ownStylePresetRefFromGalleryOk;
   const isFormValid =
@@ -2760,9 +2922,9 @@ export const GeneratePage: FC = () => {
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid || isBlockedByOwnStylePresetRefGate;
   const hasPromptText = prompt.trim().length > 0;
-  const hasReferenceForPublication =
+  const hasCurrentReferenceForPublication =
     sourceImageFiles.length > 0 || collectUniqueReferenceImageIds(referenceAssignments).size > 0;
-  const hasGeneratedResultForPublication = Boolean(resultImageUrl || imageId);
+  const hasCurrentGeneratedResultForPublication = Boolean(resultImageUrl || imageId);
   const isOwnedSelectedStyle =
     selectedPreset != null &&
     userInfo?.id != null &&
@@ -2781,6 +2943,28 @@ export const GeneratePage: FC = () => {
       ? MODERATION_STATUS_LABELS[selectedStyleModerationStatus]
       : null;
   const latestHistoryEntry = historyEntries[0] ?? null;
+  const publicationHistoryEntry = useMemo(() => {
+    const activeEntry = historyEntries.find((entry) => entry.isActive);
+    if (activeEntry) return activeEntry;
+    if (taskId) {
+      const byTaskId = historyEntries.find((entry) => entry.taskId === taskId);
+      if (byTaskId) return byTaskId;
+    }
+    return latestHistoryEntry;
+  }, [historyEntries, latestHistoryEntry, taskId]);
+  const publicationPresetRefId =
+    publicationHistoryEntry?.referenceAssignmentsSnapshot?.[PRESET_REF_FIELD_KEY]?.[0] ?? null;
+  const publicationReferencePreviewUrl =
+    publicationPresetRefId && publicationHistoryEntry?.referencePreviewSnapshot
+      ? publicationHistoryEntry.referencePreviewSnapshot[publicationPresetRefId] ?? null
+      : null;
+  const publicationGeneratedPreviewUrl = publicationHistoryEntry?.resultImageUrl ?? null;
+  const hasReferenceForPublication = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
+    ? Boolean(publicationPresetRefId)
+    : hasCurrentReferenceForPublication;
+  const hasGeneratedResultForPublication = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
+    ? Boolean(publicationHistoryEntry?.resultImageUrl || publicationHistoryEntry?.imageId)
+    : hasCurrentGeneratedResultForPublication;
   const historyPreviewImage = latestHistoryEntry?.resultImageUrl ?? null;
   const historyPreviewFallback = latestHistoryEntry?.selectedEmoji ?? '🕘';
   const setHistoryHeaderSlot = useGenerateHistoryHeaderStore((s) => s.setSlot);
@@ -2852,6 +3036,8 @@ export const GeneratePage: FC = () => {
 
   const openHistoryEntry = async (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
+    setDuringJobPreviousResultUrl(null);
+    setSuppressSourceStripItemReveal(false);
     setPresetFields({});
     refImageIdToFingerprintRef.current = {};
     sourceFingerprintByIndexRef.current = [];
@@ -2931,8 +3117,9 @@ export const GeneratePage: FC = () => {
     return () => document.removeEventListener('keydown', handleEscapeKey);
   }, [historyOpen]);
 
-  const renderSourceImageStrip = (disabled: boolean) => {
+  const renderSourceImageStrip = (disabled: boolean, stripOpts?: { suppressItemReveal?: boolean }) => {
     const hasAttachedImages = sourceImageFiles.length > 0;
+    const suppressReveal = Boolean(stripOpts?.suppressItemReveal && hasAttachedImages);
 
     return (
     <>
@@ -2947,7 +3134,8 @@ export const GeneratePage: FC = () => {
       <div
         className={cn(
           'generate-source-strip',
-          hasAttachedImages ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed'
+          hasAttachedImages ? 'generate-source-strip--expanded' : 'generate-source-strip--collapsed',
+          suppressReveal && 'generate-source-strip--suppress-item-reveal',
         )}
         aria-label="Прикрепленные изображения"
         onDragOver={disabled ? undefined : handleGenerateFormDragOver}
@@ -3113,6 +3301,7 @@ export const GeneratePage: FC = () => {
     }
     setSelectedStylePresetId(presetId);
     setPresetFields({});
+    setSuppressSourceStripItemReveal(false);
     setReferenceAssignments({});
     setReferencePreviewById({});
     setReferenceUploadingKey(null);
@@ -3125,7 +3314,8 @@ export const GeneratePage: FC = () => {
   };
 
   /**
-   * «Создать свой стиль»: blueprint без POST /generation/style-presets; виртуальная карточка и генерация по blueprint-коду.
+   * «Создать свой стиль»: виртуальная карточка + генерация по blueprint-коду.
+   * Черновик в БД создаётся только при первом upload в слот preset_ref.
    */
   const handleSelectOwnStylePreset = async () => {
     if (ownStyleBootstrapRef.current || bootstrappingOwnStyle) return;
@@ -3640,10 +3830,23 @@ export const GeneratePage: FC = () => {
   // Рендер состояния генерации: спиннер с сообщением "Подождите", форма readonly, кнопка в стиле submit с текстом "Подождите"
   const renderGeneratingState = () => (
     <>
-      <div className="generate-status-container">
-        <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
+      <div className="generate-busy-phase">
+        {duringJobPreviousResultUrl ? (
+          <figure className="generate-busy-prev-result" aria-label="Прошлый успешный результат">
+            <img
+              src={duringJobPreviousResultUrl}
+              alt=""
+              className="generate-busy-prev-result__img"
+              decoding="async"
+            />
+            <figcaption className="generate-busy-prev-result__caption">Прошлый результат</figcaption>
+          </figure>
+        ) : null}
+        <div className="generate-status-container">
+          <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
+        </div>
       </div>
-      {renderSourceImageStrip(true)}
+      {renderSourceImageStrip(true, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
         readOnly: true,
         textDisabled: false,
@@ -3730,7 +3933,7 @@ export const GeneratePage: FC = () => {
       </div>
 
       <div className="generate-success-section generate-new-request">
-        {renderSourceImageStrip(isGenerating)}
+        {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
         {renderGenerateFormBlock({
           readOnly: false,
           textDisabled: isGenerating,
@@ -3753,7 +3956,7 @@ export const GeneratePage: FC = () => {
   const renderErrorState = () => (
     <div className="generate-error-container">
       {renderBrandBlock()}
-      {renderSourceImageStrip(false)}
+      {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
         readOnly: false,
         textDisabled: false,
@@ -3775,7 +3978,7 @@ export const GeneratePage: FC = () => {
   const renderIdleState = () => (
     <>
       {renderBrandBlock()}
-      {renderSourceImageStrip(isGenerating)}
+      {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
 
       {renderGenerateFormBlock({
         readOnly: false,
@@ -3815,6 +4018,12 @@ export const GeneratePage: FC = () => {
         preset={selectedPreset}
         estimatedPublicationCostArt={publishCostHint}
         publishUiHints={publishUiHints}
+        publicationReferencePreviewUrl={
+          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? publicationReferencePreviewUrl : null
+        }
+        publicationGeneratedPreviewUrl={
+          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? publicationGeneratedPreviewUrl : null
+        }
         hasReferenceImage={hasReferenceForPublication}
         hasGeneratedResult={hasGeneratedResultForPublication}
         variant={

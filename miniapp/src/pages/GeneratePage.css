@@ -592,6 +592,10 @@
   animation: generateSourceItemReveal 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.generate-source-strip--suppress-item-reveal.generate-source-strip--expanded .generate-source-strip__item {
+  animation: none;
+}
+
 .generate-source-strip__item {
   /* Здесь grab означает reorder миниатюр; pan-scroll мышью у source strip отключён в useHorizontalScrollStrip. */
   cursor: grab;
@@ -1466,6 +1470,44 @@
 }
 
 /* ========== PROCESS (Please wait...) ========== */
+.generate-busy-phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+.generate-busy-prev-result {
+  margin: 0;
+  padding: 0;
+  border: none;
+  width: min(280px, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.generate-busy-prev-result__img {
+  width: auto;
+  max-width: 100%;
+  max-height: 148px;
+  object-fit: contain;
+  border-radius: 14px;
+  opacity: 0.78;
+}
+
+.generate-busy-prev-result__caption {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+}
+
 /* Занимает место логотипа (280×160) */
 .generate-status-container {
   display: flex;

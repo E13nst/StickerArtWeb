@@ -1,5 +1,10 @@
 export function extractHttpErrorMessage(error: unknown, fallback: string): string {
-  const err = error as { response?: { status?: number; data?: unknown } };
+  const err = error as {
+    code?: string;
+    message?: string;
+    response?: { status?: number; data?: unknown };
+    request?: unknown;
+  };
   const status = err?.response?.status;
 
   if (status === 413) {
@@ -7,7 +12,16 @@ export function extractHttpErrorMessage(error: unknown, fallback: string): strin
   }
 
   const data = err?.response?.data;
-  if (data == null) return fallback;
+  if (data == null) {
+    // Сервер мог не ответить (CORS, timeout, offline, aborted request).
+    if (err?.code === 'ECONNABORTED') {
+      return 'Сервер долго не отвечает. Попробуйте еще раз.';
+    }
+    if (err?.request) {
+      return 'Не удалось получить ответ от сервера. Проверьте сеть и повторите попытку.';
+    }
+    return fallback;
+  }
 
   if (typeof data === 'string' && data.length > 0 && data.length < 500) {
     const trimmed = data.trim();
@@ -17,6 +31,15 @@ export function extractHttpErrorMessage(error: unknown, fallback: string): strin
 
   if (typeof data === 'object') {
     const obj = data as Record<string, unknown>;
+    const validationErrorsRaw = obj.validationErrors;
+    if (validationErrorsRaw && typeof validationErrorsRaw === 'object') {
+      const validationErrors = validationErrorsRaw as Record<string, unknown>;
+      const firstValidationMessage = Object.values(validationErrors).find(
+        (value) => typeof value === 'string' && value.trim().length > 0,
+      ) as string | undefined;
+      if (firstValidationMessage) return firstValidationMessage.trim();
+    }
+
     if (typeof obj.detail === 'string' && obj.detail.length > 0) return obj.detail;
 
     const msg =

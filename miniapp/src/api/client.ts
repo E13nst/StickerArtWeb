@@ -47,21 +47,21 @@ function getStickerProcessorEndpoint(path: string): string {
   return STICKER_PROCESSOR_URL ? `${STICKER_PROCESSOR_URL}${normalizedPath}` : normalizedPath;
 }
 
-function toPublishUserStyleWireBody(body: PublishUserStyleFromTaskRequest): Record<string, unknown> {
-  const wire: Record<string, unknown> = {
+function normalizePublishUserStylePayload(body: PublishUserStyleFromTaskRequest): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {
     code: body.code,
     displayName: body.displayName,
     idempotencyKey: body.idempotencyKey,
     consentResultPublicShow: body.consentResultPublicShow,
   };
-  if (body.description !== undefined) wire.description = body.description;
-  if (body.categoryId !== undefined) wire.categoryId = body.categoryId;
-  if (body.sortOrder !== undefined) wire.sortOrder = body.sortOrder;
+  if (body.description !== undefined) normalized.description = body.description;
+  if (body.categoryId !== undefined) normalized.categoryId = body.categoryId;
+  if (body.sortOrder !== undefined) normalized.sortOrder = body.sortOrder;
   const bp = body.userStyleBlueprintCode;
   if (typeof bp === 'string' && bp.trim()) {
-    wire.user_style_blueprint_code = bp.trim();
+    normalized.userStyleBlueprintCode = bp.trim();
   }
-  return wire;
+  return normalized;
 }
 
 function extractUploadedImageIds(payload: any): string[] {
@@ -359,12 +359,34 @@ async function optimizeUploadImage(file: File): Promise<File> {
   }
 }
 
-async function uploadSourceImageBatch(files: File[]): Promise<string[]> {
+export type StickerProcessorImageUploadBatchOptions = {
+  /** Относительный путь на sticker-processor (по умолчанию /images/upload). */
+  relativePath?: string;
+  /** Дополнительные поля multipart (например preset_style_reference для img_sagref_*). */
+  extraFormFields?: Record<string, string>;
+};
+
+async function uploadSourceImageBatch(
+  files: File[],
+  batchOptions?: StickerProcessorImageUploadBatchOptions,
+): Promise<string[]> {
+  const relativePathRaw = batchOptions?.relativePath?.trim();
+  const relativePath =
+    relativePathRaw && relativePathRaw.length > 0
+      ? relativePathRaw.startsWith('/')
+        ? relativePathRaw
+        : `/${relativePathRaw}`
+      : '/images/upload';
+
   const formData = new FormData();
   files.forEach((file) => formData.append('files', file));
+  Object.entries(batchOptions?.extraFormFields ?? {}).forEach(([k, v]) => {
+    const s = typeof v === 'string' ? v.trim() : '';
+    if (k.trim() && s) formData.append(k, v);
+  });
 
   try {
-    const response = await axios.post(getStickerProcessorEndpoint('/images/upload'), formData, {
+    const response = await axios.post(getStickerProcessorEndpoint(relativePath), formData, {
       headers: {
         Accept: 'application/json'
       },
@@ -381,8 +403,8 @@ async function uploadSourceImageBatch(files: File[]): Promise<string[]> {
     if (error?.response?.status === 413) {
       if (files.length > 1) {
         const middleIndex = Math.ceil(files.length / 2);
-        const leftPart = await uploadSourceImageBatch(files.slice(0, middleIndex));
-        const rightPart = await uploadSourceImageBatch(files.slice(middleIndex));
+        const leftPart = await uploadSourceImageBatch(files.slice(0, middleIndex), batchOptions);
+        const rightPart = await uploadSourceImageBatch(files.slice(middleIndex), batchOptions);
         return [...leftPart, ...rightPart];
       }
 
@@ -518,10 +540,7 @@ export interface PublishUserStyleFromTaskRequest {
   description?: string | null;
   categoryId?: number | null;
   sortOrder?: number | null;
-  /**
-   * На wire в JSON уходит как user_style_blueprint_code (snake_case), см. publishUserStyleFromTask.
-   * Должен совпадать с metadata.userStyleBlueprintCode задачи.
-   */
+  /** На wire в JSON уходит как userStyleBlueprintCode (camelCase). */
   userStyleBlueprintCode?: string | null;
   idempotencyKey: string;
   consentResultPublicShow: boolean;
@@ -2281,7 +2300,7 @@ class ApiClient {
     try {
       const response = await this.client.post<StylePreset>(
         `/generation/v2/tasks/${encodeURIComponent(taskId)}/publish-user-style`,
-        toPublishUserStyleWireBody(body),
+        normalizePublishUserStylePayload(body),
       );
       return response.data;
     } catch (error: unknown) {
@@ -2331,7 +2350,9 @@ class ApiClient {
         throw new Error('INSUFFICIENT_BALANCE');
       }
       if (status === 400) {
-        throw new Error('INVALID_GENERATION_PARAMS');
+        throw new Error(
+          extractHttpErrorMessage(error, 'Некорректные параметры генерации. Проверьте поля и изображения.'),
+        );
       }
       if (status === 401) {
         throw new Error('UNAUTHORIZED');
@@ -2358,6 +2379,37 @@ class ApiClient {
 
     for (const batch of preparedBatches) {
       const batchImageIds = await uploadSourceImageBatch(batch);
+      imageIds.push(...batchImageIds);
+    }
+
+    return { imageIds };
+  }
+
+  /**
+   * Загрузка для слота preset_ref: сервер генерации ждёт id вида img_sagref_*.
+   * Если задан VITE_PRESET_REF_UPLOAD_PATH — multipart уходит только на этот URL.
+   * Иначе — тот же /images/upload, с полем preset_style_reference=true (должен понять sticker-processor).
+   */
+  async uploadPresetStyleReferenceGalleryImages(files: File[]): Promise<UploadImagesResponse> {
+    if (!files.length) {
+      return { imageIds: [] };
+    }
+
+    const customPath = readEnv('VITE_PRESET_REF_UPLOAD_PATH')?.trim();
+    const batchOptions: StickerProcessorImageUploadBatchOptions =
+      customPath && customPath.length > 0
+        ? { relativePath: customPath.startsWith('/') ? customPath : `/${customPath}` }
+        : {
+            relativePath: '/images/upload',
+            extraFormFields: { preset_style_reference: 'true' },
+          };
+
+    const preparedFiles = await Promise.all(files.map((file) => optimizeUploadImage(file)));
+    const preparedBatches = splitFilesIntoUploadBatches(preparedFiles, SOURCE_IMAGE_UPLOAD_BATCH_BYTES);
+    const imageIds: string[] = [];
+
+    for (const batch of preparedBatches) {
+      const batchImageIds = await uploadSourceImageBatch(batch, batchOptions);
       imageIds.push(...batchImageIds);
     }
 

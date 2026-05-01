@@ -12,6 +12,8 @@ export interface StylePresetPublicationModalProps {
   preset: StylePreset | null;
   estimatedPublicationCostArt?: number | null;
   publishUiHints?: Record<string, unknown> | null;
+  publicationReferencePreviewUrl?: string | null;
+  publicationGeneratedPreviewUrl?: string | null;
   hasReferenceImage?: boolean;
   hasGeneratedResult?: boolean;
   onPublished?: (updated: StylePreset) => void;
@@ -22,35 +24,13 @@ export interface StylePresetPublicationModalProps {
   userStyleBlueprintCode?: string | null;
 }
 
-/** Один блок текста: из uiHints или дефолт (что значит публикация). */
-function pickPublicationBody(hints: Record<string, unknown> | null | undefined): string {
-  if (!hints) {
-    return (
-      'После публикации стиль отправится на модерацию. Когда его одобрят, другие смогут использовать ваш пресет в генерации. ' +
-      'Вы получаете отчисления ART по правилам сервиса за их использование. В каталоге может отображаться результат вашей генерации.'
-    );
-  }
-  const direct = hints['publishDescription'];
-  if (typeof direct === 'string' && direct.trim()) return direct.trim();
-  const nested = hints['publishModal'];
-  if (nested && typeof nested === 'object') {
-    const body = (nested as Record<string, unknown>)['description'];
-    if (typeof body === 'string' && body.trim()) return body.trim();
-    const intro = (nested as Record<string, unknown>)['intro'];
-    if (typeof intro === 'string' && intro.trim()) return intro.trim();
-  }
-  return (
-    'После публикации стиль отправится на модерацию. Когда его одобрят, другие смогут использовать ваш пресет в генерации. ' +
-    'Вы получаете отчисления ART по правилам сервиса за их использование. В каталоге может отображаться результат вашей генерации.'
-  );
-}
-
 export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> = ({
   open,
   onClose,
   preset,
   estimatedPublicationCostArt,
-  publishUiHints,
+  publicationReferencePreviewUrl,
+  publicationGeneratedPreviewUrl,
   hasReferenceImage = false,
   hasGeneratedResult = false,
   onPublished,
@@ -76,7 +56,9 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
       ? `${estimatedPublicationCostArt} ART`
       : '10 ART';
 
-  const bodyText = pickPublicationBody(publishUiHints ?? undefined);
+  const referencePreviewUrl = publicationReferencePreviewUrl ?? preset?.presetReferenceImageUrl ?? null;
+  const generatedPreviewUrl =
+    publicationGeneratedPreviewUrl ?? preset?.previewWebpUrl ?? preset?.previewUrl ?? null;
 
   const handleConfirm = useCallback(async () => {
     if (!preset) return;
@@ -161,25 +143,50 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
 
   return (
     <Dialog open={open} onClose={loading ? undefined : onClose} className="style-preset-publish-dialog">
-      <DialogTitle>Публикация в каталог</DialogTitle>
+      <DialogTitle>Публикация стиля</DialogTitle>
       <DialogContent>
+        <p className="style-preset-publish-reward">Получайте ART за использование вашего стиля.</p>
         <section className="style-preset-publish-section">
-          <h3 className="style-preset-publish-section__title">Что произойдёт после отправки</h3>
-          <p className="style-preset-publish-body">{bodyText}</p>
-          {variant === 'task_completed' ? (
-            <p className="style-preset-publish-flow-note">
-              Стиль сразу перейдёт в статус «На модерации», без сохранения в черновики.
-            </p>
-          ) : null}
+          <p className="style-preset-publish-flow-note">
+            После публикации стиль сразу перейдёт в статус «На модерации», без сохранения в черновик.
+          </p>
         </section>
-        {variant === 'task_completed' ? (
-          <section className="style-preset-publish-section">
-            <h3 className="style-preset-publish-section__title">Условия публикации</h3>
-            <p className="style-preset-publish-footnote">
-              Для модерации должны быть прикреплены: 1 референсное фото и результат генерации.
-            </p>
-          </section>
-        ) : null}
+        <section className="style-preset-publish-section style-preset-publish-preview">
+          <p className="style-preset-publish-preview__label">
+            Референсное изображение будет сохранено на сервере и использовано для модерации.
+          </p>
+          <div className="style-preset-publish-preview__thumb-wrap">
+            {referencePreviewUrl ? (
+              <img
+                src={referencePreviewUrl}
+                alt="Референсное изображение стиля"
+                className="style-preset-publish-preview__thumb"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div className="style-preset-publish-preview__placeholder">Нет референса</div>
+            )}
+          </div>
+        </section>
+        <section className="style-preset-publish-section style-preset-publish-preview">
+          <p className="style-preset-publish-preview__label">
+            Это изображение будет отображаться как превью вашего стиля в каталоге.
+          </p>
+          <div className="style-preset-publish-preview__thumb-wrap">
+            {generatedPreviewUrl ? (
+              <img
+                src={generatedPreviewUrl}
+                alt="Превью стиля в каталоге"
+                className="style-preset-publish-preview__thumb"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div className="style-preset-publish-preview__placeholder">Нет превью</div>
+            )}
+          </div>
+        </section>
         <label className="style-preset-publish-field">
           <span className="style-preset-publish-field__label">Название в каталоге</span>
           <input
@@ -191,10 +198,7 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
             autoComplete="off"
           />
         </label>
-        <p className="style-preset-publish-footnote">
-          Нажимая кнопку подтверждения ниже, вы соглашаетесь с публикацией и с отображением результата
-          генерации для других пользователей на условиях сервиса.
-        </p>
+        <p className="style-preset-publish-legal">Нажимая кнопку «Опубликовать», вы соглашаетесь с условиями.</p>
         {error ? (
           <p className="style-preset-publish-error" role="alert">
             {error}
@@ -206,7 +210,7 @@ export const StylePresetPublicationModal: FC<StylePresetPublicationModalProps> =
           Отмена
         </Button>
         <Button variant="primary" onClick={() => void handleConfirm()} loading={loading}>
-          Отправить на модерацию за {costLabel}
+          Опубликовать · {costLabel}
         </Button>
       </DialogActions>
     </Dialog>

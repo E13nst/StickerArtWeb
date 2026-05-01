@@ -9,6 +9,9 @@ export const generationApi = {
     apiClient.getGenerationStatusV2(...args),
   uploadSourceImages: (...args: Parameters<typeof apiClient.uploadSourceImages>) =>
     apiClient.uploadSourceImages(...args),
+  uploadPresetStyleReferenceGalleryImages: (
+    ...args: Parameters<typeof apiClient.uploadPresetStyleReferenceGalleryImages>
+  ) => apiClient.uploadPresetStyleReferenceGalleryImages(...args),
   getStylePresetCategories: (...args: Parameters<typeof apiClient.getStylePresetCategories>) =>
     apiClient.getStylePresetCategories(...args),
   getStylePresets: (...args: Parameters<typeof apiClient.getStylePresets>) =>
