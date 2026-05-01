@@ -5,7 +5,7 @@ import { Text } from '@/components/ui/Text';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
 import { Divider } from '@/components/ui/Divider';
-import { UserInfo } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { getUserFullName, getUserTelegramId, getUserUsername, isUserPremium } from '@/utils/userUtils';
 
 interface UserInfoCardModernProps {

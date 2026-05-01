@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef, FC } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTelegram } from '@/hooks/useTelegram';
-import { useProfileStore, UserInfo } from '@/store/useProfileStore';
+import { useProfileStore } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { useLikesStore } from '@/store/useLikesStore';
 import { apiClient } from '@/api/client';
 import { getUserFirstName, getUserFullName } from '@/utils/userUtils';

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, FC, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
-import { UserInfo } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
 

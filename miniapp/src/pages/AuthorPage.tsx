@@ -9,7 +9,7 @@ import { adaptStickerSetsToGalleryPacks } from '../utils/galleryAdapter';
 import { apiClient } from '../api/client';
 import { useTelegram } from '../hooks/useTelegram';
 import { StickerSetResponse, ProfileResponse } from '../types/sticker';
-import { UserInfo } from '../store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { CompactControlsBar } from '../components/CompactControlsBar';
 import { StickerSetType } from '../components/StickerSetTypeFilter';
 import { Category } from '../components/CategoryFilter';

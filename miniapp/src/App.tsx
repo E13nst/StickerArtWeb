@@ -5,9 +5,8 @@ import MainLayout from '@/layouts/MainLayout';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
-import { apiClient } from '@/api/client';
-import { setInitData } from '@/utils/auth';
 import { readDevTelegramInitDataOverride } from '@/telegram/launchParams';
+import { applyTelegramSessionAuth } from '@/telegram/sessionAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 // 🔍 Импортируем animationMonitor для диагностики производительности
 import '@/utils/animationMonitor';
@@ -49,21 +48,14 @@ const App: FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    const trimmed = (initData || '').trim();
-    const devOverride = readDevTelegramInitDataOverride();
-    // Пустой Telegram init и нет dev-строки — не затираем цепочку в client (интерцептор подставит getInitData()).
-    if (!trimmed && !devOverride) {
-      setInitData(null);
+    const effectiveInitData = applyTelegramSessionAuth(initData, user?.language_code);
+    if (!effectiveInitData) {
       return;
     }
 
-    // Приоритет dev_telegram_init_data внутри apiClient.setAuthHeaders / interceptor / getMergedInitDataRaw
-    apiClient.setAuthHeaders(trimmed, user?.language_code);
-    const merged = apiClient.getMergedInitDataRaw();
-    setInitData(merged);
-
     if (import.meta.env.DEV) {
-      const effective = merged ?? '';
+      const devOverride = readDevTelegramInitDataOverride();
+      const effective = effectiveInitData ?? '';
       const hasQueryId = effective.includes('query_id=');
       const hasChat = effective.includes('chat=') || effective.includes('chat_type=');
       const hasUser = effective.includes('user=');

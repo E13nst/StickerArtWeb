@@ -1,25 +1,13 @@
 import axios from 'axios';
-import type { PresetPublicationRequestDto } from './client';
-import { StylePreset } from './client';
-import { apiClient } from './client';
+import type { PresetPublicationRequestDto } from './index';
+import { StylePreset, apiClient } from './index';
+import { extractHttpErrorMessage } from '@/api/modules/httpError';
 
 function getAxiosConfig() {
   return {
     baseURL: '/api',
     headers: apiClient.getHeaders(),
   };
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const err = error as { response?: { data?: unknown; status?: number } };
-  const data = err?.response?.data;
-  if (typeof data === 'string' && data.length > 0 && data.length < 500) return data.trim();
-  if (data && typeof data === 'object') {
-    const obj = data as Record<string, unknown>;
-    const msg = obj['message'] ?? obj['error'] ?? obj['errorMessage'];
-    if (typeof msg === 'string' && msg.length > 0) return msg;
-  }
-  return fallback;
 }
 
 /**
@@ -48,7 +36,7 @@ export async function likeStylePreset(presetId: number): Promise<void> {
       { headers: cfg.headers }
     );
   } catch (error: unknown) {
-    throw new Error(getErrorMessage(error, 'Не удалось добавить пресет в сохранённые'));
+    throw new Error(extractHttpErrorMessage(error, 'Не удалось добавить пресет в сохранённые'));
   }
 }
 
@@ -64,7 +52,7 @@ export async function unlikeStylePreset(presetId: number): Promise<void> {
       { headers: cfg.headers }
     );
   } catch (error: unknown) {
-    throw new Error(getErrorMessage(error, 'Не удалось убрать пресет из сохранённых'));
+    throw new Error(extractHttpErrorMessage(error, 'Не удалось убрать пресет из сохранённых'));
   }
 }
 
@@ -85,7 +73,7 @@ export async function publishStylePreset(
     );
     return response.data;
   } catch (error: unknown) {
-    throw new Error(getErrorMessage(error, 'Не удалось опубликовать пресет'));
+    throw new Error(extractHttpErrorMessage(error, 'Не удалось опубликовать пресет'));
   }
 }
 
@@ -103,7 +91,7 @@ export async function unpublishStylePresetFromCatalog(presetId: number): Promise
     );
     return response.data;
   } catch (error: unknown) {
-    throw new Error(getErrorMessage(error, 'Не удалось снять пресет с публикации'));
+    throw new Error(extractHttpErrorMessage(error, 'Не удалось снять пресет с публикации'));
   }
 }
 

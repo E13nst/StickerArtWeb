@@ -1,15 +1,20 @@
 import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CreateStickerSetCreateRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
-import { UserInfo } from '../store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { mockStickerSets } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
 import {
-  getInitData,
+  detectInitDataSource,
+  initializeAuthFromLocalStorage,
+  resolveAuthHeaderInput,
+  resolveEffectiveInitDataRawForRequests,
+} from '@/api/modules/authHeaders';
+import { extractHttpErrorMessage } from '@/api/modules/httpError';
+import {
   resolveUserIdForStickerAuth,
   isLikelyDevelopmentMockInitDataRaw,
   parseUserIdFromInitDataString,
-  readDevTelegramInitDataOverride,
 } from '../telegram/launchParams';
 
 /** Сброс кэша dedup после мутаций наборов: GET `/stickersets/user/{userId}` */
@@ -40,41 +45,6 @@ const JPEG_UPLOAD_QUALITIES = [0.96, 0.92, 0.88, 0.84, 0.8, 0.76, 0.72] as const
 function getStickerProcessorEndpoint(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return STICKER_PROCESSOR_URL ? `${STICKER_PROCESSOR_URL}${normalizedPath}` : normalizedPath;
-}
-
-/** Извлекает текст ошибки из ответа сервера (JSON или строка) для отображения пользователю */
-function getErrorMessage(error: any, fallback: string): string {
-  const status = error?.response?.status;
-  if (status === 413) {
-    return 'Изображение слишком большое. Попробуйте выбрать другое фото или уменьшить его размер.';
-  }
-
-  const data = error?.response?.data;
-  if (data == null) return fallback;
-  if (typeof data === 'string' && data.length > 0 && data.length < 500) {
-    const trimmed = data.trim();
-    const looksLikeHtml = /^<!doctype|^<html[\s>]|^<head[\s>]|^<body[\s>]|<h1[\s>]|<\/html>$/i.test(trimmed);
-    if (!looksLikeHtml) {
-      return trimmed;
-    }
-  }
-  if (typeof data === 'object') {
-    // Spring ProblemDetail / типичные REST-ошибки
-    if (typeof data.detail === 'string' && data.detail.length > 0) return data.detail;
-    const msg =
-      data.message ??
-      data.error ??
-      data.errorMessage ??
-      data.reason ??
-      (typeof data.description === 'string' ? data.description : undefined) ??
-      (typeof data.title === 'string' && data.title !== 'Error' ? data.title : undefined);
-    if (typeof msg === 'string' && msg.length > 0) return msg;
-    const detail = data.detail;
-    if (typeof detail === 'string' && detail.length > 0) return detail;
-    if (Array.isArray(detail) && detail[0] && typeof detail[0] === 'object' && detail[0].message) return detail[0].message;
-    if (Array.isArray(detail) && detail[0] && typeof detail[0] === 'string') return detail[0];
-  }
-  return fallback;
 }
 
 function toPublishUserStyleWireBody(body: PublishUserStyleFromTaskRequest): Record<string, unknown> {
@@ -427,7 +397,7 @@ async function uploadSourceImageBatch(files: File[]): Promise<string[]> {
       throw new Error('Не удалось получить идентификатор загруженного изображения.');
     }
 
-    throw new Error(getErrorMessage(error, 'Не удалось загрузить изображение. Попробуйте снова.'));
+    throw new Error(extractHttpErrorMessage(error, 'Не удалось загрузить изображение. Попробуйте снова.'));
   }
 }
 
@@ -782,15 +752,7 @@ class ApiClient {
         // Один порядок с getMergedInitDataRaw: dev_telegram_init_data → defaults → getInitData()
         if (!headers['X-Telegram-Init-Data']) {
           let initData = this.resolveEffectiveInitDataRawForRequests() || undefined;
-          let source: 'request' | 'dev_localStorage' | 'defaults' | 'getInitData()' | 'missing' =
-            'missing';
-          if (initData) {
-            const dev = readDevTelegramInitDataOverride();
-            const def = this.client.defaults.headers.common['X-Telegram-Init-Data'] as string | undefined;
-            if (dev && dev === initData) source = 'dev_localStorage';
-            else if (typeof def === 'string' && def.trim() === initData) source = 'defaults';
-            else source = 'getInitData()';
-          }
+          const source = detectInitDataSource(this.client, initData ?? null);
           
           if (initData && initData.length > 0) {
             headers['X-Telegram-Init-Data'] = initData;
@@ -915,29 +877,14 @@ class ApiClient {
 
   // ✅ Инициализация auth заголовков из localStorage (для тестирования с ModHeader)
   private initializeAuthFromLocalStorage() {
-    try {
-      const storedInitData = localStorage.getItem('dev_telegram_init_data');
-      if (storedInitData) {
-        console.log('🔐 Используется initData из localStorage для API запросов');
-        this.setAuthHeaders(storedInitData);
-      }
-    } catch (e) {
-      console.warn('Ошибка чтения dev_telegram_init_data из localStorage:', e);
-    }
+    initializeAuthFromLocalStorage((initData, language) => this.setAuthHeaders(initData, language));
   }
 
   /**
    * Единая строка для заголовка и getMergedInitDataRaw.
    */
   private resolveEffectiveInitDataRawForRequests(): string | null {
-    const dev = readDevTelegramInitDataOverride();
-    if (dev) return dev;
-
-    const common = this.client.defaults.headers.common;
-    const main = common['X-Telegram-Init-Data'] as string | undefined;
-    if (typeof main === 'string' && main.trim().length > 0) return main.trim();
-
-    return getInitData();
+    return resolveEffectiveInitDataRawForRequests(this.client);
   }
 
   // Добавляем заголовки аутентификации (botName не отправляем)
@@ -945,12 +892,11 @@ class ApiClient {
   // Пустая строка тоже отправляется - бэкенд сам решит, валидна ли она
   // При inline query initData содержит user и query_id (без chat) - это нормально
   setAuthHeaders(initData: string, language?: string) {
-    const dev = readDevTelegramInitDataOverride();
-    const effective = dev ?? initData;
+    const { effectiveInitData: effective, hasDevOverride } = resolveAuthHeaderInput(initData);
     if (
       import.meta.env.DEV &&
-      dev &&
-      initData !== dev &&
+      hasDevOverride &&
+      initData !== effective &&
       typeof initData === 'string' &&
       initData.trim().length > 0
     ) {
@@ -1554,7 +1500,7 @@ class ApiClient {
       return { isLiked, totalLikes: data.totalLikes ?? 0 };
     } catch (error: any) {
       const status = error.response?.status;
-      const msg = getErrorMessage(error, status === 500 ? 'Попробуйте позже.' : 'Не удалось изменить лайк. Попробуйте позже.');
+      const msg = extractHttpErrorMessage(error, status === 500 ? 'Попробуйте позже.' : 'Не удалось изменить лайк. Попробуйте позже.');
       console.error(`❌ Ошибка при переключении лайка стикерсета ${stickerSetId}:`, status, error.response?.data ?? error.message);
       throw new Error(status === 500 ? `Сервер не смог обработать лайк. ${msg}` : msg);
     }
@@ -1572,7 +1518,7 @@ class ApiClient {
       return { isLiked, totalLikes: data.totalLikes ?? 0 };
     } catch (error: any) {
       const status = error.response?.status;
-      const msg = getErrorMessage(error, 'Не удалось поставить лайк. Попробуйте позже.');
+      const msg = extractHttpErrorMessage(error, 'Не удалось поставить лайк. Попробуйте позже.');
       console.error(`❌ Ошибка при установке лайка для стикерсета ${stickerSetId}:`, status, error.response?.data ?? error.message);
       throw new Error(status === 500 ? `Сервер не смог обработать лайк. ${msg}` : msg);
     }
@@ -1590,7 +1536,7 @@ class ApiClient {
       return { isLiked, totalLikes: data.totalLikes ?? 0 };
     } catch (error: any) {
       const status = error.response?.status;
-      const msg = getErrorMessage(error, 'Не удалось убрать лайк. Попробуйте позже.');
+      const msg = extractHttpErrorMessage(error, 'Не удалось убрать лайк. Попробуйте позже.');
       console.error(`❌ Ошибка при снятии лайка для стикерсета ${stickerSetId}:`, status, error.response?.data ?? error.message);
       throw new Error(status === 500 ? `Сервер не смог обработать лайк. ${msg}` : msg);
     }
@@ -2347,7 +2293,7 @@ class ApiClient {
       if (status === 402) {
         throw new Error('Недостаточно ART для публикации стиля.');
       }
-      const msg = getErrorMessage(error, 'Не удалось опубликовать стиль');
+      const msg = extractHttpErrorMessage(error, 'Не удалось опубликовать стиль');
       if (status === 400 && /недостаточно\s+art/i.test(msg)) {
         throw new Error(msg);
       }
@@ -2397,7 +2343,7 @@ class ApiClient {
         throw new Error('GENERATION_START_TIMEOUT');
       }
 
-      throw new Error(getErrorMessage(error, 'Не удалось запустить генерацию. Попробуйте позже.'));
+      throw new Error(extractHttpErrorMessage(error, 'Не удалось запустить генерацию. Попробуйте позже.'));
     }
   }
 
@@ -2505,7 +2451,7 @@ class ApiClient {
       return response.data ?? [];
     } catch (error: unknown) {
       console.error('❌ Ошибка загрузки шаблонов создания пресета:', error);
-      throw new Error(getErrorMessage(error, 'Не удалось загрузить шаблоны пресета'));
+      throw new Error(extractHttpErrorMessage(error, 'Не удалось загрузить шаблоны пресета'));
     }
   }
 
@@ -2519,7 +2465,7 @@ class ApiClient {
       if (status === 401) {
         throw new Error('Требуется авторизация');
       }
-      throw new Error(getErrorMessage(error, 'Не удалось создать пресет'));
+      throw new Error(extractHttpErrorMessage(error, 'Не удалось создать пресет'));
     }
   }
 
@@ -2532,7 +2478,7 @@ class ApiClient {
       if (error?.response?.status === 401) {
         throw new Error('Требуется авторизация');
       }
-      throw new Error(getErrorMessage(error, 'Не удалось сохранить пресет'));
+      throw new Error(extractHttpErrorMessage(error, 'Не удалось сохранить пресет'));
     }
   }
 
@@ -2544,7 +2490,7 @@ class ApiClient {
       if (error?.response?.status === 401) {
         throw new Error('Требуется авторизация');
       }
-      throw new Error(getErrorMessage(error, 'Не удалось удалить пресет'));
+      throw new Error(extractHttpErrorMessage(error, 'Не удалось удалить пресет'));
     }
   }
 
@@ -2714,17 +2660,17 @@ class ApiClient {
               'Откройте мини-апп из бота или сохраните строку initData из Telegram в localStorage: dev_telegram_init_data.'
           );
         }
-        throw new Error(getErrorMessage(error, 'Неверные данные для сохранения стикера'));
+        throw new Error(extractHttpErrorMessage(error, 'Неверные данные для сохранения стикера'));
       }
       if (status === 422) {
-        throw new Error(getErrorMessage(error, 'Стикер не удалось сохранить в набор'));
+        throw new Error(extractHttpErrorMessage(error, 'Стикер не удалось сохранить в набор'));
       }
       if (status === 424) {
-        throw new Error(getErrorMessage(error, 'Ошибка upstream при сохранении стикера'));
+        throw new Error(extractHttpErrorMessage(error, 'Ошибка upstream при сохранении стикера'));
       }
 
       const fallback = 'Не удалось сохранить стикер. Попробуйте позже.';
-      let message = getErrorMessage(error, fallback);
+      let message = extractHttpErrorMessage(error, fallback);
       if (message === fallback && typeof status === 'number') {
         message = `${fallback} (HTTP ${status})`;
       }

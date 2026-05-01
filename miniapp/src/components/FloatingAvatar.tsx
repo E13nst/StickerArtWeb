@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, FC } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
-import { UserInfo } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { getUserFirstName, getUserLastName } from '@/utils/userUtils';
 
 interface FloatingAvatarProps {

@@ -2,7 +2,7 @@ import { useState, FC } from 'react';
 import { PersonIcon } from '@/components/ui/Icons';
 import { Text } from '@/components/ui/Text';
 import { Chip } from '@/components/ui/Chip';
-import { UserInfo } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import { getAvatarUrl, getInitials, getAvatarColor } from '@/utils/avatarUtils';
 import { getUserFirstName, getUserLastName, getUserFullName, getUserTelegramId } from '@/utils/userUtils';
 import './UserInfoCard.css';

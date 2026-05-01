@@ -1,5 +1,5 @@
 import { getAvatarUrl, getOptimalAvatarFileId } from '@/utils/avatarUtils';
-import type { UserInfo } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 import type { TelegramUser } from '@/types/telegram';
 
 export interface ResolvedAvatarInput {

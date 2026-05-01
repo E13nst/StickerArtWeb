@@ -2,7 +2,7 @@
  * Утилиты для работы с данными пользователей
  */
 
-import { UserInfo } from '@/store/useProfileStore';
+import type { UserInfo } from '@/types/user';
 
 /**
  * Получает имя пользователя из приоритетного источника
