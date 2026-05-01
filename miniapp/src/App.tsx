@@ -7,6 +7,7 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { apiClient } from '@/api/client';
 import { setInitData } from '@/utils/auth';
+import { readDevTelegramInitDataOverride } from '@/telegram/launchParams';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 // 🔍 Импортируем animationMonitor для диагностики производительности
 import '@/utils/animationMonitor';
@@ -48,30 +49,34 @@ const App: FC = () => {
   }, [clearStorage]);
 
   useEffect(() => {
-    // Устанавливаем заголовки только когда есть непустой initData.
-    // Иначе не перезаписываем defaults — интерцептор в client.ts возьмёт initData из getInitData() (Telegram.WebApp, URL, sessionStorage) на каждый запрос.
-    const currentInitData = (initData || '').trim();
-    if (!currentInitData) {
+    const trimmed = (initData || '').trim();
+    const devOverride = readDevTelegramInitDataOverride();
+    // Пустой Telegram init и нет dev-строки — не затираем цепочку в client (интерцептор подставит getInitData()).
+    if (!trimmed && !devOverride) {
       setInitData(null);
       return;
     }
 
-    apiClient.setAuthHeaders(currentInitData, user?.language_code);
-    setInitData(currentInitData);
+    // Приоритет dev_telegram_init_data внутри apiClient.setAuthHeaders / interceptor / getMergedInitDataRaw
+    apiClient.setAuthHeaders(trimmed, user?.language_code);
+    const merged = apiClient.getMergedInitDataRaw();
+    setInitData(merged);
 
     if (import.meta.env.DEV) {
-      const hasQueryId = currentInitData.includes('query_id=');
-      const hasChat = currentInitData.includes('chat=') || currentInitData.includes('chat_type=');
-      const hasUser = currentInitData.includes('user=');
+      const effective = merged ?? '';
+      const hasQueryId = effective.includes('query_id=');
+      const hasChat = effective.includes('chat=') || effective.includes('chat_type=');
+      const hasUser = effective.includes('user=');
       const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : hasChat ? 'CHAT' : 'UNKNOWN';
       console.log('🔐 App.tsx: Установка заголовков авторизации:', {
         context,
         hasQueryId,
         hasChat,
         hasUser,
-        initDataLength: currentInitData.length,
+        initDataLength: effective.length,
         hasUserObject: Boolean(user),
-        language: user?.language_code
+        language: user?.language_code,
+        usedDevLocalStorage: Boolean(devOverride),
       });
       if (hasQueryId && !hasChat && hasUser) {
         console.log('✅ Inline query контекст подтвержден: initData содержит user + query_id без chat');

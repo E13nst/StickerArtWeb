@@ -4,7 +4,13 @@ import { UserInfo } from '../store/useProfileStore';
 import { mockStickerSets } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
-import { getInitData } from '../telegram/launchParams';
+import {
+  getInitData,
+  resolveUserIdForStickerAuth,
+  isLikelyDevelopmentMockInitDataRaw,
+  parseUserIdFromInitDataString,
+  readDevTelegramInitDataOverride,
+} from '../telegram/launchParams';
 
 /** Сброс кэша dedup после мутаций наборов: GET `/stickersets/user/{userId}` */
 function invalidateUserStickerSetsCache(userId?: number): void {
@@ -53,7 +59,15 @@ function getErrorMessage(error: any, fallback: string): string {
     }
   }
   if (typeof data === 'object') {
-    const msg = data.message ?? data.error ?? data.errorMessage;
+    // Spring ProblemDetail / типичные REST-ошибки
+    if (typeof data.detail === 'string' && data.detail.length > 0) return data.detail;
+    const msg =
+      data.message ??
+      data.error ??
+      data.errorMessage ??
+      data.reason ??
+      (typeof data.description === 'string' ? data.description : undefined) ??
+      (typeof data.title === 'string' && data.title !== 'Error' ? data.title : undefined);
     if (typeof msg === 'string' && msg.length > 0) return msg;
     const detail = data.detail;
     if (typeof detail === 'string' && detail.length > 0) return detail;
@@ -765,17 +779,17 @@ class ApiClient {
         const headers = config.headers ?? {};
 
         // ✅ FIX: Добавляем заголовок X-Telegram-Init-Data на КАЖДЫЙ запрос в момент отправки
-        // Приоритет: 1) уже установлен в запросе, 2) из defaults, 3) из getInitData() (захватчик)
-        // Это гарантирует работу даже если setAuthHeaders не был вызван или был вызван поздно
+        // Один порядок с getMergedInitDataRaw: dev_telegram_init_data → defaults → getInitData()
         if (!headers['X-Telegram-Init-Data']) {
-          // Сначала проверяем defaults (установленные через setAuthHeaders)
-          let initData = this.client.defaults.headers.common['X-Telegram-Init-Data'] as string | undefined;
-          let source: 'request' | 'defaults' | 'getInitData()' | 'missing' = 'defaults';
-          
-          // Если в defaults нет, используем захватчик (читает из Telegram.WebApp, sessionStorage, URL)
-          if (!initData) {
-            initData = getInitData() || undefined;
-            source = initData ? 'getInitData()' : 'missing';
+          let initData = this.resolveEffectiveInitDataRawForRequests() || undefined;
+          let source: 'request' | 'dev_localStorage' | 'defaults' | 'getInitData()' | 'missing' =
+            'missing';
+          if (initData) {
+            const dev = readDevTelegramInitDataOverride();
+            const def = this.client.defaults.headers.common['X-Telegram-Init-Data'] as string | undefined;
+            if (dev && dev === initData) source = 'dev_localStorage';
+            else if (typeof def === 'string' && def.trim() === initData) source = 'defaults';
+            else source = 'getInitData()';
           }
           
           if (initData && initData.length > 0) {
@@ -912,26 +926,51 @@ class ApiClient {
     }
   }
 
+  /**
+   * Единая строка для заголовка и getMergedInitDataRaw.
+   */
+  private resolveEffectiveInitDataRawForRequests(): string | null {
+    const dev = readDevTelegramInitDataOverride();
+    if (dev) return dev;
+
+    const common = this.client.defaults.headers.common;
+    const main = common['X-Telegram-Init-Data'] as string | undefined;
+    if (typeof main === 'string' && main.trim().length > 0) return main.trim();
+
+    return getInitData();
+  }
+
   // Добавляем заголовки аутентификации (botName не отправляем)
   // ✅ FIX: Метод устанавливает initData ВСЕГДА, независимо от содержания
   // Пустая строка тоже отправляется - бэкенд сам решит, валидна ли она
   // При inline query initData содержит user и query_id (без chat) - это нормально
   setAuthHeaders(initData: string, language?: string) {
+    const dev = readDevTelegramInitDataOverride();
+    const effective = dev ?? initData;
+    if (
+      import.meta.env.DEV &&
+      dev &&
+      initData !== dev &&
+      typeof initData === 'string' &&
+      initData.trim().length > 0
+    ) {
+      console.info('[api] setAuthHeaders: приоритет dev_telegram_init_data над переданной строкой');
+    }
     // Устанавливаем заголовок ВСЕГДА, даже если initData пустая строка
-    this.client.defaults.headers.common['X-Telegram-Init-Data'] = initData;
+    this.client.defaults.headers.common['X-Telegram-Init-Data'] = effective;
     this.setLanguage(language);
     
     // Улучшенное логирование для диагностики
     if (import.meta.env.DEV) {
-      const hasQueryId = initData.includes('query_id=');
-      const hasChat = initData.includes('chat=') || initData.includes('chat_type=');
-      const hasUser = initData.includes('user=');
+      const hasQueryId = effective.includes('query_id=');
+      const hasChat = effective.includes('chat=') || effective.includes('chat_type=');
+      const hasUser = effective.includes('user=');
       const context = hasQueryId && !hasChat ? 'INLINE_QUERY' : 
                       hasChat ? 'CHAT' : 
-                      initData ? 'UNKNOWN' : 'EMPTY';
+                      effective ? 'UNKNOWN' : 'EMPTY';
       
       console.log('✅ Заголовки аутентификации установлены:');
-      console.log('  X-Telegram-Init-Data:', initData ? `${initData.length} chars` : 'empty string');
+      console.log('  X-Telegram-Init-Data:', effective ? `${effective.length} chars` : 'empty string');
       console.log('  Контекст:', context);
       console.log('  hasQueryId:', hasQueryId);
       console.log('  hasChat:', hasChat);
@@ -951,24 +990,50 @@ class ApiClient {
     this.client.defaults.headers.common['X-Language'] = this.language;
   }
 
-  // Проверяем заголовки от Chrome расширений (ModHeader и т.п.)
+  // Совместимость со старыми вызовами в страницах: расширения больше не поддерживаются как отдельный источник.
   checkExtensionHeaders() {
-    // ModHeader добавляет заголовки в fetch requests
-    // Проверяем, есть ли заголовки от расширений
-    const extensionInitData = this.client.defaults.headers.common['X-Telegram-Init-Data-Extension'];
-    
-    if (extensionInitData) {
-      console.log('🔧 Обнаружены заголовки от Chrome расширения:');
-      console.log('  X-Telegram-Init-Data-Extension:', extensionInitData);
-      
-      // Используем заголовки от расширения
-      this.client.defaults.headers.common['X-Telegram-Init-Data'] = extensionInitData;
-      this.setLanguage();
-      
-      return true;
-    }
-    
     return false;
+  }
+
+  /**
+   * Сырая init-data в том же порядке, что и HTTP interceptor.
+   */
+  getMergedInitDataRaw(): string | null {
+    return this.resolveEffectiveInitDataRawForRequests();
+  }
+
+  /** user id для save-to-set / списков паков — из той же строки auth, что уйдёт в заголовок. */
+  getStickerAuthUserId(profileFallback: number | null | undefined): number | null {
+    return resolveUserIdForStickerAuth(profileFallback, this.getMergedInitDataRaw());
+  }
+
+  /**
+   * DEV: при mock-init (777000) и «живом» профиле — запрос списка паков по id профиля (дефолтный пак в БД там).
+   * Сохранение по-прежнему через выравнивание userId в saveToStickerSetV2 по Init-Data.
+   */
+  getStickerSetListOwnerUserId(profileFallback: number | null | undefined): number | null {
+    const authId = this.getStickerAuthUserId(profileFallback);
+    const raw = this.getMergedInitDataRaw();
+    const pf =
+      typeof profileFallback === 'number' && Number.isFinite(profileFallback)
+        ? profileFallback
+        : null;
+
+    if (
+      pf != null &&
+      authId != null &&
+      pf !== authId &&
+      isLikelyDevelopmentMockInitDataRaw(raw)
+    ) {
+      if (import.meta.env.DEV) {
+        console.info('[api] Списки паков для Save: DEV mock-init → запрос как у профиля', {
+          listAsUserId: pf,
+          initAuthUserId: authId,
+        });
+      }
+      return pf;
+    }
+    return authId;
   }
 
   // Получение текущих заголовков
@@ -2531,7 +2596,63 @@ class ApiClient {
   // API endpoint: POST /api/generation/v2/save-to-set
   async saveToStickerSetV2(request: SaveToSetV2Request): Promise<SaveToSetV2Response> {
     try {
-      const response = await this.client.post<SaveToSetV2Response | string>('/generation/v2/save-to-set', request);
+      const mergedRaw = this.getMergedInitDataRaw();
+      const mergedInitUserId = parseUserIdFromInitDataString(mergedRaw);
+
+      // DEV guard: если фронт работает на mock-init, а в теле профильный userId — запрос заранее обречен на 400.
+      if (
+        isLikelyDevelopmentMockInitDataRaw(mergedRaw) &&
+        typeof mergedInitUserId === 'number' &&
+        typeof request.userId === 'number' &&
+        Number.isFinite(request.userId) &&
+        request.userId !== mergedInitUserId
+      ) {
+        throw new Error(
+          `Сохранение заблокировано в DEV до отправки запроса: фронт использует mock Init-Data (id=${mergedInitUserId}), ` +
+            `а в теле userId=${request.userId}. ` +
+            'Откройте мини-апп из Telegram или сохраните реальную строку initData в localStorage: dev_telegram_init_data.'
+        );
+      }
+
+      /* В DEV mock init парсер даёт 777000; в теле нужен id из профиля (через request.userId).
+         В проде строка не mock — выравниваем под реальный Init-Data. */
+      let userIdAligned: number;
+      if (
+        isLikelyDevelopmentMockInitDataRaw(mergedRaw) &&
+        typeof request.userId === 'number' &&
+        Number.isFinite(request.userId)
+      ) {
+        userIdAligned = request.userId;
+        if (import.meta.env.DEV) {
+          const fromInit = this.getStickerAuthUserId(request.userId);
+          if (fromInit != null && fromInit !== request.userId) {
+            console.warn('[saveToStickerSetV2] mock Init-Data (DEV): userId в теле = из запроса (профиль)', {
+              requestUserId: request.userId,
+              wouldBeFromMockParsing: fromInit,
+            });
+          }
+        }
+      } else {
+        userIdAligned =
+          this.getStickerAuthUserId(request.userId) ?? request.userId;
+        if (
+          import.meta.env.DEV &&
+          typeof request.userId === 'number' &&
+          userIdAligned !== request.userId
+        ) {
+          console.warn('[saveToStickerSetV2] userId в теле выровнен под Init-Data:', {
+            requested: request.userId,
+            aligned: userIdAligned,
+          });
+        }
+      }
+
+      const payload = { ...request, userId: userIdAligned };
+
+      const response = await this.client.post<SaveToSetV2Response | string>(
+        '/generation/v2/save-to-set',
+        payload
+      );
       const responseData = typeof response.data === 'object' && response.data !== null ? response.data : {};
       if (!responseData.stickerFileId && responseData.telegramFileId) {
         responseData.stickerFileId = responseData.telegramFileId;
@@ -2541,7 +2662,14 @@ class ApiClient {
       }
       const bodyStatus = responseData.status;
       if (bodyStatus !== '202' && bodyStatus !== 'PENDING') {
-        invalidateUserStickerSetsCache(request.userId);
+        invalidateUserStickerSetsCache(userIdAligned);
+        if (
+          typeof request.userId === 'number' &&
+          Number.isFinite(request.userId) &&
+          request.userId !== userIdAligned
+        ) {
+          invalidateUserStickerSetsCache(request.userId);
+        }
       }
       console.log('✅ V2 стикер сохранён в набор:', responseData);
       return responseData;
@@ -2559,6 +2687,35 @@ class ApiClient {
       if (status === 410) {
         throw new Error('Результат генерации больше недоступен');
       }
+      if (status === 400) {
+        const merged = this.getMergedInitDataRaw();
+        const initParsed = parseUserIdFromInitDataString(merged);
+        let sentBodyUserId: number | undefined;
+        try {
+          const rawBody = error?.config?.data;
+          if (typeof rawBody === 'string' && rawBody.length > 0) {
+            const parsed = JSON.parse(rawBody) as { userId?: unknown };
+            if (typeof parsed?.userId === 'number' && Number.isFinite(parsed.userId)) {
+              sentBodyUserId = parsed.userId;
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+        if (
+          isLikelyDevelopmentMockInitDataRaw(merged) &&
+          typeof initParsed === 'number' &&
+          typeof sentBodyUserId === 'number' &&
+          sentBodyUserId !== initParsed
+        ) {
+          throw new Error(
+            `Сервер отклонил сохранение (400): в заголовке Init-Data пользователь id=${initParsed} (mock вне Telegram), ` +
+              `в теле запроса userId=${sentBodyUserId}. Для бэкенда они должны быть согласованы. ` +
+              'Откройте мини-апп из бота или сохраните строку initData из Telegram в localStorage: dev_telegram_init_data.'
+          );
+        }
+        throw new Error(getErrorMessage(error, 'Неверные данные для сохранения стикера'));
+      }
       if (status === 422) {
         throw new Error(getErrorMessage(error, 'Стикер не удалось сохранить в набор'));
       }
@@ -2566,7 +2723,15 @@ class ApiClient {
         throw new Error(getErrorMessage(error, 'Ошибка upstream при сохранении стикера'));
       }
 
-      throw new Error(getErrorMessage(error, 'Не удалось сохранить стикер. Попробуйте позже.'));
+      const fallback = 'Не удалось сохранить стикер. Попробуйте позже.';
+      let message = getErrorMessage(error, fallback);
+      if (message === fallback && typeof status === 'number') {
+        message = `${fallback} (HTTP ${status})`;
+      }
+      if (import.meta.env.DEV && error?.response?.data !== undefined) {
+        console.warn('[saveToStickerSetV2] Ответ сервера при ошибке:', status, error.response.data);
+      }
+      throw new Error(message);
     }
   }
 }

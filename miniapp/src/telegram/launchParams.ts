@@ -100,6 +100,79 @@ export function getInitData(): string | null {
   return null;
 }
 
+/** Разбор `user.id` из сырой строки query init-data (`user=%7B%22id%22%3A...`). */
+export function parseUserIdFromInitDataString(raw: string | null | undefined): number | null {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    const params = new URLSearchParams(raw);
+    const userStr = params.get('user');
+    if (!userStr) return null;
+    const candidates = [userStr];
+    try {
+      const decoded = decodeURIComponent(userStr);
+      if (decoded !== userStr) candidates.push(decoded);
+    } catch {
+      /* ignore */
+    }
+    for (const c of candidates) {
+      try {
+        const u = JSON.parse(c) as { id?: unknown };
+        if (typeof u?.id === 'number' && Number.isFinite(u.id)) return u.id;
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** Telegram user id из getInitData(). */
+export function parseUserIdFromInitData(): number | null {
+  return parseUserIdFromInitDataString(getInitData());
+}
+
+/**
+ * DEV: строка из `localStorage['dev_telegram_init_data']` — один приоритетный источник вместе с ApiClient.
+ */
+export function readDevTelegramInitDataOverride(): string | null {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const v = localStorage.getItem('dev_telegram_init_data')?.trim();
+    return v && v.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Для стикер-паков: id из строки auth; иначе профиль.
+ * `prioritizedInitRaw` — как в axios / getMergedInitDataRaw: dev override → defaults → getInitData().
+ */
+export function resolveUserIdForStickerAuth(
+  profileUserId: number | null | undefined,
+  prioritizedInitRaw?: string | null
+): number | null {
+  const raw =
+    typeof prioritizedInitRaw === 'string' && prioritizedInitRaw.trim().length > 0
+      ? prioritizedInitRaw.trim()
+      : getInitData();
+  const fromInit = parseUserIdFromInitDataString(raw);
+  if (fromInit != null) return fromInit;
+  if (typeof profileUserId === 'number' && Number.isFinite(profileUserId)) return profileUserId;
+  return null;
+}
+
+/** Строки init-data из браузерного mock (НЕ Telegram). Используется только UX в DEV. */
+export function isLikelyDevelopmentMockInitDataRaw(raw: string | null | undefined): boolean {
+  if (!raw || typeof raw !== 'string') return false;
+  return (
+    raw.includes('mock_hash_for_development') ||
+    raw.includes('&hash=test_hash')
+  );
+}
+
 /**
  * Smoke test: проверить где находятся параметры tgWebAppData
  * Вызывается в диагностике для определения источника параметров

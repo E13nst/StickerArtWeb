@@ -115,7 +115,14 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   onSaved,
 }) => {
   const userInfo = useProfileStore((state) => state.userInfo);
-  const effectiveUserId = userId ?? userInfo?.telegramId ?? userInfo?.id ?? null;
+  const profileScoped = userId ?? userInfo?.telegramId ?? userInfo?.id ?? null;
+  /** Списки: в DEV при mock-init — id профиля (где лежат ваши верифицированные паки). */
+  const listOwnerUserId = apiClient.getStickerSetListOwnerUserId(profileScoped);
+  /** Тело POST save-to-set — id профиля; при strings mock Init-Data ApiClient не подставит 777000. */
+  const saveBodyUserId =
+    typeof profileScoped === 'number' && Number.isFinite(profileScoped)
+      ? profileScoped
+      : apiClient.getStickerAuthUserId(profileScoped);
   const [sets, setSets] = useState<StickerSetResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -152,13 +159,13 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
   );
 
   const loadSets = useCallback(async () => {
-    if (!effectiveUserId) return;
+    if (!listOwnerUserId) return;
     setLoading(true);
     setError(null);
     try {
       // Как вкладка «Мои»: только подтверждённое авторство (не смешивать с Uploaded / link-import)
       const res = await apiClient.getUserStickerSets(
-        effectiveUserId,
+        listOwnerUserId,
         0,
         50,
         'createdAt',
@@ -167,14 +174,14 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
         false,
         true,
       );
-      const ownSets = (res.content ?? []).filter((set) => isTrustedUserStickerSet(set, effectiveUserId));
+      const ownSets = (res.content ?? []).filter((set) => isTrustedUserStickerSet(set, listOwnerUserId));
       setSets(ownSets);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить наборы');
     } finally {
       setLoading(false);
     }
-  }, [effectiveUserId]);
+  }, [listOwnerUserId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -275,11 +282,11 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
     try {
       let stickerFileId: string | undefined;
 
-      if (taskId && effectiveUserId) {
+      if (taskId && saveBodyUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
           file_id: getStickerProcessorFileId(imageId),
-          userId: effectiveUserId,
+          userId: saveBodyUserId,
           name: set.name,
           title: set.title || set.name,
           emoji: selectedEmoji,
@@ -330,16 +337,16 @@ export const SaveToStickerSetModal: FC<SaveToStickerSetModalProps> = ({
       const nextStickerSetName = buildUniqueStickerSetName({
         title,
         username: userInfo?.username ?? null,
-        userId: effectiveUserId,
+        userId: saveBodyUserId,
       });
       let savedSetName = nextStickerSetName;
       let savedSetTitle = title;
 
-      if (taskId && effectiveUserId) {
+      if (taskId && saveBodyUserId) {
         const response = await apiClient.saveToStickerSetV2({
           taskId,
           file_id: getStickerProcessorFileId(imageId),
-          userId: effectiveUserId,
+          userId: saveBodyUserId,
           name: nextStickerSetName,
           title,
           emoji: selectedEmoji,

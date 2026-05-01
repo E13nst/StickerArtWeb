@@ -729,6 +729,8 @@ export const GeneratePage: FC = () => {
     targetSize: 160,
   }), [isProfileFromAuthenticatedApi, user, userInfo]);
   const effectiveUserId = userInfo?.telegramId ?? userInfo?.id ?? avatarContext.telegramUserId ?? null;
+  /** В DEV mock: save-to-set в теле нужен id профиля (effectiveUserId); не getStickerAuthUserId (777000). */
+  const stickerListUserId = apiClient.getStickerSetListOwnerUserId(effectiveUserId);
   const telegramUserId = avatarContext.telegramUserId;
   const profileAvatarFileId = avatarContext.profileAvatarFileId;
   const effectiveAvatarUrl = avatarContext.effectiveAvatarUrl;
@@ -2419,7 +2421,7 @@ export const GeneratePage: FC = () => {
   }, []);
 
   const resolveServerAutoSaveTarget = useCallback(async () => {
-    if (!effectiveUserId) {
+    if (!stickerListUserId) {
       return null;
     }
 
@@ -2428,11 +2430,11 @@ export const GeneratePage: FC = () => {
       return null;
     }
 
-    const expectedSetName = buildDefaultStickerSetName({ username, userId: effectiveUserId }).toLowerCase();
+    const expectedSetName = buildDefaultStickerSetName({ username, userId: stickerListUserId }).toLowerCase();
 
     try {
       const response = await apiClient.getUserStickerSets(
-        effectiveUserId,
+        stickerListUserId,
         0,
         50,
         'createdAt',
@@ -2441,7 +2443,7 @@ export const GeneratePage: FC = () => {
         false,
         true,
       );
-      const ownSets = (response.content ?? []).filter((set) => isTrustedAutoSaveStickerSet(set, effectiveUserId));
+      const ownSets = (response.content ?? []).filter((set) => isTrustedAutoSaveStickerSet(set, stickerListUserId));
       const matchedSet = ownSets.find((set) => set.name.trim().toLowerCase() === expectedSetName);
 
       if (!matchedSet) {
@@ -2454,14 +2456,14 @@ export const GeneratePage: FC = () => {
           username,
           firstName: userInfo?.firstName ?? user?.first_name ?? null,
           lastName: userInfo?.lastName ?? user?.last_name ?? null,
-          userId: effectiveUserId,
+          userId: stickerListUserId,
         }),
       };
     } catch (error) {
       console.warn('[GeneratePage] Failed to resolve auto-save target from server', error);
       return null;
     }
-  }, [effectiveUserId, user?.first_name, user?.last_name, user?.username, userInfo?.firstName, userInfo?.lastName, userInfo?.username]);
+  }, [stickerListUserId, user?.first_name, user?.last_name, user?.username, userInfo?.firstName, userInfo?.lastName, userInfo?.username]);
 
   const handleShareSticker = async () => {
     if (fileId) {
