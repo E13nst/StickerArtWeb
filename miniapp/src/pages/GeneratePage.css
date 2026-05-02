@@ -400,9 +400,10 @@
   justify-content: center;
   align-items: center;
   padding: 0;
-  gap: 8px;
-  width: 280px;
-  min-height: 160px;
+  gap: 0;
+  width: 100%;
+  max-width: 370px;
+  min-height: unset;
   flex: none;
   order: 0;
   flex-grow: 0;
@@ -410,60 +411,94 @@
 
 .generate-brand--preset-hero {
   width: 100%;
+  max-width: 370px;
   min-height: unset;
-  /* тот же центральный блок, что и .generate-result-image-wrapper в успехе */
 }
 
-.generate-brand-logo {
-  width: 280px;
-  height: 160px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 7.6px #EE449F);
-  flex: none;
-  order: 0;
-  flex-grow: 0;
-}
-
-.generate-brand-avatar-card {
+.generate-hero-slot {
   position: relative;
-  width: 160px;
+  box-sizing: border-box;
+}
+
+.generate-hero-slot--logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.generate-hero-slot--avatar {
+  padding: 0 !important;
+}
+
+.generate-brand-logo-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 4px;
+  width: 92%;
+  height: 92%;
+  filter: drop-shadow(0 0 10px rgba(238, 68, 159, 0.55));
+}
+
+.generate-brand-logo-img {
+  width: 100%;
+  max-width: 292px;
+  height: auto;
+  max-height: 74%;
+  object-fit: contain;
+  flex: none;
 }
 
 .generate-brand-avatar-image {
-  width: 128px;
-  height: 128px;
+  width: 74%;
+  height: 74%;
+  max-width: 182px;
+  max-height: 182px;
   border-radius: 999px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.42);
 }
 
-.generate-brand-avatar-label {
+.generate-hero-overlay-caption {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  pointer-events: none;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: #fff;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
   text-align: center;
-  opacity: 0.94;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .generate-brand-avatar-remove {
   position: absolute;
-  top: 0;
-  right: 10px;
-  width: 22px;
-  height: 22px;
-  border: none;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 17px;
+  line-height: 1;
   cursor: pointer;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .generate-brand-avatar-remove:disabled {
@@ -471,20 +506,25 @@
   cursor: not-allowed;
 }
 
-/* Figma: Logo/маскот подпись — "Generation" 8px, #ee449f */
+/* Figma: Logo/маскот подпись — "GENERATION" 8px, #ee449f */
 .generate-logo-label {
   font-family: var(--font-family-base);
   font-size: 8px;
   font-weight: 400;
-  line-height: 22px;
+  line-height: 1;
   color: var(--color-primary);
   text-align: center;
-  width: 42px;
-  height: 6px;
+  width: auto;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0;
+  letter-spacing: 0.12em;
+}
+
+.generate-logo-label--in-slot {
+  margin-top: 2px;
 }
 
 /* Header — "Создайте Стикер с" + селектор модели (Stixly) */
@@ -1662,6 +1702,7 @@
 
 /* Figma Result: 232×232, #262626, 16px radius, shadow */
 .generate-result-image-wrapper {
+  position: relative;
   width: clamp(168px, 32dvh, 232px);
   height: clamp(168px, 32dvh, 232px);
   flex-shrink: 0;
@@ -1683,6 +1724,37 @@
   max-height: 100%;
   object-fit: contain;
   border-radius: var(--border-radius-md);
+}
+
+.generate-result-download-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tg-radius-l, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 150ms ease, background-color 150ms ease, opacity 150ms ease;
+}
+
+.generate-result-download-btn:active {
+  transform: scale(0.92);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.generate-result-download-btn:disabled {
+  cursor: default;
+  opacity: 0.65;
 }
 
 .generate-success-info {

@@ -51,6 +51,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
+import { DownloadIcon } from '@/components/ui/Icons';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
@@ -135,6 +136,38 @@ function preferDefaultStyleCategoryId(categories: StylePresetCategoryDto[]): num
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
   return classes.filter(Boolean).join(' ');
+};
+
+const getImageDownloadExtension = (contentType: string | null | undefined, url: string): string => {
+  const normalizedType = contentType?.split(';')[0]?.trim().toLowerCase();
+  if (normalizedType === 'image/jpeg') return 'jpg';
+  if (normalizedType === 'image/png') return 'png';
+  if (normalizedType === 'image/webp') return 'webp';
+  if (normalizedType === 'image/gif') return 'gif';
+
+  try {
+    const pathname = new URL(url, window.location.href).pathname;
+    const match = pathname.match(/\.([a-z0-9]+)$/i);
+    const ext = match?.[1]?.toLowerCase();
+    if (ext && ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+      return ext === 'jpeg' ? 'jpg' : ext;
+    }
+  } catch {
+    // Ignore malformed URLs and fall back to PNG.
+  }
+
+  return 'png';
+};
+
+const triggerImageDownload = (url: string, filename: string): void => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.rel = 'noopener noreferrer';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 function mapGenerationErrorMessage(rawMessage: string | null | undefined): string | null {
@@ -404,6 +437,7 @@ export const GeneratePage: FC = () => {
   const [stickerSaved, setStickerSaved] = useState(false);
   const [savedStickerSetName, setSavedStickerSetName] = useState<string | null>(null);
   const [, setSavedStickerSetTitle] = useState<string | null>(null);
+  const [isDownloadingResult, setIsDownloadingResult] = useState(false);
   const [lastUsedStickerSetName, setLastUsedStickerSetName] = useState<string | null>(null);
   const [lastUsedStickerSetTitle, setLastUsedStickerSetTitle] = useState<string | null>(null);
   const [saveNoticeText, setSaveNoticeText] = useState<string | null>(null);
@@ -2696,6 +2730,46 @@ export const GeneratePage: FC = () => {
     window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
   }, [tg]);
 
+  const handleDownloadResult = useCallback(async () => {
+    if (!resultImageUrl || isDownloadingResult) return;
+
+    const stableId = imageId || taskId || Date.now().toString();
+    setIsDownloadingResult(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch(resultImageUrl);
+      if (!response.ok) {
+        throw new Error(`Download failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const extension = getImageDownloadExtension(blob.type, resultImageUrl);
+      const objectUrl = URL.createObjectURL(blob);
+
+      triggerImageDownload(objectUrl, `stixly-${stableId}.${extension}`);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+      showSaveNotice('Скачивание началось');
+      tg?.HapticFeedback?.notificationOccurred('success');
+    } catch (error) {
+      console.warn('[GeneratePage] Failed to download generated image as blob, falling back to direct link', error);
+
+      try {
+        const extension = getImageDownloadExtension(null, resultImageUrl);
+        triggerImageDownload(resultImageUrl, `stixly-${stableId}.${extension}`);
+        showSaveNotice('Открываем файл для сохранения');
+      } catch {
+        if (tg?.openLink) {
+          tg.openLink(resultImageUrl, { try_instant_view: false });
+        } else {
+          window.open(resultImageUrl, '_blank', 'noopener,noreferrer');
+        }
+      }
+    } finally {
+      setIsDownloadingResult(false);
+    }
+  }, [imageId, isDownloadingResult, resultImageUrl, showSaveNotice, taskId, tg]);
+
   const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     void appendSourceImages(files);
@@ -3708,7 +3782,7 @@ export const GeneratePage: FC = () => {
       )}
     >
       {selectedStylePresetId != null && selectedStylePresetCardPreview ? (
-        <div className="generate-result-image-wrapper">
+        <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--preset')}>
           <img
             src={selectedStylePresetCardPreview}
             alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
@@ -3723,7 +3797,14 @@ export const GeneratePage: FC = () => {
           />
         </div>
       ) : showAvatarCenterCard ? (
-        <div className="generate-brand-avatar-card">
+        <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--avatar')}>
+          <img
+            src={primarySourcePreview ?? ''}
+            alt="Telegram-аватар"
+            className="generate-brand-avatar-image"
+            loading="eager"
+            decoding="async"
+          />
           <button
             type="button"
             className="generate-brand-avatar-remove"
@@ -3732,24 +3813,24 @@ export const GeneratePage: FC = () => {
           >
             ×
           </button>
-          <img
-            src={primarySourcePreview ?? ''}
-            alt="Telegram-аватар"
-            className="generate-brand-avatar-image"
-            loading="eager"
-            decoding="async"
-          />
-          <span className="generate-brand-avatar-label">Сгенерировать по аватару</span>
+          <span className="generate-brand-avatar-label generate-hero-overlay-caption">
+            Сгенерировать по аватару
+          </span>
         </div>
       ) : (
-        <img
-          src={STIXLY_LOGO_ORANGE}
-          alt=""
-          className="generate-brand-logo"
-          loading="eager"
-          decoding="async"
-          aria-hidden="true"
-        />
+        <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--logo')}>
+          <div className="generate-brand-logo-stack">
+            <img
+              src={STIXLY_LOGO_ORANGE}
+              alt=""
+              className="generate-brand-logo-img"
+              loading="eager"
+              decoding="async"
+              aria-hidden="true"
+            />
+            <p className="generate-logo-label generate-logo-label--in-slot">GENERATION</p>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -3915,12 +3996,22 @@ export const GeneratePage: FC = () => {
     <div className="generate-result-container">
       <div className="generate-success-section">
         {resultImageUrl && (
-          <div className="generate-result-image-wrapper">
+          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--result')}>
             <img
               src={resultImageUrl}
               alt="Сгенерированный стикер"
               className="generate-result-image"
             />
+            <button
+              type="button"
+              className="generate-result-download-btn"
+              onClick={handleDownloadResult}
+              disabled={isDownloadingResult}
+              aria-label="Скачать стикер на устройство"
+              title="Скачать"
+            >
+              <DownloadIcon size={20} />
+            </button>
           </div>
         )}
 
