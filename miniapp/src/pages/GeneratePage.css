@@ -983,6 +983,31 @@
 }
 
 /* Эмодзи + «Удалить фон»: стекло как navbar; акцент как активная вкладка Gallery (#ee449f) */
+.generate-remove-bg-locked-pill {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  min-height: 42px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  user-select: none;
+}
+
+.generate-remove-bg-locked-pill__text {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  filter: none;
+}
+
 .generate-page .generate-model-select-trigger {
   background: rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(12px);
@@ -1538,13 +1563,35 @@
   margin: 0;
   padding: 0;
   border: none;
-  width: min(280px, 92vw);
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  pointer-events: none;
+  pointer-events: auto;
   user-select: none;
+}
+
+.generate-busy-prev-result__tap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.generate-busy-prev-result__tap:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.generate-busy-prev-result__tap:focus {
+  outline: none;
 }
 
 .generate-busy-prev-result__img {
@@ -1684,6 +1731,7 @@
  * svh вместо dvh: динамическая высота не «съедает» превью при клавиатуре/UI — без скачков placeholder. */
 .generate-result-image-wrapper {
   position: relative;
+  box-sizing: border-box;
   width: clamp(168px, 32svh, 232px);
   height: clamp(168px, 32svh, 232px);
   flex-shrink: 0;
@@ -1698,6 +1746,55 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+.generate-result-image-tap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+  border-radius: var(--border-radius-md);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.generate-result-image-tap:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.generate-result-image-tap:focus {
+  outline: none;
+}
+
+.generate-result-download-btn--icon-only {
+  border: none;
+  background: rgba(0, 0, 0, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.generate-busy-prev-result-slot {
+  position: relative;
+  width: min(280px, 92vw);
+  padding-bottom: 2px;
+}
+
+.generate-busy-prev-result__frame {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.generate-busy-prev-result__frame .generate-result-download-btn {
+  right: 4px;
+  bottom: 4px;
 }
 
 .generate-result-image {
@@ -1933,5 +2030,7 @@ body.generate-prompt-focused .navbar {
 
 /* Скролл — в .stixly-main-scroll (MainLayout). Контент растёт вместе с полями пресета; padding не даёт кнопке прилипать к таскбару */
 .stixly-main-scroll:has(.generate-page) {
-  scroll-padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  /* Запас под фиксированную GENERATE над таскбаром при scrollIntoView и при pinch-zoom браузера */
+  scroll-padding-bottom: calc(var(--stixly-taskbar-height, 96.25px) + 56px + env(safe-area-inset-bottom, 0px));
+  overflow-anchor: auto;
 }

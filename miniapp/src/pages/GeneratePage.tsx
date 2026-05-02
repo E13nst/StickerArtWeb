@@ -55,6 +55,7 @@ import { DownloadIcon } from '@/components/ui/Icons';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
+import { GenerateImageLightbox } from '@/components/GenerateImageLightbox';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
 import {
   clearGenerateHistory,
@@ -71,6 +72,13 @@ import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/gener
 import { POPULAR_EMOJIS } from '@/constants/popularEmojis';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
+
+type GenerateImageLightboxState = {
+  viewerUrl: string;
+  alt?: string;
+  /** Если null — FAB скачивания в полноэкранном режиме скрыт */
+  downloadUrl?: string | null;
+};
 
 
 /** Сообщение для tg-spinner__message: upload -> start -> generate */
@@ -337,6 +345,26 @@ const collectUniqueReferenceImageIds = (assignments: Record<string, string[]>): 
   return s;
 };
 
+/** Порядок: поля пресета → слоты 0…max − 1; заблокированные ключи пропускаются. */
+const findNextEmptyReferenceSlot = (
+  assignments: Record<string, string[]>,
+  fieldDefs: StylePresetField[],
+  lockedKeys: Set<string>,
+): { fieldKey: string; index: number } | null => {
+  for (const f of fieldDefs) {
+    if (f.type !== 'reference') continue;
+    if (lockedKeys.has(f.key)) continue;
+    const maxSlot = Math.max(1, f.maxImages ?? 1);
+    const list = assignments[f.key] ?? [];
+    for (let i = 0; i < maxSlot; i++) {
+      if (!list[i]) {
+        return { fieldKey: f.key, index: i };
+      }
+    }
+  }
+  return null;
+};
+
 const bytesToHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
@@ -415,6 +443,8 @@ export const GeneratePage: FC = () => {
   >([]);
   const [presetFields, setPresetFields] = useState<Record<string, string>>({});
   const [referenceAssignments, setReferenceAssignments] = useState<Record<string, string[]>>({});
+  const referenceAssignmentsRef = useRef(referenceAssignments);
+  referenceAssignmentsRef.current = referenceAssignments;
   const [referencePreviewById, setReferencePreviewById] = useState<Record<string, string>>({});
   const [referenceUploadingKey, setReferenceUploadingKey] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<GenerateModelType>(DEFAULT_GENERATE_MODEL);
@@ -447,6 +477,7 @@ export const GeneratePage: FC = () => {
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [historyEntries, setHistoryEntries] = useState<GenerateHistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [imageLightbox, setImageLightbox] = useState<GenerateImageLightboxState | null>(null);
   const [isPromptFocused, setIsPromptFocused] = useState(false);
   /** Последний успешный результат, показывается во время upload/generating при повторном запуске без «мерцания» макета. */
   const [duringJobPreviousResultUrl, setDuringJobPreviousResultUrl] = useState<string | null>(null);
@@ -486,6 +517,8 @@ export const GeneratePage: FC = () => {
   const uploadedSourceImageSignatureRef = useRef<string | null>(null);
   const pollingStartedAtRef = useRef<number | null>(null);
   const activeHistoryLocalIdRef = useRef<string | null>(null);
+  const generateComposeStickyRef = useRef<HTMLDivElement | null>(null);
+  const composeStickyHeightRef = useRef<number | undefined>(undefined);
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
 
@@ -498,6 +531,7 @@ export const GeneratePage: FC = () => {
   /** индексы 1:1 с sourceImageFiles */
   const sourceFingerprintByIndexRef = useRef<string[]>([]);
   const clearSourceImageRef = useRef<((options?: { markAvatarDismissed?: boolean }) => void) | null>(null);
+  const autoAssignNewSourceFilesRef = useRef<(files: File[]) => Promise<void>>(async () => {});
 
   const scrollPromptIntoView = useCallback((element: HTMLElement, behavior: ScrollBehavior = 'smooth') => {
     const getKeyboardInset = (): number => {
@@ -1298,7 +1332,10 @@ export const GeneratePage: FC = () => {
     uploadedSourceImageSignatureRef.current = null;
   }, []);
 
-  const appendSourceImages = useCallback(async (files: File[]): Promise<boolean> => {
+  const appendSourceImages = useCallback(async (
+    files: File[],
+    opts?: { skipReferenceAutoFill?: boolean },
+  ): Promise<boolean> => {
     if (!files.length) return false;
 
     const currentSourceCount = sourceImageFiles.length;
@@ -1355,6 +1392,9 @@ export const GeneratePage: FC = () => {
           setPageState('idle');
         }
       }
+      if (!opts?.skipReferenceAutoFill) {
+        void autoAssignNewSourceFilesRef.current(filesToAppend);
+      }
       return true;
     } catch {
       setErrorMessage('Не удалось загрузить файл');
@@ -1366,7 +1406,7 @@ export const GeneratePage: FC = () => {
 
   /** Вставка в начало ленты (явный клик по аватару в шапке с ?avatar=). */
   const prependSourceImages = useCallback(
-    async (files: File[]): Promise<boolean> => {
+    async (files: File[], opts?: { skipReferenceAutoFill?: boolean }): Promise<boolean> => {
       if (!files.length) return false;
 
       const existingFiles = sourceImageFiles;
@@ -1424,6 +1464,9 @@ export const GeneratePage: FC = () => {
           if (pageState === 'error') {
             setPageState('idle');
           }
+        }
+        if (!opts?.skipReferenceAutoFill) {
+          void autoAssignNewSourceFilesRef.current(toAdd);
         }
         return true;
       } catch {
@@ -1951,6 +1994,84 @@ export const GeneratePage: FC = () => {
     }
   }, [selectedPreset]);
 
+  const autoAssignNewSourceFiles = useCallback(
+    async (files: File[]) => {
+      if (!files.length) return;
+      if (!selectedPresetFieldDefs.some((f) => f.type === 'reference')) return;
+
+      let working: Record<string, string[]> = { ...referenceAssignmentsRef.current };
+      for (const f of selectedPresetFieldDefs) {
+        if (f.type === 'reference' && working[f.key] === undefined) {
+          working[f.key] = [];
+        }
+      }
+
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+
+        const fingerprint = await buildSourceImageFingerprint(file);
+        const existingIdForFp = Object.entries(refImageIdToFingerprintRef.current).find(
+          ([, v]) => v === fingerprint,
+        )?.[0];
+
+        const slot = findNextEmptyReferenceSlot(working, selectedPresetFieldDefs, lockedPresetRefFieldKeys);
+        if (!slot) break;
+
+        const uniques = collectUniqueReferenceImageIds(working);
+        const listSnapshot = [...(working[slot.fieldKey] ?? [])];
+        if (listSnapshot[slot.index]) continue;
+
+        if (existingIdForFp) {
+          if (uniques.has(existingIdForFp)) continue;
+          if (uniques.size >= effectiveReferenceMaxUnique) break;
+          const list = [...(working[slot.fieldKey] ?? [])];
+          list[slot.index] = existingIdForFp;
+          working = { ...working, [slot.fieldKey]: list };
+          referenceAssignmentsRef.current = working;
+          setReferenceAssignments(working);
+          continue;
+        }
+
+        if (uniques.size >= effectiveReferenceMaxUnique) break;
+
+        try {
+          const uploadFn =
+            slot.fieldKey === PRESET_REF_FIELD_KEY
+              ? uploadPresetReferenceSlotToGallery
+              : apiClient.uploadSourceImages.bind(apiClient);
+          const { imageIds } = await uploadFn([file]);
+          const newId = imageIds[0];
+          if (!newId) continue;
+
+          await registerRefImageIdsForFiles([newId], [file]);
+          const preview = await blobToDataUrl(file);
+          if (preview) {
+            setReferencePreviewById((prev) => ({ ...prev, [newId]: preview }));
+          }
+
+          const list = [...(working[slot.fieldKey] ?? [])];
+          list[slot.index] = newId;
+          working = { ...working, [slot.fieldKey]: list };
+          referenceAssignmentsRef.current = working;
+          setReferenceAssignments(working);
+        } catch (e) {
+          console.warn('[GeneratePage] Не удалось автоматически заполнить слот референса', e);
+          break;
+        }
+      }
+    },
+    [
+      buildSourceImageFingerprint,
+      effectiveReferenceMaxUnique,
+      lockedPresetRefFieldKeys,
+      registerRefImageIdsForFiles,
+      selectedPresetFieldDefs,
+      uploadPresetReferenceSlotToGallery,
+    ],
+  );
+
+  autoAssignNewSourceFilesRef.current = autoAssignNewSourceFiles;
+
   const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
 
   const removeBgResolved = resolveRemoveBackground(
@@ -1958,27 +2079,55 @@ export const GeneratePage: FC = () => {
     removeBackground,
   );
   const removeBgLocked = selectedPreset?.removeBackgroundLockedToPreset === true;
-  const lockedRemoveBgValue = selectedPreset?.removeBackgroundEffective ?? false;
+  const lockedRemoveBgEffective = (() => {
+    if (!removeBgLocked) return false;
+    const eff = selectedPreset?.removeBackgroundEffective;
+    if (typeof eff === 'boolean') return eff;
+    const fromMode = resolveRemoveBackground(selectedPreset?.removeBackgroundMode, removeBackground);
+    if (!fromMode.userControlled) return fromMode.value;
+    return removeBackground;
+  })();
   const showRemoveBgToggle = removeBgLocked || removeBgResolved.userControlled;
-  const effectiveRemoveBackground = removeBgLocked ? lockedRemoveBgValue : removeBgResolved.value;
+  const effectiveRemoveBackground = removeBgLocked ? lockedRemoveBgEffective : removeBgResolved.value;
 
-  const renderRemoveBgToggle = (disabled: boolean) =>
-    showRemoveBgToggle ? (
+  const renderRemoveBgToggle = (disabled: boolean) => {
+    if (!showRemoveBgToggle) return null;
+
+    if (removeBgLocked) {
+      const on = effectiveRemoveBackground;
+      return (
+        <div
+          className="generate-remove-bg-locked-pill"
+          role="status"
+          aria-label={
+            on
+              ? 'Стиль фиксирует удаление фона при генерации'
+              : 'Стиль фиксирует сохранение фона при генерации'
+          }
+        >
+          <span className="generate-remove-bg-locked-pill__text">
+            {on ? 'Удаление фона · по стилю' : 'Фон сохраняется · по стилю'}
+          </span>
+        </div>
+      );
+    }
+
+    return (
       <label className="generate-checkbox-label generate-checkbox-label--inline">
         <input
           type="checkbox"
           className="generate-checkbox"
-          checked={removeBgLocked ? lockedRemoveBgValue : removeBackground}
-          disabled={disabled || removeBgLocked}
+          checked={removeBackground}
+          disabled={disabled}
           onChange={(e) => {
-            if (removeBgLocked) return;
             setRemoveBackground(e.target.checked);
             persistGeneratePreferences({ removeBackground: e.target.checked });
           }}
         />
-        <span>{removeBgLocked ? 'Удаление фона задано стилем' : 'Удалить фон'}</span>
+        <span>Удалить фон</span>
       </label>
-    ) : null;
+    );
+  };
 
   const applyReferenceMove = useCallback(
     (payload: PresetReferenceMovePayload & { toKey: string; toIndex: number }) => {
@@ -2092,7 +2241,7 @@ export const GeneratePage: FC = () => {
             : (filesInner: File[]) => apiClient.uploadSourceImages(filesInner);
         const { imageIds } = await uploadFn(slice);
         await registerRefImageIdsForFiles(imageIds, slice);
-        void appendSourceImages(slice);
+        void appendSourceImages(slice, { skipReferenceAutoFill: true });
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
 
         setReferencePreviewById((prev) => {
@@ -2487,7 +2636,7 @@ export const GeneratePage: FC = () => {
             : (filesInner: File[]) => apiClient.uploadSourceImages(filesInner);
         const { imageIds } = await uploadFn(slice);
         await registerRefImageIdsForFiles(imageIds, slice);
-        void appendSourceImages(slice);
+        void appendSourceImages(slice, { skipReferenceAutoFill: true });
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
 
         setReferencePreviewById((prev) => {
@@ -2745,45 +2894,53 @@ export const GeneratePage: FC = () => {
     window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
   }, [tg]);
 
-  const handleDownloadResult = useCallback(async () => {
-    if (!resultImageUrl || isDownloadingResult) return;
+  const downloadStickerByUrl = useCallback(
+    async (downloadUrlRaw: string, stableIdSuffix?: string) => {
+      if (!downloadUrlRaw.trim() || isDownloadingResult) return;
 
-    const stableId = imageId || taskId || Date.now().toString();
-    setIsDownloadingResult(true);
-    setSaveError(null);
-
-    try {
-      const response = await fetch(resultImageUrl);
-      if (!response.ok) {
-        throw new Error(`Download failed with status ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const extension = getImageDownloadExtension(blob.type, resultImageUrl);
-      const objectUrl = URL.createObjectURL(blob);
-
-      triggerImageDownload(objectUrl, `stixly-${stableId}.${extension}`);
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
-      showSaveNotice('Скачивание началось');
-      tg?.HapticFeedback?.notificationOccurred('success');
-    } catch (error) {
-      console.warn('[GeneratePage] Failed to download generated image as blob, falling back to direct link', error);
+      const stableId = stableIdSuffix || imageId || taskId || Date.now().toString();
+      setIsDownloadingResult(true);
+      setSaveError(null);
 
       try {
-        const extension = getImageDownloadExtension(null, resultImageUrl);
-        triggerImageDownload(resultImageUrl, `stixly-${stableId}.${extension}`);
-        showSaveNotice('Открываем файл для сохранения');
-      } catch {
-        if (tg?.openLink) {
-          tg.openLink(resultImageUrl, { try_instant_view: false });
-        } else {
-          window.open(resultImageUrl, '_blank', 'noopener,noreferrer');
+        const response = await fetch(downloadUrlRaw);
+        if (!response.ok) {
+          throw new Error(`Download failed with status ${response.status}`);
         }
+
+        const blob = await response.blob();
+        const extension = getImageDownloadExtension(blob.type, downloadUrlRaw);
+        const objectUrl = URL.createObjectURL(blob);
+
+        triggerImageDownload(objectUrl, `stixly-${stableId}.${extension}`);
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+        showSaveNotice('Скачивание началось');
+        tg?.HapticFeedback?.notificationOccurred('success');
+      } catch (error) {
+        console.warn('[GeneratePage] Failed to download image as blob, falling back to direct link', error);
+
+        try {
+          const extension = getImageDownloadExtension(null, downloadUrlRaw);
+          triggerImageDownload(downloadUrlRaw, `stixly-${stableId}.${extension}`);
+          showSaveNotice('Открываем файл для сохранения');
+        } catch {
+          if (tg?.openLink) {
+            tg.openLink(downloadUrlRaw, { try_instant_view: false });
+          } else {
+            window.open(downloadUrlRaw, '_blank', 'noopener,noreferrer');
+          }
+        }
+      } finally {
+        setIsDownloadingResult(false);
       }
-    } finally {
-      setIsDownloadingResult(false);
-    }
-  }, [imageId, isDownloadingResult, resultImageUrl, showSaveNotice, taskId, tg]);
+    },
+    [imageId, isDownloadingResult, showSaveNotice, taskId, tg],
+  );
+
+  const handleDownloadResult = useCallback(() => {
+    if (!resultImageUrl) return;
+    void downloadStickerByUrl(resultImageUrl);
+  }, [downloadStickerByUrl, resultImageUrl]);
 
   const handleSourceImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
@@ -3118,6 +3275,52 @@ export const GeneratePage: FC = () => {
     };
   }, [historyPreviewImage, historyPreviewFallback, historyOpen, toggleHistoryOpen, setHistoryHeaderSlot]);
 
+  const referenceAssignmentsLayoutSig = useMemo(() => {
+    const keys = Object.keys(referenceAssignments).sort();
+    let n = 0;
+    for (const k of keys) {
+      n += (referenceAssignments[k] ?? []).length;
+    }
+    return `${keys.join(',')}:${n}`;
+  }, [referenceAssignments]);
+
+  /** Когда блок промпта/полей пресета меняет высоту — компенсируем scrollTop, чтобы сетка стилей не «прыгала» по вьюпорту. */
+  const composeLayoutStabilizerKey = useMemo(
+    () =>
+      [
+        selectedStylePresetId ?? 'none',
+        String(selectedPresetFieldDefs.length),
+        emojiDropdownOpen ? '1' : '0',
+        effectiveShowPromptInput ? '1' : '0',
+        isBlockedByOwnStylePresetRefGate ? '1' : '0',
+        referenceAssignmentsLayoutSig,
+      ].join('|'),
+    [
+      selectedStylePresetId,
+      selectedPresetFieldDefs.length,
+      emojiDropdownOpen,
+      effectiveShowPromptInput,
+      isBlockedByOwnStylePresetRefGate,
+      referenceAssignmentsLayoutSig,
+    ],
+  );
+
+  useLayoutEffect(() => {
+    const compose = generateComposeStickyRef.current;
+    if (!compose || typeof window === 'undefined') return;
+    const scrollParent = compose.closest('.stixly-main-scroll');
+    if (!scrollParent || !(scrollParent instanceof HTMLElement)) return;
+
+    const nextH = compose.offsetHeight;
+    const prevH = composeStickyHeightRef.current;
+    composeStickyHeightRef.current = nextH;
+
+    if (prevH === undefined || nextH === prevH) return;
+
+    const delta = nextH - prevH;
+    scrollParent.scrollTop = Math.max(0, scrollParent.scrollTop + delta);
+  }, [composeLayoutStabilizerKey]);
+
   const generateLabel =
     generateCost != null ? `Создать стикер • ${generateCost} ART` : 'Создать стикер • 10 ART';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
@@ -3322,6 +3525,13 @@ export const GeneratePage: FC = () => {
                     event.stopPropagation();
                     removeSourceImageAt(index);
                   }}
+                  onTapExpand={() =>
+                    setImageLightbox({
+                      viewerUrl: preview,
+                      downloadUrl: preview,
+                      alt: `Исходное изображение ${index + 1}`,
+                    })
+                  }
                 />
               ))}
             </div>
@@ -3731,7 +3941,7 @@ export const GeneratePage: FC = () => {
       onDrop={cfg.dropEnabled ? handleGenerateFormDrop : undefined}
     >
       <div className="generate-form-layout">
-        <div className="generate-form-layout__compose">
+        <div className="generate-form-layout__compose" ref={generateComposeStickyRef}>
           {renderMainInputBlock({
             readOnly: cfg.readOnly,
             textDisabled: cfg.textDisabled,
@@ -3798,28 +4008,57 @@ export const GeneratePage: FC = () => {
     >
       {selectedStylePresetId != null && selectedStylePresetCardPreview ? (
         <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--preset')}>
-          <img
-            src={selectedStylePresetCardPreview}
-            alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
-            className="generate-result-image"
-            loading="eager"
-            decoding="async"
-            onError={() => {
-              if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
-                markHistoryPresetPreviewFailed(selectedStylePresetId);
-              }
-            }}
-          />
+          <button
+            type="button"
+            className="generate-result-image-tap"
+            aria-label="Открыть превью стиля на весь экран"
+            onClick={() =>
+              setImageLightbox({
+                viewerUrl: selectedStylePresetCardPreview,
+                downloadUrl: null,
+                alt: selectedPreset ? stripPresetName(selectedPreset.name) : 'Превью стиля',
+              })
+            }
+          >
+            <img
+              src={selectedStylePresetCardPreview}
+              alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
+              className="generate-result-image"
+              loading="eager"
+              decoding="async"
+              draggable={false}
+              onError={() => {
+                if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
+                  markHistoryPresetPreviewFailed(selectedStylePresetId);
+                }
+              }}
+            />
+          </button>
         </div>
       ) : showAvatarCenterCard ? (
         <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--avatar')}>
-          <img
-            src={primarySourcePreview ?? ''}
-            alt="Telegram-аватар"
-            className="generate-brand-avatar-image"
-            loading="eager"
-            decoding="async"
-          />
+          <button
+            type="button"
+            className="generate-result-image-tap generate-result-image-tap--avatar"
+            aria-label="Открыть аватар на весь экран"
+            onClick={() =>
+              primarySourcePreview &&
+              setImageLightbox({
+                viewerUrl: primarySourcePreview,
+                downloadUrl: primarySourcePreview,
+                alt: 'Telegram-аватар',
+              })
+            }
+          >
+            <img
+              src={primarySourcePreview ?? ''}
+              alt="Telegram-аватар"
+              className="generate-brand-avatar-image"
+              loading="eager"
+              decoding="async"
+              draggable={false}
+            />
+          </button>
           <button
             type="button"
             className="generate-brand-avatar-remove"
@@ -3973,15 +4212,43 @@ export const GeneratePage: FC = () => {
     <>
       <div className="generate-busy-phase">
         {duringJobPreviousResultUrl ? (
-          <figure className="generate-busy-prev-result" aria-label="Прошлый успешный результат">
-            <img
-              src={duringJobPreviousResultUrl}
-              alt=""
-              className="generate-busy-prev-result__img"
-              decoding="async"
-            />
-            <figcaption className="generate-busy-prev-result__caption">Прошлый результат</figcaption>
-          </figure>
+          <div className="generate-busy-prev-result-slot">
+            <figure className="generate-busy-prev-result" aria-label="Прошлый успешный результат">
+              <div className="generate-busy-prev-result__frame">
+                <button
+                  type="button"
+                  className="generate-busy-prev-result__tap"
+                  aria-label="Открыть прошлый результат на весь экран"
+                  onClick={() =>
+                    setImageLightbox({
+                      viewerUrl: duringJobPreviousResultUrl,
+                      downloadUrl: duringJobPreviousResultUrl,
+                      alt: 'Прошлый результат',
+                    })
+                  }
+                >
+                  <img
+                    src={duringJobPreviousResultUrl}
+                    alt=""
+                    className="generate-busy-prev-result__img"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </button>
+                <button
+                  type="button"
+                  className="generate-result-download-btn generate-result-download-btn--icon-only"
+                  aria-label="Скачать прошлый результат"
+                  disabled={isDownloadingResult}
+                  onClick={() => void downloadStickerByUrl(duringJobPreviousResultUrl, 'during-job-prev')}
+                  title="Скачать"
+                >
+                  <DownloadIcon size={20} />
+                </button>
+              </div>
+              <figcaption className="generate-busy-prev-result__caption">Прошлый результат</figcaption>
+            </figure>
+          </div>
         ) : null}
         <div className="generate-status-container">
           <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
@@ -4011,14 +4278,28 @@ export const GeneratePage: FC = () => {
       <div className="generate-success-section">
         {resultImageUrl && (
           <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--result')}>
-            <img
-              src={resultImageUrl}
-              alt="Сгенерированный стикер"
-              className="generate-result-image"
-            />
             <button
               type="button"
-              className="generate-result-download-btn"
+              className="generate-result-image-tap"
+              aria-label="Открыть стикер на весь экран"
+              onClick={() =>
+                setImageLightbox({
+                  viewerUrl: resultImageUrl,
+                  downloadUrl: resultImageUrl,
+                  alt: 'Сгенерированный стикер',
+                })
+              }
+            >
+              <img
+                src={resultImageUrl}
+                alt="Сгенерированный стикер"
+                className="generate-result-image"
+                draggable={false}
+              />
+            </button>
+            <button
+              type="button"
+              className="generate-result-download-btn generate-result-download-btn--icon-only"
               onClick={handleDownloadResult}
               disabled={isDownloadingResult}
               aria-label="Скачать стикер на устройство"
@@ -4163,6 +4444,16 @@ export const GeneratePage: FC = () => {
     >
       <OtherAccountBackground />
       {renderHistoryModal()}
+      <GenerateImageLightbox
+        open={imageLightbox != null && imageLightbox.viewerUrl.length > 0}
+        imageUrl={imageLightbox?.viewerUrl ?? ''}
+        alt={imageLightbox?.alt ?? ''}
+        onClose={() => setImageLightbox(null)}
+        onDownload={
+          imageLightbox?.downloadUrl ? () => void downloadStickerByUrl(imageLightbox.downloadUrl!) : undefined
+        }
+        downloadDisabled={isDownloadingResult}
+      />
       <StylePresetPublicationModal
         open={publishPresetModalOpen}
         onClose={() => setPublishPresetModalOpen(false)}

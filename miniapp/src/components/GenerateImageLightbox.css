@@ -1,0 +1,144 @@
+/* Полноэкранный просмотр генерации — Telegram Mini Apps: безопасные отступы, жест pinch/pan */
+
+.generate-image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal, 1000) + 5);
+  background: rgba(0, 0, 0, 0.88);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-sizing: border-box;
+  touch-action: none;
+}
+
+.generate-image-lightbox__close {
+  position: fixed;
+  top: calc(
+    var(--stixly-safe-area-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + var(--spacing-md, 16px)
+  );
+  right: calc(env(safe-area-inset-right, 0px) + max(var(--spacing-md, 16px), (100vw - 370px) / 2));
+  z-index: 20;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(238, 68, 159, 0.32);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.generate-image-lightbox__close:focus-visible {
+  outline: none;
+}
+
+.generate-image-lightbox__close:active {
+  transform: scale(0.94);
+  opacity: 0.92;
+}
+
+.generate-image-lightbox__download {
+  position: fixed;
+  right: calc(env(safe-area-inset-right, 0px) + max(var(--spacing-md, 16px), (100vw - 370px) / 2));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--spacing-md, 16px));
+  z-index: 20;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--tg-radius-l, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.generate-image-lightbox__download:focus-visible {
+  outline: none;
+}
+
+.generate-image-lightbox__download:disabled {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+}
+
+.generate-image-lightbox__download:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.generate-image-lightbox__stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Только safe-area: кнопки fixed поверх; отступы не «съедают» картинку при browser zoom / visualViewport */
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+  box-sizing: border-box;
+}
+
+.generate-image-lightbox__pinch-root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.generate-image-lightbox__transform {
+  will-change: transform;
+  transform: translate3d(0, 0, 0) scale(1);
+  transform-origin: center center;
+}
+
+.generate-image-lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (max-width: 360px) {
+  .generate-image-lightbox__close {
+    right: calc(env(safe-area-inset-right, 0px) + var(--spacing-md, 12px));
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+  }
+
+  .generate-image-lightbox__download {
+    right: calc(env(safe-area-inset-right, 0px) + var(--spacing-md, 12px));
+  }
+}
