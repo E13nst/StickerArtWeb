@@ -570,6 +570,11 @@ export const GeneratePage: FC = () => {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(pointer: coarse)').matches;
 
+    /* Десктоп с мышью: visualViewport даёт ложный inset при зуме страницы; клавиатура не перекрывает поле как на телефоне. */
+    if (platformInfo.isDesktop && !hasCoarsePointer) {
+      return false;
+    }
+
     return platformInfo.isMobile || hasCoarsePointer;
   }, [tg]);
 
@@ -630,9 +635,19 @@ export const GeneratePage: FC = () => {
 
     const updateKeyboardInset = () => {
       const visualViewport = window.visualViewport;
-      const nextInset = visualViewport
-        ? Math.max(0, Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop))
-        : 0;
+      let nextInset = 0;
+      if (visualViewport) {
+        const scale = visualViewport.scale;
+        /* При pinch-zoom (и др.) scale ≠ 1 — разница высот не означает клавиатуру, иначе появляется «невидимая стена» снизу. */
+        if (typeof scale === 'number' && Math.abs(scale - 1) > 0.03) {
+          nextInset = 0;
+        } else {
+          nextInset = Math.max(
+            0,
+            Math.round(window.innerHeight - visualViewport.height - visualViewport.offsetTop),
+          );
+        }
+      }
       setKeyboardInsetPx(nextInset);
 
       const prevInset = lastKeyboardInsetRef.current;
@@ -3828,7 +3843,6 @@ export const GeneratePage: FC = () => {
               decoding="async"
               aria-hidden="true"
             />
-            <p className="generate-logo-label generate-logo-label--in-slot">GENERATION</p>
           </div>
         </div>
       )}

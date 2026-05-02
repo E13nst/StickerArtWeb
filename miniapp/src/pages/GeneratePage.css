@@ -430,22 +430,23 @@
   padding: 0 !important;
 }
 
+/* Логотип в слоте: ~89% стороны слота (89 — число Фибоначчи), крупнее прежнего за счёт полного заполнения стека. */
 .generate-brand-logo-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  width: 92%;
-  height: 92%;
+  gap: 0;
+  width: 89%;
+  height: 89%;
   filter: drop-shadow(0 0 10px rgba(238, 68, 159, 0.55));
 }
 
 .generate-brand-logo-img {
   width: 100%;
-  max-width: 292px;
+  max-width: 100%;
   height: auto;
-  max-height: 74%;
+  max-height: 100%;
   object-fit: contain;
   flex: none;
 }
@@ -504,27 +505,6 @@
 .generate-brand-avatar-remove:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* Figma: Logo/маскот подпись — "GENERATION" 8px, #ee449f */
-.generate-logo-label {
-  font-family: var(--font-family-base);
-  font-size: 8px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--color-primary);
-  text-align: center;
-  width: auto;
-  height: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  letter-spacing: 0.12em;
-}
-
-.generate-logo-label--in-slot {
-  margin-top: 2px;
 }
 
 /* Header — "Создайте Стикер с" + селектор модели (Stixly) */
@@ -1700,11 +1680,12 @@
   margin: 0;
 }
 
-/* Figma Result: 232×232, #262626, 16px radius, shadow */
+/* Figma Result: 232×232, #262626, 16px radius, shadow.
+ * svh вместо dvh: динамическая высота не «съедает» превью при клавиатуре/UI — без скачков placeholder. */
 .generate-result-image-wrapper {
   position: relative;
-  width: clamp(168px, 32dvh, 232px);
-  height: clamp(168px, 32dvh, 232px);
+  width: clamp(168px, 32svh, 232px);
+  height: clamp(168px, 32svh, 232px);
   flex-shrink: 0;
   display: flex;
   justify-content: center;
