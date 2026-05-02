@@ -653,6 +653,21 @@
   text-decoration: none;
 }
 
+.generate-source-strip__clear-hint {
+  cursor: default;
+  pointer-events: none;
+  white-space: normal;
+  max-width: min(240px, 78vw);
+  text-align: right;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.generate-source-strip__clear-hint:hover {
+  color: rgba(214, 109, 137, 0.96);
+  text-decoration: none;
+}
+
 .generate-source-strip__image {
   width: 100%;
   height: 100%;

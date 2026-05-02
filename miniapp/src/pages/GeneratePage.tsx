@@ -121,6 +121,9 @@ const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-
 const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 /** Ключ слота предустановленного референса стиля в preset_fields */
 const PRESET_REF_FIELD_KEY = 'preset_ref';
+/** Плейсхолдер prompt при «Мой стиль», если уже есть результат — подменяем «создайте стиль» с бэка */
+const OWN_STYLE_AFTER_LAST_RESULT_PLACEHOLDER =
+  'Уточните доработку к результату последней генерации (он показан выше) или опишите новую идею…';
 
 function assertPresetRefGalleryImageIds(ids: readonly string[]): void {
   const bad = ids.find((id) => id && !String(id).startsWith('img_sagref_'));
@@ -345,15 +348,17 @@ const collectUniqueReferenceImageIds = (assignments: Record<string, string[]>): 
   return s;
 };
 
-/** Порядок: поля пресета → слоты 0…max − 1; заблокированные ключи пропускаются. */
+/** Порядок: поля пресета → слоты 0…max − 1; заблокированные и excludeKeys ключи пропускаются. */
 const findNextEmptyReferenceSlot = (
   assignments: Record<string, string[]>,
   fieldDefs: StylePresetField[],
   lockedKeys: Set<string>,
+  excludeKeys?: ReadonlySet<string>,
 ): { fieldKey: string; index: number } | null => {
   for (const f of fieldDefs) {
     if (f.type !== 'reference') continue;
     if (lockedKeys.has(f.key)) continue;
+    if (excludeKeys?.has(f.key)) continue;
     const maxSlot = Math.max(1, f.maxImages ?? 1);
     const list = assignments[f.key] ?? [];
     for (let i = 0; i < maxSlot; i++) {
@@ -530,6 +535,8 @@ export const GeneratePage: FC = () => {
   const refImageIdToFingerprintRef = useRef<Record<string, string>>({});
   /** индексы 1:1 с sourceImageFiles */
   const sourceFingerprintByIndexRef = useRef<string[]>([]);
+  const sourceImageFilesRef = useRef<File[]>([]);
+  sourceImageFilesRef.current = sourceImageFiles;
   const clearSourceImageRef = useRef<((options?: { markAvatarDismissed?: boolean }) => void) | null>(null);
   const autoAssignNewSourceFilesRef = useRef<(files: File[]) => Promise<void>>(async () => {});
 
@@ -1928,8 +1935,25 @@ export const GeneratePage: FC = () => {
   /** Является ли prompt обязательным */
   const promptIsRequired = effectiveShowPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
   const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
-  const effectivePromptPlaceholder =
-    promptInputCfg?.placeholder ?? 'Опишите свою идею или используйте готовые стили!';
+  /** Первая в истории готовая картинка — для «Мой стиль»: hero и подсказка в prompt */
+  const latestCompletedGenerationPreviewUrl = useMemo(() => {
+    for (const e of historyEntries) {
+      const ready = e.generationStatus === 'COMPLETED' || e.pageState === 'success';
+      if (!ready) continue;
+      const url = e.resultImageUrl?.trim();
+      if (url) return url;
+    }
+    return null;
+  }, [historyEntries]);
+  const effectivePromptPlaceholder = useMemo(() => {
+    const baseDefault = 'Опишите свою идею или используйте готовые стили!';
+    const base = promptInputCfg?.placeholder ?? baseDefault;
+    const virtualOwn = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId);
+    if (virtualOwn && latestCompletedGenerationPreviewUrl) {
+      return OWN_STYLE_AFTER_LAST_RESULT_PLACEHOLDER;
+    }
+    return base;
+  }, [latestCompletedGenerationPreviewUrl, promptInputCfg?.placeholder, selectedStylePresetId]);
   const selectedPresetFieldDefs: StylePresetField[] = selectedPreset?.fields ?? [];
   const referenceFieldDefs = useMemo(
     () => selectedPresetFieldDefs.filter((f) => f.type === 'reference'),
@@ -1973,6 +1997,24 @@ export const GeneratePage: FC = () => {
     [selectedPreset],
   );
 
+  /** Сколько слотов под пользовательские референсы даёт пресет (без заблокированного preset_ref). */
+  const presetUserRefSlotTotal = useMemo(() => {
+    let n = 0;
+    for (const f of referenceFieldDefs) {
+      if (lockedPresetRefFieldKeys.has(f.key)) continue;
+      n += Math.max(1, f.maxImages ?? 1);
+    }
+    return n;
+  }, [referenceFieldDefs, lockedPresetRefFieldKeys]);
+
+  const userRefSlotsBudgetSig = useMemo(
+    () =>
+      referenceFieldDefs
+        .map((f) => `${f.key}:${f.maxImages ?? 1}:${lockedPresetRefFieldKeys.has(f.key) ? 1 : 0}`)
+        .join('|'),
+    [referenceFieldDefs, lockedPresetRefFieldKeys],
+  );
+
   /** Синхронизация слота preset_ref с DTO пресета (после смены стиля или загрузки списка пресетов). */
   useEffect(() => {
     if (!selectedPreset) return;
@@ -2014,7 +2056,23 @@ export const GeneratePage: FC = () => {
           ([, v]) => v === fingerprint,
         )?.[0];
 
-        const slot = findNextEmptyReferenceSlot(working, selectedPresetFieldDefs, lockedPresetRefFieldKeys);
+        const avatarSkipPresetRef =
+          isTelegramAvatarSourceFile(file) ?
+            new Set<string>([PRESET_REF_FIELD_KEY])
+          : undefined;
+        let slot = findNextEmptyReferenceSlot(
+          working,
+          selectedPresetFieldDefs,
+          lockedPresetRefFieldKeys,
+          avatarSkipPresetRef,
+        );
+        if (!slot && avatarSkipPresetRef) {
+          slot = findNextEmptyReferenceSlot(
+            working,
+            selectedPresetFieldDefs,
+            lockedPresetRefFieldKeys,
+          );
+        }
         if (!slot) break;
 
         const uniques = collectUniqueReferenceImageIds(working);
@@ -2029,6 +2087,12 @@ export const GeneratePage: FC = () => {
           working = { ...working, [slot.fieldKey]: list };
           referenceAssignmentsRef.current = working;
           setReferenceAssignments(working);
+          const preview = await blobToDataUrl(file);
+          if (preview) {
+            setReferencePreviewById((prev) =>
+              prev[existingIdForFp] ? prev : { ...prev, [existingIdForFp]: preview },
+            );
+          }
           continue;
         }
 
@@ -2071,6 +2135,14 @@ export const GeneratePage: FC = () => {
   );
 
   autoAssignNewSourceFilesRef.current = autoAssignNewSourceFiles;
+
+  /** Подставляет уже прикреплённые к ленте фото в слоты при смене пресета (добавление файлов обрабатывает appendSourceImages). */
+  useEffect(() => {
+    if (!selectedPresetFieldDefs.some((f) => f.type === 'reference')) return;
+    const files = sourceImageFilesRef.current;
+    if (!files.length) return;
+    void autoAssignNewSourceFiles(files);
+  }, [autoAssignNewSourceFiles, selectedStylePresetId, userRefSlotsBudgetSig]);
 
   const stickerEmojiCaption = selectedPreset?.stickerEmojiLabel?.trim() || null;
 
@@ -3458,6 +3530,8 @@ export const GeneratePage: FC = () => {
   const renderSourceImageStrip = (disabled: boolean, stripOpts?: { suppressItemReveal?: boolean }) => {
     const hasAttachedImages = sourceImageFiles.length > 0;
     const suppressReveal = Boolean(stripOpts?.suppressItemReveal && hasAttachedImages);
+    const showStripExtraPresetHint =
+      presetUserRefSlotTotal > 0 && sourceImageFiles.length > presetUserRefSlotTotal;
 
     return (
     <>
@@ -3537,7 +3611,15 @@ export const GeneratePage: FC = () => {
             </div>
           </div>
         )}
-        {hasAttachedImages && sourceImageFiles.length >= 2 && (
+        {hasAttachedImages && showStripExtraPresetHint && (
+          <span
+            className="generate-source-strip__clear-link generate-source-strip__clear-hint"
+            role="status"
+          >
+            У вас больше фотографий, чем требует пресет. Удалите ненужные.
+          </span>
+        )}
+        {hasAttachedImages && sourceImageFiles.length >= 2 && !showStripExtraPresetHint && (
           <button
             type="button"
             className="generate-source-strip__clear-link"
@@ -3633,6 +3715,31 @@ export const GeneratePage: FC = () => {
   const selectedStyleUsesHistoryPreview =
     selectedStylePresetId != null && presetPreviewById.has(selectedStylePresetId);
 
+  /** Виртуальный «Мой стиль» без карточки каталога: показываем последний результат вместо пустого hero */
+  const compositeGenerateHeroPreviewUrl = useMemo(() => {
+    if (selectedStylePresetCardPreview) return selectedStylePresetCardPreview;
+    if (
+      isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
+      latestCompletedGenerationPreviewUrl
+    ) {
+      return latestCompletedGenerationPreviewUrl;
+    }
+    return null;
+  }, [
+    latestCompletedGenerationPreviewUrl,
+    selectedStylePresetCardPreview,
+    selectedStylePresetId,
+  ]);
+  const isOwnFallbackHistoryHero = useMemo(
+    () =>
+      Boolean(
+        isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
+          compositeGenerateHeroPreviewUrl &&
+          !selectedStylePresetCardPreview,
+      ),
+    [compositeGenerateHeroPreviewUrl, selectedStylePresetCardPreview, selectedStylePresetId],
+  );
+
   const handlePresetChange = (
     presetId: number | null,
     opts?: { skipPublishHintReset?: boolean },
@@ -3650,7 +3757,6 @@ export const GeneratePage: FC = () => {
     setReferenceAssignments({});
     setReferencePreviewById({});
     setReferenceUploadingKey(null);
-    refImageIdToFingerprintRef.current = {};
     if (isOwnStyleBlueprintVirtualPreset(presetId)) {
       persistGeneratePreferences({ stylePresetId: null });
     } else {
@@ -3995,39 +4101,58 @@ export const GeneratePage: FC = () => {
   const primarySourcePreview = sourceImagePreviews[0] ?? null;
   const stripIsOnlyTelegramAvatars =
     sourceImageFiles.length > 0 && sourceImageFiles.every((f) => isTelegramAvatarSourceFile(f));
+  /** В потоке «Мой стиль» тоже показываем аватар-слой, если нет последнего результата сверху */
   const showAvatarCenterCard =
-    selectedStylePresetId == null && stripIsOnlyTelegramAvatars && Boolean(primarySourcePreview);
+    (selectedStylePresetId == null || isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)) &&
+    stripIsOnlyTelegramAvatars &&
+    Boolean(primarySourcePreview) &&
+    !compositeGenerateHeroPreviewUrl;
   const renderBrandBlock = () => (
     <div
       className={cn(
         'generate-brand',
         selectedStylePresetId != null &&
-          selectedStylePresetCardPreview &&
+          compositeGenerateHeroPreviewUrl &&
           'generate-brand--preset-hero',
       )}
     >
-      {selectedStylePresetId != null && selectedStylePresetCardPreview ? (
+      {selectedStylePresetId != null && compositeGenerateHeroPreviewUrl ? (
         <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--preset')}>
           <button
             type="button"
             className="generate-result-image-tap"
-            aria-label="Открыть превью стиля на весь экран"
+            aria-label={
+              isOwnFallbackHistoryHero ?
+                'Открыть последний результат генерации на весь экран'
+              : 'Открыть превью стиля на весь экран'}
             onClick={() =>
               setImageLightbox({
-                viewerUrl: selectedStylePresetCardPreview,
+                viewerUrl: compositeGenerateHeroPreviewUrl,
                 downloadUrl: null,
-                alt: selectedPreset ? stripPresetName(selectedPreset.name) : 'Превью стиля',
+                alt:
+                  isOwnFallbackHistoryHero ?
+                    'Последний результат генерации'
+                  : selectedPreset ?
+                    stripPresetName(selectedPreset.name)
+                  : 'Превью стиля',
               })
             }
           >
             <img
-              src={selectedStylePresetCardPreview}
-              alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
+              src={compositeGenerateHeroPreviewUrl}
+              alt={
+                isOwnFallbackHistoryHero ?
+                  'Последний результат генерации'
+                : selectedPreset ?
+                  stripPresetName(selectedPreset.name)
+                : ''
+              }
               className="generate-result-image"
               loading="eager"
               decoding="async"
               draggable={false}
               onError={() => {
+                if (isOwnFallbackHistoryHero) return;
                 if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
                   markHistoryPresetPreviewFailed(selectedStylePresetId);
                 }
