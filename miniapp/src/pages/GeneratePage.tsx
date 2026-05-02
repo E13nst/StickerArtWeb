@@ -1828,8 +1828,9 @@ export const GeneratePage: FC = () => {
     return stylePresets.find((p) => p.id === selectedStylePresetId) ?? null;
   }, [ownStyleBlueprintSession, selectedStylePresetId, stylePresets]);
   const promptInputCfg = selectedPreset?.promptInput ?? null;
-  /** Показывать ли основное поле prompt (скрывается только когда enabled явно false) */
+  /** Показывать ли основное поле prompt по preset.promptInput (скрывается только когда enabled явно false). */
   const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
+  /** Итог для UI/submit: учитывает hideFreestylePromptAuthorSupplied с бэка (privacy авторского промпта). */
   const hideFreestylePromptAuthorSupplied = selectedPreset?.hideFreestylePromptAuthorSupplied === true;
   const effectiveShowPromptInput = showPromptInput && !hideFreestylePromptAuthorSupplied;
   /** Является ли prompt обязательным */
@@ -2266,7 +2267,7 @@ export const GeneratePage: FC = () => {
           styleModerationStatus: styleModerationStatusForHistory,
           ownStyleBlueprintCode: ownStyleBlueprintSession?.blueprint.code ?? null,
           selectedEmoji,
-          removeBackground,
+          removeBackground: effectiveRemoveBackground,
           hasSourceImage: sourceImageFiles.length > 0 || hasReferenceSlotsFilled,
           pageState:
             sourceImageFiles.length > 0 && !hasReferenceSlotsFilled ? 'uploading' : 'generating',

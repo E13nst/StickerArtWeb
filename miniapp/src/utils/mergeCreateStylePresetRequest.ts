@@ -21,5 +21,10 @@ export function mergeCreateStylePresetRequest(
     fields: overlay.fields ?? d.fields ?? null,
     removeBackground: overlay.removeBackground ?? d.removeBackground ?? null,
     removeBackgroundMode: overlay.removeBackgroundMode ?? d.removeBackgroundMode ?? null,
+    hideFreestylePromptAuthorSupplied:
+      overlay.hideFreestylePromptAuthorSupplied ?? d.hideFreestylePromptAuthorSupplied,
+    removeBackgroundLockedToPreset:
+      overlay.removeBackgroundLockedToPreset ?? d.removeBackgroundLockedToPreset,
+    removeBackgroundEffective: overlay.removeBackgroundEffective ?? d.removeBackgroundEffective,
   };
 }

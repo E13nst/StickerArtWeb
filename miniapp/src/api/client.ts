@@ -508,6 +508,9 @@ export interface CreateStylePresetRequest {
   fields?: StylePresetField[] | null;
   removeBackground?: boolean | null;
   removeBackgroundMode?: StylePresetRemoveBgMode | null;
+  hideFreestylePromptAuthorSupplied?: boolean;
+  removeBackgroundLockedToPreset?: boolean;
+  removeBackgroundEffective?: boolean;
 }
 
 /** GET /api/generation/user-preset-creation-blueprints — варианты из админки/бэка (не настраиваются пользователем на фронте). */
