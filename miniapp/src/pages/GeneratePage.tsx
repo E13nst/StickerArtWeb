@@ -128,7 +128,7 @@ const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-
 const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 /** Ключ слота предустановленного референса стиля в preset_fields */
 const PRESET_REF_FIELD_KEY = 'preset_ref';
-/** Плейсхолдер prompt при «Мой стиль», если уже есть результат — подменяем «создайте стиль» с бэка */
+/** Плейсхолдер prompt при «Черновик», если уже есть результат в истории — подменяем «создайте стиль» с бэка */
 const OWN_STYLE_AFTER_LAST_RESULT_PLACEHOLDER =
   'Уточните доработку к результату последней генерации (он показан выше) или опишите новую идею…';
 
@@ -146,7 +146,7 @@ function preferDefaultStyleCategoryId(categories: StylePresetCategoryDto[]): num
   if (generalByCode) return generalByCode.id;
   const generalByName = categories.find((c) => {
     const n = c.name?.trim().toLowerCase() ?? '';
-    return n === 'общая' || n === 'general';
+    return n === 'общая' || n === 'общие' || n === 'general';
   });
   if (generalByName) return generalByName.id;
   return categories[0]!.id;
@@ -439,7 +439,7 @@ export const GeneratePage: FC = () => {
   const [styleCatalogLoaded, setStyleCatalogLoaded] = useState(false);
   const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
   const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
-  const [stylePresetShareCopied, setStylePresetShareCopied] = useState(false);
+  const [stylePresetShareNotice, setStylePresetShareNotice] = useState<string | null>(null);
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
   const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
@@ -492,6 +492,8 @@ export const GeneratePage: FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [historyEntries, setHistoryEntries] = useState<GenerateHistoryEntry[]>([]);
+  /** По этому localId модалка публикации черновика читает снимки истории (иначе без taskId берётся «последняя» строка и превью пустые). */
+  const [pinnedHistoryLocalId, setPinnedHistoryLocalId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<GenerateImageLightboxState | null>(null);
   const [isPromptFocused, setIsPromptFocused] = useState(false);
@@ -835,8 +837,9 @@ export const GeneratePage: FC = () => {
   }, [stylePresetCategories, stylePresets]);
 
   useLayoutEffect(() => {
+    // Пока нет категорий с API/пресетов — не ставим «Мои», иначе после загрузки чипов
+    // фильтр залипнет в MY (ниже: if (prev === MY) return prev).
     if (styleCategoryChipsList.length === 0) {
-      setStyleCategoryFilter((prev) => prev ?? STYLE_CATEGORY_FILTER_MY);
       return;
     }
     setStyleCategoryFilter((prev) => {
@@ -860,14 +863,21 @@ export const GeneratePage: FC = () => {
   const stripStylePresets = useMemo(() => {
     const boostId = deepLinkStyleBoostId;
     const boostStrip = (s: StylePreset[]) => moveStylePresetIdFirst(s, boostId);
+    /** Черновик — крайняя левая карточка: после boostStrip, иначе deep link снова ставит другой стиль первым. */
+    const withDraftFirst = (s: StylePreset[]) =>
+      ownStyleBlueprintSession
+        ? moveStylePresetIdFirst(s, OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID)
+        : s;
 
     if (styleCategoryChipsList.length === 0 || styleCategoryFilter == null) {
       const strip = presetsWithVirtual.filter((p) => isPresetShownInStrip(p));
-      return boostStrip(
-        ensureSelectedPresetInStrip(
-          sortPresetsInCategory(strip),
-          presetsWithVirtual,
-          selectedStylePresetId,
+      return withDraftFirst(
+        boostStrip(
+          ensureSelectedPresetInStrip(
+            sortPresetsInCategory(strip),
+            presetsWithVirtual,
+            selectedStylePresetId,
+          ),
         ),
       );
     }
@@ -876,22 +886,26 @@ export const GeneratePage: FC = () => {
       const mine = presetsWithVirtual.filter(
         (p) => isPresetShownInStrip(p) && !p.isGlobal && uid != null && p.ownerId === uid,
       );
-      return boostStrip(
-        ensureSelectedPresetInStrip(
-          sortPresetsInCategory(mine),
-          presetsWithVirtual,
-          selectedStylePresetId,
+      return withDraftFirst(
+        boostStrip(
+          ensureSelectedPresetInStrip(
+            sortPresetsInCategory(mine),
+            presetsWithVirtual,
+            selectedStylePresetId,
+          ),
         ),
       );
     }
     const list = presetsWithVirtual.filter(
       (p) => isPresetShownInStrip(p) && p.category?.id === styleCategoryFilter,
     );
-    return boostStrip(
-      ensureSelectedPresetInStrip(
-        sortPresetsInCategory(list),
-        presetsWithVirtual,
-        selectedStylePresetId,
+    return withDraftFirst(
+      boostStrip(
+        ensureSelectedPresetInStrip(
+          sortPresetsInCategory(list),
+          presetsWithVirtual,
+          selectedStylePresetId,
+        ),
       ),
     );
   }, [
@@ -902,6 +916,7 @@ export const GeneratePage: FC = () => {
     isPresetShownInStrip,
     userInfo?.id,
     deepLinkStyleBoostId,
+    ownStyleBlueprintSession,
   ]);
 
   const isMyCategorySelected = styleCategoryFilter === STYLE_CATEGORY_FILTER_MY;
@@ -1094,6 +1109,7 @@ export const GeneratePage: FC = () => {
     if (matcher.localId && activeHistoryLocalIdRef.current === matcher.localId) {
       activeHistoryLocalIdRef.current = null;
     }
+    setPinnedHistoryLocalId((prev) => (matcher.localId && prev === matcher.localId ? null : prev));
     setHistoryEntries(updated);
   }, [historyUserScopeId]);
 
@@ -1102,6 +1118,29 @@ export const GeneratePage: FC = () => {
     const cleared = clearGenerateHistory(historyUserScopeId);
     setHistoryEntries(cleared);
     activeHistoryLocalIdRef.current = null;
+    setPinnedHistoryLocalId(null);
+
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    pollingStartedAtRef.current = null;
+
+    setResultImageUrl(null);
+    setDuringJobPreviousResultUrl(null);
+    setSuppressSourceStripItemReveal(false);
+    setImageId(null);
+    setTaskId(null);
+    setFileId(null);
+    setStickerSaved(false);
+    setSavedStickerSetName(null);
+    setSavedStickerSetTitle(null);
+    setCurrentStatus(null);
+    setErrorMessage(null);
+    setErrorKind(null);
+    setPageState('idle');
+    setFailedHistoryPresetPreviewIds(new Set());
+    setHistoryOpen(false);
   }, [historyUserScopeId]);
 
   useEffect(() => {
@@ -1620,18 +1659,34 @@ export const GeneratePage: FC = () => {
           avatarAutofillAppliedRef.current = stableAutofillKey;
         }
         if (insertAsPrepend) {
-          setPageState('idle');
-          setCurrentStatus(null);
-          setTaskId(null);
-          setResultImageUrl(null);
-          setImageId(null);
-          setFileId(null);
-          setStickerSaved(false);
-          setSavedStickerSetName(null);
-          setSavedStickerSetTitle(null);
-          showSaveNotice(null);
-          setSaveError(null);
-          setHistoryOpen(false);
+          // Сбрасываем сценарий только когда реально есть что сбрасывать.
+          // Это уменьшает визуальное «мерцание» при уже idle-состоянии.
+          const shouldResetScenario =
+            pageState !== 'idle' ||
+            currentStatus != null ||
+            taskId != null ||
+            resultImageUrl != null ||
+            imageId != null ||
+            fileId != null ||
+            stickerSaved ||
+            savedStickerSetName != null ||
+            saveNoticeText != null ||
+            saveError != null ||
+            historyOpen;
+          if (shouldResetScenario) {
+            setPageState('idle');
+            setCurrentStatus(null);
+            setTaskId(null);
+            setResultImageUrl(null);
+            setImageId(null);
+            setFileId(null);
+            setStickerSaved(false);
+            setSavedStickerSetName(null);
+            setSavedStickerSetTitle(null);
+            showSaveNotice(null);
+            setSaveError(null);
+            setHistoryOpen(false);
+          }
         }
         // Сбрасываем кэш imageId: append вызывает reset при фактическом добавлении; при дедупе — здесь
         resetUploadedSourceImageCache();
@@ -1668,8 +1723,18 @@ export const GeneratePage: FC = () => {
     avatarTriggerToken,
     effectiveAvatarUrl,
     hasPendingAvatarTrigger,
+    currentStatus,
+    fileId,
+    historyOpen,
+    imageId,
     pageState,
     profileAvatarFileId,
+    resultImageUrl,
+    saveError,
+    saveNoticeText,
+    savedStickerSetName,
+    stickerSaved,
+    taskId,
     telegramUserId,
     userInfo?.id,
     sourceImageFiles.length,
@@ -1721,7 +1786,7 @@ export const GeneratePage: FC = () => {
     const defaults = blueprint.presetDefaults as Partial<CreateStylePresetRequest>;
     const overlay: Partial<CreateStylePresetRequest> = {
       code: typeof code === 'string' && code.trim() ? code.trim() : buildAutoStylePresetCode(user?.id),
-      name: typeof name === 'string' && name.trim() ? name.trim() : 'Мой стиль',
+      name: typeof name === 'string' && name.trim() ? name.trim() : 'Черновик',
     };
     if (defaults.categoryId == null && firstCatId !== undefined) {
       overlay.categoryId = firstCatId;
@@ -1887,6 +1952,7 @@ export const GeneratePage: FC = () => {
     restoreAppliedRef.current = false;
     preferencesAppliedRef.current = false;
     setFailedHistoryPresetPreviewIds(new Set());
+    setPinnedHistoryLocalId(null);
   }, [historyUserScopeId]);
 
   useEffect(() => {
@@ -1923,6 +1989,7 @@ export const GeneratePage: FC = () => {
       setErrorKind(null);
       setPageState('generating');
       activeHistoryLocalIdRef.current = activeEntry.localId;
+      setPinnedHistoryLocalId(activeEntry.localId);
       preferencesAppliedRef.current = true;
 
       if (activeEntry.taskId) {
@@ -2016,10 +2083,10 @@ export const GeneratePage: FC = () => {
   }, [deepLinkPresetMissingNotice]);
 
   useEffect(() => {
-    if (!stylePresetShareCopied) return;
-    const tid = window.setTimeout(() => setStylePresetShareCopied(false), 2200);
+    if (!stylePresetShareNotice) return;
+    const tid = window.setTimeout(() => setStylePresetShareNotice(null), 3200);
     return () => window.clearTimeout(tid);
-  }, [stylePresetShareCopied]);
+  }, [stylePresetShareNotice]);
 
   // Метаданные UI выбранного пресета (виртуальная карточка «своего стиля»; при загрузке preset_ref черновик создаётся лениво).
   const selectedPreset: StylePreset | null = useMemo(() => {
@@ -2044,10 +2111,15 @@ export const GeneratePage: FC = () => {
     try {
       await navigator.clipboard.writeText(textToCopy);
       tg?.HapticFeedback?.impactOccurred('light');
-      setStylePresetShareCopied(true);
-      if (!url && tg?.showAlert) {
-        tg.showAlert(
-          'Задайте при сборке VITE_TELEGRAM_BOT_USERNAME и VITE_TELEGRAM_MINI_APP_SHORT_NAME для полной ссылки t.me/…/… . В буфер скопирован параметр startapp.',
+      if (url) {
+        setStylePresetShareNotice('Ссылка на стиль скопирована');
+      } else {
+        setStylePresetShareNotice(
+          'Скопирован параметр стиля. Полную ссылку t.me сейчас собрать нельзя — задайте при сборке имя бота и короткое имя Mini App.',
+        );
+        console.warn(
+          '[GeneratePage] Для полной ссылки задайте VITE_TELEGRAM_BOT_USERNAME и VITE_TELEGRAM_MINI_APP_SHORT_NAME ' +
+            '(формат: https://t.me/<бот>/<mini_app>?startapp=<параметр>). В буфер скопирован только параметр startapp.',
         );
       }
     } catch {
@@ -2064,7 +2136,7 @@ export const GeneratePage: FC = () => {
   /** Является ли prompt обязательным */
   const promptIsRequired = effectiveShowPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
   const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
-  /** Первая в истории готовая картинка — для «Мой стиль»: hero и подсказка в prompt */
+  /** Первая в истории готовая картинка — для черновика: подсказка в промпте (не для hero-блока) */
   const latestCompletedGenerationPreviewUrl = useMemo(() => {
     for (const e of historyEntries) {
       const ready = e.generationStatus === 'COMPLETED' || e.pageState === 'success';
@@ -2442,6 +2514,8 @@ export const GeneratePage: FC = () => {
             : (filesInner: File[]) => apiClient.uploadSourceImages(filesInner);
         const { imageIds } = await uploadFn(slice);
         await registerRefImageIdsForFiles(imageIds, slice);
+        // Единый UX: фото, добавленные в reference-слоты, также показываем в общей ленте вложений.
+        // appendSourceImages сам убирает дубликаты по fingerprint.
         void appendSourceImages(slice, { skipReferenceAutoFill: true });
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
 
@@ -2642,11 +2716,12 @@ export const GeneratePage: FC = () => {
       const localHistoryId = createGenerateHistoryLocalId();
       const now = Date.now();
       activeHistoryLocalIdRef.current = localHistoryId;
+      setPinnedHistoryLocalId(localHistoryId);
       const referenceSnapshots = buildReferenceSnapshotsForHistory();
       const isOwnStyleGeneration =
         isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession != null;
       const stylePresetNameForHistory =
-        selectedPreset?.name?.trim() || (isOwnStyleGeneration ? 'Мой стиль' : null);
+        selectedPreset?.name?.trim() || (isOwnStyleGeneration ? 'Черновик' : null);
       const stylePresetCodeForHistory =
         selectedPreset?.code?.trim() || ownStyleBlueprintSession?.virtualPreset.code || null;
       const styleModerationStatusForHistory = selectedPreset?.moderationStatus ?? (isOwnStyleGeneration ? 'DRAFT' : null);
@@ -2837,6 +2912,7 @@ export const GeneratePage: FC = () => {
             : (filesInner: File[]) => apiClient.uploadSourceImages(filesInner);
         const { imageIds } = await uploadFn(slice);
         await registerRefImageIdsForFiles(imageIds, slice);
+        // Единый UX: фото из preset-слотов отображаем в общей ленте (без дублей).
         void appendSourceImages(slice, { skipReferenceAutoFill: true });
         const previews = await Promise.all(slice.map((f) => blobToDataUrl(f)));
 
@@ -3431,12 +3507,17 @@ export const GeneratePage: FC = () => {
     (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
       ? Boolean(taskId && ownStyleBlueprintSession)
       : selectedStyleModerationStatus === 'DRAFT');
+  const useTaskCompletedPublicationFlow = Boolean(taskId && ownStyleBlueprintSession);
   const publicationStateLabel =
     selectedStyleModerationStatus && selectedStyleModerationStatus !== 'DRAFT'
       ? MODERATION_STATUS_LABELS[selectedStyleModerationStatus]
       : null;
   const latestHistoryEntry = historyEntries[0] ?? null;
   const publicationHistoryEntry = useMemo(() => {
+    if (pinnedHistoryLocalId) {
+      const pinned = historyEntries.find((entry) => entry.localId === pinnedHistoryLocalId);
+      if (pinned) return pinned;
+    }
     const activeEntry = historyEntries.find((entry) => entry.isActive);
     if (activeEntry) return activeEntry;
     if (taskId) {
@@ -3444,19 +3525,47 @@ export const GeneratePage: FC = () => {
       if (byTaskId) return byTaskId;
     }
     return latestHistoryEntry;
-  }, [historyEntries, latestHistoryEntry, taskId]);
-  const publicationPresetRefId =
-    publicationHistoryEntry?.referenceAssignmentsSnapshot?.[PRESET_REF_FIELD_KEY]?.[0] ?? null;
+  }, [historyEntries, latestHistoryEntry, taskId, pinnedHistoryLocalId]);
+  const snapshotPresetRefId =
+    (publicationHistoryEntry?.referenceAssignmentsSnapshot?.[PRESET_REF_FIELD_KEY]?.[0] ?? '').trim();
+  const livePresetRefSlotId = (referenceAssignments[PRESET_REF_FIELD_KEY] ?? [])[0]?.trim() ?? '';
+  /** Референс для модалки черновика: снимок в истории или текущий слот после открытия записи. */
+  const publicationOwnStyleEffectiveRefId =
+    snapshotPresetRefId || (livePresetRefSlotId.startsWith('img_') ? livePresetRefSlotId : '');
+  const refPreviewFromHistorySnapshot =
+    snapshotPresetRefId && publicationHistoryEntry?.referencePreviewSnapshot
+      ? (publicationHistoryEntry.referencePreviewSnapshot[snapshotPresetRefId] ?? '').trim()
+      : '';
+  const refPreviewFromLiveSlots =
+    livePresetRefSlotId && referencePreviewById[livePresetRefSlotId]
+      ? (referencePreviewById[livePresetRefSlotId] ?? '').trim()
+      : '';
   const publicationReferencePreviewUrl =
-    publicationPresetRefId && publicationHistoryEntry?.referencePreviewSnapshot
-      ? publicationHistoryEntry.referencePreviewSnapshot[publicationPresetRefId] ?? null
-      : null;
-  const publicationGeneratedPreviewUrl = publicationHistoryEntry?.resultImageUrl ?? null;
-  const hasReferenceForPublication = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
-    ? Boolean(publicationPresetRefId)
+    refPreviewFromHistorySnapshot.length > 0
+      ? refPreviewFromHistorySnapshot
+      : refPreviewFromLiveSlots.length > 0
+        ? refPreviewFromLiveSlots
+        : null;
+  const publicationHistoryGeneratedUrl = publicationHistoryEntry?.resultImageUrl ?? null;
+  const publicationGeneratedPreviewUrl =
+    typeof publicationHistoryGeneratedUrl === 'string' && publicationHistoryGeneratedUrl.trim().length > 0
+      ? publicationHistoryGeneratedUrl.trim()
+      : typeof resultImageUrl === 'string' && resultImageUrl.trim().length > 0
+        ? resultImageUrl.trim()
+        : null;
+  const hasReferenceForPublication = useTaskCompletedPublicationFlow
+    ? Boolean(publicationOwnStyleEffectiveRefId)
     : hasCurrentReferenceForPublication;
-  const hasGeneratedResultForPublication = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
-    ? Boolean(publicationHistoryEntry?.resultImageUrl || publicationHistoryEntry?.imageId)
+  const hasGeneratedResultFromHistory = Boolean(
+    (typeof publicationHistoryGeneratedUrl === 'string' &&
+      publicationHistoryGeneratedUrl.trim().length > 0) ||
+      publicationHistoryEntry?.imageId,
+  );
+  const hasGeneratedResultForPublication = useTaskCompletedPublicationFlow
+    ? hasGeneratedResultFromHistory ||
+      Boolean(
+        publicationGeneratedPreviewUrl || Boolean(imageId),
+      )
     : hasCurrentGeneratedResultForPublication;
   const historyPreviewImage = latestHistoryEntry?.resultImageUrl ?? null;
   const historyPreviewFallback = latestHistoryEntry?.selectedEmoji ?? '🕘';
@@ -3547,7 +3656,7 @@ export const GeneratePage: FC = () => {
 
   const getHistoryStyleLabel = (entry: GenerateHistoryEntry): string => {
     if (isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) {
-      return stripPresetName(entry.stylePresetName ?? 'Мой стиль');
+      return stripPresetName(entry.stylePresetName ?? 'Черновик');
     }
     if (entry.stylePresetId == null) return 'Без стиля';
     const preset = stylePresets.find((item) => item.id === entry.stylePresetId);
@@ -3627,9 +3736,47 @@ export const GeneratePage: FC = () => {
     setErrorMessage(entry.errorMessage);
     setErrorKind(entry.pageState === 'error' ? 'general' : null);
     activeHistoryLocalIdRef.current = entry.localId;
+    setPinnedHistoryLocalId(entry.localId);
 
     if (entry.pageState === 'success') {
       setPageState('success');
+      const missingPreviewInHistory =
+        (!(typeof entry.resultImageUrl === 'string' && entry.resultImageUrl.trim().length > 0) ||
+          !(typeof entry.imageId === 'string' && entry.imageId.trim().length > 0)) &&
+        typeof entry.taskId === 'string' &&
+        entry.taskId.trim().length > 0;
+      if (missingPreviewInHistory) {
+        void (async () => {
+          try {
+            const status = await apiClient.getGenerationStatusV2(entry.taskId!.trim());
+            if (status.status !== 'COMPLETED') return;
+            const recoveredResultUrl = status.imageUrl?.trim() || null;
+            const recoveredImageId = status.imageId?.trim() || null;
+            if (!recoveredResultUrl && !recoveredImageId) return;
+
+            patchHistoryEntry(
+              { localId: entry.localId },
+              {
+                pageState: 'success',
+                generationStatus: 'COMPLETED',
+                resultImageUrl:
+                  recoveredResultUrl ??
+                  (typeof entry.resultImageUrl === 'string' ? entry.resultImageUrl : null),
+                imageId:
+                  recoveredImageId ??
+                  (typeof entry.imageId === 'string' ? entry.imageId : null),
+              },
+            );
+            if (activeHistoryLocalIdRef.current === entry.localId) {
+              if (recoveredResultUrl) setResultImageUrl(recoveredResultUrl);
+              if (recoveredImageId) setImageId(recoveredImageId);
+              setCurrentStatus('COMPLETED');
+            }
+          } catch (e) {
+            console.warn('[GeneratePage] Не удалось восстановить превью результата из task status', e);
+          }
+        })();
+      }
       return;
     }
     if (entry.pageState === 'error') {
@@ -3788,7 +3935,9 @@ export const GeneratePage: FC = () => {
           >
             {sourceImageFiles.length >= MAX_SOURCE_IMAGE_FILES
               ? `${MAX_SOURCE_IMAGE_FILES} max`
-              : sourceImageFiles.length}
+              : sourceImageFiles.length === 0
+                ? '+'
+                : sourceImageFiles.length}
           </span>
         </button>
       </div>
@@ -3844,30 +3993,10 @@ export const GeneratePage: FC = () => {
   const selectedStyleUsesHistoryPreview =
     selectedStylePresetId != null && presetPreviewById.has(selectedStylePresetId);
 
-  /** Виртуальный «Мой стиль» без карточки каталога: показываем последний результат вместо пустого hero */
+  /** Верхний блок: только превью выбранного пресета / превью из истории для этого же id (без чужих записей истории). */
   const compositeGenerateHeroPreviewUrl = useMemo(() => {
-    if (selectedStylePresetCardPreview) return selectedStylePresetCardPreview;
-    if (
-      isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
-      latestCompletedGenerationPreviewUrl
-    ) {
-      return latestCompletedGenerationPreviewUrl;
-    }
-    return null;
-  }, [
-    latestCompletedGenerationPreviewUrl,
-    selectedStylePresetCardPreview,
-    selectedStylePresetId,
-  ]);
-  const isOwnFallbackHistoryHero = useMemo(
-    () =>
-      Boolean(
-        isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
-          compositeGenerateHeroPreviewUrl &&
-          !selectedStylePresetCardPreview,
-      ),
-    [compositeGenerateHeroPreviewUrl, selectedStylePresetCardPreview, selectedStylePresetId],
-  );
+    return selectedStylePresetCardPreview;
+  }, [selectedStylePresetCardPreview]);
 
   const handlePresetChange = (
     presetId: number | null,
@@ -3922,6 +4051,34 @@ export const GeneratePage: FC = () => {
       setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
       setPublishUiHints(bp.uiHints ?? null);
       handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
+      const latestOwnStyleHistoryEntry = historyEntries.find((entry) => {
+        if (isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) return true;
+        const code = entry.ownStyleBlueprintCode?.trim();
+        return !!code && code === bp.code;
+      });
+      if (latestOwnStyleHistoryEntry?.referenceAssignmentsSnapshot) {
+        setReferenceAssignments(
+          Object.fromEntries(
+            Object.entries(latestOwnStyleHistoryEntry.referenceAssignmentsSnapshot).map(([key, ids]) => [
+              key,
+              [...ids],
+            ]),
+          ),
+        );
+        setReferencePreviewById(latestOwnStyleHistoryEntry.referencePreviewSnapshot ?? {});
+      }
+      setResultImageUrl(null);
+      setDuringJobPreviousResultUrl(null);
+      setImageId(null);
+      setTaskId(null);
+      setFileId(null);
+      setStickerSaved(false);
+      setSavedStickerSetName(null);
+      setSavedStickerSetTitle(null);
+      setCurrentStatus(null);
+      setErrorMessage(null);
+      setErrorKind(null);
+      setPageState('idle');
     } catch (e: unknown) {
       setErrorMessage(e instanceof Error ? e.message : 'Не удалось открыть создание своего стиля');
       setErrorKind('general');
@@ -4143,6 +4300,8 @@ export const GeneratePage: FC = () => {
       previewByPresetId={presetPreviewById}
       onHistoryPreviewError={markHistoryPresetPreviewFailed}
       fallbackPreviewByPresetCode={PRESET_PREVIEW_FALLBACK_BY_CODE}
+      logoPlaceholderPresetId={OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID}
+      placeholderLogoSrc={STIXLY_LOGO_ORANGE}
       disabled={disabled || bootstrappingOwnStyle}
       creationHighlightPresetId={
         isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)
@@ -4188,37 +4347,16 @@ export const GeneratePage: FC = () => {
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
-            <div className="generate-form-layout__preset-heading-row">
-              {styleCategoryFilter != null && (
-                <StylePresetCategoryChips
-                  categories={styleCategoryChipsList}
-                  value={styleCategoryFilter}
-                  onChange={setStyleCategoryFilter}
-                  showMineChip
-                  disabled={cfg.presetDisabled}
-                  variant="gallery"
-                />
-              )}
-              {canShareStylePresetDeepLink ? (
-                <div className="generate-form-layout__preset-share-wrap">
-                  <button
-                    type="button"
-                    className="generate-form-layout__preset-share-btn"
-                    onClick={() => void handleShareSelectedStylePreset()}
-                    disabled={cfg.presetDisabled}
-                    aria-label="Поделиться стилем"
-                    title="Скопировать ссылку на этот стиль в Telegram"
-                  >
-                    <ShareIcon size={20} color="currentColor" />
-                  </button>
-                  {stylePresetShareCopied ? (
-                    <div className="generate-form-layout__preset-share-toast" role="status">
-                      Ссылка скопирована
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+            {styleCategoryFilter != null && (
+              <StylePresetCategoryChips
+                categories={styleCategoryChipsList}
+                value={styleCategoryFilter}
+                onChange={setStyleCategoryFilter}
+                showMineChip
+                disabled={cfg.presetDisabled}
+                variant="gallery"
+              />
+            )}
             {deepLinkPresetMissingNotice ? (
               <Text variant="bodySmall" className="generate-form-layout__preset-deeplink-notice" align="center">
                 Стиль по ссылке недоступен или удалён.
@@ -4256,7 +4394,7 @@ export const GeneratePage: FC = () => {
   const primarySourcePreview = sourceImagePreviews[0] ?? null;
   const stripIsOnlyTelegramAvatars =
     sourceImageFiles.length > 0 && sourceImageFiles.every((f) => isTelegramAvatarSourceFile(f));
-  /** В потоке «Мой стиль» тоже показываем аватар-слой, если нет последнего результата сверху */
+  /** В потоке «Черновик» показываем аватар-слой, если нет превью стиля сверху */
   const showAvatarCenterCard =
     (selectedStylePresetId == null || isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)) &&
     stripIsOnlyTelegramAvatars &&
@@ -4271,100 +4409,109 @@ export const GeneratePage: FC = () => {
           'generate-brand--preset-hero',
       )}
     >
-      {selectedStylePresetId != null && compositeGenerateHeroPreviewUrl ? (
-        <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--preset')}>
-          <button
-            type="button"
-            className="generate-result-image-tap"
-            aria-label={
-              isOwnFallbackHistoryHero ?
-                'Открыть последний результат генерации на весь экран'
-              : 'Открыть превью стиля на весь экран'}
-            onClick={() =>
-              setImageLightbox({
-                viewerUrl: compositeGenerateHeroPreviewUrl,
-                downloadUrl: null,
-                alt:
-                  isOwnFallbackHistoryHero ?
-                    'Последний результат генерации'
-                  : selectedPreset ?
-                    stripPresetName(selectedPreset.name)
-                  : 'Превью стиля',
-              })
-            }
-          >
-            <img
-              src={compositeGenerateHeroPreviewUrl}
-              alt={
-                isOwnFallbackHistoryHero ?
-                  'Последний результат генерации'
-                : selectedPreset ?
-                  stripPresetName(selectedPreset.name)
-                : ''
+      <div className="generate-brand__hero-centered">
+        {selectedStylePresetId != null && compositeGenerateHeroPreviewUrl ? (
+          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--preset')}>
+            <button
+              type="button"
+              className="generate-result-image-tap"
+              aria-label="Открыть превью стиля на весь экран"
+              onClick={() =>
+                setImageLightbox({
+                  viewerUrl: compositeGenerateHeroPreviewUrl,
+                  downloadUrl: null,
+                  alt: selectedPreset ? stripPresetName(selectedPreset.name) : 'Превью стиля',
+                })
               }
-              className="generate-result-image"
-              loading="eager"
-              decoding="async"
-              draggable={false}
-              onError={() => {
-                if (isOwnFallbackHistoryHero) return;
-                if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
-                  markHistoryPresetPreviewFailed(selectedStylePresetId);
-                }
-              }}
-            />
-          </button>
-        </div>
-      ) : showAvatarCenterCard ? (
-        <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--avatar')}>
-          <button
-            type="button"
-            className="generate-result-image-tap generate-result-image-tap--avatar"
-            aria-label="Открыть аватар на весь экран"
-            onClick={() =>
-              primarySourcePreview &&
-              setImageLightbox({
-                viewerUrl: primarySourcePreview,
-                downloadUrl: primarySourcePreview,
-                alt: 'Telegram-аватар',
-              })
-            }
-          >
-            <img
-              src={primarySourcePreview ?? ''}
-              alt="Telegram-аватар"
-              className="generate-brand-avatar-image"
-              loading="eager"
-              decoding="async"
-              draggable={false}
-            />
-          </button>
-          <button
-            type="button"
-            className="generate-brand-avatar-remove"
-            onClick={() => clearSourceImage({ markAvatarDismissed: true })}
-            aria-label="Убрать Telegram-аватар"
-          >
-            ×
-          </button>
-          <span className="generate-brand-avatar-label generate-hero-overlay-caption">
-            Сгенерировать по аватару
-          </span>
-        </div>
-      ) : (
-        <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--logo')}>
-          <div className="generate-brand-logo-stack">
-            <img
-              src={STIXLY_LOGO_ORANGE}
-              alt=""
-              className="generate-brand-logo-img"
-              loading="eager"
-              decoding="async"
-              aria-hidden="true"
-            />
+            >
+              <img
+                src={compositeGenerateHeroPreviewUrl}
+                alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
+                className="generate-result-image"
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                onError={() => {
+                  if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
+                    markHistoryPresetPreviewFailed(selectedStylePresetId);
+                  }
+                }}
+              />
+            </button>
+          </div>
+        ) : showAvatarCenterCard ? (
+          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--avatar')}>
+            <button
+              type="button"
+              className="generate-result-image-tap generate-result-image-tap--avatar"
+              aria-label="Открыть аватар на весь экран"
+              onClick={() =>
+                primarySourcePreview &&
+                setImageLightbox({
+                  viewerUrl: primarySourcePreview,
+                  downloadUrl: primarySourcePreview,
+                  alt: 'Telegram-аватар',
+                })
+              }
+            >
+              <img
+                src={primarySourcePreview ?? ''}
+                alt="Telegram-аватар"
+                className="generate-brand-avatar-image"
+                loading="eager"
+                decoding="async"
+                draggable={false}
+              />
+            </button>
+            <button
+              type="button"
+              className="generate-brand-avatar-remove"
+              onClick={() => clearSourceImage({ markAvatarDismissed: true })}
+              aria-label="Убрать Telegram-аватар"
+            >
+              ×
+            </button>
+            <span className="generate-brand-avatar-label generate-hero-overlay-caption">
+              Сгенерировать по аватару
+            </span>
+          </div>
+        ) : (
+          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--logo')}>
+            <div className="generate-brand-logo-stack">
+              <img
+                src={STIXLY_LOGO_ORANGE}
+                alt=""
+                className="generate-brand-logo-img"
+                loading="eager"
+                decoding="async"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {canShareStylePresetDeepLink ? (
+        <div className="generate-brand__share-floating">
+          <div className="generate-brand__share-wrap">
+            <button
+              type="button"
+              className="generate-brand__share-btn"
+              onClick={() => void handleShareSelectedStylePreset()}
+              disabled={hasActiveGeneration}
+              aria-label="Поделиться стилем"
+              title="Скопировать ссылку на этот стиль в Telegram"
+            >
+              <ShareIcon size={20} color="currentColor" />
+            </button>
+            {stylePresetShareNotice ? (
+              <div className="generate-brand__share-toast" role="status">
+                {stylePresetShareNotice}
+              </div>
+            ) : null}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 
@@ -4741,15 +4888,15 @@ export const GeneratePage: FC = () => {
         estimatedPublicationCostArt={publishCostHint}
         publishUiHints={publishUiHints}
         publicationReferencePreviewUrl={
-          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? publicationReferencePreviewUrl : null
+          useTaskCompletedPublicationFlow ? publicationReferencePreviewUrl : null
         }
         publicationGeneratedPreviewUrl={
-          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? publicationGeneratedPreviewUrl : null
+          useTaskCompletedPublicationFlow ? publicationGeneratedPreviewUrl : null
         }
         hasReferenceImage={hasReferenceForPublication}
         hasGeneratedResult={hasGeneratedResultForPublication}
         variant={
-          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) ? 'task_completed' : 'draft_preset'
+          useTaskCompletedPublicationFlow ? 'task_completed' : 'draft_preset'
         }
         taskId={taskId}
         userStyleBlueprintCode={ownStyleBlueprintSession?.blueprint.code ?? null}

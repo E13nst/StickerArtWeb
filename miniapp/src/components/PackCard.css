@@ -53,6 +53,14 @@
   background: var(--color-surface);
 }
 
+.pack-card__placeholder-logo {
+  width: 52%;
+  max-width: 120px;
+  height: auto;
+  max-height: 48%;
+  object-fit: contain;
+}
+
 .pack-card__title-overlay {
   position: absolute;
   bottom: 0;

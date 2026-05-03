@@ -11,6 +11,9 @@ interface StylePresetPackGridProps {
   previewByPresetId?: Map<number, string>;
   onHistoryPreviewError?: (presetId: number) => void;
   fallbackPreviewByPresetCode?: Partial<Record<string, string>>;
+  /** Для указанного id карточки без превью показываем логотип вместо буквы (поток «Черновик»). */
+  logoPlaceholderPresetId?: number | null;
+  placeholderLogoSrc?: string | null;
   disabled?: boolean;
   /** Поток «свой стиль» по blueprint с бэка: подсветка «+», когда выбран пресет из этого флоу */
   creationHighlightPresetId?: number | null;
@@ -46,6 +49,8 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
   previewByPresetId,
   onHistoryPreviewError,
   fallbackPreviewByPresetCode,
+  logoPlaceholderPresetId = null,
+  placeholderLogoSrc = null,
   disabled = false,
   creationHighlightPresetId = null,
   onCreatePreset,
@@ -145,7 +150,20 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
                   />
                 ) : (
                   <div className="pack-card__placeholder" aria-hidden="true">
-                    {opt.name.slice(0, 1)}
+                    {logoPlaceholderPresetId != null &&
+                    opt.id === logoPlaceholderPresetId &&
+                    placeholderLogoSrc ? (
+                      <img
+                        src={placeholderLogoSrc}
+                        alt=""
+                        className="pack-card__placeholder-logo"
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                      />
+                    ) : (
+                      opt.name.slice(0, 1)
+                    )}
                   </div>
                 )}
               </div>

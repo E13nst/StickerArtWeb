@@ -175,7 +175,7 @@ export const MyProfilePage: FC = () => {
   const [isUploadedLoading, setIsUploadedLoading] = useState(false);
   const [isUploadedListLoaded, setIsUploadedListLoaded] = useState(false);
   const [uploadedStickerSetsError, setUploadedStickerSetsError] = useState<string | null>(null);
-  // Реферальная ссылка: кэш и тултип "Ссылка скопирована"
+  // Реферальная ссылка: кэш и тултип
   const [referralLink, setReferralLink] = useState<ReferralLinkResponse | null>(null);
   const [referralLinkLoading, setReferralLinkLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
@@ -1210,7 +1210,7 @@ export const MyProfilePage: FC = () => {
               </button>
               {copySuccess && (
                 <div className="account-header__share-toast" role="status">
-                  Ссылка скопирована
+                  Реферальная ссылка скопирована
                 </div>
               )}
             </div>

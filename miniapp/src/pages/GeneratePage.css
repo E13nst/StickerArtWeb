@@ -395,6 +395,7 @@
 }
 
 .generate-brand {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -413,6 +414,96 @@
   width: 100%;
   max-width: 370px;
   min-height: unset;
+}
+
+/* Герой (превью / логотип) центрируется в потоке; шаринг — отдельный слой поверх, без flex-соседа */
+.generate-brand__hero-centered {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.generate-brand__share-floating {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.generate-brand__share-floating .generate-brand__share-wrap {
+  pointer-events: auto;
+}
+
+.generate-brand__share-wrap {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+}
+
+.generate-brand__share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  min-width: 44px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.generate-brand__share-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.generate-brand__share-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.generate-brand__share-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.generate-brand__share-toast {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  padding: 6px 10px;
+  font-family: var(--font-family-primary, 'Manrope', sans-serif);
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 10px;
+  white-space: normal;
+  max-width: min(268px, 78vw);
+  text-align: right;
+  line-height: 1.35;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: generate-brand-share-toast-in 0.2s ease;
+  pointer-events: none;
+}
+
+@keyframes generate-brand-share-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .generate-hero-slot {
@@ -822,77 +913,10 @@
 .generate-form-layout__preset-heading {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   padding: 8px 4px 4px;
   width: 100%;
   box-sizing: border-box;
-}
-
-.generate-form-layout__preset-heading-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-}
-
-.generate-form-layout__preset-share-wrap {
-  margin-left: auto;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.generate-form-layout__preset-share-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 36px;
-  padding: 0;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  backdrop-filter: blur(14px) saturate(1.15);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
-  cursor: pointer;
-}
-
-.generate-form-layout__preset-share-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.generate-form-layout__preset-share-btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.generate-form-layout__preset-share-toast {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 4;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  background: rgba(20, 20, 22, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  animation: generate-preset-share-toast-in 0.2s ease;
-}
-
-@keyframes generate-preset-share-toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .generate-form-layout__preset-deeplink-notice {
