@@ -42,6 +42,7 @@ import {
 } from '@/api/client';
 import {
   ensureSelectedPresetInStrip,
+  moveStylePresetIdFirst,
   sortPresetsInCategory,
   uniqueCategoriesFromPresets,
 } from '@/utils/stylePresetCategoryUi';
@@ -51,7 +52,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { DownloadIcon } from '@/components/ui/Icons';
+import { DownloadIcon, ShareIcon } from '@/components/ui/Icons';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
@@ -69,6 +70,12 @@ import {
 } from '@/utils/generateHistoryStorage';
 import { readHistoryHeadAck, writeHistoryHeadAck } from '@/utils/historyHeadAckStorage';
 import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/generatePreferencesStorage';
+import {
+  buildTelegramMiniAppStylePresetShareUrl,
+  parseStylePresetIdFromStartParam,
+  REFERRAL_START_PARAM_PREFIX,
+  resolveTelegramStartParam,
+} from '@/utils/stylePresetDeepLink';
 import { POPULAR_EMOJIS } from '@/constants/popularEmojis';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
@@ -419,7 +426,7 @@ const normalizeGenerateModel = (model: GenerateModelType | null | undefined): Ge
 
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
-  const { isInTelegramApp, tg, user } = useTelegram();
+  const { isInTelegramApp, tg, user, initData } = useTelegram();
   const location = useLocation();
   
   // Inline-режим параметры из URL
@@ -429,6 +436,10 @@ export const GeneratePage: FC = () => {
   // Состояние формы
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
+  const [styleCatalogLoaded, setStyleCatalogLoaded] = useState(false);
+  const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
+  const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
+  const [stylePresetShareCopied, setStylePresetShareCopied] = useState(false);
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
   const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
@@ -526,6 +537,7 @@ export const GeneratePage: FC = () => {
   const composeStickyHeightRef = useRef<number | undefined>(undefined);
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
+  const styleDeepLinkHandledRef = useRef(false);
 
   const avatarAutofillAppliedRef = useRef<string | null>(null);
   const avatarAutofillInFlightRef = useRef(false);
@@ -774,6 +786,8 @@ export const GeneratePage: FC = () => {
 
   // Загрузка пресетов стилей, категорий и blueprint создания своего стиля при монтировании
   useEffect(() => {
+    let cancelled = false;
+
     const loadPresets = async () => {
       let presets: StylePreset[] = [];
       try {
@@ -781,7 +795,9 @@ export const GeneratePage: FC = () => {
       } catch (error) {
         console.error('Ошибка загрузки пресетов стилей:', error);
       }
-      setStylePresets(presets);
+      if (!cancelled) {
+        setStylePresets(presets);
+      }
 
       try {
         const [categories, blueprints] = await Promise.all([
@@ -794,14 +810,23 @@ export const GeneratePage: FC = () => {
             return [] as UserPresetCreationBlueprintDto[];
           }),
         ]);
-        setStylePresetCategories(categories);
-        setUserPresetCreationBlueprints(blueprints);
+        if (!cancelled) {
+          setStylePresetCategories(categories);
+          setUserPresetCreationBlueprints(blueprints);
+        }
       } catch (error) {
         console.error('Ошибка загрузки категорий или blueprint пресетов:', error);
+      } finally {
+        if (!cancelled) {
+          setStyleCatalogLoaded(true);
+        }
       }
     };
 
     void loadPresets();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const styleCategoryChipsList = useMemo(() => {
@@ -833,12 +858,17 @@ export const GeneratePage: FC = () => {
   }, [ownStyleBlueprintSession, stylePresets, styleCategoryFilter]);
 
   const stripStylePresets = useMemo(() => {
+    const boostId = deepLinkStyleBoostId;
+    const boostStrip = (s: StylePreset[]) => moveStylePresetIdFirst(s, boostId);
+
     if (styleCategoryChipsList.length === 0 || styleCategoryFilter == null) {
       const strip = presetsWithVirtual.filter((p) => isPresetShownInStrip(p));
-      return ensureSelectedPresetInStrip(
-        sortPresetsInCategory(strip),
-        presetsWithVirtual,
-        selectedStylePresetId,
+      return boostStrip(
+        ensureSelectedPresetInStrip(
+          sortPresetsInCategory(strip),
+          presetsWithVirtual,
+          selectedStylePresetId,
+        ),
       );
     }
     if (styleCategoryFilter === STYLE_CATEGORY_FILTER_MY) {
@@ -846,15 +876,23 @@ export const GeneratePage: FC = () => {
       const mine = presetsWithVirtual.filter(
         (p) => isPresetShownInStrip(p) && !p.isGlobal && uid != null && p.ownerId === uid,
       );
-      return sortPresetsInCategory(mine);
+      return boostStrip(
+        ensureSelectedPresetInStrip(
+          sortPresetsInCategory(mine),
+          presetsWithVirtual,
+          selectedStylePresetId,
+        ),
+      );
     }
     const list = presetsWithVirtual.filter(
       (p) => isPresetShownInStrip(p) && p.category?.id === styleCategoryFilter,
     );
-    return ensureSelectedPresetInStrip(
-      sortPresetsInCategory(list),
-      presetsWithVirtual,
-      selectedStylePresetId,
+    return boostStrip(
+      ensureSelectedPresetInStrip(
+        sortPresetsInCategory(list),
+        presetsWithVirtual,
+        selectedStylePresetId,
+      ),
     );
   }, [
     styleCategoryFilter,
@@ -863,6 +901,7 @@ export const GeneratePage: FC = () => {
     styleCategoryChipsList,
     isPresetShownInStrip,
     userInfo?.id,
+    deepLinkStyleBoostId,
   ]);
 
   const isMyCategorySelected = styleCategoryFilter === STYLE_CATEGORY_FILTER_MY;
@@ -1918,6 +1957,70 @@ export const GeneratePage: FC = () => {
     preferencesAppliedRef.current = true;
   }, [historyUserScopeId, stylePresets]);
 
+  /** Deep link стиля: `start_param` = `sag_style_<id>` после GET …/style-presets (merged). `ref_` не трогаем. */
+  useEffect(() => {
+    if (!styleCatalogLoaded || styleDeepLinkHandledRef.current) return;
+
+    const rawStart = resolveTelegramStartParam(tg, initData);
+    if (rawStart == null || rawStart.length === 0) {
+      styleDeepLinkHandledRef.current = true;
+      return;
+    }
+    if (rawStart.startsWith(REFERRAL_START_PARAM_PREFIX)) {
+      styleDeepLinkHandledRef.current = true;
+      return;
+    }
+
+    const presetId = parseStylePresetIdFromStartParam(rawStart);
+    if (presetId == null) {
+      styleDeepLinkHandledRef.current = true;
+      return;
+    }
+
+    const preset = stylePresets.find((p) => p.id === presetId);
+    if (!preset) {
+      setDeepLinkPresetMissingNotice(true);
+      styleDeepLinkHandledRef.current = true;
+      return;
+    }
+
+    setSelectedStylePresetId(presetId);
+    setDeepLinkStyleBoostId(presetId);
+
+    const uid = userInfo?.id ?? null;
+    if (uid != null && !preset.isGlobal && preset.ownerId === uid) {
+      setStyleCategoryFilter(STYLE_CATEGORY_FILTER_MY);
+    } else if (preset.category?.id != null) {
+      setStyleCategoryFilter(preset.category.id);
+    }
+
+    if (historyUserScopeId) {
+      persistGeneratePreferences({ stylePresetId: presetId });
+    }
+
+    styleDeepLinkHandledRef.current = true;
+  }, [
+    styleCatalogLoaded,
+    stylePresets,
+    tg,
+    initData,
+    userInfo?.id,
+    historyUserScopeId,
+    persistGeneratePreferences,
+  ]);
+
+  useEffect(() => {
+    if (!deepLinkPresetMissingNotice) return;
+    const tid = window.setTimeout(() => setDeepLinkPresetMissingNotice(false), 6500);
+    return () => window.clearTimeout(tid);
+  }, [deepLinkPresetMissingNotice]);
+
+  useEffect(() => {
+    if (!stylePresetShareCopied) return;
+    const tid = window.setTimeout(() => setStylePresetShareCopied(false), 2200);
+    return () => window.clearTimeout(tid);
+  }, [stylePresetShareCopied]);
+
   // Метаданные UI выбранного пресета (виртуальная карточка «своего стиля»; при загрузке preset_ref черновик создаётся лениво).
   const selectedPreset: StylePreset | null = useMemo(() => {
     if (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession) {
@@ -1926,6 +2029,32 @@ export const GeneratePage: FC = () => {
     if (selectedStylePresetId == null) return null;
     return stylePresets.find((p) => p.id === selectedStylePresetId) ?? null;
   }, [ownStyleBlueprintSession, selectedStylePresetId, stylePresets]);
+
+  const canShareStylePresetDeepLink =
+    selectedPreset != null &&
+    selectedPreset.shareableAsDeepLink === true &&
+    typeof selectedPreset.deepLinkStartParam === 'string' &&
+    selectedPreset.deepLinkStartParam.trim().length > 0;
+
+  const handleShareSelectedStylePreset = useCallback(async () => {
+    if (!canShareStylePresetDeepLink || !selectedPreset?.deepLinkStartParam) return;
+    const param = selectedPreset.deepLinkStartParam.trim();
+    const url = buildTelegramMiniAppStylePresetShareUrl(param);
+    const textToCopy = url ?? param;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      tg?.HapticFeedback?.impactOccurred('light');
+      setStylePresetShareCopied(true);
+      if (!url && tg?.showAlert) {
+        tg.showAlert(
+          'Задайте при сборке VITE_TELEGRAM_BOT_USERNAME и VITE_TELEGRAM_MINI_APP_SHORT_NAME для полной ссылки t.me/…/… . В буфер скопирован параметр startapp.',
+        );
+      }
+    } catch {
+      tg?.showAlert?.('Не удалось скопировать ссылку.');
+    }
+  }, [canShareStylePresetDeepLink, selectedPreset, tg]);
+
   const promptInputCfg = selectedPreset?.promptInput ?? null;
   /** Показывать ли основное поле prompt по preset.promptInput (скрывается только когда enabled явно false). */
   const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
@@ -4059,16 +4188,42 @@ export const GeneratePage: FC = () => {
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
-            {styleCategoryFilter != null && (
-              <StylePresetCategoryChips
-                categories={styleCategoryChipsList}
-                value={styleCategoryFilter}
-                onChange={setStyleCategoryFilter}
-                showMineChip
-                disabled={cfg.presetDisabled}
-                variant="gallery"
-              />
-            )}
+            <div className="generate-form-layout__preset-heading-row">
+              {styleCategoryFilter != null && (
+                <StylePresetCategoryChips
+                  categories={styleCategoryChipsList}
+                  value={styleCategoryFilter}
+                  onChange={setStyleCategoryFilter}
+                  showMineChip
+                  disabled={cfg.presetDisabled}
+                  variant="gallery"
+                />
+              )}
+              {canShareStylePresetDeepLink ? (
+                <div className="generate-form-layout__preset-share-wrap">
+                  <button
+                    type="button"
+                    className="generate-form-layout__preset-share-btn"
+                    onClick={() => void handleShareSelectedStylePreset()}
+                    disabled={cfg.presetDisabled}
+                    aria-label="Поделиться стилем"
+                    title="Скопировать ссылку на этот стиль в Telegram"
+                  >
+                    <ShareIcon size={20} color="currentColor" />
+                  </button>
+                  {stylePresetShareCopied ? (
+                    <div className="generate-form-layout__preset-share-toast" role="status">
+                      Ссылка скопирована
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            {deepLinkPresetMissingNotice ? (
+              <Text variant="bodySmall" className="generate-form-layout__preset-deeplink-notice" align="center">
+                Стиль по ссылке недоступен или удалён.
+              </Text>
+            ) : null}
           </div>
           {renderPresetGrid(cfg.presetDisabled)}
         </div>

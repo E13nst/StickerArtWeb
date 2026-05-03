@@ -107,3 +107,13 @@ export function ensureSelectedPresetInStrip(
   if (p == null) return strip;
   return [p, ...strip];
 }
+
+/** Локально поднять карточку пресета в начало ленты (после загрузки по deep link). */
+export function moveStylePresetIdFirst(strip: StylePreset[], presetId: number | null): StylePreset[] {
+  if (presetId == null) return strip;
+  const idx = strip.findIndex((p) => p.id === presetId);
+  if (idx <= 0) return strip;
+  const next = [...strip];
+  const [item] = next.splice(idx, 1);
+  return [item, ...next];
+}

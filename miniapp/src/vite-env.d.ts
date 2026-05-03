@@ -2,6 +2,10 @@
 
 interface ImportMetaEnv {
   readonly VITE_BACKEND_URL: string
+  /** Имя бота без @ для ссылок вида `https://t.me/<bot>/<app>?startapp=…` */
+  readonly VITE_TELEGRAM_BOT_USERNAME?: string
+  /** Короткое имя Mini App в BotFather (сегмент URL после имени бота) */
+  readonly VITE_TELEGRAM_MINI_APP_SHORT_NAME?: string
   /** Числовой id blueprint из GET …/user-preset-creation-blueprints; если не задан — первый по id в ответе */
   readonly VITE_USER_PRESET_CREATION_BLUEPRINT_ID?: string
   readonly VITE_STICKER_PROCESSOR_URL?: string

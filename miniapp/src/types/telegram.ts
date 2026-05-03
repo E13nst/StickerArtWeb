@@ -6,6 +6,8 @@ export interface TelegramWebApp {
     chat?: TelegramChat;
     auth_date?: number;
     hash?: string;
+    /** Параметр Mini App из ссылки `?startapp=` / direct link */
+    start_param?: string;
   };
   version: string;
   platform: string;

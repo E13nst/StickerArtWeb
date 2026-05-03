@@ -607,6 +607,10 @@ export interface StylePreset {
   moderationStatus?: StylePresetModerationStatus | null;
   /** ID владельца пресета (null для глобальных) */
   ownerId?: number | null;
+  /** Можно ли дать публичную ссылку на этот стиль в Mini App */
+  shareableAsDeepLink?: boolean;
+  /** Значение для `startapp` без обёртки URL; только если шаринг доступен */
+  deepLinkStartParam?: string | null;
 }
 
 export interface GenerateRequest {
