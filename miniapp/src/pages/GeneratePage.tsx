@@ -2115,11 +2115,11 @@ export const GeneratePage: FC = () => {
         setStylePresetShareNotice('Ссылка на стиль скопирована');
       } else {
         setStylePresetShareNotice(
-          'Скопирован параметр стиля. Полную ссылку t.me сейчас собрать нельзя — задайте при сборке имя бота и короткое имя Mini App.',
+          'Скопирован параметр стиля. Полную ссылку t.me сейчас собрать нельзя — задайте при сборке VITE_TELEGRAM_BOT_USERNAME и VITE_TELEGRAM_MINI_APP_SHORT_NAME или отдавайте готовый URL с бэкенда.',
         );
         console.warn(
-          '[GeneratePage] Для полной ссылки задайте VITE_TELEGRAM_BOT_USERNAME и VITE_TELEGRAM_MINI_APP_SHORT_NAME ' +
-            '(формат: https://t.me/<бот>/<mini_app>?startapp=<параметр>). В буфер скопирован только параметр startapp.',
+          '[GeneratePage] Нет env для сборки t.me (или добавьте поле с готовой ссылкой в API пресета) — в буфер только startapp:',
+          param,
         );
       }
     } catch {
@@ -2198,7 +2198,7 @@ export const GeneratePage: FC = () => {
     [selectedPreset],
   );
 
-  /** Сколько слотов под пользовательские референсы даёт пресет (без заблокированного preset_ref). */
+  /** Сколько слотов под пользовательские референсы даёт пресет (без заблокированного preset_ref с сервера). */
   const presetUserRefSlotTotal = useMemo(() => {
     let n = 0;
     for (const f of referenceFieldDefs) {
@@ -3806,8 +3806,32 @@ export const GeneratePage: FC = () => {
   const renderSourceImageStrip = (disabled: boolean, stripOpts?: { suppressItemReveal?: boolean }) => {
     const hasAttachedImages = sourceImageFiles.length > 0;
     const suppressReveal = Boolean(stripOpts?.suppressItemReveal && hasAttachedImages);
+    /**
+     * После аплоада в preset_ref у черновика/«своего стиля» слот становится locked (есть presetReferenceSourceImageId),
+     * но исходные File всё ещё висят на общей ленте — их нельзя вычёркивать из лимита, иначе ложное
+     * «больше фотографий, чем нужно пресету».
+     */
+    const presetRefDef = referenceFieldDefs.find((f) => f.key === PRESET_REF_FIELD_KEY && f.type === 'reference');
+    const presetRefCap = presetRefDef ? Math.max(1, presetRefDef.maxImages ?? 1) : 0;
+    let stripLockedPresetRefExtra = 0;
+    if (presetRefCap > 0 && lockedPresetRefFieldKeys.has(PRESET_REF_FIELD_KEY)) {
+      const presetRefIds = (referenceAssignments[PRESET_REF_FIELD_KEY] ?? []).filter(
+        (x): x is string => typeof x === 'string' && x.trim().length > 0,
+      );
+      if (presetRefIds.length) {
+        const fpMap = refImageIdToFingerprintRef.current;
+        const uploadedRefTracked = presetRefIds.some((id) => Boolean(fpMap[id.trim()]));
+        const ownStylePresetRef =
+          isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
+          presetRefIds.some((id) => id.trim().startsWith('img_sagref_'));
+        if (uploadedRefTracked || ownStylePresetRef) {
+          stripLockedPresetRefExtra = presetRefCap;
+        }
+      }
+    }
+    const sourceStripReferenceSlotBudget = presetUserRefSlotTotal + stripLockedPresetRefExtra;
     const showStripExtraPresetHint =
-      presetUserRefSlotTotal > 0 && sourceImageFiles.length > presetUserRefSlotTotal;
+      sourceStripReferenceSlotBudget > 0 && sourceImageFiles.length > sourceStripReferenceSlotBudget;
 
     return (
     <>
@@ -3887,24 +3911,25 @@ export const GeneratePage: FC = () => {
             </div>
           </div>
         )}
-        {hasAttachedImages && showStripExtraPresetHint && (
-          <span
-            className="generate-source-strip__clear-link generate-source-strip__clear-hint"
-            role="status"
-          >
-            У вас больше фотографий, чем требует пресет. Удалите ненужные.
-          </span>
-        )}
-        {hasAttachedImages && sourceImageFiles.length >= 2 && !showStripExtraPresetHint && (
-          <button
-            type="button"
-            className="generate-source-strip__clear-link"
-            onClick={() => clearSourceImage()}
-            disabled={disabled}
-            aria-label="Удалить все прикрепленные изображения"
-          >
-            Удалить все
-          </button>
+        {hasAttachedImages && (showStripExtraPresetHint || sourceImageFiles.length >= 2) && (
+          <div className="generate-source-strip__meta-row" aria-live="polite">
+            {showStripExtraPresetHint && (
+              <span className="generate-source-strip__clear-link generate-source-strip__clear-hint" role="status">
+                На ленте лишние фото для этого стиля — удалите.
+              </span>
+            )}
+            {sourceImageFiles.length >= 2 && (
+              <button
+                type="button"
+                className="generate-source-strip__clear-link generate-source-strip__clear-all-btn"
+                onClick={() => clearSourceImage()}
+                disabled={disabled}
+                aria-label="Удалить все прикрепленные изображения"
+              >
+                Удалить все
+              </button>
+            )}
+          </div>
         )}
         <button
           type="button"
@@ -3954,23 +3979,25 @@ export const GeneratePage: FC = () => {
     }
   };
 
+  /** Превью «как в последней удачной генерации» только для текущей закреплённой записи истории — иначе плитки/шапка тянут чужой старый результат при смене стиля после просмотра истории. */
   const presetPreviewById = useMemo(() => {
-    const minFreshTs = Date.now() - HISTORY_PRESET_PREVIEW_TTL_MS;
     const previewMap = new Map<number, string>();
-    historyEntries.forEach((entry) => {
-      if (
-        entry.stylePresetId != null &&
-        !failedHistoryPresetPreviewIds.has(entry.stylePresetId) &&
-        entry.pageState === 'success' &&
-        entry.updatedAt >= minFreshTs &&
-        entry.resultImageUrl &&
-        !previewMap.has(entry.stylePresetId)
-      ) {
-        previewMap.set(entry.stylePresetId, entry.resultImageUrl);
-      }
-    });
+    if (!pinnedHistoryLocalId) return previewMap;
+    const entry = historyEntries.find((e) => e.localId === pinnedHistoryLocalId);
+    const minFreshTs = Date.now() - HISTORY_PRESET_PREVIEW_TTL_MS;
+    if (
+      !entry ||
+      entry.stylePresetId == null ||
+      failedHistoryPresetPreviewIds.has(entry.stylePresetId) ||
+      entry.pageState !== 'success' ||
+      entry.updatedAt < minFreshTs ||
+      !entry.resultImageUrl
+    ) {
+      return previewMap;
+    }
+    previewMap.set(entry.stylePresetId, entry.resultImageUrl);
     return previewMap;
-  }, [failedHistoryPresetPreviewIds, historyEntries]);
+  }, [failedHistoryPresetPreviewIds, historyEntries, pinnedHistoryLocalId]);
 
   const markHistoryPresetPreviewFailed = useCallback((presetId: number) => {
     setFailedHistoryPresetPreviewIds((prev) => {
@@ -3993,7 +4020,7 @@ export const GeneratePage: FC = () => {
   const selectedStyleUsesHistoryPreview =
     selectedStylePresetId != null && presetPreviewById.has(selectedStylePresetId);
 
-  /** Верхний блок: только превью выбранного пресета / превью из истории для этого же id (без чужих записей истории). */
+  /** Верхний блок: превью стиля; картинка из истории — только если она относится к закреплённой записи и совпадает с выбранным пресетом. */
   const compositeGenerateHeroPreviewUrl = useMemo(() => {
     return selectedStylePresetCardPreview;
   }, [selectedStylePresetCardPreview]);
@@ -4006,6 +4033,9 @@ export const GeneratePage: FC = () => {
       setPublishCostHint(null);
       setPublishUiHints(null);
     }
+    const prevId = selectedStylePresetId;
+    const isPresetSwitch = presetId !== prevId;
+
     if (!isOwnStyleBlueprintVirtualPreset(presetId)) {
       setOwnStyleBlueprintSession(null);
     }
@@ -4015,6 +4045,27 @@ export const GeneratePage: FC = () => {
     setReferenceAssignments({});
     setReferencePreviewById({});
     setReferenceUploadingKey(null);
+
+    if (isPresetSwitch && pageState !== 'generating' && pageState !== 'uploading') {
+      setPinnedHistoryLocalId(null);
+      activeHistoryLocalIdRef.current = null;
+      if (historyUserScopeId) {
+        setHistoryEntries(clearActiveGenerateHistoryEntry(historyUserScopeId));
+      }
+      setResultImageUrl(null);
+      setImageId(null);
+      setDuringJobPreviousResultUrl(null);
+      setTaskId(null);
+      setFileId(null);
+      setStickerSaved(false);
+      setSavedStickerSetName(null);
+      setSavedStickerSetTitle(null);
+      setCurrentStatus(null);
+      setErrorMessage(null);
+      setErrorKind(null);
+      setPageState('idle');
+    }
+
     if (isOwnStyleBlueprintVirtualPreset(presetId)) {
       persistGeneratePreferences({ stylePresetId: null });
     } else {

@@ -716,6 +716,32 @@
   cursor: grabbing;
 }
 
+/* Область над лентой: подсказка «лишние фото» и «Удалить все» без наложений друг на друга */
+.generate-source-strip__meta-row {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 54px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.generate-source-strip__meta-row > .generate-source-strip__clear-link {
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+}
+
+.generate-source-strip__meta-row .generate-source-strip__clear-all-btn {
+  pointer-events: auto;
+}
+
 .generate-source-strip__clear-link {
   position: absolute;
   top: -18px;
@@ -747,10 +773,13 @@
 .generate-source-strip__clear-hint {
   cursor: default;
   pointer-events: none;
-  white-space: normal;
-  max-width: min(240px, 78vw);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
-  line-height: 1.25;
+  font-size: 10px;
+  line-height: 1.15;
   text-decoration: none;
 }
 
