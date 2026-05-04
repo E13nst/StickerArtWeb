@@ -1,6 +1,7 @@
 import { getStickerBaseUrl } from './stickerUtils';
 import { cacheManager } from './cacheManager';
 import type { ResourceType } from './cacheManager';
+import { videoBlobCache } from './videoBlobCache';
 
 // Реэкспорт для обратной совместимости
 export type { ResourceType };
@@ -1216,78 +1217,6 @@ export const animationCache = {
   keys: () => {
     // Для диагностики: возвращаем ключи из syncCache
     const syncCache = (cacheManager as any).syncCache?.animations;
-    return syncCache ? syncCache.keys() : [][Symbol.iterator]();
-  }
-};
-
-/**
- * Проверяет, валиден ли blob URL через попытку fetch HEAD запроса
- * @param blobUrl - blob URL для проверки
- * @returns Promise<boolean> - true если URL валиден, false если отозван
- * 
- * Примечание: Это асинхронная проверка, но она надежнее чем просто проверка формата.
- * Для синхронной проверки используем только формат и полагаемся на обработку ошибок.
- */
-async function isValidBlobUrlAsync(blobUrl: string): Promise<boolean> {
-  try {
-    const response = await fetch(blobUrl, { method: 'HEAD', cache: 'no-cache' });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Синхронная проверка формата blob URL (быстрая, но не гарантирует валидность)
- */
-function isValidBlobUrlFormat(blobUrl: string | null | undefined): boolean {
-  if (!blobUrl || !blobUrl.startsWith('blob:')) {
-    return false;
-  }
-  
-  try {
-    const url = new URL(blobUrl);
-    return url.protocol === 'blob:';
-  } catch {
-    return false;
-  }
-}
-
-export const videoBlobCache = {
-  get: (fileId: string) => {
-    const blobUrl = cacheManager.getSync(fileId, 'video');
-    // ✅ FIX: Проверяем формат blob URL (синхронная проверка)
-    // Реальная валидность проверяется через обработку ошибок в компонентах
-    if (blobUrl && !isValidBlobUrlFormat(blobUrl)) {
-      // Неверный формат - удаляем из кеша
-      if (isDev) {
-        console.warn(`[videoBlobCache] Invalid blob URL format for ${fileId}, removing from cache`);
-      }
-      cacheManager.delete(fileId, 'video').catch(() => {});
-      return null;
-    }
-    return blobUrl;
-  },
-  has: (fileId: string) => {
-    const blobUrl = cacheManager.getSync(fileId, 'video');
-    return blobUrl !== null && isValidBlobUrlFormat(blobUrl);
-  },
-  /**
-   * Асинхронная проверка валидности blob URL
-   */
-  isValid: async (fileId: string): Promise<boolean> => {
-    const blobUrl = cacheManager.getSync(fileId, 'video');
-    if (!blobUrl || !isValidBlobUrlFormat(blobUrl)) {
-      return false;
-    }
-    return await isValidBlobUrlAsync(blobUrl);
-  },
-  set: async (fileId: string, data: string) => await cacheManager.set(fileId, data, 'video'),
-  delete: async (fileId: string) => await cacheManager.delete(fileId, 'video'),
-  clear: async () => await cacheManager.clear('video'),
-  keys: () => {
-    // Для диагностики: возвращаем ключи из syncCache
-    const syncCache = (cacheManager as any).syncCache?.videos;
     return syncCache ? syncCache.keys() : [][Symbol.iterator]();
   }
 };

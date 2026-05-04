@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { StickerSetResponse } from '@/types/sticker';
 import type { UserInfo } from '@/types/user';
-import { apiClient } from '@/api';
+import { apiClient } from '@/api/client';
 
 // Тип для кэшированного профиля
 interface CachedProfile {

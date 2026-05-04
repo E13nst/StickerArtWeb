@@ -60,6 +60,25 @@ export default defineConfig(({ mode }) => {
       sourcemap: false,
       minify: 'esbuild', // Используем esbuild (по умолчанию в Vite)
       cssMinify: true,
+      /**
+       * По умолчанию Vite подсказывает modulepreload для всех динамических import() из entry,
+       * включая ленивые страницы и их тяжёлые зависимости (modals → lottie). На cold start
+       * «дефолтного» /generate это даёт лишние параллельные запросы без выигрыша для TTI.
+       */
+      modulePreload: {
+        resolveDependencies: (_filename, deps) => {
+          const base = (id: string) => id.split('/').pop() ?? id;
+          return deps.filter((id) => {
+            const b = base(id);
+            if (b.includes('lottie-vendor')) return false;
+            if (b.includes('modals-')) return false;
+            if (/page-(authorpage|dashboardpage|myprofilepage|gallerypage2|profilepage|swipepage|designsystemdemo|videoalphatestpage)-/i.test(b)) {
+              return false;
+            }
+            return true;
+          });
+        },
+      },
       // Настройки esbuild для удаления console.log и debugger
       // ВРЕМЕННО отключено для диагностики форматирования
       esbuild: {
@@ -83,6 +102,26 @@ export default defineConfig(({ mode }) => {
             }
             if (/\/node_modules\/base64-js(?:\/|$)/.test(norm)) {
               return 'vendor-buffer';
+            }
+            if (/\/utils\/videoBlobCache\.(tsx|ts)$/.test(norm)) {
+              return 'video-blob-cache';
+            }
+            // Layout / header / shared state: must not live inside page-* chunks, or lazy routes
+            // pull them into async chunks and the entry ends up with sync imports (modals, lottie, etc.).
+            if (
+              /\/contexts\/ScrollContext\.(tsx|ts)$/.test(norm) ||
+              /\/store\/useGenerateLandingGateStore\.(tsx|ts)$/.test(norm) ||
+              /\/store\/useGenerateHistoryHeaderStore\.(tsx|ts)$/.test(norm) ||
+              /\/store\/useStickerStore\.(tsx|ts)$/.test(norm) ||
+              /\/store\/useLikesStore\.(tsx|ts)$/.test(norm) ||
+              /\/store\/useProfileStore\.(tsx|ts)$/.test(norm) ||
+              /\/utils\/resolvedAvatar\.(tsx|ts)$/.test(norm) ||
+              /\/hooks\/useUserAvatar\.(tsx|ts)$/.test(norm) ||
+              /\/hooks\/useTelegram\.(tsx|ts)$/.test(norm) ||
+              /\/components\/LoadingSpinner\.(tsx|ts)$/.test(norm) ||
+              /\/components\/ui\/Icons\.(tsx|ts)$/.test(norm)
+            ) {
+              return 'miniapp-shell';
             }
             // ✅ CRITICAL FIX: Минимальное разделение vendors для избежания проблем с порядком
             if (norm.includes('node_modules')) {

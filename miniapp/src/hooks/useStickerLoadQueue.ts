@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { imageLoader, LoadPriority, imageCache, videoBlobCache, animationCache } from '@/utils/imageLoader';
+import { imageLoader, LoadPriority, imageCache, animationCache } from '@/utils/imageLoader';
+import { videoBlobCache } from '@/utils/videoBlobCache';
 import { getStickerImageUrl } from '@/utils/stickerUtils';
 import { Sticker } from '@/types/sticker';
 

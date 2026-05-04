@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { videoBlobCache } from '../utils/imageLoader';
+import { videoBlobCache } from '../utils/videoBlobCache';
 
 export interface DiagnosticsEvent {
   name: string;

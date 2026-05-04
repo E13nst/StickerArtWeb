@@ -2,17 +2,12 @@ import { useEffect, lazy, Suspense, FC } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import MainLayout from '@/layouts/MainLayout';
-import { GeneratePage } from '@/pages/GeneratePage';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { readDevTelegramInitDataOverride } from '@/telegram/launchParams';
 import { applyTelegramSessionAuth } from '@/telegram/sessionAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-// 🔍 Импортируем animationMonitor для диагностики производительности
-import '@/utils/animationMonitor';
-// ✅ FIX: Импортируем для обработки ошибок blob URLs
-import { videoBlobCache } from '@/utils/imageLoader';
 
 // Lazy load страниц для code splitting
 const GalleryPage = lazy(() => import('@/pages/GalleryPage2').then(m => ({ default: m.GalleryPage2 })));
@@ -23,11 +18,18 @@ const AuthorPage = lazy(() => import('@/pages/AuthorPage').then(m => ({ default:
 const SwipePage = lazy(() => import('@/pages/SwipePage').then(m => ({ default: m.SwipePage })));
 const DesignSystemDemo = lazy(() => import('@/pages/DesignSystemDemo').then(m => ({ default: m.DesignSystemDemo })));
 const VideoAlphaTestPage = lazy(() => import('@/pages/VideoAlphaTestPage').then(m => ({ default: m.VideoAlphaTestPage })));
+const GeneratePage = lazy(() =>
+  import('@/pages/GeneratePage').then((m) => ({ default: m.GeneratePage })),
+);
 
 // TON Connect manifest URL (статический, так как MiniApp развёрнут на стабильном домене)
 const manifestUrl = 'https://sticker-art-e13nst.amvera.io/miniapp/tonconnect-manifest.json';
 
 const App: FC = () => {
+  useEffect(() => {
+    void import('@/utils/animationMonitor');
+  }, []);
+
   // ✅ FIX: Используем selector для предотвращения пересоздания функции
   const clearStorage = useLikesStore(state => state.clearStorage);
   const initializeCurrentUser = useProfileStore((state) => state.initializeCurrentUser);
@@ -109,8 +111,9 @@ const App: FC = () => {
           
           if (fileId) {
             console.warn(`[App] Invalid blob URL detected for ${fileId}, removing from cache`);
-            // Удаляем недействительный blob URL из кеша
-            videoBlobCache.delete(fileId).catch(() => {});
+            void import('@/utils/videoBlobCache').then(({ videoBlobCache }) => {
+              videoBlobCache.delete(fileId).catch(() => {});
+            });
             // Пытаемся найти оригинальный URL и перезагрузить
             // Это будет обработано компонентами через их обработчики onError
           }

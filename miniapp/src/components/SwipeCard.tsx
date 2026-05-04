@@ -5,7 +5,8 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { AnimatedSticker } from './AnimatedSticker';
 import { FavoriteIcon } from '@/components/ui/Icons';
 import { StickerSetResponse } from '@/types/sticker';
-import { imageCache, videoBlobCache, LoadPriority } from '@/utils/imageLoader';
+import { imageCache, LoadPriority } from '@/utils/imageLoader';
+import { videoBlobCache } from '@/utils/videoBlobCache';
 import { getStickerImageUrl, getStickerVideoUrl, formatStickerTitle } from '@/utils/stickerUtils';
 import { useStickerLoadQueue } from '@/hooks/useStickerLoadQueue';
 

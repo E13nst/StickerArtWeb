@@ -6,7 +6,8 @@ import { PackCardDebugOverlay } from './PackCardDebugOverlay';
 import { useMediaDiagnostics } from '../hooks/useMediaDiagnostics';
 import { useNonFlashingVideoSrc } from '../hooks/useNonFlashingVideoSrc';
 import { useProfileStore } from '../store/useProfileStore';
-import { imageLoader, imageCache, videoBlobCache, LoadPriority } from '../utils/imageLoader';
+import { imageLoader, imageCache, LoadPriority } from '../utils/imageLoader';
+import { videoBlobCache } from '../utils/videoBlobCache';
 import { formatStickerTitle } from '../utils/stickerUtils';
 import './PackCard.css';
 

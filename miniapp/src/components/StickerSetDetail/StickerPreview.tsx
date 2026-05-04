@@ -3,7 +3,8 @@ import { AnimatedSticker } from '../AnimatedSticker';
 import { PackCardDebugOverlay } from '../PackCardDebugOverlay';
 import { useMediaDiagnostics } from '@/hooks/useMediaDiagnostics';
 import { useProfileStore } from '@/store/useProfileStore';
-import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority, videoBlobCache } from '@/utils/imageLoader';
+import { getCachedStickerUrl, getCachedStickerMediaType, LoadPriority } from '@/utils/imageLoader';
+import { videoBlobCache } from '@/utils/videoBlobCache';
 import { getStickerImageUrl, getStickerVideoUrl } from '@/utils/stickerUtils';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 
