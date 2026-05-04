@@ -447,6 +447,8 @@ export const GeneratePage: FC = () => {
   const [gateMinDelayDone, setGateMinDelayDone] = useState(false);
   const [gateVisible, setGateVisible] = useState(true);
   const [gateFading, setGateFading] = useState(false);
+  // Контент начинает fade-in одновременно с fade-out гейта → кросс-фейд
+  const [contentVisible, setContentVisible] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setGateMinDelayDone(true), 700);
@@ -456,6 +458,7 @@ export const GeneratePage: FC = () => {
   useEffect(() => {
     if (styleCatalogLoaded && hasMyProfileLoaded && gateMinDelayDone && gateVisible && !gateFading) {
       setGateFading(true);
+      setContentVisible(true); // контент начинает появляться прямо сейчас
       const t = setTimeout(() => setGateVisible(false), 420);
       return () => clearTimeout(t);
     }
@@ -5055,21 +5058,26 @@ export const GeneratePage: FC = () => {
         userStyleBlueprintCode={ownStyleBlueprintSession?.blueprint.code ?? null}
         onPublished={(updated) => void handlePublicationPublished(updated)}
       />
-      <AttachmentPointerDragProvider enabled={!isGenerating} onInternalDrop={handleAttachmentPointerInternalDrop}>
-        <StixlyPageContainer
-          className={cn(
-            'generate-inner',
-            isCompactState && 'generate-inner--compact',
-            isPromptFocused && 'generate-inner--prompt-focused',
-          )}
-        >
-          {pageState === 'idle' && renderIdleState()}
-          {pageState === 'uploading' && renderGeneratingState()}
-          {pageState === 'generating' && renderGeneratingState()}
-          {pageState === 'success' && renderSuccessState()}
-          {pageState === 'error' && renderErrorState()}
-        </StixlyPageContainer>
-      </AttachmentPointerDragProvider>
+      {/* generate-page-content: кросс-фейд с Quantum-гейтом.
+          Начинает проявляться когда gateVisible → gateFading → contentVisible = true.
+          CSS-переход синхронизирован с угасанием гейта (420 мс). */}
+      <div className={`generate-page-content${contentVisible ? ' generate-page-content--visible' : ''}`}>
+        <AttachmentPointerDragProvider enabled={!isGenerating} onInternalDrop={handleAttachmentPointerInternalDrop}>
+          <StixlyPageContainer
+            className={cn(
+              'generate-inner',
+              isCompactState && 'generate-inner--compact',
+              isPromptFocused && 'generate-inner--prompt-focused',
+            )}
+          >
+            {pageState === 'idle' && renderIdleState()}
+            {pageState === 'uploading' && renderGeneratingState()}
+            {pageState === 'generating' && renderGeneratingState()}
+            {pageState === 'success' && renderSuccessState()}
+            {pageState === 'error' && renderErrorState()}
+          </StixlyPageContainer>
+        </AttachmentPointerDragProvider>
+      </div>
       {errorMessage && (
         <div
           className="generate-error-toast"

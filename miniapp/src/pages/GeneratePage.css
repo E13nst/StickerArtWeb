@@ -2230,6 +2230,41 @@ body.generate-prompt-focused .navbar {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   Page content reveal — кросс-фейд с Quantum-гейтом.
+   Best practice: контент стартует с opacity:0 + небольшим смещением
+   вниз и «всплывает» одновременно с угасанием гейта. Переход (420 мс)
+   совпадает с длительностью fade-out гейта → плавный кросс-фейд.
+   ══════════════════════════════════════════════════════════════════ */
+.generate-page-content {
+  opacity: 0;
+  transform: translateY(12px);
+  /* Длительность = gate fade-out duration (420 мс) + небольшой ease-out */
+  transition:
+    opacity  0.42s cubic-bezier(0.25, 0, 0.4, 1),
+    transform 0.42s cubic-bezier(0.25, 0, 0.4, 1);
+  /* Предотвращает случайное взаимодействие пока контент не появился */
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.generate-page-content--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generate-page-content {
+    transition: none;
+    opacity: 0;
+    transform: none;
+  }
+  .generate-page-content--visible {
+    opacity: 1;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
    Quantum loading gate
    Полноэкранный оверлей на фоне страницы, исчезает после загрузки
    каталога + профиля. Gradient такой же как у страницы — плавный

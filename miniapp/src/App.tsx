@@ -84,22 +84,14 @@ const App: FC = () => {
     initializeCurrentUser(user?.id ?? null).catch(() => undefined);
   }, [initData, user?.id, hasMyProfileLoaded, initializeCurrentUser]);
 
-  // Предзагрузка чанков страниц: переходы между страницами без задержки, подгружается только контент внутри
+  // Предзагрузка чанков страниц доступных из минимальной навигации (/generate, /profile).
+  // Остальные страницы (Gallery, Dashboard, Swipe и т.д.) скрыты и грузятся только при прямом переходе.
+  // Задержка 1500ms: после того как GeneratePage уже отрисовалась и main-thread освободился.
   useEffect(() => {
     const preload = () => {
-      Promise.all([
-        import('@/pages/GalleryPage2'),
-        import('@/pages/ProfilePage'),
-        import('@/pages/MyProfilePage'),
-        import('@/pages/DashboardPage'),
-        import('@/pages/AuthorPage'),
-        import('@/pages/SwipePage'),
-        import('@/pages/GeneratePage'),
-        import('@/pages/DesignSystemDemo'),
-        import('@/pages/VideoAlphaTestPage'),
-      ]).catch(() => {});
+      import('@/pages/MyProfilePage').catch(() => {});
     };
-    const t = setTimeout(preload, 100);
+    const t = setTimeout(preload, 1500);
     return () => clearTimeout(t);
   }, []);
 
@@ -139,13 +131,15 @@ const App: FC = () => {
       <Router basename="/miniapp" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <MainLayout>
           <Suspense fallback={
+            /* Нет текста — визуально идентично Quantum-гейту внутри GeneratePage,
+               переход между фазами незаметен для пользователя. */
             <div style={{ 
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center', 
-              minHeight: '60vh' 
+              minHeight: '60vh',
             }}>
-              <LoadingSpinner />
+              <LoadingSpinner message="" />
             </div>
           }>
           <Routes>
@@ -159,8 +153,8 @@ const App: FC = () => {
             <Route path="/generate" element={<GeneratePage />} />
             <Route path="/design-system-demo" element={<DesignSystemDemo />} />
             <Route path="/video-alpha-test" element={<VideoAlphaTestPage />} />
-            {/* Fallback route */}
-            <Route path="*" element={<DashboardPage />} />
+            {/* Fallback route: неизвестные URL → главная страница генерации */}
+            <Route path="*" element={<Navigate to="/generate" replace />} />
           </Routes>
           </Suspense>
         </MainLayout>
