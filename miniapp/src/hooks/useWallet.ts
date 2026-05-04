@@ -4,6 +4,29 @@ import { UserWallet } from '@/types/sticker';
 import type { TonConnectUI } from '@tonconnect/ui-react';
 
 /**
+ * Безопасно сбросить TonConnect: при отсутствии подключённого кошелька SDK кидает
+ * WalletNotConnectedError — типичная ситуация при привязке только через бэкенд.
+ */
+async function disconnectTonConnectIfPossible(ui: TonConnectUI): Promise<void> {
+  try {
+    await ui.disconnect();
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const name =
+      err && typeof err === 'object' && 'constructor' in err
+        ? String((err as { constructor?: { name?: string } }).constructor?.name ?? '')
+        : '';
+    const isNotConnected =
+      name.includes('WalletNotConnected') ||
+      /WalletNotConnected|wallet is not connected/i.test(msg);
+    if (!isNotConnected) {
+      throw err;
+    }
+    console.debug('[useWallet] TonConnect уже не подключён, disconnect пропускаем');
+  }
+}
+
+/**
  * Хук для управления TON-кошельком пользователя
  * Предоставляет централизованное управление состоянием кошелька,
  * синхронизацию с бэкендом и методы для привязки/отключения
@@ -103,10 +126,10 @@ export const useWallet = () => {
 
   /**
    * Отключение (деактивация) текущего активного кошелька
-   * 1. Вызывает tonConnectUI.disconnect() для разрыва сессии TON Connect
-   * 2. Вызывает POST /api/wallets/unlink для удаления привязки на бэкенде
+   * 1. Сбрасывает TonConnect (если сессия есть; иначе SDK может бросить — игнорируем)
+   * 2. POST /api/wallets/unlink
    * 3. Обновляет локальное состояние
-   * 
+   *
    * @param tonConnectUI - Экземпляр TonConnectUI для вызова disconnect()
    */
   const unlinkWallet = useCallback(async (tonConnectUI: TonConnectUI) => {
@@ -125,10 +148,9 @@ export const useWallet = () => {
     setError(null);
 
     try {
-      // Шаг 1: Разрываем сессию TON Connect
-      console.debug('[useWallet] unlinkWallet: вызов tonConnectUI.disconnect()');
-      await tonConnectUI.disconnect();
-      console.debug('[useWallet] unlinkWallet: tonConnectUI.disconnect() выполнен успешно');
+      // Шаг 1: Разрываем сессию TON Connect (если она есть)
+      console.debug('[useWallet] unlinkWallet: сброс TonConnect при активной сессии');
+      await disconnectTonConnectIfPossible(tonConnectUI);
       
       // Шаг 2: Удаляем привязку на бэкенде
       console.debug('[useWallet] unlinkWallet: вызов apiClient.unlinkWallet()');
