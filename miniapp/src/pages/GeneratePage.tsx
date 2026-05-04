@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Pulsar } from '@/components/ui/Pulsar';
-import { Quantum } from '@/components/ui/Quantum';
+import { GenerateHeroCard } from '@/components/GenerateHeroCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
@@ -49,12 +49,13 @@ import {
   uniqueCategoriesFromPresets,
 } from '@/utils/stylePresetCategoryUi';
 import { useProfileStore } from '@/store/useProfileStore';
+import { useGenerateLandingGateStore } from '@/store/useGenerateLandingGateStore';
 import { useGenerateHistoryHeaderStore } from '@/store/useGenerateHistoryHeaderStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { DeleteIcon, DownloadIcon, ShareIcon } from '@/components/ui/Icons';
+import { DownloadIcon } from '@/components/ui/Icons';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
@@ -442,13 +443,9 @@ export const GeneratePage: FC = () => {
   // не попадало в TDZ (const не hoistится как var).
   const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
 
-  // ── Quantum gate: держим экран загрузки пока не готовы catalog + profile.
-  // Минимум 700 мс — чтобы пользователь успел насладиться анимацией.
+  // Полноэкранный гейт — только сигнал для MainLayout; контент уже под оверлеем.
   const [gateMinDelayDone, setGateMinDelayDone] = useState(false);
-  const [gateVisible, setGateVisible] = useState(true);
-  const [gateFading, setGateFading] = useState(false);
-  // Контент начинает fade-in одновременно с fade-out гейта → кросс-фейд
-  const [contentVisible, setContentVisible] = useState(false);
+  const releaseLandingOverlay = useGenerateLandingGateStore((s) => s.release);
 
   useEffect(() => {
     const t = setTimeout(() => setGateMinDelayDone(true), 700);
@@ -456,13 +453,11 @@ export const GeneratePage: FC = () => {
   }, []);
 
   useEffect(() => {
-    if (styleCatalogLoaded && hasMyProfileLoaded && gateMinDelayDone && gateVisible && !gateFading) {
-      setGateFading(true);
-      setContentVisible(true); // контент начинает появляться прямо сейчас
-      const t = setTimeout(() => setGateVisible(false), 420);
-      return () => clearTimeout(t);
+    if (!(styleCatalogLoaded && hasMyProfileLoaded && gateMinDelayDone)) {
+      return;
     }
-  }, [styleCatalogLoaded, hasMyProfileLoaded, gateMinDelayDone, gateVisible, gateFading]);
+    releaseLandingOverlay();
+  }, [styleCatalogLoaded, hasMyProfileLoaded, gateMinDelayDone, releaseLandingOverlay]);
 
   const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
   const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
@@ -4449,6 +4444,8 @@ export const GeneratePage: FC = () => {
     buttonClassName?: string;
     buttonAriaLabel?: string;
     onButtonClick?: () => void;
+    /** Скрыть кнопку submit (рендерится отдельно как fixed element) */
+    hideSubmit?: boolean;
   }) => (
     <div
       className="generate-form-block"
@@ -4495,19 +4492,21 @@ export const GeneratePage: FC = () => {
             </Text>
           </div>
         ) : null}
-        <div className="generate-form-layout__submit">
-          <Button
-            variant="primary"
-            size="medium"
-            onClick={cfg.onButtonClick}
-            disabled={cfg.buttonDisabled}
-            loading={cfg.buttonLoading}
-            className={cn('generate-button-submit', cfg.buttonClassName)}
-            aria-label={cfg.buttonAriaLabel}
-          >
-            {cfg.buttonText}
-          </Button>
-        </div>
+        {!cfg.hideSubmit && (
+          <div className="generate-form-layout__submit">
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={cfg.onButtonClick}
+              disabled={cfg.buttonDisabled}
+              loading={cfg.buttonLoading}
+              className={cn('generate-button-submit', cfg.buttonClassName)}
+              aria-label={cfg.buttonAriaLabel}
+            >
+              {cfg.buttonText}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4521,138 +4520,54 @@ export const GeneratePage: FC = () => {
     stripIsOnlyTelegramAvatars &&
     Boolean(primarySourcePreview) &&
     !compositeGenerateHeroPreviewUrl;
-  const renderBrandBlock = () => (
-    <div
-      className={cn(
-        'generate-brand',
-        selectedStylePresetId != null &&
-          compositeGenerateHeroPreviewUrl &&
-          'generate-brand--preset-hero',
-      )}
-    >
-      <div className="generate-brand__hero-centered">
-        {selectedStylePresetId != null && compositeGenerateHeroPreviewUrl ? (
-          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--preset')}>
-            <button
-              type="button"
-              className="generate-result-image-tap"
-              aria-label="Открыть превью стиля на весь экран"
-              onClick={() =>
-                setImageLightbox({
-                  viewerUrl: compositeGenerateHeroPreviewUrl,
-                  downloadUrl: null,
-                  alt: selectedPreset ? stripPresetName(selectedPreset.name) : 'Превью стиля',
-                })
-              }
-            >
-              <img
-                src={compositeGenerateHeroPreviewUrl}
-                alt={selectedPreset ? stripPresetName(selectedPreset.name) : ''}
-                className="generate-result-image"
-                loading="eager"
-                decoding="async"
-                draggable={false}
-                onError={() => {
-                  if (selectedStyleUsesHistoryPreview && selectedStylePresetId != null) {
-                    markHistoryPresetPreviewFailed(selectedStylePresetId);
-                  }
-                }}
-              />
-            </button>
-          </div>
-        ) : showAvatarCenterCard ? (
-          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--avatar')}>
-            <button
-              type="button"
-              className="generate-result-image-tap generate-result-image-tap--avatar"
-              aria-label="Открыть аватар на весь экран"
-              onClick={() =>
-                primarySourcePreview &&
-                setImageLightbox({
-                  viewerUrl: primarySourcePreview,
-                  downloadUrl: primarySourcePreview,
-                  alt: 'Telegram-аватар',
-                })
-              }
-            >
-              <img
-                src={primarySourcePreview ?? ''}
-                alt="Telegram-аватар"
-                className="generate-brand-avatar-image"
-                loading="eager"
-                decoding="async"
-                draggable={false}
-              />
-            </button>
-            <button
-              type="button"
-              className="generate-brand-avatar-remove"
-              onClick={() => clearSourceImage({ markAvatarDismissed: true })}
-              aria-label="Убрать Telegram-аватар"
-            >
-              ×
-            </button>
-            <span className="generate-brand-avatar-label generate-hero-overlay-caption">
-              Сгенерировать по аватару
-            </span>
-          </div>
-        ) : (
-          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--logo')}>
-            <div className="generate-brand-logo-stack">
-              <img
-                src={STIXLY_LOGO_ORANGE}
-                alt=""
-                className="generate-brand-logo-img"
-                loading="eager"
-                decoding="async"
-                aria-hidden="true"
-              />
-            </div>
-          </div>
-        )}
-      </div>
 
-      {canDeleteSelectedStylePresetAsAuthor || canShareStylePresetDeepLink ? (
-        <div className="generate-brand__hero-actions">
-          <div className="generate-brand__hero-actions__col generate-brand__hero-actions__col--start">
-            {canDeleteSelectedStylePresetAsAuthor ? (
-              <button
-                type="button"
-                className="generate-brand__delete-btn"
-                onClick={() => void handleDeleteSelectedStylePreset()}
-                disabled={hasActiveGeneration || stylePresetDeleting}
-                aria-label="Удалить свой стиль"
-                title="Удалить стиль с сервера"
-              >
-                <DeleteIcon size={20} color="currentColor" />
-              </button>
-            ) : null}
-          </div>
-          <div className="generate-brand__hero-actions__col generate-brand__hero-actions__col--end">
-            {canShareStylePresetDeepLink ? (
-              <div className="generate-brand__share-wrap">
-                <button
-                  type="button"
-                  className="generate-brand__share-btn"
-                  onClick={() => void handleShareSelectedStylePreset()}
-                  disabled={hasActiveGeneration}
-                  aria-label="Поделиться стилем"
-                  title="Скопировать ссылку на этот стиль в Telegram"
-                >
-                  <ShareIcon size={20} color="currentColor" />
-                </button>
-                {stylePresetShareNotice ? (
-                  <div className="generate-brand__share-toast" role="status">
-                    {stylePresetShareNotice}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
+  const renderHeroCard = () => (
+    <GenerateHeroCard
+      presets={stripStylePresets}
+      selectedPresetId={selectedStylePresetId}
+      pageState={pageState}
+      resultImageUrl={resultImageUrl}
+      duringJobPreviousResultUrl={duringJobPreviousResultUrl}
+      generatingMessage={getGeneratingSpinnerMessage(pageState, currentStatus)}
+      logoSrc={STIXLY_LOGO_ORANGE}
+      presetPreviewById={presetPreviewById}
+      showAvatarCard={showAvatarCenterCard}
+      avatarPreviewUrl={primarySourcePreview}
+      canDeleteStyle={canDeleteSelectedStylePresetAsAuthor && !stylePresetDeleting}
+      canShareStyle={canShareStylePresetDeepLink}
+      canDownloadResult={Boolean(resultImageUrl) && pageState === 'success'}
+      isDownloadingResult={isDownloadingResult}
+      onPresetSelect={(id) => handlePresetChange(id)}
+      onResultTap={() =>
+        resultImageUrl &&
+        setImageLightbox({
+          viewerUrl: resultImageUrl,
+          downloadUrl: resultImageUrl,
+          alt: 'Сгенерированный стикер',
+        })
+      }
+      onAvatarTap={() =>
+        primarySourcePreview &&
+        setImageLightbox({
+          viewerUrl: primarySourcePreview,
+          downloadUrl: primarySourcePreview,
+          alt: 'Telegram-аватар',
+        })
+      }
+      onAvatarRemove={() => clearSourceImage({ markAvatarDismissed: true })}
+      onDeleteStyle={() => void handleDeleteSelectedStylePreset()}
+      onShareStyle={() => void handleShareSelectedStylePreset()}
+      onDownloadResult={() => void handleDownloadResult()}
+      onHapticLight={() => tg?.HapticFeedback?.impactOccurred('light')}
+      onPresetPreviewError={(presetId) => {
+        if (selectedStyleUsesHistoryPreview && presetId === selectedStylePresetId) {
+          markHistoryPresetPreviewFailed(presetId);
+        }
+      }}
+    />
   );
+
+
 
   const renderHistoryModal = () => {
     if (!historyOpen || typeof document === 'undefined') {
@@ -4845,6 +4760,7 @@ export const GeneratePage: FC = () => {
         buttonLoading: true,
         buttonAriaLabel: 'Идет генерация',
         buttonText: 'Подождите',
+        hideSubmit: true,
       })}
     </>
   );
@@ -4956,6 +4872,7 @@ export const GeneratePage: FC = () => {
           buttonLoading: isGenerating,
           buttonText: generateLabel,
           onButtonClick: handleGenerate,
+          hideSubmit: true,
         })}
       </div>
     </div>
@@ -4964,7 +4881,7 @@ export const GeneratePage: FC = () => {
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      {renderBrandBlock()}
+      {renderHeroCard()}
       {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
         readOnly: false,
@@ -4979,6 +4896,7 @@ export const GeneratePage: FC = () => {
         buttonClassName: 'generate-button-retry',
         buttonText: generateLabel,
         onButtonClick: handleGenerate,
+        hideSubmit: true,
       })}
     </div>
   );
@@ -4986,7 +4904,7 @@ export const GeneratePage: FC = () => {
   // Рендер формы (Figma: Logo → Header → Inpit → Delete background → Style preview → Button)
   const renderIdleState = () => (
     <>
-      {renderBrandBlock()}
+      {renderHeroCard()}
       {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
 
       {renderGenerateFormBlock({
@@ -5002,6 +4920,7 @@ export const GeneratePage: FC = () => {
         buttonLoading: isGenerating,
         buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
         onButtonClick: handleGenerate,
+        hideSubmit: true,
       })}
     </>
   );
@@ -5019,12 +4938,6 @@ export const GeneratePage: FC = () => {
       className={cn('page-container', 'generate-page', isInTelegramApp && 'telegram-app')}
       style={generatePageStyle}
     >
-      {/* ── Quantum loading gate: visible until catalog + profile are ready ── */}
-      {gateVisible && (
-        <div className={`generate-quantum-gate${gateFading ? ' generate-quantum-gate--out' : ''}`} aria-hidden>
-          <Quantum size={84} />
-        </div>
-      )}
       <OtherAccountBackground />
       {renderHistoryModal()}
       <GenerateImageLightbox
@@ -5058,10 +4971,7 @@ export const GeneratePage: FC = () => {
         userStyleBlueprintCode={ownStyleBlueprintSession?.blueprint.code ?? null}
         onPublished={(updated) => void handlePublicationPublished(updated)}
       />
-      {/* generate-page-content: кросс-фейд с Quantum-гейтом.
-          Начинает проявляться когда gateVisible → gateFading → contentVisible = true.
-          CSS-переход синхронизирован с угасанием гейта (420 мс). */}
-      <div className={`generate-page-content${contentVisible ? ' generate-page-content--visible' : ''}`}>
+      <div className="generate-page-content">
         <AttachmentPointerDragProvider enabled={!isGenerating} onInternalDrop={handleAttachmentPointerInternalDrop}>
           <StixlyPageContainer
             className={cn(
@@ -5078,6 +4988,22 @@ export const GeneratePage: FC = () => {
           </StixlyPageContainer>
         </AttachmentPointerDragProvider>
       </div>
+      {/* ── Фиксированная кнопка генерации: всегда над навбаром, скрывается при клавиатуре ── */}
+      {!isPromptFocused && (
+        <div className="generate-fixed-submit">
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={isGenerating ? undefined : handleGenerate}
+            disabled={isGenerating ? true : isDisabled}
+            loading={isGenerating}
+            className="generate-button-submit"
+            aria-label={isGenerating ? 'Идет генерация' : undefined}
+          >
+            {isGenerating ? 'Подождите...' : generateLabel}
+          </Button>
+        </div>
+      )}
       {errorMessage && (
         <div
           className="generate-error-toast"

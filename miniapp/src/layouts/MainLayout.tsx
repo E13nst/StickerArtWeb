@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HeaderPanel } from '@/components/ui/HeaderPanel';
 import { BottomNav } from '@/components/BottomNav';
@@ -7,6 +7,8 @@ import { DebugPanel } from '@/components/DebugPanel';
 import { useTelegram } from '@/hooks/useTelegram';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 import { isDevToolsUnlocked, persistDevToolsUnlocked } from '@/utils/devToolsUnlock';
+import { useGenerateLandingGateStore } from '@/store/useGenerateLandingGateStore';
+import './MainLayout.css';
 
 interface Props {
   children: ReactNode;
@@ -18,6 +20,7 @@ export default function MainLayout({ children }: Props) {
   const isSwipePage = pathname.startsWith('/nft-soon');
   const hideHeaderPanel = pathname === '/profile' || pathname.startsWith('/author/');
   const { isReady, initData } = useTelegram();
+  const landingReleased = useGenerateLandingGateStore((s) => s.isReleased);
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   /** Инкремент при разблокировке — перечитываем sessionStorage; закрытие debug-панели на это не влияет. */
@@ -61,22 +64,47 @@ export default function MainLayout({ children }: Props) {
     };
   }, []);
 
-  // Не рендерим layout до стабильного viewport
-  if (!isReady) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: viewportHeightCss,
-        backgroundColor: 'var(--color-background)'
-      }}>
-        <LoadingSpinner message="Инициализация..." />
-      </div>
-    );
-  }
+  // Снятие / сброс гейта только по pathname (не в GeneratePage.mount — иначе React Strict Mode снова сбрасывает overlay после release()).
+  useLayoutEffect(() => {
+    const { reset, release } = useGenerateLandingGateStore.getState();
+    if (pathname === '/generate') {
+      reset();
+    } else {
+      release();
+    }
+  }, [pathname]);
+
+  /** Контент рисуется как обычно; один слой сверху перекрывает и уезжает при готовности. */
+  const holdBootOverlay = !isReady || (pathname === '/generate' && !landingReleased);
+
+  const [bootLayerMounted, setBootLayerMounted] = useState(holdBootOverlay);
+  const [bootLayerLeaving, setBootLayerLeaving] = useState(false);
+
+  const leaveTransitionDoneRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (holdBootOverlay) {
+      leaveTransitionDoneRef.current = false;
+      setBootLayerMounted(true);
+      setBootLayerLeaving(false);
+      return;
+    }
+    if (bootLayerMounted) {
+      setBootLayerLeaving(true);
+    }
+  }, [holdBootOverlay, bootLayerMounted]);
+
+  const handleBootOverlayTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (!bootLayerLeaving || holdBootOverlay) return;
+    if (e.propertyName !== 'opacity' && e.propertyName !== 'transform') return;
+    if (leaveTransitionDoneRef.current) return;
+    leaveTransitionDoneRef.current = true;
+    setBootLayerMounted(false);
+    setBootLayerLeaving(false);
+  };
 
   return (
+    <>
     <div
       className="stixly-main-layout"
       style={{
@@ -130,6 +158,18 @@ export default function MainLayout({ children }: Props) {
       </ScrollProvider>
       <BottomNav variant={navVariant} />
     </div>
+    {bootLayerMounted && (
+      <div
+        className={`stixly-boot-overlay${bootLayerLeaving ? ' stixly-boot-overlay--leave' : ''}`}
+        aria-live="polite"
+        aria-busy={!bootLayerLeaving}
+        style={{ minHeight: viewportHeightCss }}
+        onTransitionEnd={handleBootOverlayTransitionEnd}
+      >
+        <LoadingSpinner message="" size={72} />
+      </div>
+    )}
+    </>
   );
 }
 

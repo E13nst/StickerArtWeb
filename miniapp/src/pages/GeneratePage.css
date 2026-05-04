@@ -2229,65 +2229,10 @@ body.generate-prompt-focused .navbar {
   overflow-anchor: auto;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   Page content reveal — кросс-фейд с Quantum-гейтом.
-   Best practice: контент стартует с opacity:0 + небольшим смещением
-   вниз и «всплывает» одновременно с угасанием гейта. Переход (420 мс)
-   совпадает с длительностью fade-out гейта → плавный кросс-фейд.
-   ══════════════════════════════════════════════════════════════════ */
+/* Основная колонка Generate: видна сразу; сверху — boot overlay в MainLayout. */
 .generate-page-content {
-  opacity: 0;
-  transform: translateY(12px);
-  /* Длительность = gate fade-out duration (420 мс) + небольшой ease-out */
-  transition:
-    opacity  0.42s cubic-bezier(0.25, 0, 0.4, 1),
-    transform 0.42s cubic-bezier(0.25, 0, 0.4, 1);
-  /* Предотвращает случайное взаимодействие пока контент не появился */
-  pointer-events: none;
-  will-change: opacity, transform;
-}
-
-.generate-page-content--visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .generate-page-content {
-    transition: none;
-    opacity: 0;
-    transform: none;
-  }
-  .generate-page-content--visible {
-    opacity: 1;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   Quantum loading gate
-   Полноэкранный оверлей на фоне страницы, исчезает после загрузки
-   каталога + профиля. Gradient такой же как у страницы — плавный
-   переход без «прыжка».
-   ══════════════════════════════════════════════════════════════════ */
-.generate-quantum-gate {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-max, 9999);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-background, #191818);
-  background-image: var(--page-dynamic-gradient);
-  opacity: 1;
-  transition: opacity 0.42s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: all;
-}
-
-.generate-quantum-gate--out {
-  opacity: 0;
-  pointer-events: none;
+  position: relative;
+  min-height: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2315,4 +2260,76 @@ body.generate-prompt-focused .navbar {
   color: rgba(255, 255, 255, 0.72);
   text-align: center;
   letter-spacing: 0.015em;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Card-focus layout: GenerateHeroCard + фиксированная кнопка генерации
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Hero-карточка: пропорции Tinder 370×523, максимальная высота */
+.generate-page .generate-inner > .ghc-root {
+  max-height: min(55dvh, 460px);
+  width: 100%;
+}
+
+/* generate-inner: отступ снизу под фиксированную кнопку + навбар */
+.generate-page .generate-inner {
+  padding-bottom: calc(
+    var(--gp-fixed-btn-height, 72px)
+    + var(--stixly-taskbar-height, 96px)
+    + 8px
+  );
+}
+
+/* При открытой клавиатуре убираем лишний отступ */
+.generate-page .generate-inner.generate-inner--prompt-focused {
+  padding-bottom: calc(21px + var(--generate-keyboard-inset, 0px));
+}
+
+/* ── Фиксированная кнопка "Создать стикер" ── */
+.generate-fixed-submit {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--stixly-taskbar-height, 96px);
+  z-index: calc(var(--z-header, 100) - 2);
+
+  /* Фоновый градиент: скрывает контент под кнопкой но остаётся прозрачным вверху */
+  padding: 16px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    to top,
+    var(--color-background, #191818) 40%,
+    rgba(25, 24, 24, 0.9) 70%,
+    transparent 100%
+  );
+  /* Контейнер прозрачен для кликов — только кнопка внутри кликабельна */
+  pointer-events: none;
+}
+
+/* На мобилке: кнопка по ширине страницы с боковыми отступами */
+@media (max-width: 430px) {
+  .generate-fixed-submit {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+.generate-fixed-submit .button {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 370px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* form-layout: убираем лишний нижний отступ (кнопка теперь фиксирована) */
+.generate-page .generate-inner .generate-form-layout {
+  padding-bottom: 8px;
+}
+
+/* preset-scroll: тонкий разделитель сверху для визуальной границы */
+.generate-page .generate-form-layout__preset-scroll {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+  margin-top: 4px;
 }

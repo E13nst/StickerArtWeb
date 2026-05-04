@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense, FC } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import MainLayout from '@/layouts/MainLayout';
+import { GeneratePage } from '@/pages/GeneratePage';
 import { useLikesStore } from '@/store/useLikesStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -20,7 +21,6 @@ const MyProfilePage = lazy(() => import('@/pages/MyProfilePage').then(m => ({ de
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const AuthorPage = lazy(() => import('@/pages/AuthorPage').then(m => ({ default: m.AuthorPage })));
 const SwipePage = lazy(() => import('@/pages/SwipePage').then(m => ({ default: m.SwipePage })));
-const GeneratePage = lazy(() => import('@/pages/GeneratePage').then(m => ({ default: m.GeneratePage })));
 const DesignSystemDemo = lazy(() => import('@/pages/DesignSystemDemo').then(m => ({ default: m.DesignSystemDemo })));
 const VideoAlphaTestPage = lazy(() => import('@/pages/VideoAlphaTestPage').then(m => ({ default: m.VideoAlphaTestPage })));
 

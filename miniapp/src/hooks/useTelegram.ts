@@ -349,15 +349,17 @@ export const useTelegram = () => {
     
     // Если инициализация уже идет, ждем её завершения
     if (initializationPromise) {
-      initializationPromise.then(() => {
+      const onResolved = () => {
         // После завершения инициализации обновляем состояние из глобального объекта
         if (globalTelegram) {
           syncResolvedTelegramState(globalTelegram);
           setIsMockMode(globalIsMockMode);
-          setIsBaseReady(true);
-          setIsViewportReady(true);
         }
-      });
+        // Гарантируем ready в любом случае
+        setIsBaseReady(true);
+        setIsViewportReady(true);
+      };
+      initializationPromise.then(onResolved, onResolved);
       return;
     }
     
@@ -367,8 +369,6 @@ export const useTelegram = () => {
     const isDev = import.meta.env.DEV;
     const hasTelegramWebApp = Boolean(window.Telegram?.WebApp);
     const capturedInitData = normalizeInitData(getCapturedInitData());
-    // ✅ FIX: Проверяем, что initData не только существует, но и не пустая строка
-    // При inline query initData может быть строкой с user и query_id (без chat)
     const rawInitData = window.Telegram?.WebApp?.initData;
     const hasInitData = Boolean(normalizeInitData(rawInitData) || capturedInitData);
     
@@ -395,7 +395,11 @@ export const useTelegram = () => {
       globalIsMockMode = true;
       setIsMockMode(true);
     }
-    
+
+    // CRITICAL: весь блок инициализации обёрнут в try-catch.
+    // Если что-то бросает (напр. telegram.ready() на некоторых версиях Telegram),
+    // мы всё равно выставляем isBaseReady/isViewportReady чтобы не зависнуть на сплэше.
+    try {
     if (telegram) {
       // Сохраняем в глобальную переменную для синхронизации между компонентами
       globalTelegram = telegram;
@@ -407,7 +411,6 @@ export const useTelegram = () => {
       const initDataValue = resolvedAuth.initData;
       const resolvedUser = resolvedAuth.user;
       
-      // ✅ FIX: Логирование для диагностики inline query контекста
       if (import.meta.env.DEV && initDataValue) {
         const hasChat = Boolean(telegram.initDataUnsafe?.chat);
         const hasQueryId = initDataValue.includes('query_id=');
@@ -425,12 +428,13 @@ export const useTelegram = () => {
       }
       
       // Определяем, находимся ли мы в реальном Telegram Mini App (не в браузере/mock)
-      // Проверяем до ready(), чтобы знать, нужно ли ждать viewportChanged
       const isRealTelegramApp = hasTelegramWebApp && Boolean(initDataValue) && !globalIsMockMode;
       const isIos = isIosTelegram(telegram);
       
-      // Инициализация Telegram Web App
-      telegram.ready();
+      // Инициализация Telegram Web App (внутри try — может бросить на некоторых версиях)
+      try { telegram.ready(); } catch (e) {
+        if (import.meta.env.DEV) console.warn('[useTelegram] telegram.ready() error:', e);
+      }
       setIsBaseReady(true);
       
       // Для не-iOS платформ или не в реальном Telegram App сразу считаем viewport готовым
@@ -455,7 +459,6 @@ export const useTelegram = () => {
               console.log('✅ Viewport готов (первый viewportChanged получен)');
             }
           }
-          // Убрано expand() - он вызывается только при инициализации в setupTelegramViewportSafe()
         };
         
         // Сохраняем ссылку для cleanup
@@ -467,7 +470,7 @@ export const useTelegram = () => {
             console.log('⏳ Ожидаем viewportChanged для iOS...');
           }
           
-          // Fallback: если viewportChanged не пришел за 2 секунды, считаем готовым
+          // Fallback: если viewportChanged не пришёл за 800ms, считаем готовым
           const fallbackTimeout = setTimeout(() => {
             if (!viewportHandled) {
               viewportHandled = true;
@@ -476,7 +479,7 @@ export const useTelegram = () => {
                 console.log('⏰ Viewport готов (fallback timeout, viewportChanged не получен)');
               }
             }
-          }, 2000);
+          }, 800);
           
           // Сохраняем timeout для cleanup
           (viewportChangedHandler as any).__fallbackTimeout = fallbackTimeout;
@@ -487,89 +490,51 @@ export const useTelegram = () => {
       }
       
       // Безопасная настройка viewport (expand + fullscreen на мобильных)
-      // Работает с официальным SDK (@telegram-apps/sdk) или fallback на @twa-dev/sdk
-      // Важно: expand() вызывается внутри setupTelegramViewportSafe() с правильной задержкой
-      // requestFullscreen() вызывается после успешного expand() на мобильных устройствах
       setupTelegramViewportSafe().catch((error) => {
-        // Детальное логирование ошибок с контекстом
         const errorMessage = error instanceof Error ? error.message : String(error);
-        const errorStack = error instanceof Error ? error.stack : undefined;
-        
-        console.warn('[TMA] Ошибка при настройке viewport:', {
-          message: errorMessage,
-          stack: errorStack,
-          context: 'setupTelegramViewportSafe',
-          platform: telegram.platform,
-          version: telegram.version,
-          isMobile: typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        });
-        
-        // Ошибки fullscreen не должны прерывать инициализацию приложения
-        // Приложение продолжит работать даже если fullscreen недоступен
+        if (import.meta.env.DEV) {
+          console.warn('[TMA] Ошибка при настройке viewport:', {
+            message: errorMessage,
+            platform: telegram.platform,
+            version: telegram.version,
+          });
+        }
       });
       
-      // Отключаем вертикальные свайпы, которые сворачивают Mini App (Bot API 7.7+)
-      // Проверяем версию: disableVerticalSwipes доступен с версии 7.7+
+      // Отключаем вертикальные свайпы (Bot API 7.7+)
       const version = telegram.version || '6.0';
       const supportsDisableSwipes = isVersionSupported(version, '7.7');
       
-      // Вызываем disableVerticalSwipes только если версия поддерживает (>= 7.7)
       if (supportsDisableSwipes) {
         const webApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
         if (webApp && typeof webApp.disableVerticalSwipes === 'function') {
-          try {
-            webApp.disableVerticalSwipes();
-            if (import.meta.env.DEV) {
-              console.log('✅ Вертикальные свайпы отключены - Mini App не будет сворачиваться');
-            }
-          } catch (e) {
-            // Игнорируем ошибки если метод не поддерживается
-            if (import.meta.env.DEV) {
-              console.warn('⚠️ disableVerticalSwipes вызвал ошибку:', e);
-            }
+          try { webApp.disableVerticalSwipes(); } catch (e) {
+            if (import.meta.env.DEV) console.warn('⚠️ disableVerticalSwipes вызвал ошибку:', e);
           }
         } else if (typeof (telegram as any).disableVerticalSwipes === 'function') {
-          try {
-            (telegram as any).disableVerticalSwipes();
-            if (import.meta.env.DEV) {
-              console.log('✅ Вертикальные свайпы отключены (через telegram объект)');
-            }
-          } catch (e) {
-            // Игнорируем ошибки если метод не поддерживается
-            if (import.meta.env.DEV) {
-              console.warn('⚠️ disableVerticalSwipes вызвал ошибку:', e);
-            }
+          try { (telegram as any).disableVerticalSwipes(); } catch (e) {
+            if (import.meta.env.DEV) console.warn('⚠️ disableVerticalSwipes вызвал ошибку:', e);
           }
         }
-      } else if (import.meta.env.DEV) {
-        console.log(`ℹ️ disableVerticalSwipes пропущен - требуется версия >= 7.7, текущая: ${version}`);
       }
       
-      // Убрано: expand() из scroll-логики и viewportChanged handlers
-      // expand() вызывается только один раз при инициализации в setupTelegramViewportSafe()
-      
-      // Устанавливаем цвета header и фона (единый вид на всех устройствах)
+      // Устанавливаем цвета header и фона
       const supportsColorMethods = isVersionSupported(version, '7.0');
       if (supportsColorMethods) {
         const tgAny = telegram as { setHeaderColor?: (c: string) => void; setBackgroundColor?: (c: string) => void };
         const bgColor = '#191818';
         if (typeof tgAny.setHeaderColor === 'function') {
-          try {
-            tgAny.setHeaderColor('bg_color');
-          } catch (e) {
+          try { tgAny.setHeaderColor('bg_color'); } catch (e) {
             if (import.meta.env.DEV) console.warn('⚠️ setHeaderColor:', e);
           }
         }
         if (typeof tgAny.setBackgroundColor === 'function') {
-          try {
-            tgAny.setBackgroundColor(bgColor);
-          } catch (e) {
+          try { tgAny.setBackgroundColor(bgColor); } catch (e) {
             if (import.meta.env.DEV) console.warn('⚠️ setBackgroundColor:', e);
           }
         }
       }
 
-      // Логируем только в dev режиме
       if (import.meta.env.DEV) {
         console.log('🔍 Telegram Web App данные:');
         console.log('Mode:', isMockMode ? 'MOCK' : 'PRODUCTION');
@@ -579,7 +544,6 @@ export const useTelegram = () => {
         console.log('platform:', telegram.platform);
         console.log('version:', telegram.version);
         
-        // ✅ FIX: Детальная отладка initData с определением контекста (inline query vs обычный)
         if (telegram.initData) {
           const params = new URLSearchParams(telegram.initData);
           const hasChat = Boolean(telegram.initDataUnsafe?.chat);
@@ -594,7 +558,6 @@ export const useTelegram = () => {
             console.log(`  ${key}:`, value);
           }
           
-          // Предупреждение, если initData есть, но chat отсутствует (возможный inline query)
           if (!hasChat && !hasQueryId && telegram.initDataUnsafe?.user) {
             console.warn('⚠️ initData присутствует, но chat отсутствует. Возможно, это inline query контекст.');
           }
@@ -604,6 +567,12 @@ export const useTelegram = () => {
       if (import.meta.env.DEV) {
         console.warn('⚠️ Telegram Web App не доступен');
       }
+      setIsBaseReady(true);
+      setIsViewportReady(true);
+    }
+    } catch (initError) {
+      // Гарантируем, что приложение разблокируется даже при неожиданной ошибке инициализации
+      console.error('[useTelegram] Критическая ошибка инициализации, разблокируем UI:', initError);
       setIsBaseReady(true);
       setIsViewportReady(true);
     }
