@@ -733,9 +733,78 @@ export interface StarsPackage {
   description?: string;
   artAmount: number;
   starsPrice: number;
+  /** Цена в TON (нанотоны), строка чтобы не терять точность в JS */
+  tonPriceNano?: string | number | null;
   discountPercent?: number | null;
   sortOrder?: number;
   createdAt?: string;
+}
+
+/** Одно исходящее сообщение в транзакции TonConnect */
+export interface TonPaymentOutgoingMessage {
+  address: string;
+  amount: string;
+  payload?: string;
+  stateInit?: string;
+}
+
+/**
+ * Полный payload TonConnect SendTransaction (как в POST /ton-payments/create после выравнивания контракта):
+ * { validUntil, messages: [{ address, amount, payload? }] }
+ */
+export interface TonPaymentSendTransactionPayload {
+  validUntil: number;
+  messages: TonPaymentOutgoingMessage[];
+}
+
+/**
+ * Устаревший вариант: один объект сообщения без обёртки messages[] — нормализуется на фронте.
+ */
+export type TonPaymentCreateMessage =
+  | TonPaymentSendTransactionPayload
+  | TonPaymentOutgoingMessage;
+
+/** Ответ POST /api/ton-payments/create */
+export interface TonPaymentCreateResponse {
+  intentId: string | number;
+  reference?: string;
+  /** TonConnect sendTransaction: полный payload или legacy single message */
+  message: TonPaymentCreateMessage;
+}
+
+/** Ответ GET /api/ton-payments/{intentId} */
+export interface TonPaymentStatusResponse {
+  status: string;
+  [key: string]: unknown;
+}
+
+/** Парсинг tonPriceNano пакета: валидно только если > 0 */
+export function parseStarsPackageTonPriceNano(pkg: StarsPackage): bigint | null {
+  const raw = pkg.tonPriceNano;
+  if (raw == null || raw === '') return null;
+  try {
+    const s = typeof raw === 'number' ? Math.trunc(raw).toString() : String(raw).trim();
+    if (!s || /^0+$/.test(s)) return null;
+    const n = BigInt(s);
+    return n > 0n ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Есть ли у пакета ненулевая TON-цена (для переключателя / disabled) */
+export function starsPackageHasTonPrice(pkg: StarsPackage): boolean {
+  return parseStarsPackageTonPriceNano(pkg) != null;
+}
+
+/** Отображение суммы из нанотонов (локаль ru-RU) */
+export function formatTonNanoForDisplayRu(nano: bigint): string {
+  const ton = Number(nano) / 1e9;
+  if (!Number.isFinite(ton)) return '—';
+  return `${ton.toLocaleString('ru-RU', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6
+  })} TON`;
 }
 
 /** Ответ POST /api/stars/create-invoice */
@@ -2258,6 +2327,24 @@ class ApiClient {
       if (error?.response?.status === 404) return null;
       throw error;
     }
+  }
+
+  // Создание намерения оплаты ART в TON
+  // API endpoint: POST /api/ton-payments/create
+  async createTonPayment(payload: {
+    packageCode: string;
+    senderAddress: string;
+  }): Promise<TonPaymentCreateResponse> {
+    const response = await this.client.post<TonPaymentCreateResponse>('/ton-payments/create', payload);
+    return response.data;
+  }
+
+  // Статус оплаты ART в TON
+  // API endpoint: GET /api/ton-payments/{intentId}
+  async getTonPaymentStatus(intentId: string | number): Promise<TonPaymentStatusResponse> {
+    const id = encodeURIComponent(String(intentId));
+    const response = await this.client.get<TonPaymentStatusResponse>(`/ton-payments/${id}`);
+    return response.data;
   }
 
   // Получение тарифов ART

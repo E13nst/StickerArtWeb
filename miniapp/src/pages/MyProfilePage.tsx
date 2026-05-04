@@ -1,13 +1,19 @@
 import { useEffect, useState, useCallback, useMemo, useRef, FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useTonConnectUI } from '@tonconnect/ui-react';
-import { useTonAddress } from '@tonconnect/ui-react';
+import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useWallet } from '@/hooks/useWallet';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useLikesStore } from '@/store/useLikesStore';
-import { apiClient, ReferralLinkResponse, StarsPackage } from '@/api/client';
+import {
+  apiClient,
+  ReferralLinkResponse,
+  StarsPackage,
+  formatTonNanoForDisplayRu,
+  starsPackageHasTonPrice,
+  parseStarsPackageTonPriceNano
+} from '@/api/client';
 import { StickerSetResponse } from '@/types/sticker';
 
 // UI Компоненты
@@ -31,6 +37,7 @@ import { useScrollElement } from '@/contexts/ScrollContext';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { usePurchaseStars } from '@/hooks/usePurchaseStars';
+import { usePurchaseTon } from '@/hooks/usePurchaseTon';
 import '@/styles/common.css';
 import '@/styles/DashboardPage.css';
 import '@/styles/MyProfilePage.css';
@@ -180,6 +187,7 @@ export const MyProfilePage: FC = () => {
   const [referralLinkLoading, setReferralLinkLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [starsPackages, setStarsPackages] = useState<StarsPackage[]>([]);
+  const [artPayMethod, setArtPayMethod] = useState<'stars' | 'ton'>('stars');
   const shareButtonRef = useRef<HTMLButtonElement>(null);
   const loadMyProfileRef = useRef<((force?: boolean) => Promise<void>) | null>(null);
 
@@ -188,6 +196,17 @@ export const MyProfilePage: FC = () => {
     if (mainTab !== 1) return;
     apiClient.getStarsPackages().then(setStarsPackages);
   }, [mainTab]);
+
+  const hasAnyTonPricePackage = useMemo(
+    () => starsPackages.some(starsPackageHasTonPrice),
+    [starsPackages]
+  );
+
+  useEffect(() => {
+    if (!hasAnyTonPricePackage && artPayMethod === 'ton') {
+      setArtPayMethod('stars');
+    }
+  }, [hasAnyTonPricePackage, artPayMethod]);
 
   /* На iOS clipboard.writeText работает только в контексте user gesture.
      Если ссылка загружается асинхронно, await ломает этот контекст — первый клик не копирует.
@@ -403,9 +422,18 @@ export const MyProfilePage: FC = () => {
   };
 
   loadMyProfileRef.current = loadMyProfile;
+  const onArtPurchaseSuccess = useCallback(() => {
+    loadMyProfileRef.current?.(true);
+  }, []);
   const { purchase, isPurchasing } = usePurchaseStars({
-    onPurchaseSuccess: useCallback(() => { loadMyProfileRef.current?.(true); }, [])
+    onPurchaseSuccess: onArtPurchaseSuccess
   });
+  const { purchase: purchaseWithTon, isPurchasing: isPurchasingTon } = usePurchaseTon({
+    tonConnectUI: tonConnectUI ?? null,
+    senderAddress: tonAddress ?? null,
+    onPurchaseSuccess: onArtPurchaseSuccess
+  });
+  const isBuyingArtPoints = isPurchasing || isPurchasingTon;
 
   // ✅ REFACTORED: Загрузка информации о текущем пользователе через /api/profiles/me
   const loadUserInfo = async () => {
@@ -1505,40 +1533,67 @@ export const MyProfilePage: FC = () => {
             </div>
             <div className="dashboard-daily-activity-section">
               <div className="dashboard-daily-activity">
-                <div className="dashboard-daily-activity-header">
+                <div className="dashboard-daily-activity-header account-artpay-header">
                   <h2 className="dashboard-daily-activity-title">Купить ART</h2>
+                  {hasAnyTonPricePackage && (
+                    <div
+                      className="account-artpay-method-toggle"
+                      role="tablist"
+                      aria-label="Способ оплаты ART"
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={artPayMethod === 'stars'}
+                        className={cn(
+                          'account-artpay-method-toggle__btn',
+                          artPayMethod === 'stars' && 'is-active'
+                        )}
+                        onClick={() => setArtPayMethod('stars')}
+                      >
+                        Stars
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={artPayMethod === 'ton'}
+                        className={cn(
+                          'account-artpay-method-toggle__btn',
+                          artPayMethod === 'ton' && 'is-active'
+                        )}
+                        onClick={() => setArtPayMethod('ton')}
+                      >
+                        TON
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="dashboard-daily-activity-carousel">
                   <div className="dashboard-daily-activity-pool account-topup-pool">
                     {starsPackages.map((pkg, index) => {
                       const packageCode = pkg.code ?? (pkg.id != null ? `PKG_${pkg.id}` : null);
-                      return packageCode ? (
-                        <button
-                          key={pkg.id ?? index}
-                          type="button"
-                          className="dashboard-daily-activity-task account-topup-task account-topup-task-btn"
-                          onClick={() => purchase(packageCode)}
-                          disabled={isPurchasing}
-                          aria-label={`Купить ${pkg.artAmount} ART за ${pkg.starsPrice} звёзд`}
-                        >
-                          <div className="account-topup-emoji-stack" aria-hidden>
-                            <span className="account-topup-emoji">🎨</span>
-                          </div>
-                          <div className="account-topup-main">
-                            <span className="account-topup-art">
-                              {pkg.artAmount.toLocaleString('ru-RU')} ART
-                            </span>
-                            {pkg.discountPercent != null && pkg.discountPercent > 0 && (
-                              <>
-                                <span className="account-topup-sep">·</span>
-                                <span className="account-topup-badge">-{pkg.discountPercent}%</span>
-                              </>
-                            )}
-                          </div>
-                          <span className="account-topup-price">★ {pkg.starsPrice.toLocaleString('ru-RU')}</span>
-                        </button>
+                      const tonNano = parseStarsPackageTonPriceNano(pkg);
+                      const useStars = artPayMethod === 'stars';
+                      const canPayStars = Boolean(packageCode);
+                      const canPayTon = Boolean(packageCode && tonNano != null);
+                      const interactive = useStars ? canPayStars : canPayTon;
+
+                      const priceLabel = useStars ? (
+                        <span className="account-topup-price">
+                          ★ {pkg.starsPrice.toLocaleString('ru-RU')}
+                        </span>
+                      ) : tonNano != null ? (
+                        <span className="account-topup-price account-topup-price--ton">
+                          {formatTonNanoForDisplayRu(tonNano)}
+                        </span>
                       ) : (
-                        <div key={pkg.id ?? index} className="dashboard-daily-activity-task account-topup-task">
+                        <span className="account-topup-price account-topup-price--ton account-topup-price--muted">
+                          —
+                        </span>
+                      );
+
+                      const body = (
+                        <>
                           <div className="account-topup-emoji-stack" aria-hidden>
                             <span className="account-topup-emoji">🎨</span>
                           </div>
@@ -1553,7 +1608,40 @@ export const MyProfilePage: FC = () => {
                               </>
                             )}
                           </div>
-                          <span className="account-topup-price">★ {pkg.starsPrice.toLocaleString('ru-RU')}</span>
+                          {priceLabel}
+                        </>
+                      );
+
+                      const ariaBuyStars = `Купить ${pkg.artAmount} ART за ${pkg.starsPrice} звёзд`;
+                      const ariaBuyTon =
+                        tonNano != null
+                          ? `Купить ${pkg.artAmount} ART за ${formatTonNanoForDisplayRu(tonNano)}`
+                          : `Пакет ${pkg.artAmount} ART — цена в TON недоступна`;
+
+                      if (interactive && packageCode) {
+                        return (
+                          <button
+                            key={pkg.id ?? index}
+                            type="button"
+                            className="dashboard-daily-activity-task account-topup-task account-topup-task-btn"
+                            onClick={() =>
+                              useStars ? purchase(packageCode) : purchaseWithTon(packageCode)
+                            }
+                            disabled={isBuyingArtPoints}
+                            aria-label={useStars ? ariaBuyStars : ariaBuyTon}
+                          >
+                            {body}
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={pkg.id ?? index}
+                          className="dashboard-daily-activity-task account-topup-task account-topup-task--disabled"
+                          aria-label={useStars ? ariaBuyStars : ariaBuyTon}
+                        >
+                          {body}
                         </div>
                       );
                     })}
