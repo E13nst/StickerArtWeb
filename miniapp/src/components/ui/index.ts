@@ -15,6 +15,8 @@ export { Card, CardContent } from './Card';
 export { Input } from './Input';
 export { Dialog, DialogTitle, DialogContent, DialogActions } from './Dialog';
 export { Spinner } from './Spinner';
+export { Pulsar } from './Pulsar';
+export { Quantum } from './Quantum';
 export { Alert } from './Alert';
 export { Tooltip } from './Tooltip';
 export { IconButton } from './IconButton';
