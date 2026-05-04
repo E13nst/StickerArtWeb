@@ -607,6 +607,11 @@ export interface StylePreset {
   moderationStatus?: StylePresetModerationStatus | null;
   /** ID владельца пресета (null для глобальных) */
   ownerId?: number | null;
+  /**
+   * Только в DTO для текущего пользователя как зрителя: true — не глобальный пресет и владелец = вы.
+   * В ответах без зрителя (админка) поле может отсутствовать.
+   */
+  canDeleteAsAuthor?: boolean | null;
   /** Можно ли дать публичную ссылку на этот стиль в Mini App */
   shareableAsDeepLink?: boolean;
   /** Значение для `startapp` без обёртки URL; только если шаринг доступен (`sag_style_<id>`). */

@@ -52,7 +52,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { DownloadIcon, ShareIcon } from '@/components/ui/Icons';
+import { DeleteIcon, DownloadIcon, ShareIcon } from '@/components/ui/Icons';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
@@ -425,7 +425,7 @@ const normalizeGenerateModel = (model: GenerateModelType | null | undefined): Ge
 
 export const GeneratePage: FC = () => {
   // Telegram WebApp SDK
-  const { isInTelegramApp, tg, user, initData } = useTelegram();
+  const { isInTelegramApp, tg, user, initData, isMockMode } = useTelegram();
   const location = useLocation();
   
   // Inline-режим параметры из URL
@@ -439,6 +439,7 @@ export const GeneratePage: FC = () => {
   const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
   const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
   const [stylePresetShareNotice, setStylePresetShareNotice] = useState<string | null>(null);
+  const [stylePresetDeleting, setStylePresetDeleting] = useState(false);
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
   const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
@@ -2102,6 +2103,11 @@ export const GeneratePage: FC = () => {
     typeof selectedPreset.deepLinkStartParam === 'string' &&
     selectedPreset.deepLinkStartParam.trim().length > 0;
 
+  const canDeleteSelectedStylePresetAsAuthor =
+    selectedStylePresetId != null &&
+    !isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) &&
+    selectedPreset?.canDeleteAsAuthor === true;
+
   const handleShareSelectedStylePreset = useCallback(async () => {
     if (!canShareStylePresetDeepLink || !selectedPreset?.deepLinkStartParam) return;
     const param = selectedPreset.deepLinkStartParam.trim();
@@ -2124,6 +2130,46 @@ export const GeneratePage: FC = () => {
       tg?.showAlert?.('Не удалось скопировать ссылку.');
     }
   }, [canShareStylePresetDeepLink, selectedPreset, tg]);
+
+  const handleDeleteSelectedStylePreset = useCallback(async () => {
+    if (!canDeleteSelectedStylePresetAsAuthor || selectedStylePresetId == null) return;
+    const presetId = selectedStylePresetId;
+    const confirmMsg = 'Удалить этот стиль? Его нельзя будет восстановить.';
+    let confirmed = false;
+    if (isMockMode || typeof tg?.showConfirm !== 'function') {
+      confirmed = window.confirm(confirmMsg);
+    } else {
+      confirmed = await new Promise<boolean>((resolve) => {
+        tg.showConfirm(confirmMsg, (ok) => resolve(Boolean(ok)));
+      });
+    }
+    if (!confirmed) return;
+
+    setStylePresetDeleting(true);
+    try {
+      await apiClient.deleteStylePreset(presetId);
+      tg?.HapticFeedback?.notificationOccurred('success');
+      setDeepLinkStyleBoostId((prev) => (prev === presetId ? null : prev));
+      setOwnStyleBlueprintSession((prev) => {
+        if (!prev) return prev;
+        return prev.draftPresetId === presetId ? null : prev;
+      });
+      setSelectedStylePresetId(null);
+      persistGeneratePreferences({ stylePresetId: null });
+      const list = await apiClient.loadStylePresetsMerged();
+      setStylePresets(list);
+    } catch (e: unknown) {
+      tg?.showAlert?.(e instanceof Error ? e.message : 'Не удалось удалить стиль');
+    } finally {
+      setStylePresetDeleting(false);
+    }
+  }, [
+    canDeleteSelectedStylePresetAsAuthor,
+    isMockMode,
+    persistGeneratePreferences,
+    selectedStylePresetId,
+    tg,
+  ]);
 
   const promptInputCfg = selectedPreset?.promptInput ?? null;
   /** Показывать ли основное поле prompt по preset.promptInput (скрывается только когда enabled явно false). */
@@ -4540,22 +4586,40 @@ export const GeneratePage: FC = () => {
         )}
       </div>
 
-      {canShareStylePresetDeepLink ? (
-        <div className="generate-brand__share-floating">
-          <div className="generate-brand__share-wrap">
-            <button
-              type="button"
-              className="generate-brand__share-btn"
-              onClick={() => void handleShareSelectedStylePreset()}
-              disabled={hasActiveGeneration}
-              aria-label="Поделиться стилем"
-              title="Скопировать ссылку на этот стиль в Telegram"
-            >
-              <ShareIcon size={20} color="currentColor" />
-            </button>
-            {stylePresetShareNotice ? (
-              <div className="generate-brand__share-toast" role="status">
-                {stylePresetShareNotice}
+      {canDeleteSelectedStylePresetAsAuthor || canShareStylePresetDeepLink ? (
+        <div className="generate-brand__hero-actions">
+          <div className="generate-brand__hero-actions__col generate-brand__hero-actions__col--start">
+            {canDeleteSelectedStylePresetAsAuthor ? (
+              <button
+                type="button"
+                className="generate-brand__delete-btn"
+                onClick={() => void handleDeleteSelectedStylePreset()}
+                disabled={hasActiveGeneration || stylePresetDeleting}
+                aria-label="Удалить свой стиль"
+                title="Удалить стиль с сервера"
+              >
+                <DeleteIcon size={20} color="currentColor" />
+              </button>
+            ) : null}
+          </div>
+          <div className="generate-brand__hero-actions__col generate-brand__hero-actions__col--end">
+            {canShareStylePresetDeepLink ? (
+              <div className="generate-brand__share-wrap">
+                <button
+                  type="button"
+                  className="generate-brand__share-btn"
+                  onClick={() => void handleShareSelectedStylePreset()}
+                  disabled={hasActiveGeneration}
+                  aria-label="Поделиться стилем"
+                  title="Скопировать ссылку на этот стиль в Telegram"
+                >
+                  <ShareIcon size={20} color="currentColor" />
+                </button>
+                {stylePresetShareNotice ? (
+                  <div className="generate-brand__share-toast" role="status">
+                    {stylePresetShareNotice}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
