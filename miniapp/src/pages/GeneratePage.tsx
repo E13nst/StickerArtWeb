@@ -786,23 +786,19 @@ export const GeneratePage: FC = () => {
     loadTariffs();
   }, []);
 
-  // Загрузка пресетов стилей, категорий и blueprint создания своего стиля при монтировании
+  // Загрузка пресетов стилей, категорий и blueprint — все три запроса параллельно.
+  // Ранее categories/blueprints ждали завершения presets (последовательно), что добавляло
+  // лишний RTT на медленном соединении. Теперь Promise.all запускает все запросы сразу.
   useEffect(() => {
     let cancelled = false;
 
-    const loadPresets = async () => {
-      let presets: StylePreset[] = [];
+    const loadCatalog = async () => {
       try {
-        presets = await apiClient.loadStylePresetsMerged();
-      } catch (error) {
-        console.error('Ошибка загрузки пресетов стилей:', error);
-      }
-      if (!cancelled) {
-        setStylePresets(presets);
-      }
-
-      try {
-        const [categories, blueprints] = await Promise.all([
+        const [presets, categories, blueprints] = await Promise.all([
+          apiClient.loadStylePresetsMerged().catch((err) => {
+            console.error('Ошибка загрузки пресетов стилей:', err);
+            return [] as StylePreset[];
+          }),
           apiClient.getStylePresetCategories().catch((err) => {
             console.warn('Категории пресетов недоступны, чипы из пресетов:', err);
             return [] as StylePresetCategoryDto[];
@@ -812,12 +808,14 @@ export const GeneratePage: FC = () => {
             return [] as UserPresetCreationBlueprintDto[];
           }),
         ]);
+
         if (!cancelled) {
+          setStylePresets(presets);
           setStylePresetCategories(categories);
           setUserPresetCreationBlueprints(blueprints);
         }
       } catch (error) {
-        console.error('Ошибка загрузки категорий или blueprint пресетов:', error);
+        console.error('Ошибка загрузки каталога пресетов:', error);
       } finally {
         if (!cancelled) {
           setStyleCatalogLoaded(true);
@@ -825,7 +823,7 @@ export const GeneratePage: FC = () => {
       }
     };
 
-    void loadPresets();
+    void loadCatalog();
     return () => {
       cancelled = true;
     };

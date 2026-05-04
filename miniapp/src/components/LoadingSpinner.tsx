@@ -1,51 +1,42 @@
 import { FC } from 'react';
+import { Pulsar } from '@/components/ui/Pulsar';
 
 interface LoadingSpinnerProps {
   message?: string;
+  /** Use 'quantum' variant for in-page process indicators (generating, uploading).
+   *  Default 'pulsar' is for full-page / layout-level loading screens. */
+  variant?: 'pulsar' | 'quantum';
+  size?: number;
 }
 
-export const LoadingSpinner: FC<LoadingSpinnerProps> = ({ 
-  message = 'Загрузка...' 
-}) => {
-  return (
-    <div className="tg-spinner">
-      <div className="tg-spinner__loader"></div>
-      {message && <p className="tg-spinner__message">{message}</p>}
-    </div>
-  );
-};
+export const LoadingSpinner: FC<LoadingSpinnerProps> = ({
+  message = 'Загрузка...',
+  size = 56,
+}) => (
+  <div className="tg-spinner">
+    <Pulsar size={size} />
+    {message && <p className="tg-spinner__message">{message}</p>}
+  </div>
+);
 
-// CSS для spinner
+// Minimal inline styles — only layout, no animation (animation lives in Pulsar.css)
 const styles = `
 .tg-spinner {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--tg-spacing-6) var(--tg-spacing-4);
+  padding: var(--tg-spacing-6, 18px) var(--tg-spacing-4, 12px);
   min-height: 200px;
-}
-
-.tg-spinner__loader {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--color-overlay-primary, rgba(238, 68, 159, 0.2));
-  border-top-color: var(--color-primary, #ee449f);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  gap: var(--tg-spacing-4, 12px);
 }
 
 .tg-spinner__message {
-  margin-top: var(--tg-spacing-3);
-  font-size: var(--tg-font-size-m);
-  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: var(--tg-font-size-s, 14px);
+  color: var(--color-text-secondary, #8a8a8a);
   text-align: center;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  letter-spacing: 0.01em;
 }
 `;
 

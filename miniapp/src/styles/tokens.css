@@ -193,3 +193,16 @@
   --color-text: #ffffff;
   --color-text-secondary: #8a8a8a;
 }
+
+/* Фоновый градиент для фазы Suspense / Telegram-init — до загрузки чанка страницы.
+   Страницы переопределяют эту переменную в своём scope (.generate-page, .profile-page и т.д.).
+   Значение совпадает с GeneratePage: пользователь всегда попадает на /generate, поэтому
+   видимого прыжка при загрузке чанка не будет. */
+:root {
+  --page-bg-base: var(--color-background, #191818);
+  --page-bg-accent-primary-default: color-mix(in srgb, #ff4fab 32%, transparent);
+  --page-bg-accent-secondary-default: rgba(255, 92, 168, 0.2);
+  --page-dynamic-gradient:
+    radial-gradient(circle at 18% 16%, var(--page-bg-accent-primary-default) 0%, transparent 48%),
+    radial-gradient(circle at 82% 78%, var(--page-bg-accent-secondary-default) 0%, transparent 50%);
+}
