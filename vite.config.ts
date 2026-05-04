@@ -42,7 +42,12 @@ export default defineConfig(({ mode }) => {
     },
     
     optimizeDeps: {
-      include: ['@tanstack/react-virtual', 'react-intersection-observer'],
+      include: ['@tanstack/react-virtual', 'react-intersection-observer', 'buffer', '@ton/core'],
+      esbuildOptions: {
+        define: {
+          global: 'globalThis'
+        }
+      },
     },
     
     // Public директория для статичных файлов (sw.js и др.)
