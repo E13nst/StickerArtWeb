@@ -438,6 +438,9 @@ export const GeneratePage: FC = () => {
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [styleCatalogLoaded, setStyleCatalogLoaded] = useState(false);
+  // Объявляем здесь — до gate-эффектов, чтобы использование в dependency array
+  // не попадало в TDZ (const не hoistится как var).
+  const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
 
   // ── Quantum gate: держим экран загрузки пока не готовы catalog + profile.
   // Минимум 700 мс — чтобы пользователь успел насладиться анимацией.
@@ -532,7 +535,6 @@ export const GeneratePage: FC = () => {
   const userInfo = useProfileStore((state) => state.userInfo);
   const setUserInfo = useProfileStore((state) => state.setUserInfo);
   const isProfileFromAuthenticatedApi = useProfileStore((state) => state.isProfileFromAuthenticatedApi);
-  const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
   const [, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
 
   /** Глобальные пресеты по флагу enabled; свои черновики показываем владельцу даже если выключены в каталоге. */
