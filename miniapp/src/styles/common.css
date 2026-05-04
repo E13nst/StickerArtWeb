@@ -12,9 +12,9 @@
   --page-pattern-size-secondary: var(--page-pattern-size-lg);
   --page-pattern-opacity: 0.14;
   --page-pattern-filter: brightness(0) saturate(100%) invert(45%) sepia(88%) saturate(1770%) hue-rotate(296deg) brightness(98%) contrast(95%);
-  --page-bg-base: #191818;
+  --page-bg-base: var(--color-background);
   --page-bg-accent-primary: var(--color-overlay-primary);
-  --page-bg-accent-secondary: rgba(134, 111, 201, 0.2);
+  --page-bg-accent-secondary: color-mix(in srgb, var(--color-primary) 18%, transparent);
   /* Фон как на GeneratePage: два градиента. Dashboard переопределяет в DashboardPage.css */
   --page-dynamic-gradient:
     radial-gradient(circle at 20% 20%, var(--page-bg-accent-primary) 0%, transparent 45%),
@@ -38,7 +38,7 @@
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background-color: #191818;
+  background-color: var(--color-background);
   color: var(--color-text);
   overflow-x: hidden;
   overflow-y: visible;
@@ -54,7 +54,7 @@
 
 .page-container-full-height {
   min-height: 100%;
-  background-color: #191818;
+  background-color: var(--color-background);
   color: var(--color-text);
   padding-bottom: 0;
 }

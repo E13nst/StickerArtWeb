@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, ReactNode, FC } from 'react';
-import { motion, PanInfo, useMotionValue, useTransform, useMotionValueEvent } from 'framer-motion';
+import { useCallback, useRef, useLayoutEffect, ReactNode, FC } from 'react';
+import { motion, PanInfo, useMotionValue, useTransform, useMotionValueEvent, animate } from 'framer-motion';
 import './SwipeCardStack.css';
 
 export interface SwipeCard {
@@ -19,42 +19,49 @@ export interface SwipeCardActions {
 export interface SwipeCardStackProps {
   cards: SwipeCard[];
   onSwipeLeft: (card: SwipeCard) => void;
-  onSwipeRight: (card: SwipeCard) => void;
+  onSwipeRight: (card: SwipeCard) => void | Promise<void>;
   onEnd: () => void;
   renderCard: (card: SwipeCard, index: number, actions?: SwipeCardActions) => ReactNode;
   maxVisibleCards?: number;
   swipeThreshold?: number;
+  /** Индекс верхней карточки в глобальном списке родителя (для приоритетов загрузки и т.п.) */
+  firstCardIndex?: number;
   /** Текущее смещение по Y при перетаскивании верхней карточки (для свечения по краям) */
   onDragY?: (y: number) => void;
   /** Тактильный отклик при пересечении порога во время свайпа (вверх/вниз) */
   onDragThresholdCrossed?: () => void;
-  /** Вызвать перед like при нажатии на кнопку (для glow) */
   onBeforeLike?: () => void;
-  /** Вызвать перед dislike при нажатии на кнопку (для glow) */
   onBeforeDislike?: () => void;
 }
 
 const DRAG_HAPTIC_THRESHOLD = 80;
+const FLY_Y = 520;
 
 export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   cards,
   onSwipeLeft,
   onSwipeRight,
-  onEnd,
+  onEnd: _onEnd,
   renderCard,
   maxVisibleCards = 4,
   swipeThreshold = 100,
+  firstCardIndex = 0,
   onDragY,
   onDragThresholdCrossed,
   onBeforeLike,
   onBeforeDislike,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [exitDirection, setExitDirection] = useState<'up' | 'down' | null>(null);
   const thresholdCrossedRef = useRef(false);
+  const swipeBusyRef = useRef(false);
 
   const y = useMotionValue(0);
-  const opacity = useTransform(y, [-200, -80, 0, 80, 200], [0, 1, 1, 1, 0]);
+  const topCardId = cards[0]?.id;
+
+  useLayoutEffect(() => {
+    y.set(0);
+  }, [topCardId, y]);
+
+  const opacity = useTransform(y, [-400, -80, 0, 80, 400], [0, 1, 1, 1, 0]);
 
   useMotionValueEvent(y, 'change', (latest) => {
     onDragY?.(latest);
@@ -65,28 +72,27 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   });
 
   const runSwipe = useCallback(
-    (direction: 'up' | 'down') => {
-      const currentCard = cards[currentIndex];
-      setExitDirection(direction);
-      if (direction === 'down') {
-        onSwipeLeft(currentCard);
-      } else {
-        onSwipeRight(currentCard);
-      }
-      setTimeout(() => {
-        setCurrentIndex((prev) => prev + 1);
-        setExitDirection(null);
-        y.set(0);
-        if (currentIndex + 1 >= cards.length) {
-          onEnd();
+    async (direction: 'up' | 'down') => {
+      if (swipeBusyRef.current || cards.length === 0) return;
+      swipeBusyRef.current = true;
+      const currentCard = cards[0];
+      const targetY = direction === 'up' ? -FLY_Y : FLY_Y;
+      try {
+        await animate(y, targetY, { duration: 0.28, ease: [0.22, 1, 0.36, 1] });
+        if (direction === 'down') {
+          await Promise.resolve(onSwipeLeft(currentCard));
+        } else {
+          await Promise.resolve(onSwipeRight(currentCard));
         }
-      }, 300);
+      } finally {
+        swipeBusyRef.current = false;
+      }
     },
-    [cards, currentIndex, onSwipeLeft, onSwipeRight, onEnd, y]
+    [cards, y, onSwipeLeft, onSwipeRight],
   );
 
-  const triggerSwipeLeft = useCallback(() => runSwipe('down'), [runSwipe]);
-  const triggerSwipeRight = useCallback(() => runSwipe('up'), [runSwipe]);
+  const triggerSwipeLeft = useCallback(() => void runSwipe('down'), [runSwipe]);
+  const triggerSwipeRight = useCallback(() => void runSwipe('up'), [runSwipe]);
 
   const handleDragStart = useCallback(() => {
     thresholdCrossedRef.current = false;
@@ -96,23 +102,23 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       void event;
       thresholdCrossedRef.current = false;
+      if (swipeBusyRef.current) return;
       const swipeDistance = info.offset.y;
       const swipeVelocity = info.velocity.y;
 
       if (Math.abs(swipeDistance) > swipeThreshold || Math.abs(swipeVelocity) > 500) {
         const direction = swipeDistance < 0 ? 'up' : 'down';
-        runSwipe(direction);
+        void runSwipe(direction);
       } else {
-        y.set(0);
+        void animate(y, 0, { type: 'spring', stiffness: 420, damping: 34 });
       }
     },
-    [runSwipe, swipeThreshold, y]
+    [runSwipe, swipeThreshold, y],
   );
 
-  // Calculate visible cards
-  const visibleCards = cards.slice(currentIndex, currentIndex + maxVisibleCards);
+  const slice = cards.slice(0, maxVisibleCards);
 
-  if (currentIndex >= cards.length) {
+  if (slice.length === 0) {
     return (
       <div className="swipe-card-stack swipe-card-stack--empty">
         <p className="swipe-card-stack__empty-message">No more cards</p>
@@ -123,18 +129,18 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
   return (
     <>
       <div className="swipe-card-stack">
-        {visibleCards.map((card, index) => {
+        {slice.map((card, index) => {
           const isTopCard = index === 0;
-          const cardIndex = currentIndex + index;
+          const cardIndex = firstCardIndex + index;
 
           if (isTopCard) {
             return (
               <motion.div
-                key={`${card.id}-${cardIndex}`}
+                key={String(card.id)}
                 className="swipe-card-stack__card swipe-card-stack__card--top"
                 style={{
-                  y: exitDirection ? undefined : y,
-                  opacity: exitDirection ? undefined : opacity,
+                  y,
+                  opacity,
                   zIndex: maxVisibleCards - index,
                 }}
                 drag="y"
@@ -142,15 +148,6 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
                 dragElastic={1}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                animate={
-                  exitDirection
-                    ? {
-                        y: exitDirection === 'up' ? -400 : 400,
-                        opacity: 0,
-                      }
-                    : {}
-                }
-                transition={{ duration: 0.3, ease: 'easeOut' }}
               >
                 {renderCard(card, cardIndex, {
                   triggerSwipeLeft,
@@ -162,12 +159,11 @@ export const SwipeCardStack: FC<SwipeCardStackProps> = ({
             );
           }
 
-          // Background cards (Figma: second 333×470.7 at 18.5px, 67.15px) — контент 370×523 масштабируется
           const scaleX = 333 / 370;
           const scaleY = 470.7 / 523;
           return (
             <motion.div
-              key={`${card.id}-${cardIndex}`}
+              key={String(card.id)}
               className="swipe-card-stack__card swipe-card-stack__card--background"
               style={{
                 zIndex: maxVisibleCards - index,

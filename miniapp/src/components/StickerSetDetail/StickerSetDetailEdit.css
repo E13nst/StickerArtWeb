@@ -120,7 +120,7 @@
 }
 
 .sticker-set-detail-edit__actions-done:hover {
-  background: var(--color-primary-hover, #d93d8f);
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 380px) {

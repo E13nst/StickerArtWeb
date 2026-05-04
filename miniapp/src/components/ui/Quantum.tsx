@@ -14,8 +14,7 @@ interface QuantumProps {
  * phase-drift over time: sometimes bunched, sometimes evenly spread.
  * This quantum "probability cloud" feel is the defining characteristic.
  *
- * Color waves through the brand palette independently per dot:
- * #ee449f (pink) ↔ #a855f7 (purple) ↔ #5288c1 (blue) ↔ #6ab2f2 (sky).
+ * Цвета — только от --color-primary (см. Quantum.css).
  *
  * Pure SVG + CSS, zero JS, zero dependencies.
  */

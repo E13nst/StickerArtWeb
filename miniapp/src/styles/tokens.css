@@ -6,33 +6,36 @@
      Colors
      ============================================ */
   
-  /* Primary Colors */
-  --color-primary: #ee449f;
-  --color-secondary: #007aff;
-  --color-link: #6ab2f2;
-  --color-button: #5288c1;
-  --color-button-text: #ffffff;
-  
-  /* Background Colors */
+  /* Акцент и производные — один базовый оттенок + color-mix */
+  --color-primary: #bb2dc4;
+  --color-primary-hover: color-mix(in srgb, var(--color-primary) 78%, black);
+  --color-on-primary: #ffffff;
+  --color-link: color-mix(in srgb, var(--color-primary) 52%, white);
+  /* Вторичные кнопки/плашки: приглушённый фиолетовый без отдельного «синего» */
+  --color-secondary: color-mix(in srgb, var(--color-surface) 88%, var(--color-primary));
+  --color-button: var(--color-primary);
+  --color-button-text: var(--color-on-primary);
+
+  /* Background */
   --color-background: #191818;
   --color-surface: #262626;
   --color-surface-dark: #2f2f2f;
-  
-  /* Text Colors */
+
+  /* Text */
   --color-text: #ffffff;
-  --color-text-secondary: #8a8a8a;
-  
-  /* Status Colors */
-  --color-success: #00af12;
+  --color-text-secondary: #a39daf;
+
+  /* Status */
+  --color-success: #2dc485;
   --color-error: #e03131;
-  --color-border: #8a8a8a;
+  --color-border: color-mix(in srgb, var(--color-text) 24%, transparent);
   --color-shadow: rgba(0, 0, 0, 0.3);
-  
-  /* Overlay Colors */
+
+  /* Overlay */
   --color-overlay-light: rgba(255, 255, 255, 0.2);
   --color-overlay-dark: rgba(0, 0, 0, 0.5);
   --color-overlay-dark-strong: rgba(0, 0, 0, 0.4);
-  --color-overlay-primary: rgba(238, 68, 159, 0.2);
+  --color-overlay-primary: color-mix(in srgb, var(--color-primary) 22%, transparent);
   
   /* ============================================
      Typography
@@ -142,8 +145,7 @@
   --component-header-panel-height: 172px;
   --component-header-panel-balance-background-color: #2f2f2f;
   --component-header-panel-balance-border-radius: 16px;
-  /* Синий для Wallet (не берём --tg-theme-link-color — на iPhone он может быть зелёным) */
-  --component-header-panel-wallet-background-color: #007aff;
+  --component-header-panel-wallet-background-color: var(--color-primary);
   --component-header-panel-wallet-border-radius: 16px;
   
   /* Card — как dashboard: полупрозрачный тёмный фон */
@@ -155,7 +157,7 @@
   --component-card-border-radius: 16px;
   --component-card-width: 370px;
   --component-card-max-width: 402px;
-  --component-card-accent-color: rgba(238, 68, 159, 0.2);
+  --component-card-accent-color: var(--color-overlay-primary);
   --component-card-button-success: var(--color-success);
   --component-card-button-error: var(--color-error);
   --component-card-button-default: var(--color-text-secondary);
@@ -175,7 +177,7 @@
   --component-button-primary-border-radius: 10px;
   --component-button-primary-height: 44px;
   
-  --component-button-secondary-background-color: var(--color-text-secondary);
+  --component-button-secondary-background-color: var(--color-secondary);
   --component-button-secondary-color: #ffffff;
   --component-button-secondary-border-radius: 16px;
   --component-button-secondary-height: 48px;
@@ -186,22 +188,11 @@
   --component-button-circle-size: 56px;
 }
 
-/* Единая тёмная тема — без переключения light/dark */
+/* Фоновый градиент до монтирования страницы — только оттенки primary */
 :root {
-  --color-background: #191818;
-  --color-surface: #262626;
-  --color-text: #ffffff;
-  --color-text-secondary: #8a8a8a;
-}
-
-/* Фоновый градиент для фазы Suspense / Telegram-init — до загрузки чанка страницы.
-   Страницы переопределяют эту переменную в своём scope (.generate-page, .profile-page и т.д.).
-   Значение совпадает с GeneratePage: пользователь всегда попадает на /generate, поэтому
-   видимого прыжка при загрузке чанка не будет. */
-:root {
-  --page-bg-base: var(--color-background, #191818);
-  --page-bg-accent-primary-default: color-mix(in srgb, #ff4fab 32%, transparent);
-  --page-bg-accent-secondary-default: rgba(255, 92, 168, 0.2);
+  --page-bg-base: var(--color-background);
+  --page-bg-accent-primary-default: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  --page-bg-accent-secondary-default: color-mix(in srgb, var(--color-primary) 16%, transparent);
   --page-dynamic-gradient:
     radial-gradient(circle at 18% 16%, var(--page-bg-accent-primary-default) 0%, transparent 48%),
     radial-gradient(circle at 82% 78%, var(--page-bg-accent-secondary-default) 0%, transparent 50%);

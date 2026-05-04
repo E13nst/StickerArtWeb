@@ -174,7 +174,7 @@
   padding: 10px 24px;
   border-radius: var(--border-radius-full, 32px);
   border: none;
-  background: var(--color-primary, #ee449f);
+  background: var(--color-primary);
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -191,7 +191,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--color-primary, #ee449f);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: meme-feed-spin 0.75s linear infinite;
 }

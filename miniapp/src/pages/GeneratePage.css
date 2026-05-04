@@ -5,16 +5,7 @@
   position: relative;
   /* Скролл в .stixly-main-scroll; не гасим вертикальную прокрутку родителя */
   overscroll-behavior-y: auto;
-  /* Акцент: яркий pink вместо серо-фиолетового; вторичный текст светлее; чипы/интерактив — в тон primary */
-  --color-primary: #ff4fab;
-  --color-text-secondary: #c4c1d2;
-  --color-overlay-primary: rgba(255, 79, 175, 0.38);
-  --color-button: var(--color-primary);
-  --page-bg-accent-primary: color-mix(in srgb, var(--color-primary) 32%, transparent);
-  --page-bg-accent-secondary: rgba(255, 92, 168, 0.2);
-  --page-dynamic-gradient:
-    radial-gradient(circle at 18% 16%, var(--page-bg-accent-primary) 0%, transparent 48%),
-    radial-gradient(circle at 82% 78%, var(--page-bg-accent-secondary) 0%, transparent 50%);
+  /* Цвета — глобальные токены (--page-dynamic-gradient из tokens.css) */
   padding-bottom: 0;
   display: flex;
   flex-direction: column;
@@ -1031,8 +1022,8 @@
 }
 
 .generate-page .style-preset-category-chips--gallery .style-preset-category-chips__chip[data-selected='true'] {
-  background: color-mix(in srgb, #ee449f 42%, rgba(255, 255, 255, 0.06)) !important;
-  border: 1px solid color-mix(in srgb, #ee449f 55%, rgba(255, 255, 255, 0.12)) !important;
+  background: color-mix(in srgb, var(--color-primary) 42%, rgba(255, 255, 255, 0.06)) !important;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, rgba(255, 255, 255, 0.12)) !important;
   color: #fff !important;
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.24),
@@ -1176,7 +1167,7 @@
   justify-content: flex-start;
 }
 
-/* Эмодзи + «Удалить фон»: стекло как navbar; акцент как активная вкладка Gallery (#ee449f) */
+/* Эмодзи + «Удалить фон»: стекло как navbar; акцент как активная вкладка Gallery (var(--color-primary)) */
 .generate-remove-bg-locked-pill {
   display: inline-flex;
   align-items: center;
@@ -1217,13 +1208,13 @@
 }
 
 .generate-page .generate-emoji-caption {
-  color: #ee449f;
+  color: var(--color-primary);
   filter: drop-shadow(0 0 5px rgba(238, 68, 159, 0.55));
 }
 
 .generate-page .generate-model-select-value--emoji {
-  color: #ee449f;
-  filter: drop-shadow(0 0 7.6px #ee449f);
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 7.6px var(--color-primary));
 }
 
 .generate-page .generate-checkbox-label--inline {
@@ -1242,7 +1233,7 @@
 }
 
 .generate-page .generate-checkbox-label--inline span {
-  color: #ee449f;
+  color: var(--color-primary);
   font-weight: 600;
   filter: drop-shadow(0 0 5px rgba(238, 68, 159, 0.55));
 }
@@ -1252,8 +1243,8 @@
 }
 
 .generate-page .generate-checkbox-label--inline .generate-checkbox:checked {
-  background-color: #ee449f;
-  border-color: #ee449f;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .generate-input-wrapper:focus-within,
@@ -1627,7 +1618,7 @@
   cursor: not-allowed;
 }
 
-/* Button Generate — Figma: 201×32 or 192×32, #ee449f, 16px radius, Bold 16px */
+/* Button Generate — Figma: 201×32 or 192×32, var(--color-primary), 16px radius, Bold 16px */
 .generate-button-submit {
   align-self: center;
 }

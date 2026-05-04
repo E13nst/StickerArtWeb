@@ -1,28 +1,23 @@
 /* ===================================================================
    Stixly Pulsar Loader
-   Sonar-style concentric rings emitting from a glowing core.
-   Color arc: #ee449f (pink) → #a855f7 (purple) → #5288c1 (blue)
-   All on background #191818.
+   Палитра только от --color-primary (+ color-mix).
    =================================================================== */
 
 .stixly-pulsar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* GPU-composited layer: no layout/paint cost during animation */
   will-change: transform;
 
-  /* Brand color arc (default): pink → purple → blue */
-  --p-c1: #ee449f;
-  --p-c2: #a855f7;
-  --p-c3: #5288c1;
+  --p-c1: var(--color-primary);
+  --p-c2: color-mix(in srgb, var(--color-primary) 44%, white);
+  --p-c3: color-mix(in srgb, var(--color-primary) 52%, black);
 }
 
-/* Warm scheme: stays in pink–purple range, no blue destination */
+/* Чуть теплее/светлее для альтернативного варианта */
 .stixly-pulsar--warm {
-  --p-c1: #ff4fab;
-  --p-c2: #a855f7;
-  --p-c3: #c44ab8;
+  --p-c2: color-mix(in srgb, var(--color-primary) 52%, white);
+  --p-c3: color-mix(in srgb, var(--color-primary) 38%, black);
 }
 
 .stixly-pulsar svg {
@@ -37,15 +32,15 @@
    Uses CSS custom properties so callers can override per-instance.
    ------------------------------------------------------------------ */
 @keyframes p-color-stroke {
-  0%,  100% { stroke: var(--p-c1, #ee449f); }
-  33%        { stroke: var(--p-c2, #a855f7); }
-  66%        { stroke: var(--p-c3, #5288c1); }
+  0%,  100% { stroke: var(--p-c1, var(--color-primary)); }
+  33%        { stroke: var(--p-c2); }
+  66%        { stroke: var(--p-c3); }
 }
 
 @keyframes p-color-fill {
-  0%,  100% { fill: var(--p-c1, #ee449f); }
-  33%        { fill: var(--p-c2, #a855f7); }
-  66%        { fill: var(--p-c3, #5288c1); }
+  0%,  100% { fill: var(--p-c1, var(--color-primary)); }
+  33%        { fill: var(--p-c2); }
+  66%        { fill: var(--p-c3); }
 }
 
 /* ------------------------------------------------------------------
@@ -57,7 +52,7 @@
 }
 
 .p-core {
-  fill: #ee449f;
+  fill: var(--color-primary);
   transform-box: fill-box;
   transform-origin: center;
   animation:
@@ -78,7 +73,7 @@
 
 .p-ring {
   fill: none;
-  stroke: #ee449f;
+  stroke: var(--color-primary);
   stroke-width: 2.2;
   transform-box: fill-box;
   transform-origin: center;

@@ -9,19 +9,21 @@ export const DesignSystemDemo: FC = () => {
 
   // Цвета из дизайн-системы
   const colors = [
-    { name: 'Primary', var: '--color-primary', value: '#ee449f' },
-    { name: 'Secondary', var: '--color-secondary', value: '#007aff' },
+    { name: 'Primary', var: '--color-primary', value: '#bb2dc4' },
+    { name: 'Primary hover', var: '--color-primary-hover', value: 'color-mix(in srgb, #bb2dc4 78%, black)' },
+    { name: 'Secondary UI', var: '--color-secondary', value: 'mix surface+primary' },
+    { name: 'Link', var: '--color-link', value: 'color-mix(in srgb, #bb2dc4 52%, white)' },
     { name: 'Background', var: '--color-background', value: '#191818' },
     { name: 'Surface', var: '--color-surface', value: '#262626' },
     { name: 'Surface Dark', var: '--color-surface-dark', value: '#2f2f2f' },
     { name: 'Text', var: '--color-text', value: '#ffffff' },
-    { name: 'Text Secondary', var: '--color-text-secondary', value: '#8a8a8a' },
-    { name: 'Success', var: '--color-success', value: '#00af12' },
+    { name: 'Text Secondary', var: '--color-text-secondary', value: '#a39daf' },
+    { name: 'Success', var: '--color-success', value: '#2dc485' },
     { name: 'Error', var: '--color-error', value: '#e03131' },
-    { name: 'Border', var: '--color-border', value: '#8a8a8a' },
+    { name: 'Border', var: '--color-border', value: 'rgba(255,255,255,0.24)*' },
     { name: 'Overlay Light', var: '--color-overlay-light', value: 'rgba(255, 255, 255, 0.2)' },
     { name: 'Overlay Dark', var: '--color-overlay-dark', value: 'rgba(0, 0, 0, 0.5)' },
-    { name: 'Overlay Primary', var: '--color-overlay-primary', value: 'rgba(238, 68, 159, 0.2)' },
+    { name: 'Overlay Primary', var: '--color-overlay-primary', value: 'color-mix(primary 22%, transparent)' },
   ];
 
   // Типографика

@@ -546,6 +546,7 @@ export const SwipePage: FC = () => {
         <div className="swipe-page__cards">
           <SwipeCardStack
             cards={visibleCards}
+            firstCardIndex={currentIndex}
             onSwipeLeft={handleSwipeLeft}
             onSwipeRight={handleSwipeRight}
             onEnd={handleEnd}

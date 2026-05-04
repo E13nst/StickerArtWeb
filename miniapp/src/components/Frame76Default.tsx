@@ -34,7 +34,7 @@ export const Frame76Default: FC<Frame76DefaultProps> = ({ tasks }) => {
             <div 
               className="progress-bar-container"
               style={{
-                backgroundColor: isCompleted ? '#ee449f' : 'rgba(255, 255, 255, 1)'
+                backgroundColor: isCompleted ? 'var(--color-primary)' : 'rgba(255, 255, 255, 1)'
               }}
             >
               {!isCompleted && (
@@ -48,7 +48,7 @@ export const Frame76Default: FC<Frame76DefaultProps> = ({ tasks }) => {
                 <span
                   className="progress-text"
                   style={{
-                    color: isCompleted ? '#ee449f' : '#ee449f'
+                    color: 'var(--color-primary)'
                   }}
                 >
                   {task.current}/{task.total}

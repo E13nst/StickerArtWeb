@@ -28,12 +28,12 @@
 }
 
 .preset-ref-upload__dropzone:hover:not(.preset-ref-upload__dropzone--uploading) {
-  border-color: var(--color-primary, #ee449f);
+  border-color: var(--color-primary);
   background: rgba(238, 68, 159, 0.05);
 }
 
 .preset-ref-upload__dropzone--active {
-  border-color: var(--color-primary, #ee449f);
+  border-color: var(--color-primary);
   background: rgba(238, 68, 159, 0.08);
 }
 
@@ -85,7 +85,7 @@
 
 .preset-ref-upload__progress-bar {
   height: 100%;
-  background: var(--color-primary, #ee449f);
+  background: var(--color-primary);
   border-radius: 2px;
   transition: width 0.15s ease;
 }

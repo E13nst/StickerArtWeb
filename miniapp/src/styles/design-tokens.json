@@ -1,20 +1,20 @@
 {
   "colors": {
-    "primary": "#ee449f",
-    "secondary": "#007aff",
+    "primary": "#bb2dc4",
+    "secondary": "#3a3248",
     "background": "#191818",
     "surface": "#262626",
     "surfaceDark": "#2f2f2f",
     "text": "#ffffff",
-    "textSecondary": "#8a8a8a",
-    "success": "#00af12",
+    "textSecondary": "#a39daf",
+    "success": "#2dc485",
     "error": "#e03131",
-    "border": "#8a8a8a",
+    "border": "rgba(255, 255, 255, 0.24)",
     "overlay": {
       "light": "rgba(255, 255, 255, 0.2)",
       "dark": "rgba(0, 0, 0, 0.5)",
       "darkStrong": "rgba(0, 0, 0, 0.4)",
-      "primary": "rgba(238, 68, 159, 0.2)"
+      "primary": "rgba(187, 45, 196, 0.22)"
     }
   },
   "typography": {
@@ -98,7 +98,7 @@
       "backgroundColor": "rgba(255, 255, 255, 0.2)",
       "borderRadius": "16px",
       "fontSize": "8px",
-      "activeColor": "#ee449f"
+      "activeColor": "#bb2dc4"
     },
     "headerPanel": {
       "backgroundColor": "rgba(0, 0, 0, 0.5)",
@@ -109,7 +109,7 @@
         "borderRadius": "16px"
       },
       "wallet": {
-        "backgroundColor": "#007aff",
+        "backgroundColor": "#bb2dc4",
         "borderRadius": "16px"
       }
     },
@@ -117,37 +117,37 @@
       "backgroundColor": "#262626",
       "borderRadius": "16px",
       "width": "370px",
-      "accentColor": "rgba(238, 68, 159, 0.2)",
+      "accentColor": "rgba(187, 45, 196, 0.22)",
       "button": {
-        "success": "#00af12",
+        "success": "#2dc485",
         "error": "#e03131",
-        "default": "#8a8a8a",
-        "primary": "#ee449f",
+        "default": "#a39daf",
+        "primary": "#bb2dc4",
         "borderRadius": "16px",
         "height": "48px"
       }
     },
     "searchBar": {
       "backgroundColor": "rgba(0, 0, 0, 0.4)",
-      "borderColor": "#8a8a8a",
+      "borderColor": "rgba(255, 255, 255, 0.24)",
       "borderRadius": "32px",
       "height": "30px"
     },
     "button": {
       "primary": {
-        "backgroundColor": "#ee449f",
+        "backgroundColor": "#bb2dc4",
         "color": "#ffffff",
         "borderRadius": "10px",
         "height": "44px"
       },
       "secondary": {
-        "backgroundColor": "#8a8a8a",
+        "backgroundColor": "#a39daf",
         "color": "#ffffff",
         "borderRadius": "16px",
         "height": "48px"
       },
       "circle": {
-        "success": "#00af12",
+        "success": "#2dc485",
         "error": "#e03131",
         "borderRadius": "31px",
         "size": "56px"

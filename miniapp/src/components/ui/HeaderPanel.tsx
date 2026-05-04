@@ -12,7 +12,7 @@ import './HeaderPanel.css';
 const BASE = (import.meta as any).env?.BASE_URL || '/miniapp/';
 
 /**
- * HeaderPanel — шапка с аватаром текущего пользователя, балансом ART и кнопками.
+ * HeaderPanel — шапка: слева история (/generate) или кошелёк, по центру баланс ART, справа аватар.
  * Приоритет аватара: blob/API профиль. Если профильный источник ещё не готов,
  * разрешаем безопасный fallback на Telegram photo_url, чтобы UI не расходился с GeneratePage.
  */
@@ -162,6 +162,95 @@ export const HeaderPanel: FC = () => {
       <div className="header-panel__backdrop" aria-hidden="true" />
       <div className="header-panel__inner">
         <div className="header-panel__content">
+          {isGenerateRoute ? (
+            historySlot ? (
+              <button
+                type="button"
+                className="header-panel__wallet header-panel__wallet--history"
+                aria-label="История генераций"
+                aria-expanded={historySlot.open}
+                aria-controls="generate-history-modal"
+                onClick={historySlot.toggle}
+              >
+                {historySlot.previewImageUrl ? (
+                  <img
+                    className="header-panel__wallet-preview"
+                    src={historySlot.previewImageUrl}
+                    alt=""
+                  />
+                ) : (
+                  <span className="header-panel__wallet-emoji" aria-hidden>
+                    {historySlot.fallbackEmoji}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="header-panel__wallet header-panel__wallet--history"
+                aria-label="История генераций"
+                aria-busy="true"
+                disabled
+              >
+                <span className="header-panel__wallet-emoji" aria-hidden>
+                  🕘
+                </span>
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              className="header-panel__wallet"
+              aria-label="TON Connect"
+              onClick={handleWalletClick}
+            >
+              <AccountBalanceWalletIcon size={24} color="currentColor" />
+            </button>
+          )}
+
+          <div
+            className="header-panel__balance"
+            role="button"
+            tabIndex={0}
+            onClick={handleTopUpNavigate}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleTopUpNavigate();
+              }
+            }}
+            aria-label="Перейти в ART-points"
+          >
+            <button
+              type="button"
+              className="header-panel__plus-button"
+              aria-label="Пополнить баланс"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleTopUpNavigate();
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 3V13M3 8H13"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <span className="header-panel__balance-text">
+              {formattedBalance} ART
+            </span>
+          </div>
+
           {/* Аватар: фото или иконка Account; долгое нажатие 3 сек — навбар + Debug Panel */}
           <div
             className="header-panel__avatar-wrap"
@@ -211,81 +300,6 @@ export const HeaderPanel: FC = () => {
               />
             )}
           </div>
-
-          <div
-            className="header-panel__balance"
-            role="button"
-            tabIndex={0}
-            onClick={handleTopUpNavigate}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleTopUpNavigate();
-              }
-            }}
-            aria-label="Перейти в ART-points"
-          >
-            <button
-              type="button"
-              className="header-panel__plus-button"
-              aria-label="Пополнить баланс"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleTopUpNavigate();
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M8 3V13M3 8H13"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-            <span className="header-panel__balance-text">
-              {formattedBalance} ART
-            </span>
-          </div>
-
-          {isGenerateRoute && historySlot ? (
-            <button
-              type="button"
-              className="header-panel__wallet header-panel__wallet--history"
-              aria-label="История генераций"
-              aria-expanded={historySlot.open}
-              aria-controls="generate-history-modal"
-              onClick={historySlot.toggle}
-            >
-              {historySlot.previewImageUrl ? (
-                <img
-                  className="header-panel__wallet-preview"
-                  src={historySlot.previewImageUrl}
-                  alt=""
-                />
-              ) : (
-                <span className="header-panel__wallet-emoji" aria-hidden>
-                  {historySlot.fallbackEmoji}
-                </span>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="header-panel__wallet"
-              aria-label="TON Connect"
-              onClick={handleWalletClick}
-            >
-              <AccountBalanceWalletIcon size={24} color="currentColor" />
-            </button>
-          )}
         </div>
       </div>
     </header>

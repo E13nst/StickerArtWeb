@@ -164,7 +164,7 @@ body.generate-history-hint-active .header-panel__wallet--history {
   justify-content: center;
   padding: 8px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #ee449f 0%, #d93d8f 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   border: none;
   border-radius: var(--border-radius-sm);
   color: #ffffff;
@@ -249,13 +249,21 @@ body.generate-history-hint-active .header-panel__wallet--history {
 }
 
 .header-panel__wallet--history {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.01);
   backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(238, 68, 159, 0.32);
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.header-panel__wallet--history:disabled {
+  opacity: 0.82;
+  cursor: default;
+  pointer-events: none;
+}
+
+.header-panel__wallet--history:disabled:hover {
+  opacity: 0.82;
 }
 
 /* Превью последней генерации в слоте кошелька на /generate */

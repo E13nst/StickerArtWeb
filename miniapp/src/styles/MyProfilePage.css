@@ -305,7 +305,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  background: linear-gradient(135deg, #ee449f 0%, #d93d8f 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   border: none;
   border-radius: var(--border-radius-sm, 8px);
   color: #ffffff;

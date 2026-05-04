@@ -1,10 +1,6 @@
 /* ===================================================================
    Stixly Quantum Loader
-   6 dots orbiting at two radii, each at a slightly different speed —
-   they phase-shift over time, forming an ever-changing probability
-   cloud (quantum uncertainty made visible).
-   Color wave: #ee449f → #a855f7 → #5288c1 with staggered delays.
-   All on background #191818.
+   6 dots orbiting at two radii — palette только от --color-primary (+ mix).
    =================================================================== */
 
 .stixly-quantum {
@@ -12,6 +8,9 @@
   align-items: center;
   justify-content: center;
   will-change: transform;
+  --q-c1: var(--color-primary);
+  --q-c2: color-mix(in srgb, var(--color-primary) 45%, white);
+  --q-c3: color-mix(in srgb, var(--color-primary) 55%, black);
 }
 
 .stixly-quantum svg {
@@ -20,9 +19,6 @@
   overflow: visible;
 }
 
-/* ------------------------------------------------------------------
-   Orbit track guides — barely-there rings for visual depth
-   ------------------------------------------------------------------ */
 .q-track {
   fill: none;
   stroke: rgba(255, 255, 255, 0.07);
@@ -30,12 +26,6 @@
   stroke-dasharray: 3 4;
 }
 
-/* ------------------------------------------------------------------
-   Orbital spin
-   transform-box: view-box + transform-origin: center ensures
-   rotation around the SVG viewport center (30, 30) regardless of
-   the displayed CSS pixel size.
-   ------------------------------------------------------------------ */
 @keyframes q-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
@@ -46,62 +36,38 @@
   transform-origin: center;
 }
 
-/* Inner ring (r=14): 3 dots with slightly different periods →
-   they gradually drift apart, creating the quantum phase-shift. */
 .qi-a { animation: q-spin 2.4s linear infinite  0s; }
 .qi-b { animation: q-spin 2.7s linear infinite -0.9s; }
 .qi-c { animation: q-spin 3.0s linear infinite -2.0s; }
 
-/* Outer ring (r=21): slower, following Kepler's T² ∝ r³ loosely.
-   Three more dots, also phase-shifting independently. */
 .qo-a { animation: q-spin 4.2s linear infinite  0s; }
 .qo-b { animation: q-spin 4.8s linear infinite -1.6s; }
 .qo-c { animation: q-spin 5.4s linear infinite -3.6s; }
 
-/* ------------------------------------------------------------------
-   Color animations per dot — brand palette wave
-   Each dot has its own color arc + staggered delay so the whole
-   field ripples with colour.
-   ------------------------------------------------------------------ */
-@keyframes qc-pink-purple {
-  0%, 100% { fill: #ee449f; }
-  50%       { fill: #a855f7; }
+@keyframes qc-a {
+  0%, 100% { fill: var(--q-c1); }
+  50%       { fill: var(--q-c2); }
 }
-@keyframes qc-purple-blue {
-  0%, 100% { fill: #a855f7; }
-  50%       { fill: #5288c1; }
+@keyframes qc-b {
+  0%, 100% { fill: var(--q-c2); }
+  50%       { fill: var(--q-c3); }
 }
-@keyframes qc-blue-pink {
-  0%, 100% { fill: #5288c1; }
-  50%       { fill: #ee449f; }
-}
-@keyframes qc-sky-purple {
-  0%, 100% { fill: #6ab2f2; }
-  50%       { fill: #a855f7; }
-}
-@keyframes qc-purple-pink {
-  0%, 100% { fill: #a855f7; }
-  50%       { fill: #ee449f; }
-}
-@keyframes qc-pink-sky {
-  0%, 100% { fill: #ee449f; }
-  50%       { fill: #6ab2f2; }
+@keyframes qc-c {
+  0%, 100% { fill: var(--q-c3); }
+  50%       { fill: var(--q-c1); }
 }
 
-.qd-a { animation: qc-pink-purple   3.2s ease-in-out infinite  0s;    }
-.qd-b { animation: qc-purple-blue   3.2s ease-in-out infinite -1.07s; }
-.qd-c { animation: qc-blue-pink     3.2s ease-in-out infinite -2.13s; }
-.qd-d { animation: qc-sky-purple    3.2s ease-in-out infinite -0.53s; }
-.qd-e { animation: qc-purple-pink   3.2s ease-in-out infinite -1.6s;  }
-.qd-f { animation: qc-pink-sky      3.2s ease-in-out infinite -2.67s; }
+.qd-a { animation: qc-a 3.2s ease-in-out infinite  0s;    }
+.qd-b { animation: qc-b 3.2s ease-in-out infinite -1.07s; }
+.qd-c { animation: qc-c 3.2s ease-in-out infinite -2.13s; }
+.qd-d { animation: qc-a 3.2s ease-in-out infinite -0.53s; }
+.qd-e { animation: qc-b 3.2s ease-in-out infinite -1.6s;  }
+.qd-f { animation: qc-c 3.2s ease-in-out infinite -2.67s; }
 
-/* ------------------------------------------------------------------
-   Core: pulsing glow, cycling all three palette stops
-   ------------------------------------------------------------------ */
 @keyframes q-core-pulse {
-  0%,  100% { transform: scale(1);    fill: #ee449f; }
-  33%        { transform: scale(1.25); fill: #a855f7; }
-  66%        { transform: scale(0.85); fill: #5288c1; }
+  0%,  100% { transform: scale(1);    fill: var(--q-c1); }
+  33%        { transform: scale(1.25); fill: var(--q-c2); }
+  66%        { transform: scale(0.85); fill: var(--q-c3); }
 }
 
 .q-core {
@@ -110,13 +76,9 @@
   animation: q-core-pulse 3s ease-in-out infinite;
 }
 
-/* ------------------------------------------------------------------
-   Accessibility: reduce to a simple color shift, no motion
-   ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .q-orbit { animation: none !important; }
   .q-core  { animation: q-core-pulse 3s ease-in-out infinite; transform: none !important; }
 
-  /* Show only two static dots to indicate activity */
   .qi-b, .qi-c, .qo-b, .qo-c { display: none; }
 }

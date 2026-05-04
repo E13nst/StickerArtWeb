@@ -8,8 +8,8 @@ interface PulsarProps {
   style?: CSSProperties;
   /**
    * Color scheme for the pulse rings.
-   * - 'brand' (default): #ee449f → #a855f7 → #5288c1 (full brand arc incl. blue)
-   * - 'warm': #ff4fab → #a855f7 → #c44ab8 (pink–purple only, no blue)
+   * - 'brand' (default): оттенки --color-primary через color-mix
+   * - 'warm': чуть светлее те же оттенки (--p-c2/--p-c3 иначе)
    */
   colorScheme?: 'brand' | 'warm';
 }

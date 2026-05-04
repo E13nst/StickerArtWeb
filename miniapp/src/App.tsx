@@ -93,15 +93,18 @@ const App: FC = () => {
     initializeCurrentUser(user?.id ?? null).catch(() => undefined);
   }, [initData, user?.id, hasMyProfileLoaded, initializeCurrentUser]);
 
-  // Предзагрузка чанков страниц доступных из минимальной навигации (/generate, /profile).
-  // Остальные страницы (Gallery, Dashboard, Swipe и т.д.) скрыты и грузятся только при прямом переходе.
-  // Задержка 1500ms: после того как GeneratePage уже отрисовалась и main-thread освободился.
+  // Предзагрузка чанков основных разделов (без Suspend-вспышки при первом заходе).
   useEffect(() => {
     const preload = () => {
-      import('@/pages/MyProfilePage').catch(() => {});
+      void import('@/pages/MyProfilePage');
+      void import('@/pages/GalleryPage2');
     };
-    const t = setTimeout(preload, 1500);
-    return () => clearTimeout(t);
+    const ric = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300));
+    const id = ric(preload);
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(id as number);
+      else clearTimeout(id as unknown as number);
+    };
   }, []);
 
   // ✅ FIX: Глобальная обработка ошибок загрузки blob URLs

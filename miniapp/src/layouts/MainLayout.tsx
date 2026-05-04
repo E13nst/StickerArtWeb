@@ -14,6 +14,9 @@ interface Props {
   children: ReactNode;
 }
 
+const scrollStorageKey = (pathname: string, search: string) =>
+  `stixly.mainScroll:${pathname}${search}`;
+
 export default function MainLayout({ children }: Props) {
   const location = useLocation();
   const pathname = location.pathname;
@@ -38,11 +41,41 @@ export default function MainLayout({ children }: Props) {
     return () => window.removeEventListener('stixly-open-debug-panel', onUnlock);
   }, []);
 
+  /** Сохраняем позицию скролла по маршруту — без принудительного сброса в 0 при каждом переходе. */
   useEffect(() => {
-    if (mainScrollRef.current) {
-      mainScrollRef.current.scrollTop = 0;
+    const el = mainScrollRef.current;
+    if (!el) return;
+    const key = scrollStorageKey(pathname, location.search);
+    let tid: ReturnType<typeof setTimeout>;
+    const save = () => {
+      clearTimeout(tid);
+      tid = setTimeout(() => {
+        try {
+          sessionStorage.setItem(key, String(el.scrollTop));
+        } catch {
+          /* quota / private mode */
+        }
+      }, 100);
+    };
+    el.addEventListener('scroll', save, { passive: true });
+    return () => {
+      clearTimeout(tid);
+      el.removeEventListener('scroll', save);
+    };
+  }, [pathname, location.search]);
+
+  useLayoutEffect(() => {
+    const el = mainScrollRef.current;
+    if (!el) return;
+    const key = scrollStorageKey(pathname, location.search);
+    try {
+      const raw = sessionStorage.getItem(key);
+      const top = raw != null ? Number(raw) : 0;
+      el.scrollTop = Number.isFinite(top) && top >= 0 ? top : 0;
+    } catch {
+      el.scrollTop = 0;
     }
-  }, [location.pathname]);
+  }, [pathname, location.search]);
 
   useEffect(() => {
     const updateViewportHeight = () => {

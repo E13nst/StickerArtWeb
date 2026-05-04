@@ -5,7 +5,7 @@
   padding: 8px 18px;
   border-radius: var(--border-radius-full, 32px);
   border: none;
-  background: var(--color-primary, #ee449f);
+  background: var(--color-primary);
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;

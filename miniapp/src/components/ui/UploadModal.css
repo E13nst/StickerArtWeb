@@ -96,7 +96,7 @@
 }
 
 .upload-modal-close:focus-visible {
-  outline: 2px solid var(--color-primary, #ee449f);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -146,12 +146,12 @@
 }
 
 .upload-drop-zone:focus-visible {
-  outline: 2px solid var(--color-primary, #ee449f);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .upload-drop-zone-active {
-  border-color: var(--color-primary, #ee449f);
+  border-color: var(--color-primary);
   background-color: rgba(238, 68, 159, 0.1);
 }
 
@@ -162,7 +162,7 @@
 
 .upload-drop-zone:hover .upload-drop-zone-icon,
 .upload-drop-zone-active .upload-drop-zone-icon {
-  color: var(--color-primary, #ee449f);
+  color: var(--color-primary);
 }
 
 .upload-drop-zone-text {
@@ -279,7 +279,7 @@
 }
 
 .upload-modal-button-upload {
-  background-color: var(--color-primary, #ee449f);
+  background-color: var(--color-primary);
   color: #ffffff;
 }
 
@@ -297,7 +297,7 @@
 }
 
 .upload-modal-button:focus-visible {
-  outline: 2px solid var(--color-primary, #ee449f);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 

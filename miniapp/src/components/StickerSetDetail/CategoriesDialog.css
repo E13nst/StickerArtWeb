@@ -211,7 +211,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--color-primary, #ee449f);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: categoriesDialogSpin 0.8s linear infinite;
   flex-shrink: 0;
@@ -312,7 +312,7 @@
   min-height: 44px;
   padding: 10px 16px;
   border-radius: var(--tg-radius-l, 16px);
-  background: var(--color-primary, #ee449f);
+  background: var(--color-primary);
   border: none;
   color: #ffffff;
   font-size: 14px;
@@ -326,7 +326,7 @@
 }
 
 .categories-dialog__save-btn:hover {
-  background: #d93d8f;
+  background: var(--color-primary-hover);
 }
 
 .categories-dialog__save-btn:disabled {
@@ -338,7 +338,7 @@
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: var(--color-primary, #ee449f);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: categoriesDialogSpin 0.8s linear infinite;
 }

@@ -82,6 +82,7 @@ export const Navbar: FC<NavbarProps> = ({ variant = 'minimal' }) => {
           <NavLink
             key={item.path}
             to={item.path}
+            preventScrollReset
             className={`navbar__tab ${active ? 'navbar__tab--active' : ''}`}
           >
             <span className="navbar__icon">

@@ -54,13 +54,13 @@
 }
 
 .navbar__tab--active {
-  color: #ee449f;
-  filter: drop-shadow(0 0 7.6px #ee449f);
+  color: var(--color-primary);
+  filter: drop-shadow(0 0 7.6px var(--color-primary));
 }
 
 .navbar__tab--active .navbar__icon,
 .navbar__tab--active .navbar__label {
-  color: #ee449f;
+  color: var(--color-primary);
 }
 
 .navbar__icon {

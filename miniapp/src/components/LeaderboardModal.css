@@ -173,7 +173,7 @@
 }
 
 .leaderboard-modal__user-item--first .leaderboard-modal__user-item__avatar-wrap {
-  filter: drop-shadow(0 0 20.736px #ee449f);
+  filter: drop-shadow(0 0 20.736px var(--color-primary));
 }
 
 /* Name — Figma: 16px, 400, 22px line-height, #FFFFFF */
