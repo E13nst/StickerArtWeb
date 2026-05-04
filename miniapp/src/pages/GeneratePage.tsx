@@ -71,7 +71,6 @@ import {
 import { readHistoryHeadAck, writeHistoryHeadAck } from '@/utils/historyHeadAckStorage';
 import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/generatePreferencesStorage';
 import {
-  buildTelegramMiniAppStylePresetShareUrl,
   parseStylePresetIdFromStartParam,
   REFERRAL_START_PARAM_PREFIX,
   resolveTelegramStartParam,
@@ -2106,7 +2105,9 @@ export const GeneratePage: FC = () => {
   const handleShareSelectedStylePreset = useCallback(async () => {
     if (!canShareStylePresetDeepLink || !selectedPreset?.deepLinkStartParam) return;
     const param = selectedPreset.deepLinkStartParam.trim();
-    const url = buildTelegramMiniAppStylePresetShareUrl(param);
+    const serverUrl =
+      typeof selectedPreset.deepLinkUrl === 'string' ? selectedPreset.deepLinkUrl.trim() : '';
+    const url = serverUrl.length > 0 ? serverUrl : null;
     const textToCopy = url ?? param;
     try {
       await navigator.clipboard.writeText(textToCopy);
@@ -2115,12 +2116,9 @@ export const GeneratePage: FC = () => {
         setStylePresetShareNotice('Ссылка на стиль скопирована');
       } else {
         setStylePresetShareNotice(
-          'Скопирован параметр стиля. Полную ссылку t.me сейчас собрать нельзя — задайте при сборке VITE_TELEGRAM_BOT_USERNAME и VITE_TELEGRAM_MINI_APP_SHORT_NAME или отдавайте готовый URL с бэкенда.',
+          'Скопирован только параметр стиля (startapp). Полную ссылку отдаёт бэкенд в deepLinkUrl — проверьте app.telegram.bot-username и includeUi.',
         );
-        console.warn(
-          '[GeneratePage] Нет env для сборки t.me (или добавьте поле с готовой ссылкой в API пресета) — в буфер только startapp:',
-          param,
-        );
+        console.warn('[GeneratePage] deepLinkUrl пуст — в буфер только startapp:', param);
       }
     } catch {
       tg?.showAlert?.('Не удалось скопировать ссылку.');

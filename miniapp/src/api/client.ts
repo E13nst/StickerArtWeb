@@ -609,8 +609,13 @@ export interface StylePreset {
   ownerId?: number | null;
   /** Можно ли дать публичную ссылку на этот стиль в Mini App */
   shareableAsDeepLink?: boolean;
-  /** Значение для `startapp` без обёртки URL; только если шаринг доступен */
+  /** Значение для `startapp` без обёртки URL; только если шаринг доступен (`sag_style_<id>`). */
   deepLinkStartParam?: string | null;
+  /**
+   * Готовая ссылка с сервера (`includeUi=true`), по смыслу как `url` у GET /referrals/me/link.
+   * Если null — в UI копируется только `deepLinkStartParam` (до настройки бота на сервере).
+   */
+  deepLinkUrl?: string | null;
 }
 
 export interface GenerateRequest {

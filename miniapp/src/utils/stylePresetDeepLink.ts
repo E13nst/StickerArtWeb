@@ -38,20 +38,3 @@ export function resolveTelegramStartParam(
   }
   return null;
 }
-
-/**
- * Прямая ссылка на Mini App: значение startapp берём с API пресета (`deepLinkStartParam`).
- * Полный URL собирается только если заданы оба env: имя бота и короткое имя Mini App из BotFather.
- */
-export function buildTelegramMiniAppStylePresetShareUrl(deepLinkStartParam: string): string | null {
-  const param = typeof deepLinkStartParam === 'string' ? deepLinkStartParam.trim() : '';
-  if (!param) return null;
-
-  const botRaw = import.meta.env.VITE_TELEGRAM_BOT_USERNAME?.trim() ?? '';
-  const appRaw = import.meta.env.VITE_TELEGRAM_MINI_APP_SHORT_NAME?.trim() ?? '';
-  const bot = botRaw.replace(/^@/, '');
-  const app = appRaw.replace(/^\/+|\/+$/g, '');
-  if (!bot || !app) return null;
-
-  return `https://t.me/${bot}/${app}?startapp=${encodeURIComponent(param)}`;
-}
