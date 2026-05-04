@@ -61,6 +61,7 @@ import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { GenerateImageLightbox } from '@/components/GenerateImageLightbox';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
+import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import {
   clearGenerateHistory,
   clearActiveGenerateHistoryEntry,
@@ -458,6 +459,19 @@ export const GeneratePage: FC = () => {
     }
     releaseLandingOverlay();
   }, [styleCatalogLoaded, hasMyProfileLoaded, gateMinDelayDone, releaseLandingOverlay]);
+
+  /** Если каталог/профиль/initData залипли, не держим полноэкранный лоадер бесконечно. */
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (!useGenerateLandingGateStore.getState().isReleased) {
+        console.warn(
+          '[GeneratePage] Landing gate: принудительное снятие через 15s. Проверьте initData, API профиля, загрузку JS-чанка страницы.',
+        );
+        releaseLandingOverlay();
+      }
+    }, 15_000);
+    return () => window.clearTimeout(t);
+  }, [releaseLandingOverlay]);
 
   const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
   const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
@@ -4636,7 +4650,12 @@ export const GeneratePage: FC = () => {
                     >
                       <div className="generate-history-item__preview-wrap" aria-hidden="true">
                         {entry.resultImageUrl ? (
-                          <img className="generate-history-item__preview" src={entry.resultImageUrl} alt="" />
+                          <img
+                            className="generate-history-item__preview"
+                            src={entry.resultImageUrl}
+                            alt=""
+                            onError={onApiHostedImageError}
+                          />
                         ) : (
                           <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
                         )}
@@ -4716,6 +4735,7 @@ export const GeneratePage: FC = () => {
                       className="generate-busy-prev-result__img"
                       decoding="async"
                       draggable={false}
+                      onError={onApiHostedImageError}
                     />
                   </button>
                   <button
@@ -4788,6 +4808,7 @@ export const GeneratePage: FC = () => {
                 alt="Сгенерированный стикер"
                 className="generate-result-image"
                 draggable={false}
+                onError={onApiHostedImageError}
               />
             </button>
             <button

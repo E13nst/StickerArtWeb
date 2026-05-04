@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { StylePreset } from '@/api/client';
+import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import './PackCard.css';
 import './StylePresetPackGrid.css';
 
@@ -137,12 +138,14 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
                     loading="lazy"
                     decoding="async"
                     draggable={false}
-                    onError={() => {
+                    onError={(e) => {
+                      const failedUrl = opt.previewUrl ?? '';
+                      onApiHostedImageError(e);
                       if (
                         opt.id != null &&
                         opt.historyPreviewUrl &&
-                        opt.previewUrl &&
-                        opt.previewUrl === opt.historyPreviewUrl
+                        failedUrl &&
+                        failedUrl === opt.historyPreviewUrl
                       ) {
                         onHistoryPreviewError?.(opt.id);
                       }

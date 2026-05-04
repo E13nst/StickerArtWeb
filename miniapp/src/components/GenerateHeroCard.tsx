@@ -2,6 +2,7 @@ import { FC, useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import type { StylePreset } from '@/api/client';
+import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import { Pulsar } from '@/components/ui/Pulsar';
 import { DeleteIcon, ShareIcon, DownloadIcon } from '@/components/ui/Icons';
 import './GenerateHeroCard.css';
@@ -293,6 +294,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
               alt="Сгенерированный стикер"
               className="ghc-card__result-img"
               draggable={false}
+              onError={onApiHostedImageError}
             />
           </button>
           {canDownloadResult && (
@@ -332,6 +334,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
                   alt=""
                   className="ghc-card__result-img ghc-card__result-img--prev"
                   draggable={false}
+                  onError={onApiHostedImageError}
                 />
               </button>
               <div className="ghc-card__generating-overlay">
@@ -388,7 +391,8 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
             loading="eager"
             decoding="async"
             draggable={false}
-            onError={() => {
+            onError={(e) => {
+              onApiHostedImageError(e);
               if (currentPreset.id != null) onPresetPreviewError?.(currentPreset.id);
             }}
           />

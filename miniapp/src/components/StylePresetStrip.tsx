@@ -2,6 +2,7 @@ import { FC, useRef } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { StylePreset } from '@/api/client';
+import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import './StylePresetStrip.css';
 
 interface StylePresetStripProps {
@@ -94,6 +95,7 @@ export const StylePresetStrip: FC<StylePresetStripProps> = ({
                     className="style-preset-strip__image"
                     loading="lazy"
                     decoding="async"
+                    onError={onApiHostedImageError}
                   />
                 ) : (
                   <span className="style-preset-strip__placeholder">

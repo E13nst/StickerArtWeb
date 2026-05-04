@@ -79,7 +79,14 @@ const App: FC = () => {
   }, [initData, user?.language_code]);
 
   useEffect(() => {
-    if (!initData || hasMyProfileLoaded) {
+    if (hasMyProfileLoaded) {
+      return;
+    }
+    // Без непустого initData App раньше вообще не вызывал initializeCurrentUser —
+    // тогда hasMyProfileLoaded оставался false → бесконечный boot overlay на /generate.
+    // В TMA иногда кратковременно пустая строка, пока SDK не заполнил initData; user из initDataUnsafe уже есть.
+    const canLoadProfile = Boolean(initData?.trim()) || typeof user?.id === 'number';
+    if (!canLoadProfile) {
       return;
     }
 
