@@ -11,6 +11,18 @@
   justify-content: center;
   /* GPU-composited layer: no layout/paint cost during animation */
   will-change: transform;
+
+  /* Brand color arc (default): pink → purple → blue */
+  --p-c1: #ee449f;
+  --p-c2: #a855f7;
+  --p-c3: #5288c1;
+}
+
+/* Warm scheme: stays in pink–purple range, no blue destination */
+.stixly-pulsar--warm {
+  --p-c1: #ff4fab;
+  --p-c2: #a855f7;
+  --p-c3: #c44ab8;
 }
 
 .stixly-pulsar svg {
@@ -21,18 +33,19 @@
 }
 
 /* ------------------------------------------------------------------
-   Color cycle: travels through brand palette arc over 6 s
+   Color cycle: travels through the palette arc over 6 s.
+   Uses CSS custom properties so callers can override per-instance.
    ------------------------------------------------------------------ */
 @keyframes p-color-stroke {
-  0%,  100% { stroke: #ee449f; }
-  33%        { stroke: #a855f7; }
-  66%        { stroke: #5288c1; }
+  0%,  100% { stroke: var(--p-c1, #ee449f); }
+  33%        { stroke: var(--p-c2, #a855f7); }
+  66%        { stroke: var(--p-c3, #5288c1); }
 }
 
 @keyframes p-color-fill {
-  0%,  100% { fill: #ee449f; }
-  33%        { fill: #a855f7; }
-  66%        { fill: #5288c1; }
+  0%,  100% { fill: var(--p-c1, #ee449f); }
+  33%        { fill: var(--p-c2, #a855f7); }
+  66%        { fill: var(--p-c3, #5288c1); }
 }
 
 /* ------------------------------------------------------------------

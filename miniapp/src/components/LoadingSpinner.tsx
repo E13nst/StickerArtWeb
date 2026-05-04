@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Pulsar } from '@/components/ui/Pulsar';
+import { Quantum } from '@/components/ui/Quantum';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -14,7 +14,7 @@ export const LoadingSpinner: FC<LoadingSpinnerProps> = ({
   size = 56,
 }) => (
   <div className="tg-spinner">
-    <Pulsar size={size} />
+    <Quantum size={size} />
     {message && <p className="tg-spinner__message">{message}</p>}
   </div>
 );

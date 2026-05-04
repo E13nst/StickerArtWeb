@@ -2228,3 +2228,56 @@ body.generate-prompt-focused .navbar {
   scroll-padding-bottom: calc(var(--stixly-taskbar-height, 96.25px) + 56px + env(safe-area-inset-bottom, 0px));
   overflow-anchor: auto;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Quantum loading gate
+   Полноэкранный оверлей на фоне страницы, исчезает после загрузки
+   каталога + профиля. Gradient такой же как у страницы — плавный
+   переход без «прыжка».
+   ══════════════════════════════════════════════════════════════════ */
+.generate-quantum-gate {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-max, 9999);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background, #191818);
+  background-image: var(--page-dynamic-gradient);
+  opacity: 1;
+  transition: opacity 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: all;
+}
+
+.generate-quantum-gate--out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Generation placeholder (Pulsar warm)
+   Показывается в hero-зоне когда нет предыдущего результата
+   и идёт загрузка / генерация.
+   ══════════════════════════════════════════════════════════════════ */
+.generate-busy-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: min(280px, 92vw);
+  padding: 12px 0 8px;
+  flex: none;
+}
+
+.generate-busy-placeholder__text {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  letter-spacing: 0.015em;
+}

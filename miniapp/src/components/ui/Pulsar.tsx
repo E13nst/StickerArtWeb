@@ -6,17 +6,22 @@ interface PulsarProps {
   size?: number;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Color scheme for the pulse rings.
+   * - 'brand' (default): #ee449f → #a855f7 → #5288c1 (full brand arc incl. blue)
+   * - 'warm': #ff4fab → #a855f7 → #c44ab8 (pink–purple only, no blue)
+   */
+  colorScheme?: 'brand' | 'warm';
 }
 
 /**
  * Pulsar — sonar-style concentric rings that expand from a glowing core.
- * Color cycles automatically through the brand palette:
- * #ee449f (pink) → #a855f7 (purple) → #5288c1 (blue).
+ * Color cycles automatically through the brand palette.
  * Pure SVG + CSS, zero JS, zero dependencies.
  */
-export const Pulsar: FC<PulsarProps> = ({ size = 60, className = '', style = {} }) => (
+export const Pulsar: FC<PulsarProps> = ({ size = 60, className = '', style = {}, colorScheme = 'brand' }) => (
   <span
-    className={`stixly-pulsar${className ? ` ${className}` : ''}`}
+    className={`stixly-pulsar${colorScheme === 'warm' ? ' stixly-pulsar--warm' : ''}${className ? ` ${className}` : ''}`}
     style={{ width: size, height: size, ...style }}
     role="status"
     aria-label="Загрузка"

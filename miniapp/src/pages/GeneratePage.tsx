@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { Pulsar } from '@/components/ui/Pulsar';
+import { Quantum } from '@/components/ui/Quantum';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
@@ -436,6 +438,26 @@ export const GeneratePage: FC = () => {
   const [prompt, setPrompt] = useState('');
   const [stylePresets, setStylePresets] = useState<StylePreset[]>([]);
   const [styleCatalogLoaded, setStyleCatalogLoaded] = useState(false);
+
+  // ── Quantum gate: держим экран загрузки пока не готовы catalog + profile.
+  // Минимум 700 мс — чтобы пользователь успел насладиться анимацией.
+  const [gateMinDelayDone, setGateMinDelayDone] = useState(false);
+  const [gateVisible, setGateVisible] = useState(true);
+  const [gateFading, setGateFading] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setGateMinDelayDone(true), 700);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (styleCatalogLoaded && hasMyProfileLoaded && gateMinDelayDone && gateVisible && !gateFading) {
+      setGateFading(true);
+      const t = setTimeout(() => setGateVisible(false), 420);
+      return () => clearTimeout(t);
+    }
+  }, [styleCatalogLoaded, hasMyProfileLoaded, gateMinDelayDone, gateVisible, gateFading]);
+
   const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
   const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
   const [stylePresetShareNotice, setStylePresetShareNotice] = useState<string | null>(null);
@@ -510,6 +532,7 @@ export const GeneratePage: FC = () => {
   const userInfo = useProfileStore((state) => state.userInfo);
   const setUserInfo = useProfileStore((state) => state.setUserInfo);
   const isProfileFromAuthenticatedApi = useProfileStore((state) => state.isProfileFromAuthenticatedApi);
+  const hasMyProfileLoaded = useProfileStore((state) => state.hasMyProfileLoaded);
   const [, setArtBalance] = useState<number | null>(userInfo?.artBalance ?? null);
 
   /** Глобальные пресеты по флагу enabled; свои черновики показываем владельцу даже если выключены в каталоге. */
@@ -4750,47 +4773,58 @@ export const GeneratePage: FC = () => {
     <>
       <div className="generate-busy-phase">
         {duringJobPreviousResultUrl ? (
-          <div className="generate-busy-prev-result-slot">
-            <figure className="generate-busy-prev-result" aria-label="Прошлый успешный результат">
-              <div className="generate-busy-prev-result__frame">
-                <button
-                  type="button"
-                  className="generate-busy-prev-result__tap"
-                  aria-label="Открыть прошлый результат на весь экран"
-                  onClick={() =>
-                    setImageLightbox({
-                      viewerUrl: duringJobPreviousResultUrl,
-                      downloadUrl: duringJobPreviousResultUrl,
-                      alt: 'Прошлый результат',
-                    })
-                  }
-                >
-                  <img
-                    src={duringJobPreviousResultUrl}
-                    alt=""
-                    className="generate-busy-prev-result__img"
-                    decoding="async"
-                    draggable={false}
-                  />
-                </button>
-                <button
-                  type="button"
-                  className="generate-result-download-btn generate-result-download-btn--icon-only"
-                  aria-label="Скачать прошлый результат"
-                  disabled={isDownloadingResult}
-                  onClick={() => void downloadStickerByUrl(duringJobPreviousResultUrl, 'during-job-prev')}
-                  title="Скачать"
-                >
-                  <DownloadIcon size={20} />
-                </button>
-              </div>
-              <figcaption className="generate-busy-prev-result__caption">Прошлый результат</figcaption>
-            </figure>
+          /* ── Has previous result: show it alongside a small status indicator ── */
+          <>
+            <div className="generate-busy-prev-result-slot">
+              <figure className="generate-busy-prev-result" aria-label="Прошлый успешный результат">
+                <div className="generate-busy-prev-result__frame">
+                  <button
+                    type="button"
+                    className="generate-busy-prev-result__tap"
+                    aria-label="Открыть прошлый результат на весь экран"
+                    onClick={() =>
+                      setImageLightbox({
+                        viewerUrl: duringJobPreviousResultUrl,
+                        downloadUrl: duringJobPreviousResultUrl,
+                        alt: 'Прошлый результат',
+                      })
+                    }
+                  >
+                    <img
+                      src={duringJobPreviousResultUrl}
+                      alt=""
+                      className="generate-busy-prev-result__img"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className="generate-result-download-btn generate-result-download-btn--icon-only"
+                    aria-label="Скачать прошлый результат"
+                    disabled={isDownloadingResult}
+                    onClick={() => void downloadStickerByUrl(duringJobPreviousResultUrl, 'during-job-prev')}
+                    title="Скачать"
+                  >
+                    <DownloadIcon size={20} />
+                  </button>
+                </div>
+                <figcaption className="generate-busy-prev-result__caption">Прошлый результат</figcaption>
+              </figure>
+            </div>
+            <div className="generate-status-container">
+              <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
+            </div>
+          </>
+        ) : (
+          /* ── No previous result: full-size Pulsar placeholder in hero area ── */
+          <div className="generate-busy-placeholder">
+            <Pulsar size={96} colorScheme="warm" />
+            <p className="generate-busy-placeholder__text">
+              {getGeneratingSpinnerMessage(pageState, currentStatus)}
+            </p>
           </div>
-        ) : null}
-        <div className="generate-status-container">
-          <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
-        </div>
+        )}
       </div>
       {renderSourceImageStrip(true, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
@@ -4980,6 +5014,12 @@ export const GeneratePage: FC = () => {
       className={cn('page-container', 'generate-page', isInTelegramApp && 'telegram-app')}
       style={generatePageStyle}
     >
+      {/* ── Quantum loading gate: visible until catalog + profile are ready ── */}
+      {gateVisible && (
+        <div className={`generate-quantum-gate${gateFading ? ' generate-quantum-gate--out' : ''}`} aria-hidden>
+          <Quantum size={84} />
+        </div>
+      )}
       <OtherAccountBackground />
       {renderHistoryModal()}
       <GenerateImageLightbox
