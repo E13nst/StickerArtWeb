@@ -1,8 +1,20 @@
 import { useState, useCallback } from 'react';
+import axios from 'axios';
 import type { TonConnectUI } from '@tonconnect/ui-react';
-import { apiClient, type TonPaymentSendTransactionPayload, type TonPaymentCreateMessage } from '@/api/client';
+import {
+  apiClient,
+  type TonPaymentSendTransactionPayload,
+  type TonPaymentCreateMessage,
+  type TonPaymentCreateErrorBody,
+  type TonPaymentCreateResponse
+} from '@/api/client';
 import { useTelegram } from '@/hooks/useTelegram';
 import { tonSenderFriendlyForPayments } from '@/utils/tonAddress';
+import {
+  parseTonPaymentCreateErrorBody,
+  pickResumeTonPayloadFromConflictBody,
+  TON_PAY_CREATE_CODES
+} from '@/utils/tonPaymentErrors';
 
 const POLL_INTERVAL_MS = 2000;
 /** ~2 минуты ожидания подтверждения после отправки транзакции */
@@ -128,6 +140,27 @@ function readTonPayApiErrorBody(data: unknown): string | null {
   return null;
 }
 
+function shortenTonAddr(a: string): string {
+  const t = a.trim();
+  if (!t) return '';
+  return t.length > 14 ? `${t.slice(0, 8)}…${t.slice(-4)}` : t;
+}
+
+function resolve422TonPayMessage(body: TonPaymentCreateErrorBody): string {
+  const base = typeof body.message === 'string' ? body.message.trim() : '';
+  if (base) return base;
+  switch (body.code) {
+    case TON_PAY_CREATE_CODES.PACKAGE_DISABLED:
+      return 'Этот пакет сейчас недоступен для покупки.';
+    case TON_PAY_CREATE_CODES.TON_DISABLED:
+      return 'Оплата в TON временно отключена.';
+    case TON_PAY_CREATE_CODES.INVALID_TON_ADDRESS:
+      return 'Некорректный адрес TON-кошелька.';
+    default:
+      return 'Запрос не выполнен. Проверьте данные и попробуйте снова.';
+  }
+}
+
 export interface UsePurchaseTonOptions {
   tonConnectUI: TonConnectUI | null;
   senderAddress: string | null;
@@ -181,46 +214,143 @@ export function usePurchaseTon(options: UsePurchaseTonOptions) {
           return;
         }
 
-        const created = await apiClient.createTonPayment({
-          packageCode: packageCode.trim(),
-          senderAddress: senderForApi
-        });
+        const pollIntent = async (intentId: string | number) => {
+          for (let i = 0; i < POLL_ATTEMPTS; i++) {
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+            try {
+              const statusRes = await apiClient.getTonPaymentStatus(intentId);
+              const outcome = isTonPayTerminalStatus(statusRes.status);
+              if (outcome === 'completed') {
+                await options.onPurchaseSuccess?.();
+                return;
+              }
+              if (outcome === 'failed') {
+                const failureMsgUnknown = statusRes['failureMessage'];
+                const failureMessage =
+                  typeof failureMsgUnknown === 'string' && failureMsgUnknown
+                    ? failureMsgUnknown
+                    : typeof statusRes.message === 'string' && statusRes.message
+                      ? statusRes.message
+                      : 'Оплата отклонена';
+                setError(failureMessage);
+                tg?.showAlert?.(failureMessage);
+                return;
+              }
+            } catch {
+              /* polling */
+            }
+          }
+          const timeoutMsg =
+            'Время ожидания подтверждения истекло. Проверьте баланс позже.';
+          setError(timeoutMsg);
+          tg?.showAlert?.(timeoutMsg);
+          await options.onPurchaseSuccess?.();
+        };
 
-        const transaction = normalizeSendTransactionMessage(created.message);
-        assertTonConnectPayloadSafe(transaction);
-        await ui.sendTransaction(transaction);
+        const signTransactionAndPoll = async (
+          intentId: string | number,
+          rawMessage: TonPaymentCreateMessage | Record<string, unknown>
+        ) => {
+          const transaction = normalizeSendTransactionMessage(rawMessage);
+          assertTonConnectPayloadSafe(transaction);
+          await ui.sendTransaction(transaction);
+          await pollIntent(intentId);
+        };
 
-        let intentId = created.intentId;
-        for (let i = 0; i < POLL_ATTEMPTS; i++) {
-          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-          try {
-            const statusRes = await apiClient.getTonPaymentStatus(intentId);
-            const outcome = isTonPayTerminalStatus(statusRes.status);
-            if (outcome === 'completed') {
-              await options.onPurchaseSuccess?.();
+        let created: TonPaymentCreateResponse;
+        try {
+          created = await apiClient.createTonPayment({
+            packageCode: packageCode.trim(),
+            senderAddress: senderForApi
+          });
+        } catch (createErr: unknown) {
+          if (!axios.isAxiosError(createErr)) {
+            throw createErr;
+          }
+          const raw = createErr.response?.data;
+          const st = createErr.response?.status;
+          const body = parseTonPaymentCreateErrorBody(raw);
+
+          if (st === 409) {
+            if (
+              body?.code === TON_PAY_CREATE_CODES.INTENT_ALREADY_EXISTS &&
+              body.canResume === true &&
+              body.intentId != null
+            ) {
+              const resumePayload = pickResumeTonPayloadFromConflictBody(body);
+              if (resumePayload) {
+                await signTransactionAndPoll(body.intentId, resumePayload);
+              } else {
+                await pollIntent(body.intentId);
+              }
               return;
             }
-            if (outcome === 'failed') {
-              const failureMsgUnknown = statusRes['failureMessage'];
+
+            if (
+              body?.code === TON_PAY_CREATE_CODES.INTENT_ALREADY_EXISTS &&
+              body.intentId != null &&
+              body.canResume !== true
+            ) {
               const m =
-                typeof failureMsgUnknown === 'string' && failureMsgUnknown
-                  ? failureMsgUnknown
-                  : typeof statusRes.message === 'string' && statusRes.message
-                    ? statusRes.message
-                    : 'Оплата отклонена';
+                readTonPayApiErrorBody(raw) ||
+                body.message?.trim() ||
+                'По этому пакету уже есть активный платёж в TON.';
               setError(m);
               tg?.showAlert?.(m);
               return;
             }
-          } catch {
-            // продолжаем polling
+
+            if (body?.code === TON_PAY_CREATE_CODES.SENDER_ADDRESS_MISMATCH) {
+              const backendMsg =
+                typeof body.message === 'string' ? body.message.trim() : '';
+              const exp =
+                typeof body.expectedSenderAddress === 'string'
+                  ? body.expectedSenderAddress.trim()
+                  : '';
+              const act =
+                typeof body.actualSenderAddress === 'string'
+                  ? body.actualSenderAddress.trim()
+                  : '';
+              const core =
+                backendMsg ||
+                'Платёж уже создан с другого адреса кошелька. Подключите тот кошелёк, с которого он был начат, или дождитесь его завершения.';
+              const suffix =
+                exp && act
+                  ? ` Ожидалось: ${shortenTonAddr(exp)}. У вас сейчас: ${shortenTonAddr(act)}.`
+                  : exp
+                    ? ` Ожидался кошелёк: ${shortenTonAddr(exp)}.`
+                    : '';
+              const m = core + suffix;
+              setError(m);
+              tg?.showAlert?.(m);
+              return;
+            }
+
+            if (import.meta.env.DEV) {
+              console.warn('[usePurchaseTon] POST ton-payments/create 409', raw);
+            }
+            const fallback409 =
+              readTonPayApiErrorBody(raw) ||
+              'Не удалось создать платёж в TON: возможно, уже есть незакрытое намерение оплаты.';
+            setError(fallback409);
+            tg?.showAlert?.(fallback409);
+            return;
           }
+
+          if (st === 422) {
+            const m422 = body?.code
+              ? resolve422TonPayMessage(body)
+              : readTonPayApiErrorBody(raw) ||
+                'Запрос отклонён: проверьте пакет и настройки оплаты.';
+            setError(m422);
+            tg?.showAlert?.(m422);
+            return;
+          }
+
+          throw createErr;
         }
 
-        const m = 'Время ожидания подтверждения истекло. Проверьте баланс позже.';
-        setError(m);
-        tg?.showAlert?.(m);
-        await options.onPurchaseSuccess?.();
+        await signTransactionAndPoll(created.intentId, created.message);
       } catch (err: unknown) {
         const e = err as { message?: string; response?: { status?: number; data?: { message?: string } } };
         if (e?.message?.includes('User rejected')) {

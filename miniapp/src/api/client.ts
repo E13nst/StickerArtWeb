@@ -778,6 +778,27 @@ export interface TonPaymentStatusResponse {
   [key: string]: unknown;
 }
 
+/**
+ * Структурированная ошибка POST /api/ton-payments/create (когда на бекенде внедрён контракт).
+ * Старый режим — пустой 409 без тела; фронт остаётся совместим.
+ */
+export interface TonPaymentCreateErrorBody {
+  code?: string;
+  message?: string;
+  intentId?: string | number;
+  status?: string;
+  packageCode?: string;
+  senderAddress?: string;
+  canResume?: boolean;
+  expectedSenderAddress?: string;
+  actualSenderAddress?: string;
+  retryAfterMs?: number;
+  details?: unknown;
+  /** Если бекенд отдаёт payload TonConnect отдельно от текста `message`. */
+  transaction?: TonPaymentCreateMessage | Record<string, unknown>;
+  tonConnectMessage?: TonPaymentCreateMessage | Record<string, unknown>;
+}
+
 /** Парсинг tonPriceNano пакета: валидно только если > 0 */
 export function parseStarsPackageTonPriceNano(pkg: StarsPackage): bigint | null {
   const raw = pkg.tonPriceNano;
