@@ -222,6 +222,7 @@ Before implementing any solution, briefly analyze the requirements and confirm u
 
 ### Git Workflow
 - **Main branch**: `main`
+- **Push из `main`**: отправлять изменения командой **`git push`** (upstream настраивается при `git push -u` или уже задан после клона). Не использовать `git push origin main`, если нет особой нужды явно указать remote.
 - **Commit messages**: понятные, конкретные (см. историю)
 - **Trailer**: не добавлять в коммиты `Co-authored-by` и любые другие trailer'ы
 - **НЕ коммитим**: тесты, репорты, билды, node_modules, `dist/`, `assets/`, `test-results/`, `playwright-report/`

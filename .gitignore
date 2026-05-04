@@ -15,9 +15,21 @@ dist/
 .idea
 .DS_Store
 
+# Cursor: в репозитории держим .cursor/rules/ и .cursor/commands/ (общие правила и команды).
+# Не версионируем локальные планы и состояние worktree IDE:
+.cursor/plans/
+.cursor/worktrees.json
+
 # Logs
 *.log
 npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tooling cache
+.eslintcache
+*.tsbuildinfo
 
 # Testing
 coverage/

@@ -1,4 +1,5 @@
 # push
-git commit and push to main branch
 
-This command will be available in chat with /push
+При работе на ветке **`main`**, чтобы отправить коммиты в удалённый репозиторий, использовать **`git push`** (upstream уже связан с `origin/main`). Не требовать `git push origin main`, если нужен обычный пуш текущей ветки.
+
+Для других веток: при первом пуше — `git push -u origin <branch>`; далее можно `git push`.
