@@ -68,15 +68,30 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
+            const norm = id.replace(/\\/g, '/');
+            // Полифил + npm buffer в ОДНОМ чанке: при загрузке сразу выставляется globalThis.Buffer
+            // до выполнения остального vendor (@ton/core и т.д.).
+            if (/\/polyfills\/buffer\.(ts|tsx)$/.test(norm)) {
+              return 'vendor-buffer';
+            }
+            if (/\/node_modules\/buffer(?:\/|$)/.test(norm)) {
+              return 'vendor-buffer';
+            }
+            // Зависимости browserify-buffer — иначе Rollup тянет их из общего vendor и ломает порядок
+            if (/\/node_modules\/ieee754(?:\/|$)/.test(norm)) {
+              return 'vendor-buffer';
+            }
+            if (/\/node_modules\/base64-js(?:\/|$)/.test(norm)) {
+              return 'vendor-buffer';
+            }
             // ✅ CRITICAL FIX: Минимальное разделение vendors для избежания проблем с порядком
-            if (id.includes('node_modules')) {
+            if (norm.includes('node_modules')) {
               // Только Lottie отдельно (большая ~300KB, независимая, редко меняется)
-              if (id.includes('lottie')) {
+              if (norm.includes('lottie')) {
                 return 'lottie-vendor';
               }
-              
+
               // ВСЕ остальные vendors в ОДИН chunk
-              // Это гарантирует правильный порядок инициализации React/MUI/Zustand
               return 'vendor';
             }
             

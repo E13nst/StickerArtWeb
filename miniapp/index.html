@@ -60,6 +60,8 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Buffer до main: если bundler когда-нибудь подтянет vendor раньше entry, полифил уже в DOM -->
+    <script type="module" src="./src/polyfills/buffer.ts"></script>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

@@ -1,9 +1,7 @@
-// ✅ CRITICAL: Импортируем React ПЕРВЫМ для правильного порядка загрузки chunks
-// Это гарантирует что react-vendor загрузится до всех остальных vendor chunks
-import React from 'react'
-// ✅ @ton/core (адреса TON Pay) ожидает Node Buffer до загрузки lazy-страниц
-import '@/polyfills/buffer'
-import ReactDOM from 'react-dom/client'
+// ✅ ПЕРВЫМ: глобальный Buffer до любых node_modules, где нужен Node (напр. @ton/core в vendor chunk)
+import '@/polyfills/buffer';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 
 // ✅ TEMP DIAG: Самый ранний лог (до React render, до роутера, ДО импорта launchParams)
 // Это позволяет увидеть состояние ДО захвата initData
