@@ -394,22 +394,35 @@
 /* Визуально как account-header__balance — стеклянная кнопка */
 /* Эталонный стеклянный эффект */
 .account-header__share-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
+  gap: 8px;
   height: 36px;
-  padding: 0;
-  min-width: 36px;
+  min-height: 36px;
+  padding: 6px 10px;
+  width: auto;
+  min-width: 0;
+  flex-shrink: 0;
   color: var(--color-text);
   background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
+  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
   box-sizing: border-box;
   cursor: pointer;
   transition: background 0.2s ease;
+}
+
+.account-header__share-btn-label {
+  font-family: var(--font-family-base);
+  font-size: clamp(11px, 3.2vw, 13px);
+  font-weight: var(--typography-h3-font-weight);
+  line-height: 1.15;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .account-header__share-btn:hover:not(:disabled) {

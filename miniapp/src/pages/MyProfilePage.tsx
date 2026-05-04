@@ -715,13 +715,28 @@ export const MyProfilePage: FC = () => {
   };
 
   // Обработчики действий
-  const handleBack = () => {
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStickerSet(null);
+
+    // Локально обновляем список "понравившиеся" если активна вкладка Likes (без запроса к серверу)
+    if (isLikesTab && isLikedListLoaded) {
+      updateLikedListLocally();
+    }
+
+    // Инвалидируем кеш профиля при изменении лайков
+    if (currentUserId) {
+      clearCache(currentUserId);
+    }
+  };
+
+  const handleBack = useCallback(() => {
     if (isModalOpen) {
       handleCloseModal();
       return;
     }
-    navigate('/'); // Возврат на главную
-  };
+    navigate('/generate');
+  }, [isModalOpen, navigate]);
 
   const handleViewStickerSet = (packId: string) => {
     let source: any[];
@@ -738,23 +753,6 @@ export const MyProfilePage: FC = () => {
       setIsModalOpen(true);
     }
   };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedStickerSet(null);
-    
-    // Локально обновляем список "понравившиеся" если активна вкладка Likes (без запроса к серверу)
-    if (isLikesTab && isLikedListLoaded) {
-      updateLikedListLocally();
-    }
-    
-    // Инвалидируем кеш профиля при изменении лайков
-    if (currentUserId) {
-      clearCache(currentUserId);
-    }
-  };
-  
-
   // Загрузка понравившихся с сервера с поддержкой пагинации
   const loadLikedStickerSets = useCallback(async (page: number = 0, append: boolean = false) => {
     console.log('🔍 loadLikedStickerSets вызван', { page, append });
@@ -1043,7 +1041,7 @@ export const MyProfilePage: FC = () => {
         tg.BackButton.hide();
       }
     };
-  }, [tg]);
+  }, [tg, handleBack]);
 
   console.log('🔍 MyProfilePage состояние:', {
     currentUserId,
@@ -1204,9 +1202,10 @@ export const MyProfilePage: FC = () => {
                 className="account-header__share-btn"
                 onClick={handleShareReferral}
                 disabled={referralLinkLoading}
-                aria-label="Поделиться"
+                aria-label="Скопировать реферальную ссылку"
               >
-                <ShareIcon size={20} color="currentColor" style={referralLinkLoading ? { opacity: 0.6 } : undefined} />
+                <ShareIcon size={18} color="currentColor" style={referralLinkLoading ? { opacity: 0.6 } : undefined} />
+                <span className="account-header__share-btn-label">Реф. Ссылка</span>
               </button>
               {copySuccess && (
                 <div className="account-header__share-toast" role="status">

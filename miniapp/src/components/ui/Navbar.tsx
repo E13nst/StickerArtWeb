@@ -39,7 +39,7 @@ interface NavItem {
   Icon: FC<{ size?: number; color?: string; className?: string; style?: CSSProperties }>;
 }
 
-const navItems: NavItem[] = [
+const navItemsFull: NavItem[] = [
   { path: '/dashboard', label: 'Home', Icon: NavHomeIcon },
   { path: '/gallery', label: 'Gallery', Icon: NavGalleryIcon },
   { path: '/nft-soon', label: 'Swipe', Icon: NavLikeIcon },
@@ -47,8 +47,21 @@ const navItems: NavItem[] = [
   { path: '/profile', label: 'Profile', Icon: NavAccountIcon },
 ];
 
-export const Navbar: FC = () => {
+/** В бою: только главные разделы; после разблокировки дебага — полное меню. */
+const navItemsMinimal: NavItem[] = [
+  { path: '/generate', label: 'Generate', Icon: NavArtIcon },
+  { path: '/profile', label: 'Profile', Icon: NavAccountIcon },
+];
+
+export type NavbarVariant = 'minimal' | 'full';
+
+interface NavbarProps {
+  variant?: NavbarVariant;
+}
+
+export const Navbar: FC<NavbarProps> = ({ variant = 'minimal' }) => {
   const location = useLocation();
+  const navItems = variant === 'full' ? navItemsFull : navItemsMinimal;
 
   const isActive = (path: string): boolean => {
     if (path === '/dashboard') {
