@@ -13,7 +13,8 @@ import { tonSenderFriendlyForPayments } from '@/utils/tonAddress';
 import {
   parseTonPaymentCreateErrorBody,
   pickResumeTonPayloadFromConflictBody,
-  TON_PAY_CREATE_CODES
+  TON_PAY_CREATE_CODES,
+  tonPayFallbackRuFor409Code
 } from '@/utils/tonPaymentErrors';
 
 const POLL_INTERVAL_MS = 2000;
@@ -331,6 +332,7 @@ export function usePurchaseTon(options: UsePurchaseTonOptions) {
             }
             const fallback409 =
               readTonPayApiErrorBody(raw) ||
+              tonPayFallbackRuFor409Code(body?.code) ||
               'Не удалось создать платёж в TON: возможно, уже есть незакрытое намерение оплаты.';
             setError(fallback409);
             tg?.showAlert?.(fallback409);
