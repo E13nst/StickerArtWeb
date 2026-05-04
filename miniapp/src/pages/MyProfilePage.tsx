@@ -38,6 +38,7 @@ import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { usePurchaseStars } from '@/hooks/usePurchaseStars';
 import { usePurchaseTon } from '@/hooks/usePurchaseTon';
+import { tonWalletPubkeyEquals } from '@/utils/tonAddress';
 import '@/styles/common.css';
 import '@/styles/DashboardPage.css';
 import '@/styles/MyProfilePage.css';
@@ -68,7 +69,7 @@ export const MyProfilePage: FC = () => {
     // 2. Кошелёк ещё не привязан на бэкенде (wallet === null) ИЛИ адрес отличается
     // 3. Не идёт процесс загрузки
     if (tonAddress && !walletLoading) {
-      const shouldLink = !wallet || wallet.walletAddress !== tonAddress;
+      const shouldLink = !wallet || !tonWalletPubkeyEquals(wallet.walletAddress, tonAddress);
       
       if (shouldLink) {
         console.debug('[MyProfilePage] Автоматическая привязка кошелька после подключения через TON Connect', {
@@ -431,6 +432,7 @@ export const MyProfilePage: FC = () => {
   const { purchase: purchaseWithTon, isPurchasing: isPurchasingTon } = usePurchaseTon({
     tonConnectUI: tonConnectUI ?? null,
     senderAddress: tonAddress ?? null,
+    linkedWalletAddress: wallet?.walletAddress ?? null,
     onPurchaseSuccess: onArtPurchaseSuccess
   });
   const isBuyingArtPoints = isPurchasing || isPurchasingTon;

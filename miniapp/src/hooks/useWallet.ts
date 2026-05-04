@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/api/client';
 import { UserWallet } from '@/types/sticker';
 import type { TonConnectUI } from '@tonconnect/ui-react';
+import { tonCanonicalFriendlyForLink } from '@/utils/tonAddress';
 
 /**
  * Безопасно сбросить TonConnect: при отсутствии подключённого кошелька SDK кидает
@@ -84,16 +85,12 @@ export const useWallet = () => {
       walletType 
     });
     
-    // Валидация адреса кошелька
-    if (!tonAddress || tonAddress.length !== 48) {
-      const validationError = 'Адрес кошелька должен быть 48 символов';
-      setError(validationError);
-      throw new Error(validationError);
-    }
-
-    const prefix = tonAddress.substring(0, 2);
-    if (!['EQ', 'UQ', 'kQ'].includes(prefix)) {
-      const validationError = 'Адрес кошелька должен начинаться с EQ, UQ или kQ';
+    // Валидация и единый каноничный user-friendly (UQ/non-bounce url-safe) для записи на бэке
+    let normalized: string;
+    try {
+      normalized = tonCanonicalFriendlyForLink(tonAddress);
+    } catch {
+      const validationError = 'Некорректный адрес TON-кошелька';
       setError(validationError);
       throw new Error(validationError);
     }
@@ -102,7 +99,7 @@ export const useWallet = () => {
     setError(null);
 
     try {
-      const walletData = await apiClient.linkWallet(tonAddress, walletType);
+      const walletData = await apiClient.linkWallet(normalized, walletType);
       console.debug('[useWallet] linkWallet: кошелёк успешно привязан на бэкенде', {
         walletAddress: walletData.walletAddress?.slice(0, 6) + '...' + walletData.walletAddress?.slice(-4),
         walletType: walletData.walletType

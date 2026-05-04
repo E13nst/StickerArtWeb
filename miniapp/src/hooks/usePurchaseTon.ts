@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { TonConnectUI } from '@tonconnect/ui-react';
 import { apiClient, type TonPaymentSendTransactionPayload, type TonPaymentCreateMessage } from '@/api/client';
 import { useTelegram } from '@/hooks/useTelegram';
+import { tonSenderFriendlyForPayments } from '@/utils/tonAddress';
 
 const POLL_INTERVAL_MS = 2000;
 /** ~2 минуты ожидания подтверждения после отправки транзакции */
@@ -130,6 +131,8 @@ function readTonPayApiErrorBody(data: unknown): string | null {
 export interface UsePurchaseTonOptions {
   tonConnectUI: TonConnectUI | null;
   senderAddress: string | null;
+  /** То, что вернул GET /wallets/my — для совпадения строкового адреса с бэком (EQ vs UQ). */
+  linkedWalletAddress?: string | null;
   onPurchaseSuccess?: () => void | Promise<void>;
 }
 
@@ -167,9 +170,20 @@ export function usePurchaseTon(options: UsePurchaseTonOptions) {
       setIsPurchasing(true);
 
       try {
+        let senderForApi: string;
+        try {
+          senderForApi = tonSenderFriendlyForPayments(addr, options.linkedWalletAddress);
+        } catch {
+          const m =
+            'Неверный формат адреса кошелька. Отключите кошелёк и подключите снова.';
+          setError(m);
+          tg?.showAlert?.(m);
+          return;
+        }
+
         const created = await apiClient.createTonPayment({
           packageCode: packageCode.trim(),
-          senderAddress: addr
+          senderAddress: senderForApi
         });
 
         const transaction = normalizeSendTransactionMessage(created.message);
@@ -226,7 +240,7 @@ export function usePurchaseTon(options: UsePurchaseTonOptions) {
                 : status === 404
                   ? 'Пакет или платёж не найдены.'
                   : status === 409
-                    ? 'Не удалось начать платёж: возможно уже есть незавершённая оплата или адрес отправителя не совпадает с привязанным кошельком. Обновите страницу или дождитесь завершения предыдущей оплаты.'
+                    ? 'Платёж в TON не удалось создать: часто это незакрытый платёж (intent) по этому пакету. Подождите подтверждения блокчейном или откройте вкладку позже.'
                     : status === 500
                       ? 'Ошибка сервера. Попробуйте позже.'
                       : null;
@@ -248,6 +262,7 @@ export function usePurchaseTon(options: UsePurchaseTonOptions) {
     [
       options.tonConnectUI,
       options.senderAddress,
+      options.linkedWalletAddress,
       options.onPurchaseSuccess,
       tg
     ]
