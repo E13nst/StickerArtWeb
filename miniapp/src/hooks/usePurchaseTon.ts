@@ -114,6 +114,19 @@ function normalizeSendTransactionMessage(
   throw new Error('Некорректный ответ сервера: нет данных для транзакции');
 }
 
+/** Текст ошибки из тела POST /ton-payments/create (Spring/FastAPI по-разному) */
+function readTonPayApiErrorBody(data: unknown): string | null {
+  if (data == null) return null;
+  if (typeof data === 'string' && data.trim()) return data.trim();
+  if (typeof data !== 'object') return null;
+  const r = data as Record<string, unknown>;
+  for (const key of ['message', 'error', 'detail', 'reason', 'description']) {
+    const v = r[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return null;
+}
+
 export interface UsePurchaseTonOptions {
   tonConnectUI: TonConnectUI | null;
   senderAddress: string | null;
@@ -201,15 +214,29 @@ export function usePurchaseTon(options: UsePurchaseTonOptions) {
           setError(m);
           tg?.showAlert?.(m);
         } else {
-          const status = e?.response?.status;
-          const message =
-            e?.response?.data?.message || e?.message || 'Не удалось создать платёж TON';
+          const status =
+            typeof e?.response?.status === 'number' ? e.response.status : undefined;
+          const fromApi = readTonPayApiErrorBody(e?.response?.data);
 
-          let userMessage = message;
-          if (status === 400) userMessage = 'Неверные данные. Проверьте выбор пакета.';
-          else if (status === 403) userMessage = 'Требуется авторизация.';
-          else if (status === 404) userMessage = 'Пакет или платёж не найдены.';
-          else if (status === 500) userMessage = 'Ошибка сервера. Попробуйте позже.';
+          const byStatus =
+            status === 400
+              ? 'Неверные данные. Проверьте выбор пакета или адрес кошелька.'
+              : status === 403
+                ? 'Требуется авторизация.'
+                : status === 404
+                  ? 'Пакет или платёж не найдены.'
+                  : status === 409
+                    ? 'Не удалось начать платёж: возможно уже есть незавершённая оплата или адрес отправителя не совпадает с привязанным кошельком. Обновите страницу или дождитесь завершения предыдущей оплаты.'
+                    : status === 500
+                      ? 'Ошибка сервера. Попробуйте позже.'
+                      : null;
+
+          const userMessage =
+            fromApi || byStatus || e?.message || 'Не удалось создать платёж TON';
+
+          if (import.meta.env.DEV && status === 409) {
+            console.warn('[usePurchaseTon] POST ton-payments/create 409', e?.response?.data);
+          }
 
           setError(userMessage);
           tg?.showAlert?.(userMessage);
