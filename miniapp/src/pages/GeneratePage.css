@@ -1634,17 +1634,38 @@
   font-weight: 700 !important;
   line-height: 16px !important;
   border-radius: 16px !important;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-primary) 92%, #ffffff 14%),
-    var(--color-primary)
-  ) !important;
+  appearance: none;
+  -webkit-appearance: none;
+  /* Один слой: без второго «кольца» от обводки / нативного рендера */
+  border: none !important;
+  outline: none;
+  box-shadow: none !important;
+  filter: none !important;
+  background: var(--color-primary) !important;
+  background-clip: padding-box;
   color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.28) !important;
-  box-shadow:
-    0 4px 24px color-mix(in srgb, var(--color-primary) 52%, transparent),
-    0 12px 32px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  overflow: visible !important;
+}
+
+.generate-button-submit:focus-visible {
+  outline: 2px solid color-mix(in srgb, #ffffff 45%, transparent);
+  outline-offset: 2px;
+}
+
+.generate-page .generate-button-submit .button-content,
+.generate-fixed-submit .generate-button-submit .button-content {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.generate-button-submit:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 91%, black) !important;
+  transform: none;
+}
+
+.generate-button-submit:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-primary) 84%, black) !important;
+  transform: none;
 }
 
 .generate-page .button-loading {
@@ -2129,7 +2150,7 @@
   font-size: 16px !important;
   font-weight: 700 !important;
   border-radius: 16px !important;
-  box-shadow: 4px 4px 9.2px rgba(0, 0, 0, 0.25);
+  box-shadow: none !important;
 }
 
 /* Hint (optional, not in Figma — kept for possible empty-state use) */
@@ -2287,14 +2308,8 @@ body.generate-prompt-focused .navbar {
   bottom: var(--stixly-taskbar-height, 96px);
   z-index: calc(var(--z-header, 100) - 2);
 
-  /* Фоновый градиент: скрывает контент под кнопкой но остаётся прозрачным вверху */
   padding: 16px 16px calc(8px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(
-    to top,
-    var(--color-background, #191818) 40%,
-    rgba(25, 24, 24, 0.9) 70%,
-    transparent 100%
-  );
+  background: transparent;
   /* Контейнер прозрачен для кликов — только кнопка внутри кликабельна */
   pointer-events: none;
 }
