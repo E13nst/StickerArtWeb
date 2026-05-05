@@ -2261,6 +2261,8 @@ body.generate-prompt-focused .navbar {
 .generate-page .generate-inner > .ghc-root {
   max-height: min(55dvh, 460px);
   width: 100%;
+  /* Не даём scroll anchoring при подгрузке превью героя «подтаскивать» вьюпорт к полю ниже */
+  overflow-anchor: none;
 }
 
 /* generate-inner: отступ снизу под фиксированную кнопку + навбар */

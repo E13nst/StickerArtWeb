@@ -7,6 +7,8 @@ export type GenerateHistoryHeaderSlot = {
   fallbackEmoji: string;
   open: boolean;
   toggle: () => void;
+  /** Превью с `/api/images/*` больше недоступно (410 и т.д.) — удалить запись из истории */
+  onPreviewImageError?: () => void;
 };
 
 type State = {

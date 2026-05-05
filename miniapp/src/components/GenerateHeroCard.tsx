@@ -2,6 +2,7 @@ import { FC, useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import type { StylePreset } from '@/api/client';
+import type { SyntheticEvent } from 'react';
 import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import { Pulsar } from '@/components/ui/Pulsar';
 import { DeleteIcon, ShareIcon, DownloadIcon } from '@/components/ui/Icons';
@@ -46,6 +47,8 @@ export interface GenerateHeroCardProps {
   onHapticLight?: () => void;
   /** Ошибка загрузки превью пресета (для инвалидации кэша истории) */
   onPresetPreviewError?: (presetId: number) => void;
+  /** Ошибка загрузки результата с `/api/images/*` (родитель может удалить запись истории вместо заглушки) */
+  onApiHostedResultImageError?: (event: SyntheticEvent<HTMLImageElement>) => void;
 }
 
 // Figma: first card 370×523, aspect-ratio ≈ 370/523
@@ -107,7 +110,9 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   onDownloadResult,
   onHapticLight,
   onPresetPreviewError,
+  onApiHostedResultImageError,
 }) => {
+  const onResultOrPrevImgError = onApiHostedResultImageError ?? onApiHostedImageError;
   // Индекс текущей карточки в деке
   const [deckIndex, setDeckIndex] = useState(0);
   const hapticFiredRef = useRef(false);
@@ -294,7 +299,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
               alt="Сгенерированный стикер"
               className="ghc-card__result-img"
               draggable={false}
-              onError={onApiHostedImageError}
+              onError={onResultOrPrevImgError}
             />
           </button>
           {canDownloadResult && (
@@ -334,7 +339,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
                   alt=""
                   className="ghc-card__result-img ghc-card__result-img--prev"
                   draggable={false}
-                  onError={onApiHostedImageError}
+                  onError={onResultOrPrevImgError}
                 />
               </button>
               <div className="ghc-card__generating-overlay">

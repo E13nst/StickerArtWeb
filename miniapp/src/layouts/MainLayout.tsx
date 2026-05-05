@@ -8,6 +8,7 @@ import { useTelegram } from '@/hooks/useTelegram';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 import { isDevToolsUnlocked, persistDevToolsUnlocked } from '@/utils/devToolsUnlock';
 import { useGenerateLandingGateStore } from '@/store/useGenerateLandingGateStore';
+import { GENERATE_LANDING_PRIMED_SESSION_KEY } from '@/utils/generateRouteSession';
 import './MainLayout.css';
 
 interface Props {
@@ -41,10 +42,13 @@ export default function MainLayout({ children }: Props) {
     return () => window.removeEventListener('stixly-open-debug-panel', onUnlock);
   }, []);
 
-  /** Сохраняем позицию скролла по маршруту — без принудительного сброса в 0 при каждом переходе. */
+  /** Сохраняем позицию скролла по маршруту — без принудительного сброса при каждом переходе. На /generate не сохраняем: при каждом заходе показываем свайп-карточку стиля у верха. */
   useEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
+    if (pathname === '/generate') {
+      return;
+    }
     const key = scrollStorageKey(pathname, location.search);
     let tid: ReturnType<typeof setTimeout>;
     const save = () => {
@@ -67,6 +71,10 @@ export default function MainLayout({ children }: Props) {
   useLayoutEffect(() => {
     const el = mainScrollRef.current;
     if (!el) return;
+    if (pathname === '/generate') {
+      el.scrollTop = 0;
+      return;
+    }
     const key = scrollStorageKey(pathname, location.search);
     try {
       const raw = sessionStorage.getItem(key);
@@ -98,10 +106,17 @@ export default function MainLayout({ children }: Props) {
   }, []);
 
   // Снятие / сброс гейта только по pathname (не в GeneratePage.mount — иначе React Strict Mode снова сбрасывает overlay после release()).
+  // На /generate не всегда reset: иначе при каждом возврате из профиля снова полноэкранный гейт и «мигание» страницы.
   useLayoutEffect(() => {
     const { reset, release } = useGenerateLandingGateStore.getState();
     if (pathname === '/generate') {
-      reset();
+      try {
+        if (sessionStorage.getItem(GENERATE_LANDING_PRIMED_SESSION_KEY) !== '1') {
+          reset();
+        }
+      } catch {
+        reset();
+      }
     } else {
       release();
     }
@@ -173,7 +188,7 @@ export default function MainLayout({ children }: Props) {
             (mainScrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
             setScrollElement(el);
           }}
-          className={`stixly-main-scroll${pathname === '/profile' ? ' stixly-main-scroll--account' : ''}`}
+          className={`stixly-main-scroll${pathname === '/profile' ? ' stixly-main-scroll--account' : ''}${pathname === '/generate' ? ' stixly-main-scroll--generate' : ''}`}
           style={{
             position: 'relative',
             flex: '1 1 0%',

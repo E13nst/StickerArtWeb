@@ -510,7 +510,7 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-/* ── Preset meta: уже нижняя полоска — меньше высоты у блока с названием ── */
+/* ── Preset meta: нижняя полоска — название и автор по центру, чуть выше нижнего края ── */
 .ghc-card__meta {
   position: absolute;
   top: 68%;
@@ -521,8 +521,10 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  align-items: center;
   gap: 0;
-  padding: 10px 14px 5px;
+  box-sizing: border-box;
+  padding: 12px clamp(14px, 5%, 24px) 16px;
   background: linear-gradient(
     to bottom,
     transparent 0%,
@@ -538,10 +540,14 @@
   font-size: 20px;
   line-height: 1.08;
   color: #fff;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  transform: translateY(-8px);
 }
 
 .ghc-card__meta-author {
@@ -550,10 +556,14 @@
   line-height: 1.35;
   min-height: 1.35em;
   color: rgba(255, 255, 255, 0.78);
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  transform: translateY(-8px);
 }
 
 /* Резерв строки под ник, когда сервер ничего не прислал */

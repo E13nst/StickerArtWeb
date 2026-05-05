@@ -177,6 +177,7 @@ export const HeaderPanel: FC = () => {
                     className="header-panel__wallet-preview"
                     src={historySlot.previewImageUrl}
                     alt=""
+                    onError={() => historySlot.onPreviewImageError?.()}
                   />
                 ) : (
                   <span className="header-panel__wallet-emoji" aria-hidden>

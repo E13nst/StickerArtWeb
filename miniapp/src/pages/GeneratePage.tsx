@@ -1,4 +1,17 @@
-import { useEffect, useLayoutEffect, useState, useCallback, useRef, FC, ChangeEvent, ClipboardEvent, DragEvent as ReactDragEvent, useMemo, CSSProperties } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  useRef,
+  FC,
+  ChangeEvent,
+  ClipboardEvent,
+  DragEvent as ReactDragEvent,
+  useMemo,
+  CSSProperties,
+  type SyntheticEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
@@ -61,7 +74,7 @@ import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
 import { GenerateImageLightbox } from '@/components/GenerateImageLightbox';
 import { resolveAvatarContext } from '@/utils/resolvedAvatar';
-import { onApiHostedImageError } from '@/utils/apiImageFallback';
+import { isApiHostedArtifactUrl, onApiHostedImageError } from '@/utils/apiImageFallback';
 import {
   clearGenerateHistory,
   clearActiveGenerateHistoryEntry,
@@ -74,6 +87,11 @@ import {
 } from '@/utils/generateHistoryStorage';
 import { readHistoryHeadAck, writeHistoryHeadAck } from '@/utils/historyHeadAckStorage';
 import { readGeneratePreferences, writeGeneratePreferences } from '@/utils/generatePreferencesStorage';
+import {
+  GENERATE_LANDING_PRIMED_SESSION_KEY,
+  getGenerateResumeLocalIdKey,
+} from '@/utils/generateRouteSession';
+import { waitGenerateLandingViewportMedia } from '@/utils/waitGenerateLandingViewportMedia';
 import {
   parseStylePresetIdFromStartParam,
   REFERRAL_START_PARAM_PREFIX,
@@ -446,19 +464,51 @@ export const GeneratePage: FC = () => {
 
   // Полноэкранный гейт — только сигнал для MainLayout; контент уже под оверлеем.
   const [gateMinDelayDone, setGateMinDelayDone] = useState(false);
+  /** Картинки вviewport (герой / лента / шапка / видимые плитки) дорисованы — можно начинать съезд overlay. */
+  const [landingViewportMediaPrimed, setLandingViewportMediaPrimed] = useState(false);
   const releaseLandingOverlay = useGenerateLandingGateStore((s) => s.release);
+  const landingReleased = useGenerateLandingGateStore((s) => s.isReleased);
 
   useEffect(() => {
     const t = setTimeout(() => setGateMinDelayDone(true), 700);
     return () => clearTimeout(t);
   }, []);
 
+  /** Параллельно с минимальной задержкой подгружаем видимые картинки, чтобы они были уже в кадре при анимации overlay. */
   useEffect(() => {
     if (!(styleCatalogLoaded && hasMyProfileLoaded && gateMinDelayDone)) {
+      setLandingViewportMediaPrimed(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setLandingViewportMediaPrimed(false);
+
+    void waitGenerateLandingViewportMedia(11500).then(() => {
+      if (!cancelled) setLandingViewportMediaPrimed(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [styleCatalogLoaded, hasMyProfileLoaded, gateMinDelayDone]);
+
+  useEffect(() => {
+    if (!(styleCatalogLoaded && hasMyProfileLoaded && gateMinDelayDone && landingViewportMediaPrimed)) {
       return;
     }
+    try {
+      sessionStorage.setItem(GENERATE_LANDING_PRIMED_SESSION_KEY, '1');
+    } catch {
+      /* private mode / WebView */
+    }
     releaseLandingOverlay();
-  }, [styleCatalogLoaded, hasMyProfileLoaded, gateMinDelayDone, releaseLandingOverlay]);
+  }, [
+    styleCatalogLoaded,
+    hasMyProfileLoaded,
+    gateMinDelayDone,
+    landingViewportMediaPrimed,
+    releaseLandingOverlay,
+  ]);
 
   /** Если каталог/профиль/initData залипли, не держим полноэкранный лоадер бесконечно. */
   useEffect(() => {
@@ -472,6 +522,34 @@ export const GeneratePage: FC = () => {
     }, 15_000);
     return () => window.clearTimeout(t);
   }, [releaseLandingOverlay]);
+
+  /** После снятия загрузочного гейта «дорисовка» промпта/полей уже могла изменить scrollTop — фиксируем верх, чтобы была видна свайп-карточка стиля. */
+  useLayoutEffect(() => {
+    if (!landingReleased || typeof document === 'undefined') return;
+    const sp = document.querySelector('.stixly-main-scroll');
+    if (!(sp instanceof HTMLElement)) return;
+    sp.scrollTop = 0;
+  }, [landingReleased]);
+
+  useEffect(() => {
+    if (!landingReleased || typeof document === 'undefined') return;
+    const sp = document.querySelector('.stixly-main-scroll');
+    const pinTop = () => {
+      if (sp instanceof HTMLElement) sp.scrollTop = 0;
+    };
+    pinTop();
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      pinTop();
+      raf2 = window.requestAnimationFrame(pinTop);
+    });
+    const t = window.setTimeout(pinTop, 180);
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+      window.clearTimeout(t);
+    };
+  }, [landingReleased]);
 
   const [deepLinkStyleBoostId, setDeepLinkStyleBoostId] = useState<number | null>(null);
   const [deepLinkPresetMissingNotice, setDeepLinkPresetMissingNotice] = useState(false);
@@ -574,8 +652,11 @@ export const GeneratePage: FC = () => {
   const activeHistoryLocalIdRef = useRef<string | null>(null);
   const generateComposeStickyRef = useRef<HTMLDivElement | null>(null);
   const composeStickyHeightRef = useRef<number | undefined>(undefined);
+  /** Когда false — не добавляем scrollTop при росте compose у верхней границы: иначе после первой сборки полей экран «прилипает» к sticky-промпту, герой уезжает вверх за кадр. */
+  const composeScrollCompensationPrimedRef = useRef(false);
   const restoreAppliedRef = useRef(false);
   const preferencesAppliedRef = useRef(false);
+  const resumeSessionAppliedRef = useRef(false);
   const styleDeepLinkHandledRef = useRef(false);
 
   const avatarAutofillAppliedRef = useRef<string | null>(null);
@@ -1140,13 +1221,67 @@ export const GeneratePage: FC = () => {
 
   const removeHistoryEntry = useCallback((matcher: { localId?: string; taskId?: string }) => {
     if (!historyUserScopeId) return;
+    const shouldResetUi = Boolean(matcher.localId && activeHistoryLocalIdRef.current === matcher.localId);
     const updated = deleteGenerateHistoryEntry(historyUserScopeId, matcher);
     if (matcher.localId && activeHistoryLocalIdRef.current === matcher.localId) {
       activeHistoryLocalIdRef.current = null;
     }
     setPinnedHistoryLocalId((prev) => (matcher.localId && prev === matcher.localId ? null : prev));
     setHistoryEntries(updated);
+    if (shouldResetUi) {
+      setResultImageUrl(null);
+      setImageId(null);
+      setFileId(null);
+      setStickerSaved(false);
+      setSavedStickerSetName(null);
+      setSavedStickerSetTitle(null);
+      setTaskId(null);
+      setCurrentStatus(null);
+      setPageState('idle');
+      setErrorMessage(null);
+      setErrorKind(null);
+      setDuringJobPreviousResultUrl(null);
+      setImageLightbox(null);
+    }
   }, [historyUserScopeId]);
+
+  /** 410/истёкший CDN по `/api/images/*`: убрать запись из локальной истории вместо вечной заглушки. */
+  const purgeHistoryEntryForExpiredApiImage = useCallback(
+    (e: SyntheticEvent<HTMLImageElement>) => {
+      const urlRaw = (e.currentTarget.currentSrc || e.currentTarget.getAttribute('src') || '').trim();
+      const url = urlRaw.split('?')[0];
+      if (!url || !isApiHostedArtifactUrl(url)) {
+        onApiHostedImageError(e);
+        return;
+      }
+      const match = historyEntries.find((en) => {
+        const stored = typeof en.resultImageUrl === 'string' ? en.resultImageUrl.trim().split('?')[0] : '';
+        if (!stored || !isApiHostedArtifactUrl(stored)) return false;
+        return stored === url || url.endsWith(stored) || stored.endsWith(url);
+      });
+      if (match) {
+        removeHistoryEntry({ localId: match.localId });
+        return;
+      }
+      onApiHostedImageError(e);
+    },
+    [historyEntries, removeHistoryEntry],
+  );
+
+  /** Закреплённая запись истории — восстановить UI после remount /generate (профиль, др. вкладки). */
+  useEffect(() => {
+    if (!historyUserScopeId) return;
+    const key = getGenerateResumeLocalIdKey(historyUserScopeId);
+    try {
+      if (pinnedHistoryLocalId) {
+        sessionStorage.setItem(key, pinnedHistoryLocalId);
+      } else {
+        sessionStorage.removeItem(key);
+      }
+    } catch {
+      /* private mode */
+    }
+  }, [historyUserScopeId, pinnedHistoryLocalId]);
 
   const clearHistoryEntries = useCallback(() => {
     if (!historyUserScopeId) return;
@@ -1986,6 +2121,7 @@ export const GeneratePage: FC = () => {
   useEffect(() => {
     restoreAppliedRef.current = false;
     preferencesAppliedRef.current = false;
+    resumeSessionAppliedRef.current = false;
     setFailedHistoryPresetPreviewIds(new Set());
     setPinnedHistoryLocalId(null);
   }, [historyUserScopeId]);
@@ -2039,6 +2175,27 @@ export const GeneratePage: FC = () => {
 
   useEffect(() => {
     if (!historyUserScopeId || preferencesAppliedRef.current) return;
+
+    const entries = readGenerateHistory(historyUserScopeId);
+    const activeEntry =
+      entries.find((entry) => entry.isActive) ??
+      entries.find((entry) => !TERMINAL_GENERATION_STATUSES.includes(entry.generationStatus ?? 'PENDING'));
+    if (activeEntry) {
+      return;
+    }
+
+    let resumeId: string | null = null;
+    try {
+      resumeId = sessionStorage.getItem(getGenerateResumeLocalIdKey(historyUserScopeId));
+    } catch {
+      /* */
+    }
+    if (resumeId) {
+      const resumeEntry = entries.find((e) => e.localId === resumeId);
+      if (resumeEntry) {
+        return;
+      }
+    }
 
     const savedPreferences = readGeneratePreferences(historyUserScopeId);
     if (savedPreferences) {
@@ -3652,17 +3809,30 @@ export const GeneratePage: FC = () => {
   const toggleHistoryOpen = useCallback(() => {
     setHistoryOpen((prev) => !prev);
   }, []);
+  const onHistoryHeaderPreviewImageError = useCallback(() => {
+    const head = historyEntries[0];
+    if (!head?.resultImageUrl || !isApiHostedArtifactUrl(head.resultImageUrl)) return;
+    removeHistoryEntry({ localId: head.localId });
+  }, [historyEntries, removeHistoryEntry]);
   useLayoutEffect(() => {
     setHistoryHeaderSlot({
       previewImageUrl: historyPreviewImage,
       fallbackEmoji: historyPreviewFallback,
       open: historyOpen,
       toggle: toggleHistoryOpen,
+      onPreviewImageError: onHistoryHeaderPreviewImageError,
     });
     return () => {
       setHistoryHeaderSlot(null);
     };
-  }, [historyPreviewImage, historyPreviewFallback, historyOpen, toggleHistoryOpen, setHistoryHeaderSlot]);
+  }, [
+    historyPreviewImage,
+    historyPreviewFallback,
+    historyOpen,
+    toggleHistoryOpen,
+    setHistoryHeaderSlot,
+    onHistoryHeaderPreviewImageError,
+  ]);
 
   const referenceAssignmentsLayoutSig = useMemo(() => {
     const keys = Object.keys(referenceAssignments).sort();
@@ -3707,8 +3877,23 @@ export const GeneratePage: FC = () => {
     if (prevH === undefined || nextH === prevH) return;
 
     const delta = nextH - prevH;
+    /** Пока не снят лендинговый гейт — не добавляем scroll при росте compose; после гейта — пауза, чтобы финальная вёрстка не утащила вьюпорт к sticky-промпту. */
+    const nearHeroTop = scrollParent.scrollTop < 48;
+    if (delta > 0 && nearHeroTop && !composeScrollCompensationPrimedRef.current) {
+      return;
+    }
+
     scrollParent.scrollTop = Math.max(0, scrollParent.scrollTop + delta);
   }, [composeLayoutStabilizerKey]);
+
+  useEffect(() => {
+    composeScrollCompensationPrimedRef.current = false;
+    if (!landingReleased) return undefined;
+    const id = window.setTimeout(() => {
+      composeScrollCompensationPrimedRef.current = true;
+    }, 360);
+    return () => window.clearTimeout(id);
+  }, [landingReleased]);
 
   const generateLabel =
     generateCost != null ? `Создать стикер • ${generateCost} ART` : 'Создать стикер • 10 ART';
@@ -3868,6 +4053,50 @@ export const GeneratePage: FC = () => {
       startPolling(entry.taskId, entry.localId);
     }
   };
+
+  const openHistoryEntryRef = useRef(openHistoryEntry);
+  openHistoryEntryRef.current = openHistoryEntry;
+
+  /** Восстановление последней сессии (успех/ошибка/готовый результат), если нет активного polling. */
+  useEffect(() => {
+    if (!historyUserScopeId || resumeSessionAppliedRef.current) return;
+
+    const entries = readGenerateHistory(historyUserScopeId);
+    const activeEntry =
+      entries.find((entry) => entry.isActive) ??
+      entries.find((entry) => !TERMINAL_GENERATION_STATUSES.includes(entry.generationStatus ?? 'PENDING'));
+    if (activeEntry) {
+      resumeSessionAppliedRef.current = true;
+      return;
+    }
+
+    const resumeKey = getGenerateResumeLocalIdKey(historyUserScopeId);
+    let resumeId: string | null = null;
+    try {
+      resumeId = sessionStorage.getItem(resumeKey);
+    } catch {
+      /* */
+    }
+    if (!resumeId) {
+      resumeSessionAppliedRef.current = true;
+      return;
+    }
+
+    const resumeEntry = entries.find((e) => e.localId === resumeId);
+    if (!resumeEntry) {
+      try {
+        sessionStorage.removeItem(resumeKey);
+      } catch {
+        /* */
+      }
+      resumeSessionAppliedRef.current = true;
+      return;
+    }
+
+    resumeSessionAppliedRef.current = true;
+    preferencesAppliedRef.current = true;
+    void openHistoryEntryRef.current(resumeEntry);
+  }, [historyUserScopeId]);
 
   useEffect(() => {
     if (!historyOpen) return;
@@ -4578,6 +4807,7 @@ export const GeneratePage: FC = () => {
           markHistoryPresetPreviewFailed(presetId);
         }
       }}
+      onApiHostedResultImageError={purgeHistoryEntryForExpiredApiImage}
     />
   );
 
@@ -4654,7 +4884,16 @@ export const GeneratePage: FC = () => {
                             className="generate-history-item__preview"
                             src={entry.resultImageUrl}
                             alt=""
-                            onError={onApiHostedImageError}
+                            onError={(ev) => {
+                              if (
+                                entry.resultImageUrl &&
+                                isApiHostedArtifactUrl(entry.resultImageUrl)
+                              ) {
+                                removeHistoryEntry({ localId: entry.localId });
+                                return;
+                              }
+                              onApiHostedImageError(ev);
+                            }}
                           />
                         ) : (
                           <div className="generate-history-item__preview-placeholder">{entry.selectedEmoji}</div>
@@ -4735,7 +4974,7 @@ export const GeneratePage: FC = () => {
                       className="generate-busy-prev-result__img"
                       decoding="async"
                       draggable={false}
-                      onError={onApiHostedImageError}
+                      onError={purgeHistoryEntryForExpiredApiImage}
                     />
                   </button>
                   <button
@@ -4808,7 +5047,7 @@ export const GeneratePage: FC = () => {
                 alt="Сгенерированный стикер"
                 className="generate-result-image"
                 draggable={false}
-                onError={onApiHostedImageError}
+                onError={purgeHistoryEntryForExpiredApiImage}
               />
             </button>
             <button
