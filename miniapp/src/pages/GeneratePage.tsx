@@ -16,9 +16,8 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { Pulsar } from '@/components/ui/Pulsar';
 import { GenerateHeroCard } from '@/components/GenerateHeroCard';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { StylePresetPickOverlay } from '@/components/StylePresetPickOverlay';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
 import { mergeCreateStylePresetRequest } from '@/utils/mergeCreateStylePresetRequest';
@@ -411,7 +410,7 @@ const computeSourceImageOriginFromFiles = (files: File[]): 'none' | 'manual' | '
 };
 
 const getServerStylePresetCardPreview = (preset: StylePreset): string | null =>
-  preset.previewWebpUrl ?? preset.previewUrl ?? null;
+  preset.previewWebpUrl ?? preset.previewUrl ?? preset.presetReferenceImageUrl ?? null;
 
 const getLastUsedSaveTargetStorageKey = (userScopeId: string): string =>
   `${LAST_USED_SAVE_TARGET_STORAGE_PREFIX}:${userScopeId}`;
@@ -558,6 +557,7 @@ export const GeneratePage: FC = () => {
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
   const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
+  const [pendingGridStylePick, setPendingGridStylePick] = useState<StylePreset | null>(null);
   const [bootstrappingOwnStyle, setBootstrappingOwnStyle] = useState(false);
   const ownStyleBootstrapRef = useRef(false);
   const [ownStyleBlueprintSession, setOwnStyleBlueprintSession] = useState<{
@@ -4381,6 +4381,31 @@ export const GeneratePage: FC = () => {
     }
   };
 
+  const handleGridPresetChange = useCallback(
+    (presetId: number | null) => {
+      setPendingGridStylePick(null);
+      if (presetId == null) {
+        handlePresetChange(null);
+        return;
+      }
+      if (isOwnStyleBlueprintVirtualPreset(presetId)) {
+        handlePresetChange(presetId);
+        return;
+      }
+      const p = presetsWithVirtual.find((x) => x.id === presetId);
+      if (p) {
+        setPendingGridStylePick(p);
+        queueMicrotask(() => {
+          const sp = document.querySelector('.stixly-main-scroll');
+          if (sp instanceof HTMLElement) {
+            sp.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+      }
+    },
+    [handlePresetChange, presetsWithVirtual],
+  );
+
   /**
    * «Создать свой стиль»: виртуальная карточка + генерация по blueprint-коду.
    * Черновик в БД создаётся только при первом upload в слот preset_ref.
@@ -4655,7 +4680,7 @@ export const GeneratePage: FC = () => {
     <StylePresetPackGrid
       presets={stripStylePresets}
       selectedPresetId={selectedStylePresetId}
-      onPresetChange={handlePresetChange}
+      onPresetChange={handleGridPresetChange}
       previewByPresetId={presetPreviewById}
       onHistoryPreviewError={markHistoryPresetPreviewFailed}
       fallbackPreviewByPresetCode={PRESET_PREVIEW_FALLBACK_BY_CODE}
@@ -4689,6 +4714,8 @@ export const GeneratePage: FC = () => {
     onButtonClick?: () => void;
     /** Скрыть кнопку submit (рендерится отдельно как fixed element) */
     hideSubmit?: boolean;
+    /** Скрыть блок промпта и полей пресета (они показаны на hero во время задачи) */
+    omitCompose?: boolean;
   }) => (
     <div
       className="generate-form-block"
@@ -4696,15 +4723,22 @@ export const GeneratePage: FC = () => {
       onDrop={cfg.dropEnabled ? handleGenerateFormDrop : undefined}
     >
       <div className="generate-form-layout">
-        <div className="generate-form-layout__compose" ref={generateComposeStickyRef}>
-          {renderMainInputBlock({
-            readOnly: cfg.readOnly,
-            textDisabled: cfg.textDisabled,
-            referenceDndEnabled: cfg.referenceDndEnabled,
-            showPromptError: cfg.showPromptError,
-            withWrapperHandlers: cfg.withWrapperHandlers,
-            withActiveState: cfg.withActiveState,
-          })}
+        <div
+          className={cn(
+            'generate-form-layout__compose',
+            cfg.omitCompose && 'generate-form-layout__compose--omitted',
+          )}
+          ref={cfg.omitCompose ? undefined : generateComposeStickyRef}
+        >
+          {!cfg.omitCompose &&
+            renderMainInputBlock({
+              readOnly: cfg.readOnly,
+              textDisabled: cfg.textDisabled,
+              referenceDndEnabled: cfg.referenceDndEnabled,
+              showPromptError: cfg.showPromptError,
+              withWrapperHandlers: cfg.withWrapperHandlers,
+              withActiveState: cfg.withActiveState,
+            })}
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
@@ -4764,7 +4798,7 @@ export const GeneratePage: FC = () => {
     Boolean(primarySourcePreview) &&
     !compositeGenerateHeroPreviewUrl;
 
-  const renderHeroCard = () => (
+  const renderHeroCard = (opts?: { composeSlot?: React.ReactNode }) => (
     <GenerateHeroCard
       presets={stripStylePresets}
       selectedPresetId={selectedStylePresetId}
@@ -4780,6 +4814,47 @@ export const GeneratePage: FC = () => {
       canShareStyle={canShareStylePresetDeepLink}
       canDownloadResult={Boolean(resultImageUrl) && pageState === 'success'}
       isDownloadingResult={isDownloadingResult}
+      composeSlot={opts?.composeSlot}
+      composeSlotRef={opts?.composeSlot ? generateComposeStickyRef : undefined}
+      generatingInlineSlot={
+        hasActiveGeneration && selectedPresetFieldDefs.length > 0 ? (
+          <div className="ghc-inline-preset-fields">
+            <PresetFieldsForm
+              fields={selectedPresetFieldDefs}
+              values={presetFields}
+              onChange={handlePresetFieldChange}
+              disabled
+              emojiOptions={POPULAR_EMOJIS}
+              referenceAssignments={referenceAssignments}
+              referencePreviewById={referencePreviewById}
+              referenceUploadingKey={referenceUploadingKey}
+              effectiveReferenceMaxUnique={effectiveReferenceMaxUnique}
+              onReferenceRemove={handleReferenceRemove}
+              onReferenceAddFiles={(key, files) => {
+                void handleReferenceAddFiles(key, files);
+              }}
+              onReferenceAddFromSource={(key, toIndex, sourceIndex) => {
+                void handleReferenceAddFromSource(key, toIndex, sourceIndex);
+              }}
+              onReferenceAddExternalAt={(key, toIndex, files) => {
+                void handleReferenceAddFilesAtSlot(key, toIndex, files);
+              }}
+              onReferenceMove={applyReferenceMove}
+              lockedReferenceFieldKeys={lockedPresetRefFieldKeys}
+            />
+          </div>
+        ) : undefined
+      }
+      onDuringJobPreviousResultTap={
+        duringJobPreviousResultUrl
+          ? () =>
+              setImageLightbox({
+                viewerUrl: duringJobPreviousResultUrl,
+                downloadUrl: duringJobPreviousResultUrl,
+                alt: 'Прошлый результат',
+              })
+          : undefined
+      }
       onPresetSelect={(id) => handlePresetChange(id)}
       onResultTap={() =>
         resultImageUrl &&
@@ -4946,66 +5021,10 @@ export const GeneratePage: FC = () => {
     );
   };
 
-  // Рендер состояния генерации: спиннер с сообщением "Подождите", форма readonly, кнопка в стиле submit с текстом "Подождите"
+  // Рендер состояния генерации: та же свайп-карточка с компактными полями пресета; сетка стилей и чипы категорий
   const renderGeneratingState = () => (
     <>
-      <div className="generate-busy-phase">
-        {duringJobPreviousResultUrl ? (
-          /* ── Has previous result: show it alongside a small status indicator ── */
-          <>
-            <div className="generate-busy-prev-result-slot">
-              <figure className="generate-busy-prev-result" aria-label="Прошлый успешный результат">
-                <div className="generate-busy-prev-result__frame">
-                  <button
-                    type="button"
-                    className="generate-busy-prev-result__tap"
-                    aria-label="Открыть прошлый результат на весь экран"
-                    onClick={() =>
-                      setImageLightbox({
-                        viewerUrl: duringJobPreviousResultUrl,
-                        downloadUrl: duringJobPreviousResultUrl,
-                        alt: 'Прошлый результат',
-                      })
-                    }
-                  >
-                    <img
-                      src={duringJobPreviousResultUrl}
-                      alt=""
-                      className="generate-busy-prev-result__img"
-                      decoding="async"
-                      draggable={false}
-                      onError={purgeHistoryEntryForExpiredApiImage}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    className="generate-result-download-btn generate-result-download-btn--icon-only"
-                    aria-label="Скачать прошлый результат"
-                    disabled={isDownloadingResult}
-                    onClick={() => void downloadStickerByUrl(duringJobPreviousResultUrl, 'during-job-prev')}
-                    title="Скачать"
-                  >
-                    <DownloadIcon size={20} />
-                  </button>
-                </div>
-                <figcaption className="generate-busy-prev-result__caption">Прошлый результат</figcaption>
-              </figure>
-            </div>
-            <div className="generate-status-container">
-              <LoadingSpinner message={getGeneratingSpinnerMessage(pageState, currentStatus)} />
-            </div>
-          </>
-        ) : (
-          /* ── No previous result: full-size Pulsar placeholder in hero area ── */
-          <div className="generate-busy-placeholder">
-            <Pulsar size={96} colorScheme="warm" />
-            <p className="generate-busy-placeholder__text">
-              {getGeneratingSpinnerMessage(pageState, currentStatus)}
-            </p>
-          </div>
-        )}
-      </div>
-      {renderSourceImageStrip(true, { suppressItemReveal: suppressSourceStripItemReveal })}
+      {renderHeroCard()}
       {renderGenerateFormBlock({
         readOnly: true,
         textDisabled: false,
@@ -5020,6 +5039,7 @@ export const GeneratePage: FC = () => {
         buttonAriaLabel: 'Идет генерация',
         buttonText: 'Подождите',
         hideSubmit: true,
+        omitCompose: true,
       })}
     </>
   );
@@ -5141,7 +5161,16 @@ export const GeneratePage: FC = () => {
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      {renderHeroCard()}
+      {renderHeroCard({
+        composeSlot: renderMainInputBlock({
+          readOnly: false,
+          textDisabled: false,
+          referenceDndEnabled: true,
+          showPromptError: true,
+          withWrapperHandlers: true,
+          withActiveState: true,
+        }),
+      })}
       {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
         readOnly: false,
@@ -5157,6 +5186,7 @@ export const GeneratePage: FC = () => {
         buttonText: generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
+        omitCompose: true,
       })}
     </div>
   );
@@ -5164,7 +5194,16 @@ export const GeneratePage: FC = () => {
   // Рендер формы (Figma: Logo → Header → Inpit → Delete background → Style preview → Button)
   const renderIdleState = () => (
     <>
-      {renderHeroCard()}
+      {renderHeroCard({
+        composeSlot: renderMainInputBlock({
+          readOnly: false,
+          textDisabled: isGenerating,
+          referenceDndEnabled: !isGenerating,
+          showPromptError: false,
+          withWrapperHandlers: true,
+          withActiveState: true,
+        }),
+      })}
       {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
 
       {renderGenerateFormBlock({
@@ -5181,6 +5220,7 @@ export const GeneratePage: FC = () => {
         buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
+        omitCompose: true,
       })}
     </>
   );
@@ -5288,6 +5328,19 @@ export const GeneratePage: FC = () => {
         lastUsedStickerSetTitle={lastUsedStickerSetTitle}
         onSaved={handleSavedFromModal}
       />
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <StylePresetPickOverlay
+            preset={pendingGridStylePick}
+            onAccept={() => {
+              if (!pendingGridStylePick) return;
+              handlePresetChange(pendingGridStylePick.id);
+              setPendingGridStylePick(null);
+            }}
+            onDismiss={() => setPendingGridStylePick(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 };

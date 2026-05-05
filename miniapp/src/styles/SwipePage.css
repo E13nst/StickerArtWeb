@@ -162,6 +162,18 @@
   isolation: isolate;
 }
 
+.swipe-card.swipe-card--priority {
+  cursor: default;
+}
+
+.swipe-card--priority .swipe-card__priority-text {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 /* Content — Figma: 338×73, Text gap 4px */
 .swipe-card__content {
   display: flex;

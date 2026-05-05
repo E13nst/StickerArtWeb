@@ -34,7 +34,7 @@ type PresetGridOption = {
 };
 
 const getServerPreviewUrl = (preset: StylePreset): string | null =>
-  preset.previewWebpUrl ?? preset.previewUrl ?? null;
+  preset.previewWebpUrl ?? preset.previewUrl ?? preset.presetReferenceImageUrl ?? null;
 
 const stripPresetName = (name: string) =>
   name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();

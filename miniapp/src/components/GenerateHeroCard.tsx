@@ -1,4 +1,14 @@
-import { FC, useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import {
+  FC,
+  useCallback,
+  useRef,
+  useState,
+  useEffect,
+  useMemo,
+  type ReactNode,
+  type Ref,
+  type LegacyRef,
+} from 'react';
 import { flushSync } from 'react-dom';
 import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import type { StylePreset } from '@/api/client';
@@ -49,6 +59,13 @@ export interface GenerateHeroCardProps {
   onPresetPreviewError?: (presetId: number) => void;
   /** Ошибка загрузки результата с `/api/images/*` (родитель может удалить запись истории вместо заглушки) */
   onApiHostedResultImageError?: (event: SyntheticEvent<HTMLImageElement>) => void;
+  /** Компактные поля пресета (фото слота, эмодзи) поверх карточки во время генерации */
+  generatingInlineSlot?: ReactNode;
+  /** Промпт, тулбар (эмодзи, удалить фон) и поля пресета — под превью внутри той же свайп-карточки */
+  composeSlot?: ReactNode;
+  composeSlotRef?: Ref<HTMLDivElement | null>;
+  /** Тап по прошлому результату на фонe во время генерации */
+  onDuringJobPreviousResultTap?: () => void;
 }
 
 // Figma: first card 370×523, aspect-ratio ≈ 370/523
@@ -66,6 +83,7 @@ const getPresetPreview = (
     (preset.id != null ? byHistory.get(preset.id) : null) ??
     preset.previewWebpUrl ??
     preset.previewUrl ??
+    preset.presetReferenceImageUrl ??
     null
   );
 };
@@ -111,6 +129,10 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   onHapticLight,
   onPresetPreviewError,
   onApiHostedResultImageError,
+  generatingInlineSlot,
+  composeSlot,
+  composeSlotRef,
+  onDuringJobPreviousResultTap,
 }) => {
   const onResultOrPrevImgError = onApiHostedResultImageError ?? onApiHostedImageError;
   // Индекс текущей карточки в деке
@@ -319,40 +341,51 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     }
 
     if (isGenerating) {
+      const showPrevBg = Boolean(duringJobPreviousResultUrl);
+      const showStyleBg = !showPrevBg && Boolean(currentPreview);
       return (
         <div
           className={
             'ghc-card__media ghc-card__media--generating' +
-            (duringJobPreviousResultUrl ? ' ghc-card__media--generating-prev' : '')
+            (generatingInlineSlot ? ' ghc-card__media--generating-inline' : '')
           }
+          role="status"
+          aria-live="polite"
+          aria-label={generatingMessage}
         >
-          {duringJobPreviousResultUrl ? (
-            <>
-              <button
-                type="button"
-                className="ghc-card__media-tap"
-                onClick={onResultTap}
-                aria-label="Открыть прошлый результат"
-              >
-                <img
-                  src={duringJobPreviousResultUrl}
-                  alt=""
-                  className="ghc-card__result-img ghc-card__result-img--prev"
-                  draggable={false}
-                  onError={onResultOrPrevImgError}
-                />
-              </button>
-              <div className="ghc-card__generating-overlay">
-                <Pulsar size={48} colorScheme="warm" />
-                <p className="ghc-card__generating-msg">{generatingMessage}</p>
-              </div>
-            </>
-          ) : (
-            <div className="ghc-card__generating-center">
-              <Pulsar size={80} colorScheme="warm" />
-              <p className="ghc-card__generating-msg">{generatingMessage}</p>
+          {showPrevBg && duringJobPreviousResultUrl ? (
+            <button
+              type="button"
+              className="ghc-card__media-tap ghc-card__media-tap--generating-bg"
+              onClick={onDuringJobPreviousResultTap}
+              aria-label="Открыть прошлый результат"
+            >
+              <img
+                src={duringJobPreviousResultUrl}
+                alt=""
+                className="ghc-card__result-img ghc-card__result-img--prev ghc-card__result-img--generating-bg"
+                draggable={false}
+                onError={onResultOrPrevImgError}
+              />
+            </button>
+          ) : null}
+          {showStyleBg && currentPreview ? (
+            <div className="ghc-card__generating-bg-preset" aria-hidden>
+              <img
+                src={currentPreview}
+                alt=""
+                className="ghc-card__preset-img ghc-card__preset-img--generating-bg"
+                draggable={false}
+                onError={(e) => {
+                  onApiHostedImageError(e);
+                  if (currentPreset?.id != null) onPresetPreviewError?.(currentPreset.id);
+                }}
+              />
             </div>
-          )}
+          ) : null}
+          {generatingInlineSlot ? (
+            <div className="ghc-card__generating-fields-wrap">{generatingInlineSlot}</div>
+          ) : null}
         </div>
       );
     }
@@ -489,7 +522,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   };
 
   return (
-    <div className="ghc-root">
+    <div className={composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root'}>
       {/* Фоновая карточка — следующий пресет: тот же ритм 84/16, мягче чем верхняя */}
       {isInteractive && nextPreset && presets.length > 1 && (
         <motion.div
@@ -530,7 +563,11 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
 
       {/* Основная свайп-карточка */}
       <motion.div
-        className="ghc-card"
+        className={
+          'ghc-card' +
+          (isGenerating && generatingInlineSlot ? ' ghc-card--generating-inline' : '') +
+          (composeSlot ? ' ghc-card--compose-slot' : '')
+        }
         style={{
           x: isInteractive ? x : undefined,
           rotate: isInteractive ? rotate : undefined,
@@ -570,8 +607,23 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           <span className="ghc-card__nope-label">✕ ДАЛЬШЕ</span>
         </motion.div>
 
-        {renderCardContent()}
-        {renderPresetMeta()}
+        <div
+          className={
+            'ghc-card__visual' + (composeSlot ? ' ghc-card__visual--with-compose' : '')
+          }
+        >
+          {renderCardContent()}
+          {renderPresetMeta()}
+        </div>
+        {composeSlot ? (
+          <div
+            ref={composeSlotRef as LegacyRef<HTMLDivElement>}
+            className="ghc-card__compose-slot"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {composeSlot}
+          </div>
+        ) : null}
       </motion.div>
 
       {/* Счётчик карточек */}

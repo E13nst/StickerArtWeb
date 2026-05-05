@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CreateStickerSetCreateRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
 import type { UserInfo } from '@/types/user';
+import type { MiniAppSessionResponse } from '@/types/appSession';
 import { mockStickerSets } from '../data/mockData';
 import { buildStickerUrl } from '@/utils/stickerUtils';
 import { requestDeduplicator } from '@/utils/requestDeduplication';
@@ -1452,6 +1453,98 @@ class ApiClient {
   async getSwipeStats(): Promise<SwipeStatsResponse> {
     const response = await this.client.get<SwipeStatsResponse>('/swipes/stats');
     return response.data;
+  }
+
+  /**
+   * GET /api/app/session — bootstrap мини-приложения (priority queue, профиль, deeplink).
+   * Пока контроллер не готов: 404/501 → null.
+   */
+  async getAppSession(): Promise<MiniAppSessionResponse | null> {
+    try {
+      const response = await this.client.get<MiniAppSessionResponse>('/app/session');
+      return response.data ?? null;
+    } catch (error: unknown) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 404 || status === 501 || status === 403) {
+        if (import.meta.env.DEV) {
+          console.warn('[ApiClient] GET /app/session недоступен (', status, ') — priority queue только с локальной колодой');
+        }
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Один пресет по id без полного каталога — GET /api/generation/style-presets/{id}
+   */
+  async getGenerationStylePresetById(id: number): Promise<StylePreset | null> {
+    try {
+      const response = await this.client.get<StylePreset>(`/generation/style-presets/${id}`, {
+        params: { includeUi: true },
+      });
+      const p = response.data;
+      return p?.isEnabled === false ? null : (p ?? null);
+    } catch (error: unknown) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 404 || status === 403) return null;
+      console.warn('[ApiClient] getGenerationStylePresetById:', extractHttpErrorMessage(error, ''));
+      return null;
+    }
+  }
+
+  async postSessionOnboardingProgress(payload: Record<string, unknown>): Promise<boolean> {
+    try {
+      await this.client.post('/app/onboarding/progress', payload);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async postSessionOnboardingComplete(): Promise<boolean> {
+    try {
+      await this.client.post('/app/onboarding/complete');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async postProfileTermsAccepted(acceptedVersion: string): Promise<boolean> {
+    try {
+      await this.client.post('/profile/me/terms', { acceptedVersion });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async postDailyBonusClaim(): Promise<boolean> {
+    try {
+      await this.client.post('/profile/me/daily-bonus/claim');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async postStyleDeepLinkAccept(presetId: number): Promise<boolean> {
+    try {
+      await this.client.post('/app/deep-links/style/accept', { presetId });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async postStyleDeepLinkDismiss(presetId: number): Promise<boolean> {
+    try {
+      await this.client.post('/app/deep-links/style/dismiss', { presetId });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Метаданные набора: автор и лайки

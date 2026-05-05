@@ -1,4 +1,13 @@
-import { useState, useCallback, useEffect, useMemo, useRef, FC } from 'react';
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  FC,
+  type SyntheticEvent,
+  type CSSProperties,
+} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../styles/common.css';
 import '../styles/SwipePage.css';
@@ -18,6 +27,16 @@ import { videoBlobCache } from '@/utils/videoBlobCache';
 import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { openTelegramUrl } from '@/utils/openTelegramUrl';
+import { useAppSessionBootstrap } from '@/hooks/useAppSessionBootstrap';
+import { buildSwipePriorityDeck } from '@/utils/buildSwipePriorityDeck';
+import type {
+  SessionOnboardingSlide,
+  SwipePageDeckCard,
+  SwipePriorityDeckCard,
+} from '@/types/appSession';
+import type { StylePreset } from '@/api/client';
+import { apiClient } from '@/api/client';
+import { onApiHostedImageError } from '@/utils/apiImageFallback';
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ');
@@ -149,12 +168,28 @@ const SWIPE_GLOW_THRESHOLD = 100;
 
 const BUTTON_GLOW_DURATION_MS = 450;
 
+const stylePresetSwipePreview = (p: StylePreset | null | undefined): string | null =>
+  p ? p.previewWebpUrl ?? p.previewUrl ?? p.presetReferenceImageUrl ?? null : null;
+
+const renderSlideBody = (slide: SessionOnboardingSlide) => {
+  const raw = slide.bodyMarkdown ?? slide.termsSummaryMarkdown ?? '';
+  return raw.trim().length > 0 ? raw : null;
+};
+
 export const SwipePage: FC = () => {
   const { isInTelegramApp, tg } = useTelegram();
   const [showHello, setShowHello] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [buttonGlow, setButtonGlow] = useState<'like' | 'dislike' | null>(null);
   
+  const { session } = useAppSessionBootstrap();
+  const [priorityQueue, setPriorityQueue] = useState<SwipePriorityDeckCard[]>([]);
+  const [stylePresetCache, setStylePresetCache] = useState<Record<number, StylePreset>>({});
+
+  useEffect(() => {
+    setPriorityQueue(buildSwipePriorityDeck(session));
+  }, [session]);
+
   const {
     stickerSets,
     currentIndex,
@@ -206,18 +241,86 @@ export const SwipePage: FC = () => {
     };
   }, []);
 
-  // Обработчики свайпа (лёгкий тактильный отклик после свайпа)
-  const handleSwipeLeft = useCallback((card: any) => {
-    const stickerSet = card as StickerSetResponse;
-    swipeDislike(stickerSet.id);
-    tg?.HapticFeedback?.impactOccurred('light');
-  }, [swipeDislike, tg]);
+  useEffect(() => {
+    const head = priorityQueue[0];
+    if (head?.kind !== 'priority' || head.variant !== 'style' || head.presetId == null) return;
+    const pid = head.presetId;
+    if (stylePresetCache[pid]) return;
+    let cancelled = false;
+    void apiClient.getGenerationStylePresetById(pid).then((p) => {
+      if (!cancelled && p) setStylePresetCache((prev) => ({ ...prev, [pid]: p }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [priorityQueue, stylePresetCache]);
 
-  const handleSwipeRight = useCallback(async (card: any) => {
-    const stickerSet = card as StickerSetResponse;
-    await swipeLike(stickerSet.id);
-    tg?.HapticFeedback?.impactOccurred('light');
-  }, [swipeLike, tg]);
+  const consumePriorityHead = useCallback((cardId: string) => {
+    setPriorityQueue((q) => {
+      if (q.length === 0 || q[0].id !== cardId) return q;
+      return q.slice(1);
+    });
+  }, []);
+
+  const handlePrioritySwipe = useCallback(
+    async (card: SwipePriorityDeckCard, direction: 'up' | 'down') => {
+      try {
+        if (card.variant === 'onboarding' && card.slide?.id) {
+          await apiClient.postSessionOnboardingProgress({ lastSlideId: card.slide.id });
+        }
+        if (
+          card.variant === 'onboarding' &&
+          card.slide?.slideType === 'TERMS' &&
+          typeof card.slide?.termsVersion === 'string' &&
+          card.slide.termsVersion.length > 0 &&
+          direction === 'up'
+        ) {
+          await apiClient.postProfileTermsAccepted(card.slide.termsVersion);
+        }
+        if (card.variant === 'daily') {
+          if (direction === 'up') await apiClient.postDailyBonusClaim();
+        }
+        if (card.variant === 'style' && card.presetId != null) {
+          if (direction === 'up') await apiClient.postStyleDeepLinkAccept(card.presetId);
+          else await apiClient.postStyleDeepLinkDismiss(card.presetId);
+        }
+      } catch {
+        /* эндпоинты могут быть ещё не задеплоены */
+      } finally {
+        consumePriorityHead(card.id);
+      }
+    },
+    [consumePriorityHead],
+  );
+
+  // Обработчики свайпа: приоритетные карточки не вызывают like/dislike по стикерсету
+  const handleSwipeLeft = useCallback(
+    (card: any) => {
+      const deck = card as SwipePageDeckCard;
+      if (deck.kind === 'priority') {
+        void handlePrioritySwipe(deck, 'down');
+        tg?.HapticFeedback?.impactOccurred('light');
+        return;
+      }
+      swipeDislike(deck.stickerSet.id);
+      tg?.HapticFeedback?.impactOccurred('light');
+    },
+    [handlePrioritySwipe, swipeDislike, tg],
+  );
+
+  const handleSwipeRight = useCallback(
+    async (card: any) => {
+      const deck = card as SwipePageDeckCard;
+      if (deck.kind === 'priority') {
+        await handlePrioritySwipe(deck, 'up');
+        tg?.HapticFeedback?.impactOccurred('light');
+        return;
+      }
+      await swipeLike(deck.stickerSet.id);
+      tg?.HapticFeedback?.impactOccurred('light');
+    },
+    [handlePrioritySwipe, swipeLike, tg],
+  );
 
   const handleEnd = useCallback(() => {
     // Когда все карточки просмотрены
@@ -247,151 +350,285 @@ export const SwipePage: FC = () => {
     openTelegramUrl(targetUrl, tg);
   }, [tg]);
 
-  // Рендер карточки для SwipeCardStack. Клик по карточке = download; в футере — dislike/like.
-  const renderCard = useCallback((card: any, index: number, actions?: SwipeCardActions) => {
-    const stickerSet = card as StickerSetResponse;
-    const preview = resolvePreviewMedia(stickerSet);
-    const imageUrl = preview?.url || '';
-    const isAnimated = Boolean(preview?.isAnimated);
-    const isVideo = Boolean(preview?.isVideo);
-    const isActiveCard = Boolean(actions);
-    const stopPropagation = (event: React.SyntheticEvent) => {
-      event.stopPropagation();
-    };
-    const onCardClick = () => {
-      handleDownload(stickerSet, imageUrl);
-    };
+  // Рендер карточки: приоритетные (session bootstrap) или обычный стикерсет
+  const renderCard = useCallback(
+    (card: any, _stackIndex: number, actions?: SwipeCardActions) => {
+      const deck = card as SwipePageDeckCard;
+      const stopPropagation = (event: SyntheticEvent) => {
+        event.stopPropagation();
+      };
 
-    return (
-      <div
-        className="swipe-card"
-        role="button"
-        tabIndex={0}
-        onClick={onCardClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onCardClick();
+      if (deck.kind === 'priority') {
+        const pCard = deck;
+        const isActiveCard = Boolean(actions);
+        let title = 'Stixly';
+        let subtitle: string | null = null;
+        let imageUrl: string | null = null;
+        let footerUp = 'Далее';
+        let footerDown = 'Пропустить';
+
+        if (pCard.variant === 'onboarding' && pCard.slide) {
+          const slide = pCard.slide;
+          title = slide.title?.trim() || 'Онбординг';
+          subtitle = renderSlideBody(slide);
+          imageUrl = slide.imageUrl ?? null;
+          if (slide.slideType === 'CLAIM_WELCOME') {
+            footerUp = slide.ctaLabel?.trim() || 'Забрать';
+          } else if (slide.slideType === 'TERMS') {
+            footerUp = slide.ctaLabel?.trim() || 'Принять';
           }
-        }}
-        aria-label="Открыть стикерпак"
-      >
-        <div className="swipe-card__content">
-          <Text variant="h2" weight="bold" className="swipe-card__title">
-            {formatStickerTitle(stickerSet.title)}
-          </Text>
-          {stickerSet.authorId != null && (
-            <AuthorDisplay
-              authorId={stickerSet.authorId}
-              username={stickerSet.username}
-              firstName={stickerSet.firstName}
-              lastName={stickerSet.lastName}
-              className="swipe-card__subtitle top-users-link"
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
-        </div>
+        } else if (pCard.variant === 'daily') {
+          title = 'Ежедневный бонус';
+          const d = session?.profile?.dailyBonus;
+          const amt = d?.amountIfClaim;
+          subtitle =
+            amt != null
+              ? `Сегодня можно забрать ${amt} ART.${d?.streakDays != null ? ` Серия: ${d.streakDays} дн.` : ''}`
+              : 'Забери бонус свайпом вверх.';
+          footerUp = 'Забрать';
+          footerDown = 'Позже';
+        } else if (pCard.variant === 'style' && pCard.presetId != null) {
+          const preset = stylePresetCache[pCard.presetId];
+          title = preset?.name?.replace(/\s*\(.*?\)\s*$/g, '').trim() || 'Стиль';
+          subtitle =
+            preset?.description?.trim() ||
+            'Свайп вверх — применить стиль; вниз — скрыть карточку.';
+          imageUrl = stylePresetSwipePreview(preset);
+          footerUp = 'Применить';
+          footerDown = 'Не сейчас';
+        } else if (pCard.variant === 'generic' && pCard.block?.type) {
+          title = String(pCard.block.type);
+          subtitle = 'Свайп вверх или вниз, чтобы продолжить.';
+        }
 
-        <div className="swipe-card__preview">
-          <div className="swipe-card__preview-inner pack-card__content">
-            {preview ? (
-              isAnimated ? (
-                <AnimatedSticker
-                  fileId={preview.fileId}
-                  imageUrl={imageUrl}
-                  emoji={preview.emoji}
-                  className="pack-card-animated-sticker"
-                  hidePlaceholder={true}
-                  priority={isActiveCard ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
-                />
-              ) : isVideo ? (
-                <SwipeCardVideoPreview
-                  fileId={preview.fileId}
-                  url={preview.url || getStickerVideoUrl(preview.fileId)}
-                  emoji={preview.emoji}
-                  isActive={isActiveCard}
-                  stickerIndex={index}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
+        return (
+          <div
+            className="swipe-card swipe-card--priority"
+            role="group"
+            aria-label={title}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="swipe-card__content">
+              <Text variant="h2" weight="bold" className="swipe-card__title">
+                {title}
+              </Text>
+              {subtitle ? (
+                <Text variant="body" color="secondary" className="swipe-card__subtitle swipe-card__priority-text">
+                  {subtitle}
+                </Text>
+              ) : null}
+            </div>
+            <div className="swipe-card__preview">
+              <div className="swipe-card__preview-inner pack-card__content swipe-card__priority-preview">
+                {imageUrl ? (
                   <img
-                    src={imageCache.get(preview.fileId) || imageUrl}
-                    alt={formatStickerTitle(stickerSet.title)}
+                    src={imageUrl}
+                    alt=""
+                    draggable={false}
                     className="pack-card-image"
                     loading={isActiveCard ? 'eager' : 'lazy'}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                    onError={onApiHostedImageError}
                   />
-                </div>
-              )
-            ) : (
-              <div className="pack-card__placeholder">
-                🎨
+                ) : (
+                  <div className="pack-card__placeholder">✨</div>
+                )}
               </div>
+            </div>
+            <div className="swipe-card__footer" onClick={stopPropagation}>
+              <button
+                type="button"
+                className="swipe-card__action swipe-card__action--dislike"
+                onClick={(e) => {
+                  stopPropagation(e);
+                  actions?.onBeforeDislike?.();
+                  actions?.triggerSwipeLeft?.();
+                }}
+                aria-label={footerDown}
+              >
+                <CloseIcon size={24} color="currentColor" />
+              </button>
+              <button
+                type="button"
+                className="swipe-card__action swipe-card__action--like"
+                onClick={(e) => {
+                  stopPropagation(e);
+                  actions?.onBeforeLike?.();
+                  actions?.triggerSwipeRight?.();
+                }}
+                aria-label={footerUp}
+              >
+                <FavoriteIcon size={24} color="currentColor" />
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      const stickerSet = deck.stickerSet;
+      const stickerFeedIndex = deck.feedIndex;
+      const preview = resolvePreviewMedia(stickerSet);
+      const imageUrl = preview?.url || '';
+      const isAnimated = Boolean(preview?.isAnimated);
+      const isVideo = Boolean(preview?.isVideo);
+      const isActiveCard = Boolean(actions);
+      const onCardClick = () => {
+        handleDownload(stickerSet, imageUrl);
+      };
+
+      return (
+        <div
+          className="swipe-card"
+          role="button"
+          tabIndex={0}
+          onClick={onCardClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onCardClick();
+            }
+          }}
+          aria-label="Открыть стикерпак"
+        >
+          <div className="swipe-card__content">
+            <Text variant="h2" weight="bold" className="swipe-card__title">
+              {formatStickerTitle(stickerSet.title)}
+            </Text>
+            {stickerSet.authorId != null && (
+              <AuthorDisplay
+                authorId={stickerSet.authorId}
+                username={stickerSet.username}
+                firstName={stickerSet.firstName}
+                lastName={stickerSet.lastName}
+                className="swipe-card__subtitle top-users-link"
+                onClick={(e) => e.stopPropagation()}
+              />
             )}
           </div>
-        </div>
 
-        <div className="swipe-card__footer" onClick={stopPropagation} onPointerDown={stopPropagation} onTouchStart={stopPropagation}>
-          <button
-            type="button"
-            className="swipe-card__action swipe-card__action--dislike"
-            onClick={(e) => {
-              stopPropagation(e);
-              actions?.onBeforeDislike?.();
-              actions?.triggerSwipeLeft?.();
-            }}
-            aria-label="Пропустить"
-          >
-            <CloseIcon size={24} color="currentColor" />
-          </button>
-          <button
-            type="button"
-            className="swipe-card__action swipe-card__action--like"
-            onClick={(e) => {
-              stopPropagation(e);
-              actions?.onBeforeLike?.();
-              actions?.triggerSwipeRight?.();
-            }}
-            aria-label="Нравится"
-          >
-            <FavoriteIcon size={24} color="currentColor" />
-          </button>
-        </div>
-      </div>
-    );
-  }, [handleDownload]);
+          <div className="swipe-card__preview">
+            <div className="swipe-card__preview-inner pack-card__content">
+              {preview ? (
+                isAnimated ? (
+                  <AnimatedSticker
+                    fileId={preview.fileId}
+                    imageUrl={imageUrl}
+                    emoji={preview.emoji}
+                    className="pack-card-animated-sticker"
+                    hidePlaceholder={true}
+                    priority={isActiveCard ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND}
+                  />
+                ) : isVideo ? (
+                  <SwipeCardVideoPreview
+                    fileId={preview.fileId}
+                    url={preview.url || getStickerVideoUrl(preview.fileId)}
+                    emoji={preview.emoji}
+                    isActive={isActiveCard}
+                    stickerIndex={stickerFeedIndex}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <img
+                      src={imageCache.get(preview.fileId) || imageUrl}
+                      alt={formatStickerTitle(stickerSet.title)}
+                      className="pack-card-image"
+                      loading={isActiveCard ? 'eager' : 'lazy'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="pack-card__placeholder">🎨</div>
+              )}
+            </div>
+          </div>
 
-  // Предзагрузка webm для следующих карточек (чтобы при свайпе видео уже было в кэше)
+          <div
+            className="swipe-card__footer"
+            onClick={stopPropagation}
+            onPointerDown={stopPropagation}
+            onTouchStart={stopPropagation}
+          >
+            <button
+              type="button"
+              className="swipe-card__action swipe-card__action--dislike"
+              onClick={(e) => {
+                stopPropagation(e);
+                actions?.onBeforeDislike?.();
+                actions?.triggerSwipeLeft?.();
+              }}
+              aria-label="Пропустить"
+            >
+              <CloseIcon size={24} color="currentColor" />
+            </button>
+            <button
+              type="button"
+              className="swipe-card__action swipe-card__action--like"
+              onClick={(e) => {
+                stopPropagation(e);
+                actions?.onBeforeLike?.();
+                actions?.triggerSwipeRight?.();
+              }}
+              aria-label="Нравится"
+            >
+              <FavoriteIcon size={24} color="currentColor" />
+            </button>
+          </div>
+        </div>
+      );
+    },
+    [handleDownload, session, stylePresetCache],
+  );
+
+  // Предзагрузка webm для следующих карточек (только стикерсеты из смешанной колоды)
   useEffect(() => {
-    const toPreload = stickerSets.slice(currentIndex, currentIndex + 4);
-    toPreload.forEach((stickerSet, i) => {
+    const maxVis = 4;
+    const priTaken = Math.min(maxVis, priorityQueue.length);
+    const stickerSlots = Math.max(0, maxVis - priTaken);
+    const stickerSlice = stickerSets.slice(currentIndex, currentIndex + stickerSlots);
+    stickerSlice.forEach((stickerSet, i) => {
       const preview = resolvePreviewMedia(stickerSet);
       if (!preview?.fileId || !preview.isVideo) return;
       if (videoBlobCache.has(preview.fileId)) return;
       const url = preview.url || getStickerVideoUrl(preview.fileId);
-      const priority = i === 0 ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
-      imageLoader.loadVideo(preview.fileId, url, priority, String(stickerSet.id), 0).catch(() => {});
+      const atFront = priorityQueue.length === 0 && i === 0;
+      const priority = atFront ? LoadPriority.TIER_1_VIEWPORT : LoadPriority.TIER_4_BACKGROUND;
+      imageLoader
+        .loadVideo(preview.fileId, url, priority, String(stickerSet.id), currentIndex + i)
+        .catch(() => {});
     });
-  }, [stickerSets, currentIndex]);
+  }, [stickerSets, currentIndex, priorityQueue.length]);
 
-  // Получаем видимые карточки для SwipeCardStack
   const visibleCards = useMemo(() => {
-    return stickerSets.slice(currentIndex, currentIndex + 4);
-  }, [stickerSets, currentIndex]);
+    const maxVisible = 4;
+    const pri = priorityQueue.slice(0, maxVisible);
+    const stickerSlots = maxVisible - pri.length;
+    const stickers = stickerSets
+      .slice(currentIndex, currentIndex + stickerSlots)
+      .map(
+        (stickerSet, idx): SwipePageDeckCard => ({
+          kind: 'sticker',
+          id: stickerSet.id,
+          stickerSet,
+          feedIndex: currentIndex + idx,
+        }),
+      );
+    return [...pri, ...stickers];
+  }, [priorityQueue, stickerSets, currentIndex]);
 
-  const showCardSkeleton = isLoading && stickerSets.length === 0;
+  const showCardSkeleton = isLoading && stickerSets.length === 0 && priorityQueue.length === 0;
 
   // Сброс свечения при отсутствии карточек или скелетоне
   const showCards = !showCardSkeleton && visibleCards.length > 0;
@@ -399,8 +636,8 @@ export const SwipePage: FC = () => {
     if (!showCards) setDragY(0);
   }, [showCards]);
 
-  // Состояния загрузки и ошибок
-  if (isLimitReached && limitInfo) {
+  // Состояния загрузки и ошибок (приоритетная очередь показывается даже при лимите/ошибке колоды)
+  if (isLimitReached && limitInfo && priorityQueue.length === 0) {
     return (
       <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
         <OtherAccountBackground />
@@ -422,7 +659,7 @@ export const SwipePage: FC = () => {
     );
   }
 
-  if (error && stickerSets.length === 0) {
+  if (error && stickerSets.length === 0 && priorityQueue.length === 0) {
     return (
       <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
         <OtherAccountBackground />
@@ -444,7 +681,7 @@ export const SwipePage: FC = () => {
     );
   }
 
-  if (emptyMessage && currentIndex >= stickerSets.length) {
+  if (emptyMessage && currentIndex >= stickerSets.length && priorityQueue.length === 0) {
     return (
       <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
         <OtherAccountBackground />
@@ -463,7 +700,7 @@ export const SwipePage: FC = () => {
     );
   }
 
-  if (!hasMore && currentIndex >= stickerSets.length) {
+  if (!hasMore && currentIndex >= stickerSets.length && priorityQueue.length === 0) {
     return (
       <div className={cn('page-container', 'swipe-page', isInTelegramApp && 'telegram-app')}>
         <OtherAccountBackground />
@@ -498,7 +735,7 @@ export const SwipePage: FC = () => {
             dragY > 0 ? Math.min(dragY / SWIPE_GLOW_THRESHOLD, 1) : 0,
             buttonGlow === 'dislike' ? 1 : 0,
           ),
-        } as React.CSSProperties
+        } as CSSProperties
       }
     >
       <OtherAccountBackground />
@@ -546,7 +783,7 @@ export const SwipePage: FC = () => {
         <div className="swipe-page__cards">
           <SwipeCardStack
             cards={visibleCards}
-            firstCardIndex={currentIndex}
+            firstCardIndex={0}
             onSwipeLeft={handleSwipeLeft}
             onSwipeRight={handleSwipeRight}
             onEnd={handleEnd}

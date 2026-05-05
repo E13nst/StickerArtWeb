@@ -978,6 +978,11 @@
   box-shadow: none !important;
 }
 
+/* Во время генерации поля переносятся на hero-карточку — блок промпта/пресетов скрыт */
+.generate-form-layout__compose--omitted {
+  display: none !important;
+}
+
 @media (max-height: 640px) {
   .generate-form-layout__compose {
     max-height: none;
@@ -2284,6 +2289,56 @@ body.generate-prompt-focused .navbar {
   width: 100%;
   /* Не даём scroll anchoring при подгрузке превью героя «подтаскивать» вьюпорт к полю ниже */
   overflow-anchor: none;
+}
+
+/* Компактные поля пресета (реф + эмодзи) на карточке во время генерации */
+.generate-page .ghc-inline-preset-fields {
+  width: 100%;
+  max-width: 340px;
+  max-height: 100%;
+  overflow: visible;
+  transform: scale(0.7);
+  transform-origin: center center;
+  border-radius: 14px;
+  padding: 6px 8px 8px;
+  background: rgba(12, 14, 20, 0.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__field {
+  padding-top: 6px;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__field--first {
+  padding-top: 0;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__label {
+  font-size: 11px;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__description,
+.generate-page .ghc-inline-preset-fields .preset-fields-form__emoji-prompt {
+  display: none;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__emoji-value {
+  min-height: 34px;
+  font-size: 18px;
+  border-radius: 10px;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__emoji-dropdown {
+  max-height: 160px;
+}
+
+.generate-page .ghc-inline-preset-fields .preset-fields-form__select,
+.generate-page .ghc-inline-preset-fields .preset-fields-form__input {
+  font-size: 12px;
+  padding: 6px 8px;
 }
 
 /* generate-inner: отступ снизу под фиксированную кнопку + навбар */

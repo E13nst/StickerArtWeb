@@ -22,6 +22,20 @@
   --ghc-media-pad-y-bottom: 0px;
 }
 
+/* Промпт и тулбар под превью — блок выше по контенту, высота родителя от потокового слоя карты */
+.ghc-root--with-compose {
+  aspect-ratio: unset;
+  padding-bottom: 26px;
+}
+
+.ghc-root--with-compose .ghc-card.ghc-card--compose-slot {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  min-height: 260px;
+}
+
 /* ── Фоновая карточка — та же сетка 84/16, мягче и спокойнее верхней ── */
 .ghc-bg-card {
   position: absolute;
@@ -146,6 +160,52 @@
 
 .ghc-card:active {
   cursor: grabbing;
+}
+
+/* Генерация: дропдаун эмодзи не обрезаем скруглением карточки */
+.ghc-card--generating-inline {
+  overflow: visible;
+}
+
+/* Промпт внутри карты: выпадающие панели не клипать */
+.ghc-card--compose-slot {
+  overflow: visible;
+}
+
+/* Верхняя часть: превью + мета пресета (контекст для абсолютной .ghc-card__meta) */
+.ghc-card__visual {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.ghc-card__visual--with-compose {
+  flex: 1 1 0;
+  min-height: 104px;
+  max-height: min(48vh, 340px);
+}
+
+.ghc-card--compose-slot .ghc-card__visual--with-compose .ghc-card__media {
+  flex: 1 1 0 !important;
+  min-height: 0;
+}
+
+/* Поле ввода под превью — не запускать горизонтальный drag карточки при тапе по зоне ввода */
+.ghc-card__compose-slot {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 0 8px 10px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 20;
+}
+
+.ghc-card__compose-slot .generate-input-wrapper {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 /* ── Like / Nope overlays ── */
@@ -349,43 +409,46 @@
   pointer-events: none;
 }
 
-/* Generating media */
+/* Generating media: фон + компактные поля без спиннера и без затемняющего оверлея */
 .ghc-card__media--generating {
   flex-direction: column;
-  gap: 12px;
-}
-
-.ghc-card__media--generating.ghc-card__media--generating-prev {
-  flex-direction: row;
   gap: 0;
 }
 
-.ghc-card__generating-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+.ghc-card__media--generating.ghc-card__media--generating-inline {
+  overflow: visible;
 }
 
-.ghc-card__generating-overlay {
+.ghc-card__media-tap--generating-bg,
+.ghc-card__generating-bg-preset {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  z-index: 1;
 }
 
-.ghc-card__generating-msg {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  text-align: center;
+.ghc-card__generating-bg-preset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ghc-card__result-img--generating-bg,
+.ghc-card__preset-img--generating-bg {
+  opacity: 0.42;
+  filter: saturate(0.92);
+}
+
+.ghc-card__generating-fields-wrap {
+  position: relative;
+  z-index: 4;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  pointer-events: auto;
 }
 
 /* Avatar media */
@@ -434,6 +497,7 @@
   background: transparent;
 }
 
+.ghc-card__media--preset-wait {
   flex-direction: column;
   gap: 12px;
   background: rgba(0, 0, 0, 0.2);
