@@ -21,6 +21,7 @@ import { StylePresetPickOverlay } from '@/components/StylePresetPickOverlay';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
 import { mergeCreateStylePresetRequest } from '@/utils/mergeCreateStylePresetRequest';
+import { isFreestylePromptVisibleForStylePreset } from '@/utils/stylePresetFreestylePrompt';
 import { uploadPresetReference } from '@/api/stylePresets';
 import {
   blueprintNeedsPresetReferenceSlot,
@@ -2364,13 +2365,20 @@ export const GeneratePage: FC = () => {
   ]);
 
   const promptInputCfg = selectedPreset?.promptInput ?? null;
-  /** Показывать ли основное поле prompt по preset.promptInput (скрывается только когда enabled явно false). */
-  const showPromptInput = promptInputCfg ? promptInputCfg.enabled : true;
+  /**
+   * Свободный промпт без стиля — как раньше. Для пресета: uiMode + {{prompt}} в suffix + promptInput.enabled,
+   * в духе StylePresetPromptComposer (см. isFreestylePromptVisibleForStylePreset).
+   */
+  const showPromptInput =
+    selectedStylePresetId == null
+      ? true
+      : selectedPreset != null && isFreestylePromptVisibleForStylePreset(selectedPreset);
   /** Итог для UI/submit: учитывает hideFreestylePromptAuthorSupplied с бэка (privacy авторского промпта). */
   const hideFreestylePromptAuthorSupplied = selectedPreset?.hideFreestylePromptAuthorSupplied === true;
   const effectiveShowPromptInput = showPromptInput && !hideFreestylePromptAuthorSupplied;
   /** Является ли prompt обязательным */
-  const promptIsRequired = effectiveShowPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : true);
+  const promptIsRequired =
+    effectiveShowPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : false);
   const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
   /** Первая в истории готовая картинка — для черновика: подсказка в промпте (не для hero-блока) */
   const latestCompletedGenerationPreviewUrl = useMemo(() => {
@@ -3026,6 +3034,8 @@ export const GeneratePage: FC = () => {
       }
 
       const serverPresetRefId = getPresetReferenceSlotSourceId(selectedPreset);
+      // Для чужих каталожных пресетов generation view не присылает presetReference* — слот не шлём,
+      // сервер подставляет референс стиля по stylePresetId (см. GET …/style-presets?view=generation).
       if (serverPresetRefId) {
         const refField = selectedPresetFieldDefs.find(
           (f) => f.key === PRESET_REF_FIELD_KEY && f.type === 'reference',

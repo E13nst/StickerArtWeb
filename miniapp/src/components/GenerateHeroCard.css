@@ -217,6 +217,18 @@
   box-sizing: border-box;
 }
 
+/* Длинные stacks полей пресета: фиксируем типовую высоту блока, контент прокручивается */
+.ghc-card__compose-slot .generate-input-preset-stack {
+  max-height: min(38vh, 300px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+.ghc-card__compose-slot .generate-input-preset-stack--after-prompt {
+  max-height: min(34vh, 260px);
+}
+
 /* ── Like / Nope overlays ── */
 .ghc-card__like-overlay,
 .ghc-card__nope-overlay {

@@ -2231,7 +2231,8 @@ body.generate-prompt-focused .navbar {
 }
 
 .generate-input-wrapper--preset-only {
-  min-height: 92px;
+  /* До исправления было 92px — визуально «провал» под GHC; базовая высота как у блока с textarea */
+  min-height: 116px;
 }
 
 @keyframes fieldsFadeIn {

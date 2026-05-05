@@ -2819,10 +2819,10 @@ class ApiClient {
       generation = generationRes.value;
     } else {
       console.warn(
-        '[ApiClient] view=generation presets failed, fallback без view:',
+        '[ApiClient] view=generation presets failed, повтор с тем же projection (без legacy full):',
         generationRes.reason,
       );
-      generation = await this.getStylePresets({ includeUi: true });
+      generation = await this.getStylePresets({ view: 'generation', includeUi: true });
     }
 
     let browseList: StylePreset[] = [];
