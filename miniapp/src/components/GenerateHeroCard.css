@@ -22,18 +22,26 @@
   --ghc-media-pad-y-bottom: 0px;
 }
 
-/* Промпт и тулбар под превью — блок выше по контенту, высота родителя от потокового слоя карты */
+/* Промпт под превью: корень задаёт ширину для cqw — минимум как у старой карты 370×523 */
 .ghc-root--with-compose {
+  container-type: inline-size;
+  container-name: ghc;
   aspect-ratio: unset;
   padding-bottom: 26px;
 }
 
+/*
+ * Карта целиком не ниже прежней «рамки» 370×523 (пишущая зона добавляется снизу и увеличивает высоту).
+ * 523/370 совпадает с прошлым aspect-ratio корня без композа.
+ */
 .ghc-root--with-compose .ghc-card.ghc-card--compose-slot {
   position: relative;
   inset: auto;
   width: 100%;
   height: auto;
-  min-height: 260px;
+  /* Минимум прежней высоты рамки 370×523 по ширине слота */
+  min-height: calc(523 / 370 * min(100vw - 40px, 370px));
+  min-height: calc(523 / 370 * 100cqw);
 }
 
 /* ── Фоновая карточка — та же сетка 84/16, мягче и спокойнее верхней ── */
@@ -183,8 +191,9 @@
 
 .ghc-card__visual--with-compose {
   flex: 1 1 0;
-  min-height: 104px;
-  max-height: min(48vh, 340px);
+  /* Fallback ширины без cqw; под TG WebView обычно работает 100cqw от .ghc-root--with-compose */
+  min-height: max(136px, calc(523 * 0.84 / 370 * min(100vw - 40px, 370px)));
+  min-height: max(136px, calc(523 * 0.84 / 370 * 100cqw));
 }
 
 .ghc-card--compose-slot .ghc-card__visual--with-compose .ghc-card__media {

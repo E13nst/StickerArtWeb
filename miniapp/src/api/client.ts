@@ -490,6 +490,12 @@ export type StylePresetModerationStatus =
   | 'APPROVED'
   | 'REJECTED';
 
+/**
+ * Детализация GET /api/generation/style-presets (query `view`).
+ * browse — лёгкий листинг без join референса; generation — UI генерации с маскированием чужого референса; full — полный DTO.
+ */
+export type StylePresetListView = 'browse' | 'generation' | 'full';
+
 export type StylePresetUiMode =
   | 'CUSTOM_PROMPT'
   | 'STYLE_WITH_PROMPT'
@@ -550,13 +556,26 @@ export interface PublishUserStyleFromTaskRequest {
   consentResultPublicShow: boolean;
 }
 
-/** Объединяет каталог и «мои» пресеты без дубликатов id (каталог перекрывает совпадения по полям). */
+function mergeBrowseThumbnailFieldsOntoPreset(base: StylePreset, browse?: StylePreset): StylePreset {
+  if (!browse) return base;
+  const browseFirstGallery = browse.previewGalleryUrls?.find((u) => u?.trim()) ?? undefined;
+  return {
+    ...base,
+    previewUrl:
+      browse.previewUrl ?? browseFirstGallery ?? base.previewUrl,
+    previewWebpUrl: browse.previewWebpUrl ?? base.previewWebpUrl,
+    thumbnailUrl: browse.thumbnailUrl ?? base.thumbnailUrl,
+    ...(browse.previewGalleryUrls != null ? { previewGalleryUrls: browse.previewGalleryUrls } : {}),
+  };
+}
+
+/** Объединяет каталог и «мои» пресеты без дубликатов id (пресеты из «моих» перекрывают каталог для совпадения id). */
 export function mergeStylePresetLists(catalog: StylePreset[], mine: StylePreset[]): StylePreset[] {
   const byId = new Map<number, StylePreset>();
-  for (const p of mine) {
+  for (const p of catalog) {
     byId.set(p.id, p);
   }
-  for (const p of catalog) {
+  for (const p of mine) {
     const prev = byId.get(p.id);
     byId.set(p.id, prev ? { ...prev, ...p } : p);
   }
@@ -588,6 +607,8 @@ export interface StylePreset {
   previewUrl?: string | null;
   previewWebpUrl?: string | null;
   thumbnailUrl?: string | null;
+  /** Галерея превью для карточки (browse / отдельная выдача бэкенда). */
+  previewGalleryUrls?: string[] | null;
   /** Короткий текст у кнопки эмодзи стикера (как у «История»). */
   stickerEmojiLabel?: string | null;
   uiMode?: string | null;
@@ -2685,12 +2706,22 @@ class ApiClient {
 
   // Получение списка доступных пресетов стилей
   // API endpoint: GET /api/generation/style-presets
-  async getStylePresets(): Promise<StylePreset[]> {
+  async getStylePresets(params?: {
+    view?: StylePresetListView;
+    /**
+     * По умолчанию true — как в прежней версии миниаппа без query view.
+     * Для режима только метаданных на бэке передайте false и не указывайте view=full через старый контракт.
+     */
+    includeUi?: boolean;
+  }): Promise<StylePreset[]> {
     try {
+      const includeUi = params?.includeUi !== undefined ? params.includeUi : true;
+      const query: Record<string, string | boolean> = { includeUi };
+      if (params?.view != null) {
+        query.view = params.view;
+      }
       const response = await this.client.get<StylePreset[]>('/generation/style-presets', {
-        params: {
-          includeUi: true,
-        },
+        params: query,
       });
       const activePresets = response.data.filter((preset) => preset.isEnabled);
       const catOrder = (c: StylePresetCategoryDto | null | undefined) => c?.sortOrder ?? 0;
@@ -2775,12 +2806,42 @@ class ApiClient {
     }
   }
 
-  /** Каталог (включённые глобальные и свои) + «мои» с полным UI, без дубликатов по id. */
+  /** Каталог: параллельно browse + generation + «мои»; thumbnails из browse накладываются на generation. */
   async loadStylePresetsMerged(): Promise<StylePreset[]> {
-    const [catalog, mine] = await Promise.all([
-      this.getStylePresets(),
-      this.getMyStylePresets(true).catch(() => [] as StylePreset[]),
+    const [generationRes, browseRes, mineRes] = await Promise.allSettled([
+      this.getStylePresets({ view: 'generation', includeUi: true }),
+      this.getStylePresets({ view: 'browse', includeUi: true }),
+      this.getMyStylePresets(true),
     ]);
+
+    let generation: StylePreset[];
+    if (generationRes.status === 'fulfilled') {
+      generation = generationRes.value;
+    } else {
+      console.warn(
+        '[ApiClient] view=generation presets failed, fallback без view:',
+        generationRes.reason,
+      );
+      generation = await this.getStylePresets({ includeUi: true });
+    }
+
+    let browseList: StylePreset[] = [];
+    if (browseRes.status === 'fulfilled') {
+      browseList = browseRes.value;
+    } else {
+      console.warn('[ApiClient] view=browse presets failed:', browseRes.reason);
+    }
+
+    const mine =
+      mineRes.status === 'fulfilled' ? mineRes.value : ([] as StylePreset[]);
+
+    const browseById = new Map<number, StylePreset>(
+      browseList.map((preset) => [preset.id, preset] as const),
+    );
+    const catalog = generation.map((g) =>
+      mergeBrowseThumbnailFieldsOntoPreset(g, browseById.get(g.id)),
+    );
+
     return mergeStylePresetLists(catalog, mine);
   }
 
