@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { StickerSetListResponse, StickerSetResponse, AuthResponse, StickerSetMeta, ProfileResponse, CategoryResponse, CreateStickerSetRequest, CreateStickerSetCreateRequest, CategorySuggestionResult, LeaderboardResponse, AuthorsLeaderboardResponse, UserWallet, DonationPrepareResponse, DonationConfirmResponse, SwipeStatsResponse } from '../types/sticker';
+import type { DeckAction, DeckActionResponse, DeckCardsResponse } from '../types/deck';
 import type { UserInfo } from '@/types/user';
 import type { MiniAppSessionResponse } from '@/types/appSession';
 import { mockStickerSets } from '../data/mockData';
@@ -1473,6 +1474,20 @@ class ApiClient {
   // API endpoint: GET /api/swipes/stats
   async getSwipeStats(): Promise<SwipeStatsResponse> {
     const response = await this.client.get<SwipeStatsResponse>('/swipes/stats');
+    return response.data;
+  }
+
+  /** GET /api/deck/cards — персональная колода мини-приложения (страница генерации) */
+  async getDeckCards(params?: { limit?: number }): Promise<DeckCardsResponse> {
+    const response = await this.client.get<DeckCardsResponse>('/deck/cards', {
+      params: params?.limit != null ? { limit: params.limit } : undefined,
+    });
+    return response.data;
+  }
+
+  /** POST /api/deck/action */
+  async postDeckAction(body: { cardInstanceId: string; action: DeckAction }): Promise<DeckActionResponse> {
+    const response = await this.client.post<DeckActionResponse>('/deck/action', body);
     return response.data;
   }
 

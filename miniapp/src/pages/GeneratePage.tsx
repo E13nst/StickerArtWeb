@@ -16,7 +16,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
-import { GenerateHeroCard } from '@/components/GenerateHeroCard';
+import { GenerateHeroCard, type DeckCardPresentation } from '@/components/GenerateHeroCard';
 import { StylePresetPickOverlay } from '@/components/StylePresetPickOverlay';
 import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
@@ -66,6 +66,7 @@ import { useGenerateLandingGateStore } from '@/store/useGenerateLandingGateStore
 import { useGenerateHistoryHeaderStore } from '@/store/useGenerateHistoryHeaderStore';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
+import { useGenerateDeckQueue } from '@/hooks/useGenerateDeckQueue';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
 import { DownloadIcon } from '@/components/ui/Icons';
@@ -98,6 +99,9 @@ import {
   resolveTelegramStartParam,
 } from '@/utils/stylePresetDeepLink';
 import { POPULAR_EMOJIS } from '@/constants/popularEmojis';
+import { buildGenerateDeckCardVisual } from '@/utils/generateDeckCardVisual';
+import type { DeckAction, DeckActionResponse, DeckCard } from '@/types/deck';
+import { Toast } from '@/components/ui/Toast';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
 
@@ -4482,6 +4486,112 @@ export const GeneratePage: FC = () => {
     }
   };
 
+  const generateDeckQueue = useGenerateDeckQueue(landingReleased);
+  const [deckArtToast, setDeckArtToast] = useState<{ message: string; visible: boolean }>({
+    message: '',
+    visible: false,
+  });
+
+  const deckLinkedPresetIdFn = useCallback((card: DeckCard): number | null => {
+    if (card.type !== 'STYLE_PRESET') return null;
+    const p = card.payload ?? {};
+    if (typeof p.stylePresetId === 'number' && Number.isFinite(p.stylePresetId)) return p.stylePresetId;
+    return null;
+  }, []);
+
+  const deckCardPresentation = useCallback(
+    (card: DeckCard): DeckCardPresentation => {
+      const base = buildGenerateDeckCardVisual(card, deckLinkedPresetIdFn);
+      const linkedPreset =
+        base.linkedPresetId != null ? stylePresets.find((pr) => pr.id === base.linkedPresetId) ?? null : null;
+      let imageUrl = base.imageUrl;
+      if (!imageUrl && linkedPreset) {
+        imageUrl =
+          presetPreviewById.get(linkedPreset.id) ??
+          (linkedPreset.code ? PRESET_PREVIEW_FALLBACK_BY_CODE[linkedPreset.code] : undefined) ??
+          getServerStylePresetCardPreview(linkedPreset) ??
+          null;
+      }
+      return {
+        title: base.title,
+        subtitle: base.subtitle,
+        imageUrl,
+        linkedPreset,
+      };
+    },
+    [deckLinkedPresetIdFn, stylePresets, presetPreviewById],
+  );
+
+  const openDeckBlueprintByCode = useCallback(
+    async (codeRaw: string) => {
+      const code = codeRaw.trim();
+      if (!code) return;
+      let blueprints = userPresetCreationBlueprints;
+      if (!blueprints.length) {
+        try {
+          blueprints = await apiClient.getUserPresetCreationBlueprints();
+          setUserPresetCreationBlueprints(blueprints);
+        } catch {
+          return;
+        }
+      }
+      const bp = blueprints.find((b) => b.code === code);
+      if (!bp) return;
+      tg?.HapticFeedback?.impactOccurred?.('light');
+      setOwnStyleBlueprintSession(buildOwnStyleSessionFromBlueprint({ blueprint: bp }));
+      setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
+      setPublishUiHints(bp.uiHints ?? null);
+      handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
+    },
+    [userPresetCreationBlueprints, buildOwnStyleSessionFromBlueprint, handlePresetChange, tg],
+  );
+
+  const onDeckInteraction = useCallback(
+    async (card: DeckCard, action: DeckAction) => {
+      const res = await generateDeckQueue.commitDeckAction(card.cardInstanceId, action);
+      return { ok: res.ok, data: res.data ?? null };
+    },
+    [generateDeckQueue],
+  );
+
+  const onDeckPostSuccess = useCallback(
+    (card: DeckCard, action: DeckAction, data: DeckActionResponse | null | undefined) => {
+      if (data?.artDelta != null && data.artDelta !== 0) {
+        setDeckArtToast({
+          message: data.artDelta > 0 ? `+${data.artDelta} ART` : `${data.artDelta} ART`,
+          visible: true,
+        });
+      }
+      if (card.type === 'STYLE_PRESET' && action === 'LIKE') {
+        const pid = deckLinkedPresetIdFn(card);
+        if (pid != null) handlePresetChange(pid);
+      }
+      if (card.type === 'LAST_GENERATION' && action === 'OPEN') {
+        const tid = typeof card.payload?.taskId === 'string' ? card.payload.taskId : null;
+        if (tid) {
+          const entry = historyEntries.find((e) => e.taskId === tid);
+          const url = entry?.resultImageUrl;
+          if (url) {
+            setImageLightbox({ viewerUrl: url, downloadUrl: url, alt: 'Результат' });
+          }
+        }
+      }
+      if (card.type === 'CREATE_STYLE_BLUEPRINT' && action === 'PRIMARY_CTA') {
+        const raw =
+          (typeof card.payload?.code === 'string' && card.payload.code) ||
+          (typeof card.payload?.blueprintCode === 'string' && card.payload.blueprintCode) ||
+          '';
+        void openDeckBlueprintByCode(raw);
+      }
+      if (card.type === 'CUSTOM_PROMPT' && action === 'PRIMARY_CTA') {
+        queueMicrotask(() => {
+          document.querySelector<HTMLTextAreaElement>('.generate-page .generate-input')?.focus();
+        });
+      }
+    },
+    [deckLinkedPresetIdFn, historyEntries, openDeckBlueprintByCode, handlePresetChange],
+  );
+
   const handlePublicationPublished = useCallback(async (updated: StylePreset) => {
     if (activeHistoryLocalIdRef.current) {
       patchHistoryEntry(
@@ -4893,6 +5003,11 @@ export const GeneratePage: FC = () => {
         }
       }}
       onApiHostedResultImageError={purgeHistoryEntryForExpiredApiImage}
+      deckCards={generateDeckQueue.cards.length > 0 ? generateDeckQueue.cards : null}
+      deckCardPresentation={deckCardPresentation}
+      onDeckInteraction={onDeckInteraction}
+      onDeckPostSuccess={onDeckPostSuccess}
+      onDeckHeadConsumed={generateDeckQueue.removeCardHeadIfMatches}
     />
   );
 
@@ -5204,6 +5319,38 @@ export const GeneratePage: FC = () => {
   // Рендер формы (Figma: Logo → Header → Inpit → Delete background → Style preview → Button)
   const renderIdleState = () => (
     <>
+      {(generateDeckQueue.swipeStats != null ||
+        generateDeckQueue.deckProgress != null ||
+        generateDeckQueue.limitInfo != null ||
+        generateDeckQueue.error != null) && (
+        <div className="generate-deck-progress">
+          {generateDeckQueue.error ? (
+            <Text variant="bodySmall" color="secondary" align="center">
+              {generateDeckQueue.error}
+            </Text>
+          ) : null}
+          {generateDeckQueue.swipeStats ? (
+            <Text variant="bodySmall" color="secondary" align="center">
+              Свайпы:{' '}
+              {generateDeckQueue.swipeStats.isUnlimited
+                ? 'безлимит'
+                : `${generateDeckQueue.swipeStats.dailySwipes}/${generateDeckQueue.swipeStats.dailyLimit}`}
+            </Text>
+          ) : null}
+          {generateDeckQueue.deckProgress ? (
+            <Text variant="bodySmall" align="center">
+              Прогон колоды: {generateDeckQueue.deckProgress.styleSwipesInCurrentRun}/
+              {generateDeckQueue.deckProgress.swipesRequiredForDeckReward} · до награды{' '}
+              {generateDeckQueue.deckProgress.swipesRemainingUntilDeckReward}
+            </Text>
+          ) : null}
+          {generateDeckQueue.limitInfo ? (
+            <Text variant="bodySmall" color="secondary" align="center">
+              Лимит свайпов: {generateDeckQueue.limitInfo.currentSwipes}/{generateDeckQueue.limitInfo.dailyLimit}
+            </Text>
+          ) : null}
+        </div>
+      )}
       {renderHeroCard({
         composeSlot: renderMainInputBlock({
           readOnly: false,
@@ -5259,6 +5406,12 @@ export const GeneratePage: FC = () => {
           imageLightbox?.downloadUrl ? () => void downloadStickerByUrl(imageLightbox.downloadUrl!) : undefined
         }
         downloadDisabled={isDownloadingResult}
+      />
+      <Toast
+        message={deckArtToast.message}
+        type="success"
+        isVisible={deckArtToast.visible}
+        onClose={() => setDeckArtToast((t) => ({ ...t, visible: false }))}
       />
       <StylePresetPublicationModal
         open={publishPresetModalOpen}

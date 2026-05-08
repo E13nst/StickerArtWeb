@@ -16,7 +16,16 @@ import type { SyntheticEvent } from 'react';
 import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import { Pulsar } from '@/components/ui/Pulsar';
 import { DeleteIcon, ShareIcon, DownloadIcon } from '@/components/ui/Icons';
+import type { DeckAction, DeckActionResponse, DeckCard } from '@/types/deck';
+import { deckActionForGesture, deckOverlayLabels } from '@/utils/generateDeckCardVisual';
 import './GenerateHeroCard.css';
+
+export interface DeckCardPresentation {
+  title: string;
+  subtitle: string | null;
+  imageUrl: string | null;
+  linkedPreset: StylePreset | null;
+}
 
 export interface GenerateHeroCardProps {
   /** Отфильтрованный список пресетов для свайп-деки */
@@ -66,6 +75,16 @@ export interface GenerateHeroCardProps {
   composeSlotRef?: Ref<HTMLDivElement | null>;
   /** Тап по прошлому результату на фонe во время генерации */
   onDuringJobPreviousResultTap?: () => void;
+  /** Персональная колода API `/deck/*` (страница генерации); при непустой — idle-свайп идёт через эти карточки */
+  deckCards?: DeckCard[] | null;
+  deckCardPresentation?: (card: DeckCard) => DeckCardPresentation;
+  onDeckInteraction?: (
+    card: DeckCard,
+    action: DeckAction,
+  ) => Promise<{ ok: boolean; data?: DeckActionResponse | null }>;
+  onDeckPostSuccess?: (card: DeckCard, action: DeckAction, data: DeckActionResponse | null | undefined) => void;
+  /** Снять верхнюю карточку очереди после анимации и успешного POST */
+  onDeckHeadConsumed?: (cardInstanceId: string) => void;
 }
 
 // Figma: first card 370×523, aspect-ratio ≈ 370/523
@@ -133,6 +152,11 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   composeSlot,
   composeSlotRef,
   onDuringJobPreviousResultTap,
+  deckCards,
+  deckCardPresentation,
+  onDeckInteraction,
+  onDeckPostSuccess,
+  onDeckHeadConsumed,
 }) => {
   const onResultOrPrevImgError = onApiHostedResultImageError ?? onApiHostedImageError;
   // Индекс текущей карточки в деке
@@ -153,26 +177,6 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   useEffect(() => {
     setDeckIndex(0);
   }, [presets.length]);
-
-  /** Пресеты впереди по кругу для префетча и плавной колоды */
-  const lookaheadUrls = useMemo(() => {
-    if (presets.length === 0) return [];
-    const out: string[] = [];
-    for (let k = 1; k <= 4; k++) {
-      const p = presets[(deckIndex + k) % presets.length];
-      const u = p ? getPresetPreview(p, presetPreviewById) : null;
-      if (u) out.push(u);
-    }
-    return [...new Set(out)];
-  }, [presets, deckIndex, presetPreviewById]);
-
-  useEffect(() => {
-    for (const url of lookaheadUrls) {
-      const img = new Image();
-      img.decoding = 'async';
-      img.src = url;
-    }
-  }, [lookaheadUrls]);
 
   // Framer-motion x для свайпа
   const x = useMotionValue(0);
@@ -249,6 +253,54 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     [presets.length, x, bgLift, commitAdvanceAndReset],
   );
 
+  const commitServerDeckAfterAnim = useCallback(
+    (cardId: string) => {
+      flushSync(() => {
+        onDeckHeadConsumed?.(cardId);
+      });
+      x.set(0);
+      bgLift.set(0);
+    },
+    [onDeckHeadConsumed, x, bgLift],
+  );
+
+  const runServerDeckPullAnimation = useCallback(
+    async (swipeRight: boolean, cardInstanceId: string) => {
+      if (deckBusyRef.current || !deckCards || deckCards.length <= 1) return;
+      deckBusyRef.current = true;
+      setDeckTransitioning(true);
+      try {
+        const flyTarget = swipeRight ? 400 : -400;
+        await animate(x, flyTarget, { duration: EXIT_MS, ease: [0.22, 1, 0.36, 1] });
+        setHideFrontForDeck(true);
+        setBgPromoting(true);
+        await animate(bgLift, 1, { duration: PROMOTE_MS, ease: [0.16, 1, 0.32, 1] });
+        flushSync(() => {
+          setHideBackLayer(true);
+        });
+        commitServerDeckAfterAnim(cardInstanceId);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setHideBackLayer(false);
+            setHideFrontForDeck(false);
+            setDeckTransitioning(false);
+            deckBusyRef.current = false;
+          });
+        });
+      } catch {
+        deckBusyRef.current = false;
+        setDeckTransitioning(false);
+        setHideFrontForDeck(false);
+        setHideBackLayer(false);
+        bgLift.set(0);
+        x.set(0);
+      } finally {
+        setBgPromoting(false);
+      }
+    },
+    [deckCards, x, bgLift, commitServerDeckAfterAnim],
+  );
+
   const handleDragStart = useCallback(() => {
     hapticFiredRef.current = false;
   }, []);
@@ -260,6 +312,92 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     }
   }, [onHapticLight]);
 
+  const isGenerating = pageState === 'generating' || pageState === 'uploading';
+  const isSuccess = pageState === 'success';
+  const isInteractive = !isGenerating && !isSuccess;
+
+  const useServerDeck = Boolean(
+    deckCards &&
+      deckCards.length > 0 &&
+      isInteractive &&
+      onDeckInteraction &&
+      deckCardPresentation,
+  );
+
+  const serverHead = useServerDeck && deckCards ? deckCards[0] : null;
+  const serverNext = useServerDeck && deckCards && deckCards.length > 1 ? deckCards[1] : null;
+  const serverPresentCur = serverHead && deckCardPresentation ? deckCardPresentation(serverHead) : null;
+  const serverPresentNext = serverNext && deckCardPresentation ? deckCardPresentation(serverNext) : null;
+  const overlayLabels =
+    serverHead && useServerDeck ? deckOverlayLabels(serverHead.type) : { like: '♥ НРАВИТСЯ', nope: '✕ ДАЛЬШЕ' };
+
+  // Определяем текущий и следующий пресет для стека карточек
+  const currentPreset = presets[deckIndex] ?? null;
+  const nextPreset = presets[(deckIndex + 1) % presets.length] ?? null;
+  const currentPreview = currentPreset ? getPresetPreview(currentPreset, presetPreviewById) : null;
+  const nextPreview = nextPreset ? getPresetPreview(nextPreset, presetPreviewById) : null;
+
+  const serverCurrentPreview = useMemo(() => {
+    if (!serverPresentCur) return null;
+    if (serverPresentCur.imageUrl) return serverPresentCur.imageUrl;
+    if (serverPresentCur.linkedPreset) {
+      return getPresetPreview(serverPresentCur.linkedPreset, presetPreviewById);
+    }
+    return null;
+  }, [serverPresentCur, presetPreviewById]);
+
+  const serverNextPreview = useMemo(() => {
+    if (!serverPresentNext) return null;
+    if (serverPresentNext.imageUrl) return serverPresentNext.imageUrl;
+    if (serverPresentNext.linkedPreset) {
+      return getPresetPreview(serverPresentNext.linkedPreset, presetPreviewById);
+    }
+    return null;
+  }, [serverPresentNext, presetPreviewById]);
+
+  /** Пресеты впереди по кругу для префетча и плавной колоды */
+  const lookaheadUrls = useMemo(() => {
+    if (useServerDeck && deckCards?.length) {
+      const urls = [serverCurrentPreview, serverNextPreview].filter(Boolean) as string[];
+      let k = 2;
+      while (k < Math.min(6, deckCards.length) && deckCardPresentation) {
+        const c = deckCards[k];
+        const pr = c ? deckCardPresentation(c) : null;
+        const u =
+          pr?.imageUrl ??
+          (pr?.linkedPreset ? getPresetPreview(pr.linkedPreset, presetPreviewById) : null);
+        if (u) urls.push(u);
+        k++;
+      }
+      return [...new Set(urls)];
+    }
+    if (presets.length === 0) return [];
+    const out: string[] = [];
+    for (let k = 1; k <= 4; k++) {
+      const p = presets[(deckIndex + k) % presets.length];
+      const u = p ? getPresetPreview(p, presetPreviewById) : null;
+      if (u) out.push(u);
+    }
+    return [...new Set(out)];
+  }, [
+    useServerDeck,
+    deckCards,
+    serverCurrentPreview,
+    serverNextPreview,
+    deckCardPresentation,
+    presets,
+    deckIndex,
+    presetPreviewById,
+  ]);
+
+  useEffect(() => {
+    for (const url of lookaheadUrls) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+    }
+  }, [lookaheadUrls]);
+
   const handleDragEnd = useCallback(
     (_e: PointerEvent, info: PanInfo) => {
       const dist = info.offset.x;
@@ -268,42 +406,82 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
 
       if (deckBusyRef.current) return;
 
-      if (dist > SWIPE_THRESHOLD || vel > VELOCITY_THRESHOLD) {
-        const preset = presets[deckIndex];
-        if (preset) {
-          if (presets.length > 1) {
-            void runDeckPullAnimation(preset);
+      const runPresetStripSwipe = () => {
+        if (dist > SWIPE_THRESHOLD || vel > VELOCITY_THRESHOLD) {
+          const preset = presets[deckIndex];
+          if (preset) {
+            if (presets.length > 1) {
+              void runDeckPullAnimation(preset);
+            } else {
+              animate(x, 400, { duration: EXIT_MS, ease: [0.22, 1, 0.36, 1] }).then(() => {
+                x.set(0);
+                onPresetSelect(preset.id);
+              });
+            }
           } else {
-            animate(x, 400, { duration: EXIT_MS, ease: [0.22, 1, 0.36, 1] }).then(() => {
-              x.set(0);
-              onPresetSelect(preset.id);
-            });
+            animate(x, 0, { type: 'spring', stiffness: 280, damping: 34, mass: 0.85 });
+          }
+        } else if (dist < -SWIPE_THRESHOLD || vel < -VELOCITY_THRESHOLD) {
+          if (presets.length > 1) {
+            void runDeckPullAnimation(null);
+          } else {
+            animate(x, 0, { type: 'spring', stiffness: 280, damping: 34, mass: 0.85 });
           }
         } else {
           animate(x, 0, { type: 'spring', stiffness: 280, damping: 34, mass: 0.85 });
         }
-      } else if (dist < -SWIPE_THRESHOLD || vel < -VELOCITY_THRESHOLD) {
-        if (presets.length > 1) {
-          void runDeckPullAnimation(null);
-        } else {
+      };
+
+      if (
+        useServerDeck &&
+        deckCards &&
+        deckCards[0] &&
+        onDeckInteraction
+      ) {
+        const swipeRight = dist > SWIPE_THRESHOLD || vel > VELOCITY_THRESHOLD;
+        const swipeLeft = dist < -SWIPE_THRESHOLD || vel < -VELOCITY_THRESHOLD;
+        if (!swipeRight && !swipeLeft) {
           animate(x, 0, { type: 'spring', stiffness: 280, damping: 34, mass: 0.85 });
+          return;
         }
-      } else {
-        animate(x, 0, { type: 'spring', stiffness: 280, damping: 34, mass: 0.85 });
+        const card = deckCards[0];
+        const wantsRight = swipeRight;
+        const action = deckActionForGesture(card.type, wantsRight);
+        void (async () => {
+          const result = await onDeckInteraction(card, action);
+          if (!result.ok) {
+            animate(x, 0, { type: 'spring', stiffness: 280, damping: 34, mass: 0.85 });
+            return;
+          }
+          onDeckPostSuccess?.(card, action, result.data ?? null);
+          const multi = deckCards.length > 1;
+          if (multi) {
+            await runServerDeckPullAnimation(wantsRight, card.cardInstanceId);
+          } else {
+            await animate(x, wantsRight ? 400 : -400, { duration: EXIT_MS, ease: [0.22, 1, 0.36, 1] });
+            x.set(0);
+            onDeckHeadConsumed?.(card.cardInstanceId);
+          }
+        })();
+        return;
       }
+
+      runPresetStripSwipe();
     },
-    [x, presets, deckIndex, onPresetSelect, runDeckPullAnimation],
+    [
+      x,
+      presets,
+      deckIndex,
+      onPresetSelect,
+      runDeckPullAnimation,
+      useServerDeck,
+      deckCards,
+      onDeckInteraction,
+      onDeckPostSuccess,
+      onDeckHeadConsumed,
+      runServerDeckPullAnimation,
+    ],
   );
-
-  const isGenerating = pageState === 'generating' || pageState === 'uploading';
-  const isSuccess = pageState === 'success';
-  const isInteractive = !isGenerating && !isSuccess;
-
-  // Определяем текущий и следующий пресет для стека карточек
-  const currentPreset = presets[deckIndex] ?? null;
-  const nextPreset = presets[(deckIndex + 1) % presets.length] ?? null;
-  const currentPreview = currentPreset ? getPresetPreview(currentPreset, presetPreviewById) : null;
-  const nextPreview = nextPreset ? getPresetPreview(nextPreset, presetPreviewById) : null;
 
   // ── Контент карточки ──
   const renderCardContent = () => {
@@ -419,6 +597,32 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       );
     }
 
+    if (useServerDeck && serverPresentCur) {
+      if (serverCurrentPreview) {
+        return (
+          <div className="ghc-card__media ghc-card__media--preset">
+            <img
+              src={serverCurrentPreview}
+              alt={serverPresentCur.title}
+              className="ghc-card__preset-img"
+              loading="eager"
+              decoding="async"
+              draggable={false}
+              onError={onApiHostedImageError}
+            />
+          </div>
+        );
+      }
+      return (
+        <div className="ghc-card__media ghc-card__media--preset ghc-card__media--preset-wait">
+          <div className="ghc-card__preset-wait-inner" aria-hidden>
+            <div className="ghc-card__preset-shimmer" />
+          </div>
+          <Pulsar size={40} colorScheme="warm" />
+        </div>
+      );
+    }
+
     if (currentPreset && currentPreview) {
       return (
         <div className="ghc-card__media ghc-card__media--preset">
@@ -468,7 +672,24 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
 
   // Оверлей названия пресета (внизу карточки)
   const renderPresetMeta = () => {
-    if (!isInteractive || !currentPreset) return null;
+    if (!isInteractive) return null;
+    if (useServerDeck && serverPresentCur) {
+      const sub = serverPresentCur.subtitle?.trim();
+      return (
+        <div className="ghc-card__meta">
+          <span className="ghc-card__meta-name">{serverPresentCur.title}</span>
+          <span
+            className={
+              'ghc-card__meta-author' + (sub ? '' : ' ghc-card__meta-author--empty')
+            }
+            aria-hidden={sub ? undefined : true}
+          >
+            {sub ?? ''}
+          </span>
+        </div>
+      );
+    }
+    if (!currentPreset) return null;
     const name = stripPresetName(currentPreset.name);
     if (!name) return null;
     const author = formatPresetOwnerHandle(currentPreset);
@@ -490,6 +711,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   // Действия (share/delete) поверх карточки
   const renderActions = () => {
     if (!isInteractive) return null;
+    if (useServerDeck) return null;
     if (!canDeleteStyle && !canShareStyle) return null;
     return (
       <div className="ghc-card__actions">
@@ -521,10 +743,17 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     );
   };
 
+  const showBgDeck = isInteractive
+    ? useServerDeck
+      ? Boolean(deckCards && deckCards.length > 1)
+      : Boolean(nextPreset && presets.length > 1)
+    : false;
+  const bgPreviewUrl = useServerDeck ? serverNextPreview : nextPreview;
+
   return (
     <div className={composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root'}>
       {/* Фоновая карточка — следующий пресет: тот же ритм 84/16, мягче чем верхняя */}
-      {isInteractive && nextPreset && presets.length > 1 && (
+      {showBgDeck && (
         <motion.div
           className={
             'ghc-bg-card' +
@@ -541,9 +770,9 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
         >
           <div className="ghc-bg-card__frame">
             <div className="ghc-bg-card__media">
-              {nextPreview ? (
+              {bgPreviewUrl ? (
                 <img
-                  src={nextPreview}
+                  src={bgPreviewUrl}
                   alt=""
                   className="ghc-bg-card__img"
                   draggable={false}
@@ -595,7 +824,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           style={{ opacity: likeOpacity }}
           aria-hidden
         >
-          <span className="ghc-card__like-label">♥ НРАВИТСЯ</span>
+          <span className="ghc-card__like-label">{overlayLabels.like}</span>
         </motion.div>
 
         {/* Nope overlay */}
@@ -604,7 +833,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           style={{ opacity: nopeOpacity }}
           aria-hidden
         >
-          <span className="ghc-card__nope-label">✕ ДАЛЬШЕ</span>
+          <span className="ghc-card__nope-label">{overlayLabels.nope}</span>
         </motion.div>
 
         <div
@@ -627,9 +856,9 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       </motion.div>
 
       {/* Счётчик карточек */}
-      {isInteractive && presets.length > 1 && (
+      {isInteractive && (useServerDeck ? deckCards && deckCards.length > 1 : presets.length > 1) && (
         <div className="ghc-deck-counter" aria-hidden>
-          {deckIndex + 1} / {presets.length}
+          {useServerDeck && deckCards ? `1 / ${deckCards.length}` : `${deckIndex + 1} / ${presets.length}`}
         </div>
       )}
     </div>

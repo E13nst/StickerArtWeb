@@ -2397,3 +2397,14 @@ body.generate-prompt-focused .navbar {
   padding-top: 8px;
   margin-top: 4px;
 }
+
+.generate-deck-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 12px 0;
+  width: 100%;
+  max-width: 370px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
