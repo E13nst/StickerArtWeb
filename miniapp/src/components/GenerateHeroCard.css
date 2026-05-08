@@ -22,6 +22,31 @@
   --ghc-media-pad-y-bottom: 0px;
 }
 
+/* Колода не про пресет (welcome, blueprint-card и т.д.): не раздувать min-height под «холст результата» */
+.ghc-root--deck-flow.ghc-root--with-compose .ghc-card.ghc-card--compose-slot {
+  min-height: min(240px, 52cqw);
+}
+
+/* Компактная зона вместо 84%-«экрана результата» + шиммера для текстовых карточек колоды */
+.ghc-card__media--deck-banner {
+  flex: 0 0 auto !important;
+  min-height: 96px;
+  max-height: 34%;
+  padding: 12px 16px 8px;
+  background: radial-gradient(90% 120% at 50% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(22, 22, 28, 0.5) 0%, rgba(10, 12, 18, 0.42) 100%);
+  border-radius: 14px;
+  margin: 4px var(--ghc-media-pad-x) 0;
+  box-sizing: border-box;
+}
+
+.ghc-card__deck-banner-mark {
+  font-size: 36px;
+  line-height: 1;
+  opacity: 0.85;
+  user-select: none;
+}
+
 /* Промпт под превью: корень задаёт ширину для cqw — минимум как у старой карты 370×523 */
 .ghc-root--with-compose {
   container-type: inline-size;

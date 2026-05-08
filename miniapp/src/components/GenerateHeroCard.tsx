@@ -325,6 +325,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   );
 
   const serverHead = useServerDeck && deckCards ? deckCards[0] : null;
+  const deckFlowNonStyle = Boolean(serverHead && serverHead.type !== 'STYLE_PRESET');
   const serverNext = useServerDeck && deckCards && deckCards.length > 1 ? deckCards[1] : null;
   const serverPresentCur = serverHead && deckCardPresentation ? deckCardPresentation(serverHead) : null;
   const serverPresentNext = serverNext && deckCardPresentation ? deckCardPresentation(serverNext) : null;
@@ -613,12 +614,19 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           </div>
         );
       }
-      return (
-        <div className="ghc-card__media ghc-card__media--preset ghc-card__media--preset-wait">
-          <div className="ghc-card__preset-wait-inner" aria-hidden>
-            <div className="ghc-card__preset-shimmer" />
+      if (serverHead?.type === 'STYLE_PRESET') {
+        return (
+          <div className="ghc-card__media ghc-card__media--preset ghc-card__media--preset-wait">
+            <div className="ghc-card__preset-wait-inner" aria-hidden>
+              <div className="ghc-card__preset-shimmer" />
+            </div>
+            <Pulsar size={40} colorScheme="warm" />
           </div>
-          <Pulsar size={40} colorScheme="warm" />
+        );
+      }
+      return (
+        <div className="ghc-card__media ghc-card__media--deck-banner" aria-hidden>
+          <span className="ghc-card__deck-banner-mark">✨</span>
         </div>
       );
     }
@@ -751,7 +759,12 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   const bgPreviewUrl = useServerDeck ? serverNextPreview : nextPreview;
 
   return (
-    <div className={composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root'}>
+    <div
+      className={
+        (composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root') +
+        (deckFlowNonStyle && composeSlot ? ' ghc-root--deck-flow' : '')
+      }
+    >
       {/* Фоновая карточка — следующий пресет: тот же ритм 84/16, мягче чем верхняя */}
       {showBgDeck && (
         <motion.div

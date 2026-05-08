@@ -951,6 +951,13 @@
   align-self: stretch;
 }
 
+/* Промпт на hero, поля пресета в форме (welcome / bonus и др.) — меньше вертикального «шума» под колодой */
+.generate-form-block--deck-split .generate-form-layout__compose {
+  padding-top: 0;
+  padding-bottom: 6px;
+  gap: 6px;
+}
+
 /* Вертикальный блок: поле ввода закреплено сверху вьюпорта, кнопка — снизу, сетка пресетов скроллится между ними */
 .generate-form-layout {
   display: flex;

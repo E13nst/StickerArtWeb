@@ -4730,19 +4730,25 @@ export const GeneratePage: FC = () => {
     showPromptError: boolean;
     withWrapperHandlers: boolean;
     withActiveState: boolean;
-  }) => (
+    /** По умолчанию full: промпт и поля пресета вместе. Для карточек колоды не про STYLE — поля уводятся под hero. */
+    inputVariant?: 'full' | 'prompt-only' | 'preset-fields-only';
+  }) => {
+    const inputVariant = cfg.inputVariant ?? 'full';
+    const showPrompt = effectiveShowPromptInput && inputVariant !== 'preset-fields-only';
+    const showPresetStack = selectedPresetFieldDefs.length > 0 && inputVariant !== 'prompt-only';
+    return (
     <div
       className={cn(
         'generate-input-wrapper',
         cfg.withActiveState && hasPromptText && 'generate-input-wrapper--active',
         cfg.showPromptError && 'generate-input-wrapper--error',
-        (effectiveShowPromptInput && selectedPresetFieldDefs.length > 0) && 'generate-input-wrapper--with-preset-stack',
-        !effectiveShowPromptInput && selectedPresetFieldDefs.length > 0 && 'generate-input-wrapper--preset-only',
+        (showPrompt && showPresetStack) && 'generate-input-wrapper--with-preset-stack',
+        !showPrompt && showPresetStack && 'generate-input-wrapper--preset-only',
       )}
-      tabIndex={cfg.withWrapperHandlers && !effectiveShowPromptInput ? 0 : undefined}
+      tabIndex={cfg.withWrapperHandlers && !showPrompt ? 0 : undefined}
       onPaste={cfg.withWrapperHandlers ? handleInputWrapperPaste : undefined}
     >
-      {effectiveShowPromptInput && (
+      {showPrompt && (
         <textarea
           className={cn(
             'generate-input',
@@ -4760,11 +4766,11 @@ export const GeneratePage: FC = () => {
           onBlur={handlePromptFocusOut}
         />
       )}
-      {selectedPresetFieldDefs.length > 0 && (
+      {showPresetStack && (
         <div
           className={cn(
             'generate-input-preset-stack',
-            effectiveShowPromptInput && 'generate-input-preset-stack--after-prompt',
+            showPrompt && 'generate-input-preset-stack--after-prompt',
           )}
         >
           <PresetFieldsForm
@@ -4794,7 +4800,8 @@ export const GeneratePage: FC = () => {
       )}
       {renderInputFooter(cfg.readOnly || cfg.textDisabled)}
     </div>
-  );
+    );
+  };
 
   const renderPresetGrid = (disabled: boolean) => (
     <StylePresetPackGrid
@@ -4836,9 +4843,13 @@ export const GeneratePage: FC = () => {
     hideSubmit?: boolean;
     /** Скрыть блок промпта и полей пресета (они показаны на hero во время задачи) */
     omitCompose?: boolean;
+    /** Вариант блока ввода в форме, если compose не скрыт (например только поля пресета под hero-колодой) */
+    composeInputVariant?: 'full' | 'prompt-only' | 'preset-fields-only';
+    /** Поля пресета вынесены под hero при колоде welcome/bonus и т.п. */
+    deckSplitCompose?: boolean;
   }) => (
     <div
-      className="generate-form-block"
+      className={cn('generate-form-block', cfg.deckSplitCompose && 'generate-form-block--deck-split')}
       onDragOver={cfg.dropEnabled ? handleGenerateFormDragOver : undefined}
       onDrop={cfg.dropEnabled ? handleGenerateFormDrop : undefined}
     >
@@ -4858,6 +4869,7 @@ export const GeneratePage: FC = () => {
               showPromptError: cfg.showPromptError,
               withWrapperHandlers: cfg.withWrapperHandlers,
               withActiveState: cfg.withActiveState,
+              inputVariant: cfg.composeInputVariant ?? 'full',
             })}
         </div>
         <div className="generate-form-layout__preset-scroll">
@@ -4907,6 +4919,17 @@ export const GeneratePage: FC = () => {
       </div>
     </div>
   );
+
+  /** Карточки колоды не про оценку пресета: в hero только промпт, поля черновика — в форме под карточкой */
+  const deckHeadForLayout = generateDeckQueue.cards[0] ?? null;
+  const deckDeferPresetFields = Boolean(
+    deckHeadForLayout && deckHeadForLayout.type !== 'STYLE_PRESET',
+  );
+  const showDeferredPresetFieldsInForm =
+    deckDeferPresetFields && selectedPresetFieldDefs.length > 0;
+  const heroComposeInputVariant: 'full' | 'prompt-only' = deckDeferPresetFields
+    ? 'prompt-only'
+    : 'full';
 
   const primarySourcePreview = sourceImagePreviews[0] ?? null;
   const stripIsOnlyTelegramAvatars =
@@ -5294,6 +5317,7 @@ export const GeneratePage: FC = () => {
           showPromptError: true,
           withWrapperHandlers: true,
           withActiveState: true,
+          inputVariant: heroComposeInputVariant,
         }),
       })}
       {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
@@ -5311,7 +5335,9 @@ export const GeneratePage: FC = () => {
         buttonText: generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: true,
+        omitCompose: !showDeferredPresetFieldsInForm,
+        composeInputVariant: showDeferredPresetFieldsInForm ? 'preset-fields-only' : 'full',
+        deckSplitCompose: showDeferredPresetFieldsInForm,
       })}
     </div>
   );
@@ -5359,6 +5385,7 @@ export const GeneratePage: FC = () => {
           showPromptError: false,
           withWrapperHandlers: true,
           withActiveState: true,
+          inputVariant: heroComposeInputVariant,
         }),
       })}
       {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
@@ -5377,7 +5404,9 @@ export const GeneratePage: FC = () => {
         buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: true,
+        omitCompose: !showDeferredPresetFieldsInForm,
+        composeInputVariant: showDeferredPresetFieldsInForm ? 'preset-fields-only' : 'full',
+        deckSplitCompose: showDeferredPresetFieldsInForm,
       })}
     </>
   );
