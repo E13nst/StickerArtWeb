@@ -20,6 +20,10 @@ dist/
 .cursor/plans/
 .cursor/worktrees.json
 
+# Локальные дополнения к справочникам / AGENTS (остаются только на машине)
+.cursor/api-reference.local.md
+AGENTS.local.md
+
 # Logs
 *.log
 npm-debug.log*
