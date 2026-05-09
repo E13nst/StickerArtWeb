@@ -104,6 +104,14 @@ import type { DeckAction, DeckActionResponse, DeckCard } from '@/types/deck';
 import { Toast } from '@/components/ui/Toast';
 type PageState = 'idle' | 'uploading' | 'generating' | 'success' | 'error';
 type ErrorKind = 'prompt' | 'upload' | 'general';
+const LOCAL_INTENT_CARD_TYPES = new Set<DeckCard['type']>([
+  'LAST_GENERATION',
+  'CREATE_STYLE_BLUEPRINT',
+  'CUSTOM_PROMPT',
+]);
+
+const isLocalIntentDeckCard = (card: DeckCard | null | undefined): card is DeckCard =>
+  Boolean(card && LOCAL_INTENT_CARD_TYPES.has(card.type));
 
 type GenerateImageLightboxState = {
   viewerUrl: string;
@@ -616,6 +624,7 @@ export const GeneratePage: FC = () => {
   const [pinnedHistoryLocalId, setPinnedHistoryLocalId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<GenerateImageLightboxState | null>(null);
+  const [localOverlayDeckCard, setLocalOverlayDeckCard] = useState<DeckCard | null>(null);
   const [isPromptFocused, setIsPromptFocused] = useState(false);
   /** Последний успешный результат, показывается во время upload/generating при повторном запуске без «мерцания» макета. */
   const [duringJobPreviousResultUrl, setDuringJobPreviousResultUrl] = useState<string | null>(null);
@@ -3960,6 +3969,21 @@ export const GeneratePage: FC = () => {
     return null;
   };
 
+  const presentHistoryAsLocalIntentCard = (entry: GenerateHistoryEntry) => {
+    setHistoryOpen(false);
+    setLocalOverlayDeckCard({
+      cardInstanceId: `local-last-generation-${entry.localId}`,
+      type: 'LAST_GENERATION',
+      payload: {
+        localId: entry.localId,
+        taskId: entry.taskId,
+        title: 'Последняя генерация',
+        subtitle: getHistoryPromptLabel(entry),
+        imageUrl: entry.resultImageUrl,
+      },
+    });
+  };
+
   const openHistoryEntry = async (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
     setDuringJobPreviousResultUrl(null);
@@ -4491,6 +4515,22 @@ export const GeneratePage: FC = () => {
     message: '',
     visible: false,
   });
+  const serverQueueIntentHead = isLocalIntentDeckCard(generateDeckQueue.cards[0])
+    ? generateDeckQueue.cards[0]
+    : null;
+  const visibleServerDeckCards = serverQueueIntentHead
+    ? generateDeckQueue.cards.slice(1)
+    : generateDeckQueue.cards;
+
+  useEffect(() => {
+    if (!serverQueueIntentHead || localOverlayDeckCard) return;
+    setLocalOverlayDeckCard(serverQueueIntentHead);
+  }, [serverQueueIntentHead, localOverlayDeckCard]);
+
+  useEffect(() => {
+    if (pageState === 'idle' || !localOverlayDeckCard) return;
+    setLocalOverlayDeckCard(null);
+  }, [pageState, localOverlayDeckCard]);
 
   const deckLinkedPresetIdFn = useCallback((card: DeckCard): number | null => {
     if (card.type !== 'STYLE_PRESET') return null;
@@ -4520,6 +4560,11 @@ export const GeneratePage: FC = () => {
       };
     },
     [deckLinkedPresetIdFn, stylePresets, presetPreviewById],
+  );
+
+  const localOverlayDeckCardPresentation = useMemo(
+    () => (localOverlayDeckCard ? deckCardPresentation(localOverlayDeckCard) : null),
+    [deckCardPresentation, localOverlayDeckCard],
   );
 
   const openDeckBlueprintByCode = useCallback(
@@ -4568,12 +4613,12 @@ export const GeneratePage: FC = () => {
       }
       if (card.type === 'LAST_GENERATION' && action === 'OPEN') {
         const tid = typeof card.payload?.taskId === 'string' ? card.payload.taskId : null;
-        if (tid) {
-          const entry = historyEntries.find((e) => e.taskId === tid);
-          const url = entry?.resultImageUrl;
-          if (url) {
-            setImageLightbox({ viewerUrl: url, downloadUrl: url, alt: 'Результат' });
-          }
+        const localId = typeof card.payload?.localId === 'string' ? card.payload.localId : null;
+        const payloadUrl = typeof card.payload?.imageUrl === 'string' ? card.payload.imageUrl : null;
+        const entry = historyEntries.find((e) => (tid ? e.taskId === tid : e.localId === localId));
+        const url = entry?.resultImageUrl ?? payloadUrl;
+        if (url) {
+          setImageLightbox({ viewerUrl: url, downloadUrl: url, alt: 'Результат' });
         }
       }
       if (card.type === 'CREATE_STYLE_BLUEPRINT' && action === 'PRIMARY_CTA') {
@@ -4590,6 +4635,19 @@ export const GeneratePage: FC = () => {
       }
     },
     [deckLinkedPresetIdFn, historyEntries, openDeckBlueprintByCode, handlePresetChange],
+  );
+
+  const onOverlayCardConsumed = useCallback(
+    (card: DeckCard, action: DeckAction) => {
+      if (generateDeckQueue.cards[0]?.cardInstanceId === card.cardInstanceId) {
+        generateDeckQueue.removeCardHeadIfMatches(card.cardInstanceId);
+      }
+      onDeckPostSuccess(card, action, null);
+      setLocalOverlayDeckCard((current) =>
+        current?.cardInstanceId === card.cardInstanceId ? null : current,
+      );
+    },
+    [generateDeckQueue, onDeckPostSuccess],
   );
 
   const handlePublicationPublished = useCallback(async (updated: StylePreset) => {
@@ -5026,11 +5084,14 @@ export const GeneratePage: FC = () => {
         }
       }}
       onApiHostedResultImageError={purgeHistoryEntryForExpiredApiImage}
-      deckCards={generateDeckQueue.cards.length > 0 ? generateDeckQueue.cards : null}
+      deckCards={visibleServerDeckCards.length > 0 ? visibleServerDeckCards : null}
       deckCardPresentation={deckCardPresentation}
+      overlayCard={localOverlayDeckCard}
+      overlayCardPresentation={localOverlayDeckCardPresentation}
       onDeckInteraction={onDeckInteraction}
       onDeckPostSuccess={onDeckPostSuccess}
       onDeckHeadConsumed={generateDeckQueue.removeCardHeadIfMatches}
+      onOverlayCardConsumed={onOverlayCardConsumed}
     />
   );
 
@@ -5099,7 +5160,13 @@ export const GeneratePage: FC = () => {
                     <button
                       type="button"
                       className={cn('generate-history-item', entry.isActive && 'generate-history-item--active')}
-                      onClick={() => void openHistoryEntry(entry)}
+                      onClick={() => {
+                        if (entry.pageState === 'success' && entry.resultImageUrl) {
+                          presentHistoryAsLocalIntentCard(entry);
+                          return;
+                        }
+                        void openHistoryEntry(entry);
+                      }}
                     >
                       <div className="generate-history-item__preview-wrap" aria-hidden="true">
                         {entry.resultImageUrl ? (

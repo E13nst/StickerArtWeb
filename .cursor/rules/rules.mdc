@@ -10,7 +10,9 @@ alwaysApply: false
 
 1. **`AGENTS.md`** (корень) — критерии merge и процесс; то же **критичное** продублировано в `stickerart-agent-harness.mdc` для подхвата на каждом промпте.
 2. **`.cursor/api-reference.md`** — API, лайки, Telegram, dev, Git, детали эндпоинтов. Локальные дополнения: `.cursor/api-reference.local.md` (в `.gitignore`).
-3. **Guardrails по файлам**: `stickerart-frontend.mdc`, `stickerart-testing-and-pr.mdc`, `stickerart-ui-design.mdc`.
-4. Всегда активны: `stickerart-agent-harness.mdc`.
+3. **`docs/README.md`** — зачем в репо держать agent-readable документацию и что туда переносить.
+4. **`stickerart-agent-skills.mdc`** — reusable-паттерны из harness engineering: docs as system of record, mechanical guardrails, PR loop, garbage collection.
+5. **Guardrails по файлам**: `stickerart-frontend.mdc`, `stickerart-testing-and-pr.mdc`, `stickerart-ui-design.mdc`.
+6. Всегда активны: `stickerart-agent-harness.mdc`.
 
 Swagger: https://stickerartgallery-e13nst.amvera.io/swagger-ui/index.html

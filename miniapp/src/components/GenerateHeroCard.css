@@ -195,6 +195,10 @@
   cursor: grabbing;
 }
 
+.ghc-card--overlay-intent {
+  z-index: 6;
+}
+
 /* Генерация: дропдаун эмодзи не обрезаем скруглением карточки */
 .ghc-card--generating-inline {
   overflow: visible;
@@ -497,44 +501,79 @@
   pointer-events: auto;
 }
 
-/* Avatar media */
-.ghc-card__media--avatar {
-  flex-direction: column;
+.ghc-card__avatar-ref {
+  position: absolute;
+  left: var(--ghc-media-pad-x);
+  right: var(--ghc-media-pad-x);
+  bottom: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.56);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
 }
 
-.ghc-card__avatar-img {
-  width: 60%;
-  max-width: 200px;
-  aspect-ratio: 1;
+.ghc-card__avatar-ref-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.ghc-card__avatar-ref-img {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 13px rgba(0, 0, 0, 0.34);
 }
 
-.ghc-card__avatar-remove {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
+.ghc-card__avatar-ref-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+.ghc-card__avatar-ref-remove {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.5);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
-  z-index: 5;
   transition: background 0.15s ease;
 }
 
-.ghc-card__avatar-remove:hover {
-  background: rgba(0, 0, 0, 0.7);
+.ghc-card__avatar-ref-remove:hover {
+  background: rgba(255, 255, 255, 0.16);
   color: #fff;
 }
 

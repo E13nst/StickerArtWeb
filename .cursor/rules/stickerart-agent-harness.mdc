@@ -21,6 +21,7 @@ alwaysApply: true
 
 - Один фронтенд-пакет: **`miniapp/`**; один ESLint-корень, скрипты из корневого `package.json`.
 - Детальный справочник API/окружения: **`.cursor/api-reference.md`**; личные дополнения без коммита: **`.cursor/api-reference.local.md`**. Опционально приватные ноты к AGENTS: **`AGENTS.local.md`** (в `.gitignore`).
+- Reusable skills из подхода harness engineering: **`.cursor/rules/stickerart-agent-skills.mdc`**. Общая документация для агентов должна быть в git (`docs/*.md`), а не в игноре.
 
 ## Старт vs жёсткость
 
@@ -32,3 +33,4 @@ alwaysApply: true
 - Повторяющиеся замечания → правило, ESLint или тест.
 - Планы в репо — ревьюить как код.
 - Не выполнять формально «каждый старый комментарий ревью» вне контекста текущей задачи.
+- Ошибка/замечание, повторившиеся дважды, — кандидат на mechanical guardrail: lint, structural test, regression test или правило.

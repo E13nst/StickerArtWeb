@@ -22,7 +22,15 @@ dist/
 
 # Локальные дополнения к справочникам / AGENTS (остаются только на машине)
 .cursor/api-reference.local.md
+.cursor/*.local.md
 AGENTS.local.md
+docs/**/*.local.md
+
+# Старые/рабочие markdown-отчёты в docs не добавляем автоматически.
+# Общие agent-readable документы добавляй явно; базовая карта docs остаётся в git.
+docs/*.md
+!docs/README.md
+miniapp/docs/*.md
 
 # Logs
 *.log
@@ -47,9 +55,6 @@ playwright-report-prod/
 **/playwright-report/**/*
 *.test-results.json
 *.test-results.xml
-
-# Docs (local documentation)
-docs/
 
 # Temp
 .cache/
