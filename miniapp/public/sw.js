@@ -5,7 +5,8 @@ const STICKER_CACHE_NAME = 'stixly-stickers-media-v4';
 // Таймауты для разных типов ресурсов
 const TIMEOUTS = {
   stickers: 15000, // 15 секунд для стикеров (могут быть большими файлами)
-  api: 10000       // 10 секунд для API
+  /** Медленный бэкенд / WebView Telegram — 10s часто даёт ложные таймауты; SW всё равно уйдёт в кеш. */
+  api: 20000
 };
 
 // Стратегия кеширования для разных типов ресурсов
@@ -136,11 +137,12 @@ async function fetchWithRetry(request, retries = 2, timeout = 10000) {
       
       return response;
     } catch (error) {
-      console.error(`[SW] Fetch attempt ${i + 1}/${retries + 1} failed:`, error.message);
-      
+      const attemptLabel = `${i + 1}/${retries + 1}`;
       if (i === retries) {
-        throw error; // Последняя попытка - бросаем ошибку
+        console.error(`[SW] Fetch failed after ${attemptLabel} attempts:`, error.message);
+        throw error;
       }
+      console.warn(`[SW] Fetch attempt ${attemptLabel} timed out or failed, retrying:`, error.message);
       
       // Ждем перед retry (экспоненциальная задержка)
       await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, i), 5000)));

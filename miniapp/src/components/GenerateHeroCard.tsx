@@ -809,6 +809,8 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   // Действия (share/delete) поверх карточки
   const renderActions = () => {
     if (!isInteractive) return null;
+    /* Share/delete только для верхней стилевой карты; для intent-карточки «новый стикер» FAB не нужен и вводит в заблуждение. */
+    if (useOverlayDeck && !activeDeckCardIsStyle) return null;
     if (useServerDeck) return null;
     if (!canDeleteStyle && !canShareStyle) return null;
     return (

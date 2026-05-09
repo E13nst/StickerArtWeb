@@ -4558,8 +4558,21 @@ export const GeneratePage: FC = () => {
   const omitComposeUnderPageForm = !generationComposeUsesHeroOverlay
     ? true
     : deckDeferComposeToForm || splitHeroComposePresetFieldsToForm;
-  /** На карточках API-колоды лента вложений встроена в compose-слот героя. */
-  const hideStandaloneSourceStrip = visibleServerDeckCards.length > 0;
+  /**
+   * Лента референсов под карточкой не нужна, если она уже встроена в compose-слот героя:
+   * непустая API-колода или любая верхняя карта не STYLE_PRESET (создание стикера, пустая колода, welcome и т.д.).
+   */
+  const hideStandaloneSourceStrip =
+    visibleServerDeckCards.length > 0 ||
+    (generationDeckHeadCard != null && generationDeckHeadCard.type !== 'STYLE_PRESET');
+  /** INLINE compose внутри карточки даже при deckDefer: последняя карта / создать стикер без выезжающего overlay. */
+  const stickerLikeHeroComposeDeckHead =
+    generationDeckHeadCard?.type === 'CUSTOM_PROMPT' ||
+    generationDeckHeadCard?.type === 'DECK_EMPTY';
+  const showHeroComposeSlotWhenOverlayDefer =
+    !generationComposeUsesHeroOverlay || stickerLikeHeroComposeDeckHead;
+  const hideFixedGenerateStickerCompose =
+    (pageState === 'idle' || pageState === 'error') && stickerLikeHeroComposeDeckHead;
 
   useEffect(() => {
     if (!generationComposeUsesHeroOverlay) setComposeDeckOverlayOpen(false);
@@ -4690,7 +4703,13 @@ export const GeneratePage: FC = () => {
         queueMicrotask(() => {
           const sel =
             '.ghc-card__compose-slot .generate-input, .ghc-compose-overlay .generate-input, .generate-page .generate-input';
-          if (generationComposeUsesHeroOverlay) {
+          if (
+            generationComposeUsesHeroOverlay &&
+            !(
+              generationDeckHeadCard?.type === 'CUSTOM_PROMPT' ||
+              generationDeckHeadCard?.type === 'DECK_EMPTY'
+            )
+          ) {
             setComposeDeckOverlayOpen(true);
           }
           document.querySelector<HTMLTextAreaElement>(sel)?.focus();
@@ -4700,6 +4719,7 @@ export const GeneratePage: FC = () => {
     [
       getDeckLinkedStylePresetId,
       generationComposeUsesHeroOverlay,
+      generationDeckHeadCard?.type,
       historyEntries,
       openDeckBlueprintByCode,
       handlePresetChange,
@@ -4996,9 +5016,16 @@ export const GeneratePage: FC = () => {
       generationDeckHeadCard &&
       generationDeckHeadCard.type !== 'STYLE_PRESET'
     ) {
+      const inlineGenerateInCompose =
+        generationDeckHeadCard.type === 'CUSTOM_PROMPT' ||
+        generationDeckHeadCard.type === 'DECK_EMPTY';
       return (
         <div
-          className="ghc-card__compose-stack"
+          className={cn(
+            'ghc-card__compose-stack',
+            'ghc-card__compose-stack--deck-compose',
+            inlineGenerateInCompose && 'ghc-card__compose-stack--with-generate-btn',
+          )}
           key={`deck-compose-${generationDeckHeadCard.cardInstanceId}`}
         >
           {renderSourceImageStrip(params.textDisabled, {
@@ -5010,6 +5037,22 @@ export const GeneratePage: FC = () => {
             withActiveState: true,
             inputVariant: 'full',
           })}
+          {inlineGenerateInCompose ? (
+            <div className="ghc-card__compose-generate-wrap">
+              <Button
+                variant="primary"
+                size="medium"
+                type="button"
+                onClick={() => void handleGenerate()}
+                disabled={isDisabled}
+                loading={isGenerating}
+                className={cn('ghc-card__compose-generate-btn', 'generate-button-submit')}
+                aria-label={isGenerating ? 'Идёт генерация' : undefined}
+              >
+                {isGenerating ? 'Подождите...' : generateLabel}
+              </Button>
+            </div>
+          ) : null}
         </div>
       );
     }
@@ -5533,16 +5576,16 @@ export const GeneratePage: FC = () => {
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      {generationComposeUsesHeroOverlay
-        ? renderHeroCard()
-        : renderHeroCard({
+      {showHeroComposeSlotWhenOverlayDefer
+        ? renderHeroCard({
             composeSlot: buildDeckAwareHeroComposeSlot({
               readOnly: false,
               textDisabled: false,
               referenceDndEnabled: true,
               showPromptError: true,
             }),
-          })}
+          })
+        : renderHeroCard()}
       {!hideStandaloneSourceStrip &&
         renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
@@ -5569,48 +5612,23 @@ export const GeneratePage: FC = () => {
   // Рендер формы (Figma: Logo → Header → Inpit → Delete background → Style preview → Button)
   const renderIdleState = () => (
     <>
-      {(generateDeckQueue.swipeStats != null ||
-        generateDeckQueue.deckProgress != null ||
-        generateDeckQueue.limitInfo != null ||
-        generateDeckQueue.error != null) && (
+      {generateDeckQueue.error ? (
         <div className="generate-deck-progress">
-          {generateDeckQueue.error ? (
-            <Text variant="bodySmall" color="secondary" align="center">
-              {generateDeckQueue.error}
-            </Text>
-          ) : null}
-          {generateDeckQueue.swipeStats ? (
-            <Text variant="bodySmall" color="secondary" align="center">
-              Свайпы:{' '}
-              {generateDeckQueue.swipeStats.isUnlimited
-                ? 'безлимит'
-                : `${generateDeckQueue.swipeStats.dailySwipes}/${generateDeckQueue.swipeStats.dailyLimit}`}
-            </Text>
-          ) : null}
-          {generateDeckQueue.deckProgress ? (
-            <Text variant="bodySmall" align="center">
-              Прогон колоды: {generateDeckQueue.deckProgress.styleSwipesInCurrentRun}/
-              {generateDeckQueue.deckProgress.swipesRequiredForDeckReward} · до награды{' '}
-              {generateDeckQueue.deckProgress.swipesRemainingUntilDeckReward}
-            </Text>
-          ) : null}
-          {generateDeckQueue.limitInfo ? (
-            <Text variant="bodySmall" color="secondary" align="center">
-              Лимит свайпов: {generateDeckQueue.limitInfo.currentSwipes}/{generateDeckQueue.limitInfo.dailyLimit}
-            </Text>
-          ) : null}
+          <Text variant="bodySmall" color="secondary" align="center">
+            {generateDeckQueue.error}
+          </Text>
         </div>
-      )}
-      {generationComposeUsesHeroOverlay
-        ? renderHeroCard()
-        : renderHeroCard({
+      ) : null}
+      {showHeroComposeSlotWhenOverlayDefer
+        ? renderHeroCard({
             composeSlot: buildDeckAwareHeroComposeSlot({
               readOnly: false,
               textDisabled: isGenerating,
               referenceDndEnabled: !isGenerating,
               showPromptError: false,
             }),
-          })}
+          })
+        : renderHeroCard()}
       {!hideStandaloneSourceStrip &&
         renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
 
@@ -5705,7 +5723,7 @@ export const GeneratePage: FC = () => {
         </AttachmentPointerDragProvider>
       </div>
       {/* ── Фиксированная кнопка генерации: всегда над навбаром, скрывается при клавиатуре ── */}
-      {!isPromptFocused && (
+      {!isPromptFocused && !hideFixedGenerateStickerCompose && (
         <div className="generate-fixed-submit">
           <Button
             variant="primary"

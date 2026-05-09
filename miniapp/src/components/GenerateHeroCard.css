@@ -333,6 +333,29 @@
   max-height: min(34vh, 260px);
 }
 
+/* Не-STYLE верх колоды: лента → промпт+футер → кнопка генерации внутри карточки */
+.ghc-card__compose-stack--deck-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ghc-card__compose-stack--with-generate-btn {
+  padding-bottom: 2px;
+}
+
+.ghc-card__compose-generate-wrap {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ghc-card__compose-generate-btn {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* ── Like / Nope overlays ── */
 .ghc-card__like-overlay,
 .ghc-card__nope-overlay {
