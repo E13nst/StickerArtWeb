@@ -570,6 +570,32 @@ function mergeBrowseThumbnailFieldsOntoPreset(base: StylePreset, browse?: StyleP
   };
 }
 
+/**
+ * Поля из GET /generation/style-presets/my, безопасные для наложения на пресет из view=generation.
+ * Раньше делали `{ ...catalog, ...mine }` — ответ «мои» часто без той же проекции, что и generation,
+ * и затирал showFreestylePromptInUi / fields / promptInput (в частности при includeUi без view).
+ */
+const STYLE_PRESET_AUTHOR_OVERLAY_KEYS: (keyof StylePreset)[] = [
+  'ownerId',
+  'moderationStatus',
+  'canDeleteAsAuthor',
+  'shareableAsDeepLink',
+  'deepLinkUrl',
+  'deepLinkStartParam',
+  'ownerUsername',
+];
+
+function pickStylePresetAuthorOverlay(mine: StylePreset): Partial<StylePreset> {
+  const out: Partial<StylePreset> = {};
+  for (const key of STYLE_PRESET_AUTHOR_OVERLAY_KEYS) {
+    const v = mine[key];
+    if (v !== undefined) {
+      Object.assign(out, { [key]: v } as Partial<StylePreset>);
+    }
+  }
+  return out;
+}
+
 /** Объединяет каталог и «мои» пресеты без дубликатов id (пресеты из «моих» перекрывают каталог для совпадения id). */
 export function mergeStylePresetLists(catalog: StylePreset[], mine: StylePreset[]): StylePreset[] {
   const byId = new Map<number, StylePreset>();
@@ -578,7 +604,7 @@ export function mergeStylePresetLists(catalog: StylePreset[], mine: StylePreset[
   }
   for (const p of mine) {
     const prev = byId.get(p.id);
-    byId.set(p.id, prev ? { ...prev, ...p } : p);
+    byId.set(p.id, prev ? { ...prev, ...pickStylePresetAuthorOverlay(p) } : p);
   }
   const list = [...byId.values()];
   const catOrder = (c: StylePresetCategoryDto | null | undefined) => c?.sortOrder ?? 0;
@@ -1523,7 +1549,7 @@ class ApiClient {
   async getGenerationStylePresetById(id: number): Promise<StylePreset | null> {
     try {
       const response = await this.client.get<StylePreset>(`/generation/style-presets/${id}`, {
-        params: { includeUi: true },
+        params: { includeUi: true, view: 'generation' },
       });
       const p = response.data;
       return p?.isEnabled === false ? null : (p ?? null);
@@ -2763,10 +2789,13 @@ class ApiClient {
   }
 
   /** GET /api/generation/style-presets/my — пресеты текущего пользователя. */
-  async getMyStylePresets(includeUi = false): Promise<StylePreset[]> {
+  async getMyStylePresets(includeUi = false, view?: StylePresetListView): Promise<StylePreset[]> {
     try {
+      const params: Record<string, string | boolean> = {};
+      if (includeUi) params.includeUi = true;
+      if (view != null) params.view = view;
       const response = await this.client.get<StylePreset[]>('/generation/style-presets/my', {
-        params: includeUi ? { includeUi: true } : {},
+        params,
       });
       return response.data ?? [];
     } catch (error: any) {
@@ -2832,7 +2861,7 @@ class ApiClient {
     const [generationRes, browseRes, mineRes] = await Promise.allSettled([
       this.getStylePresets({ view: 'generation', includeUi: true }),
       this.getStylePresets({ view: 'browse', includeUi: true }),
-      this.getMyStylePresets(true),
+      this.getMyStylePresets(true, 'generation'),
     ]);
 
     let generation: StylePreset[];

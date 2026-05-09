@@ -2317,16 +2317,22 @@ export const GeneratePage: FC = () => {
     return () => window.clearTimeout(tid);
   }, [stylePresetShareNotice]);
 
+  const deckHeadDrivesGenerationPreset =
+    deckVisibleHeadCard?.type === 'STYLE_PRESET' && deckHeadLinkedStylePresetId != null;
+
   // Метаданные UI выбранного пресета (виртуальная карточка «своего стиля»; при загрузке preset_ref черновик создаётся лениво).
-  // Если наверху колоды карточка STYLE_PRESET — её stylePresetId важнее сохранённого выбора в сетке (иначе превью колоды и поля расходятся).
+  // Колоду учитываем только пока верхняя карточка — STYLE_PRESET; иначе форма следует выбору в сетке (после свайпа на бонус/историю не тянуть прошлый стиль).
   const selectedPreset: StylePreset | null = useMemo(() => {
     if (isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession) {
       return ownStyleBlueprintSession.virtualPreset;
     }
-    const catalogId = deckHeadLinkedStylePresetId ?? selectedStylePresetId;
+    const catalogId = deckHeadDrivesGenerationPreset
+      ? deckHeadLinkedStylePresetId
+      : selectedStylePresetId;
     if (catalogId == null) return null;
     return stylePresets.find((p) => p.id === catalogId) ?? null;
   }, [
+    deckHeadDrivesGenerationPreset,
     deckHeadLinkedStylePresetId,
     ownStyleBlueprintSession,
     selectedStylePresetId,
@@ -2544,6 +2550,19 @@ export const GeneratePage: FC = () => {
       return next;
     });
   }, [selectedPreset]);
+
+  /** Свайп верхней карточки с STYLE_PRESET на другой тип: сброс клиентских референсов (не цеплять прошлый стиль). */
+  const deckHeadWasStylePresetRef = useRef(false);
+  useEffect(() => {
+    const isStyleHead =
+      deckVisibleHeadCard?.type === 'STYLE_PRESET' && deckHeadLinkedStylePresetId != null;
+    const was = deckHeadWasStylePresetRef.current;
+    deckHeadWasStylePresetRef.current = isStyleHead;
+    if (was && !isStyleHead) {
+      setReferenceAssignments({});
+      setReferencePreviewById({});
+    }
+  }, [deckVisibleHeadCard?.type, deckHeadLinkedStylePresetId]);
 
   const autoAssignNewSourceFiles = useCallback(
     async (files: File[]) => {
@@ -4880,10 +4899,15 @@ export const GeneratePage: FC = () => {
     withActiveState: boolean;
     /** По умолчанию full: промпт и поля пресета вместе. Для карточек колоды не про STYLE — поля уводятся под hero. */
     inputVariant?: 'full' | 'prompt-only' | 'preset-fields-only';
+    /** В стеке внутри ghc-card: не дублировать панель эмодзи/фона под полями пресета */
+    hideInputFooter?: boolean;
+    /** Уменьшить высоту блока полей пресета в compose-слоте карточки */
+    compactPresetLayout?: boolean;
   }) => {
     const inputVariant = cfg.inputVariant ?? 'full';
     const showPrompt = effectiveShowPromptInput && inputVariant !== 'preset-fields-only';
     const showPresetStack = selectedPresetFieldDefs.length > 0 && inputVariant !== 'prompt-only';
+    const hideFooter = cfg.hideInputFooter === true;
     return (
     <div
       className={cn(
@@ -4892,6 +4916,7 @@ export const GeneratePage: FC = () => {
         cfg.showPromptError && 'generate-input-wrapper--error',
         (showPrompt && showPresetStack) && 'generate-input-wrapper--with-preset-stack',
         !showPrompt && showPresetStack && 'generate-input-wrapper--preset-only',
+        cfg.compactPresetLayout && 'generate-input-wrapper--hero-card-preset',
       )}
       tabIndex={cfg.withWrapperHandlers && !showPrompt ? 0 : undefined}
       onPaste={cfg.withWrapperHandlers ? handleInputWrapperPaste : undefined}
@@ -4919,6 +4944,7 @@ export const GeneratePage: FC = () => {
           className={cn(
             'generate-input-preset-stack',
             showPrompt && 'generate-input-preset-stack--after-prompt',
+            cfg.compactPresetLayout && 'generate-input-preset-stack--hero-card',
           )}
         >
           <PresetFieldsForm
@@ -4946,8 +4972,45 @@ export const GeneratePage: FC = () => {
           />
         </div>
       )}
-      {renderInputFooter(cfg.readOnly || cfg.textDisabled)}
+      {!hideFooter && renderInputFooter(cfg.readOnly || cfg.textDisabled)}
     </div>
+    );
+  };
+
+  /** Промпт + поля пресета в одном compose-слоте карточки (компактные поля под превью); иначе один блок full. */
+  const buildSplitHeroComposeSlot = (params: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    referenceDndEnabled: boolean;
+    showPromptError: boolean;
+  }) => {
+    if (!splitHeroComposePresetFieldsToForm) {
+      return renderMainInputBlock({
+        ...params,
+        withWrapperHandlers: true,
+        withActiveState: true,
+        inputVariant: 'full',
+      });
+    }
+    return (
+      <div className="ghc-card__compose-stack" key={`hero-compose-${selectedPreset?.id ?? 'x'}`}>
+        {effectiveShowPromptInput
+          ? renderMainInputBlock({
+              ...params,
+              withWrapperHandlers: true,
+              withActiveState: true,
+              inputVariant: 'prompt-only',
+            })
+          : null}
+        {renderMainInputBlock({
+          ...params,
+          withWrapperHandlers: true,
+          withActiveState: true,
+          inputVariant: 'preset-fields-only',
+          hideInputFooter: true,
+          compactPresetLayout: true,
+        })}
+      </div>
     );
   };
 
@@ -5018,6 +5081,7 @@ export const GeneratePage: FC = () => {
               withWrapperHandlers: cfg.withWrapperHandlers,
               withActiveState: cfg.withActiveState,
               inputVariant: cfg.composeInputVariant ?? 'full',
+              hideInputFooter: cfg.composeInputVariant === 'preset-fields-only',
             })}
         </div>
         <div className="generate-form-layout__preset-scroll">
@@ -5475,14 +5539,11 @@ export const GeneratePage: FC = () => {
       {generationComposeUsesHeroOverlay
         ? renderHeroCard()
         : renderHeroCard({
-            composeSlot: renderMainInputBlock({
+            composeSlot: buildSplitHeroComposeSlot({
               readOnly: false,
               textDisabled: false,
               referenceDndEnabled: true,
               showPromptError: true,
-              withWrapperHandlers: true,
-              withActiveState: true,
-              inputVariant: splitHeroComposePresetFieldsToForm ? 'prompt-only' : 'full',
             }),
           })}
       {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
@@ -5500,7 +5561,7 @@ export const GeneratePage: FC = () => {
         buttonText: generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: deckDeferComposeToForm || !splitHeroComposePresetFieldsToForm,
+        omitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
         composeInputVariant: splitHeroComposePresetFieldsToForm ? 'preset-fields-only' : 'full',
         deckSplitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
       })}
@@ -5545,14 +5606,11 @@ export const GeneratePage: FC = () => {
       {generationComposeUsesHeroOverlay
         ? renderHeroCard()
         : renderHeroCard({
-            composeSlot: renderMainInputBlock({
+            composeSlot: buildSplitHeroComposeSlot({
               readOnly: false,
               textDisabled: isGenerating,
               referenceDndEnabled: !isGenerating,
               showPromptError: false,
-              withWrapperHandlers: true,
-              withActiveState: true,
-              inputVariant: splitHeroComposePresetFieldsToForm ? 'prompt-only' : 'full',
             }),
           })}
       {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
@@ -5571,7 +5629,7 @@ export const GeneratePage: FC = () => {
         buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: deckDeferComposeToForm || !splitHeroComposePresetFieldsToForm,
+        omitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
         composeInputVariant: splitHeroComposePresetFieldsToForm ? 'preset-fields-only' : 'full',
         deckSplitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
       })}

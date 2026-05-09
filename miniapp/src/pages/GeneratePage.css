@@ -2242,6 +2242,30 @@ body.generate-prompt-focused .navbar {
   min-height: 116px;
 }
 
+/* Промпт + поля пресета в compose-слоте карточки (под превью, компактно) */
+.generate-page .ghc-card__compose-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.generate-page .ghc-card__compose-slot .generate-input-wrapper--hero-card-preset.generate-input-wrapper--preset-only {
+  min-height: 0;
+}
+
+.generate-page .ghc-card__compose-slot .generate-input-preset-stack--hero-card {
+  max-height: min(22vh, 132px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin-top: 0;
+  padding-top: 2px;
+}
+
+.generate-page .ghc-card__compose-slot .generate-input-wrapper--hero-card-preset .preset-reference-field__grid {
+  gap: 6px;
+}
+
 @keyframes fieldsFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
