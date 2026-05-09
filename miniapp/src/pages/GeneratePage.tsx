@@ -22,7 +22,7 @@ import { StylePresetPackGrid } from '@/components/StylePresetPackGrid';
 import { StylePresetPublicationModal } from '@/components/StylePresetPublicationModal';
 import { mergeCreateStylePresetRequest } from '@/utils/mergeCreateStylePresetRequest';
 import { isFreestylePromptVisibleForStylePreset } from '@/utils/stylePresetFreestylePrompt';
-import { uploadPresetReference } from '@/api/stylePresets';
+import { getLikedStylePresets, uploadPresetReference } from '@/api/stylePresets';
 import {
   blueprintNeedsPresetReferenceSlot,
   buildAutoStylePresetCode,
@@ -31,11 +31,6 @@ import {
   OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID,
   resolveCreationBlueprint,
 } from '@/utils/ownStyleBlueprint';
-import {
-  StylePresetCategoryChips,
-  STYLE_CATEGORY_FILTER_MY,
-  type StyleCategoryFilter,
-} from '@/components/StylePresetCategoryChips';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
 import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
@@ -59,7 +54,6 @@ import {
   ensureSelectedPresetInStrip,
   moveStylePresetIdFirst,
   sortPresetsInCategory,
-  uniqueCategoriesFromPresets,
 } from '@/utils/stylePresetCategoryUi';
 import { useProfileStore } from '@/store/useProfileStore';
 import { useGenerateLandingGateStore } from '@/store/useGenerateLandingGateStore';
@@ -173,18 +167,6 @@ function assertPresetRefGalleryImageIds(ids: readonly string[]): void {
   throw new Error(
     'Опорное фото должно быть сохранено в галерее как img_sagref_* (через /style-presets/{id}/reference); сервер вернул другой идентификатор.',
   );
-}
-
-/** Категория основных пресетов: code `general` или имя General / «Общая» (локализация). */
-function preferDefaultStyleCategoryId(categories: StylePresetCategoryDto[]): number {
-  const generalByCode = categories.find((c) => c.code?.trim().toLowerCase() === 'general');
-  if (generalByCode) return generalByCode.id;
-  const generalByName = categories.find((c) => {
-    const n = c.name?.trim().toLowerCase() ?? '';
-    return n === 'общая' || n === 'общие' || n === 'general';
-  });
-  if (generalByName) return generalByName.id;
-  return categories[0]!.id;
 }
 
 const cn = (...classes: (string | boolean | undefined | null)[]): string => {
@@ -497,11 +479,6 @@ export const GeneratePage: FC = () => {
     : generateDeckQueue.cards;
   const deckVisibleHeadCard = visibleServerDeckCards[0] ?? null;
 
-  const deckHeadLinkedStylePresetId = useMemo(() => {
-    if (!deckVisibleHeadCard || deckVisibleHeadCard.type !== 'STYLE_PRESET') return null;
-    return getDeckLinkedStylePresetId(deckVisibleHeadCard);
-  }, [deckVisibleHeadCard]);
-
   useEffect(() => {
     const t = setTimeout(() => setGateMinDelayDone(true), 700);
     return () => clearTimeout(t);
@@ -589,7 +566,6 @@ export const GeneratePage: FC = () => {
   const [stylePresetShareNotice, setStylePresetShareNotice] = useState<string | null>(null);
   const [stylePresetDeleting, setStylePresetDeleting] = useState(false);
   const [stylePresetCategories, setStylePresetCategories] = useState<StylePresetCategoryDto[]>([]);
-  const [styleCategoryFilter, setStyleCategoryFilter] = useState<StyleCategoryFilter | null>(null);
   const [selectedStylePresetId, setSelectedStylePresetId] = useState<number | null>(null);
   const [pendingGridStylePick, setPendingGridStylePick] = useState<StylePreset | null>(null);
   const [bootstrappingOwnStyle, setBootstrappingOwnStyle] = useState(false);
@@ -646,6 +622,14 @@ export const GeneratePage: FC = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<GenerateImageLightboxState | null>(null);
   const [localOverlayDeckCard, setLocalOverlayDeckCard] = useState<DeckCard | null>(null);
+  /** Карточка, от которой считаются поля/пресет генерации (overlay имеет приоритет над очередью API). */
+  const generationDeckHeadCard = localOverlayDeckCard ?? deckVisibleHeadCard;
+
+  const deckHeadLinkedStylePresetId = useMemo(() => {
+    if (!generationDeckHeadCard || generationDeckHeadCard.type !== 'STYLE_PRESET') return null;
+    return getDeckLinkedStylePresetId(generationDeckHeadCard);
+  }, [generationDeckHeadCard]);
+
   /** Промпт+поля в выезжающей карте поверх колоды при бонусе / чекине и т.п. */
   const [composeDeckOverlayOpen, setComposeDeckOverlayOpen] = useState(false);
   const [isPromptFocused, setIsPromptFocused] = useState(false);
@@ -653,7 +637,9 @@ export const GeneratePage: FC = () => {
   const [duringJobPreviousResultUrl, setDuringJobPreviousResultUrl] = useState<string | null>(null);
   /** Не анимируем миниатюры ленты при повторной генерации с того же успешного экрана на том же наборе вложений. */
   const [suppressSourceStripItemReveal, setSuppressSourceStripItemReveal] = useState(false);
-  
+  /** Лайкнутые стили (нижняя сетка только из этого списка, без категорий). */
+  const [likedStylePresetList, setLikedStylePresetList] = useState<StylePreset[]>([]);
+
   // Тарифы
   const [generateCost, setGenerateCost] = useState<number | null>(null);
   const [, setIsLoadingTariffs] = useState(true);
@@ -963,11 +949,18 @@ export const GeneratePage: FC = () => {
             return [] as UserPresetCreationBlueprintDto[];
           }),
         ]);
+        let likedPresets: StylePreset[] = [];
+        try {
+          likedPresets = await getLikedStylePresets();
+        } catch (e) {
+          console.warn('Лайкнутые стили недоступны:', e);
+        }
 
         if (!cancelled) {
           setStylePresets(presets);
           setStylePresetCategories(categories);
           setUserPresetCreationBlueprints(blueprints);
+          setLikedStylePresetList(likedPresets);
         }
       } catch (error) {
         console.error('Ошибка загрузки каталога пресетов:', error);
@@ -984,34 +977,17 @@ export const GeneratePage: FC = () => {
     };
   }, []);
 
-  const styleCategoryChipsList = useMemo(() => {
-    if (stylePresetCategories.length > 0) return stylePresetCategories;
-    return uniqueCategoriesFromPresets(stylePresets);
-  }, [stylePresetCategories, stylePresets]);
-
-  useLayoutEffect(() => {
-    // Пока нет категорий с API/пресетов — не ставим «Мои», иначе после загрузки чипов
-    // фильтр залипнет в MY (ниже: if (prev === MY) return prev).
-    if (styleCategoryChipsList.length === 0) {
-      return;
-    }
-    setStyleCategoryFilter((prev) => {
-      if (prev === STYLE_CATEGORY_FILTER_MY) return prev;
-      const ids = new Set(styleCategoryChipsList.map((c) => c.id));
-      if (prev != null && ids.has(prev)) return prev;
-      return preferDefaultStyleCategoryId(styleCategoryChipsList);
-    });
-  }, [styleCategoryChipsList]);
+  const mergedLikedIntoCatalog = useMemo(() => {
+    const byId = new Map(stylePresets.map((p) => [p.id, p]));
+    return likedStylePresetList.map((l) => byId.get(l.id) ?? l).filter((p) => isPresetShownInStrip(p));
+  }, [likedStylePresetList, stylePresets, isPresetShownInStrip]);
 
   const presetsWithVirtual = useMemo(() => {
-    if (!ownStyleBlueprintSession) return stylePresets;
+    if (!ownStyleBlueprintSession) return mergedLikedIntoCatalog;
     const v = ownStyleBlueprintSession.virtualPreset;
-    if (styleCategoryFilter === STYLE_CATEGORY_FILTER_MY) {
-      return [v, ...stylePresets];
-    }
-    if (styleCategoryFilter != null && v.category?.id !== styleCategoryFilter) return stylePresets;
-    return [v, ...stylePresets];
-  }, [ownStyleBlueprintSession, stylePresets, styleCategoryFilter]);
+    const rest = mergedLikedIntoCatalog.filter((x) => x.id !== v.id);
+    return moveStylePresetIdFirst([v, ...rest], OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID);
+  }, [ownStyleBlueprintSession, mergedLikedIntoCatalog]);
 
   const stripStylePresets = useMemo(() => {
     const boostId = deepLinkStyleBoostId;
@@ -1022,58 +998,26 @@ export const GeneratePage: FC = () => {
         ? moveStylePresetIdFirst(s, OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID)
         : s;
 
-    if (styleCategoryChipsList.length === 0 || styleCategoryFilter == null) {
-      const strip = presetsWithVirtual.filter((p) => isPresetShownInStrip(p));
-      return withDraftFirst(
-        boostStrip(
-          ensureSelectedPresetInStrip(
-            sortPresetsInCategory(strip),
-            presetsWithVirtual,
-            selectedStylePresetId,
-          ),
-        ),
-      );
-    }
-    if (styleCategoryFilter === STYLE_CATEGORY_FILTER_MY) {
-      const uid = userInfo?.id ?? null;
-      const mine = presetsWithVirtual.filter(
-        (p) => isPresetShownInStrip(p) && !p.isGlobal && uid != null && p.ownerId === uid,
-      );
-      return withDraftFirst(
-        boostStrip(
-          ensureSelectedPresetInStrip(
-            sortPresetsInCategory(mine),
-            presetsWithVirtual,
-            selectedStylePresetId,
-          ),
-        ),
-      );
-    }
-    const list = presetsWithVirtual.filter(
-      (p) => isPresetShownInStrip(p) && p.category?.id === styleCategoryFilter,
-    );
+    const strip = presetsWithVirtual.filter((p) => isPresetShownInStrip(p));
     return withDraftFirst(
       boostStrip(
         ensureSelectedPresetInStrip(
-          sortPresetsInCategory(list),
+          sortPresetsInCategory(strip),
           presetsWithVirtual,
           selectedStylePresetId,
         ),
       ),
     );
   }, [
-    styleCategoryFilter,
     presetsWithVirtual,
     selectedStylePresetId,
-    styleCategoryChipsList,
     isPresetShownInStrip,
-    userInfo?.id,
     deepLinkStyleBoostId,
     ownStyleBlueprintSession,
   ]);
 
-  const isMyCategorySelected = styleCategoryFilter === STYLE_CATEGORY_FILTER_MY;
-  const myStylesEmpty = isMyCategorySelected && stripStylePresets.length === 0;
+  const likedStylesStripEmpty =
+    likedStylePresetList.length === 0 && !ownStyleBlueprintSession;
 
   // Актуальный баланс ART и профиль «меня» в сторе (источник истины: /api/profiles/me)
   // Всегда кладём в стор полный объект me, чтобы хедер показывал правильный аватар и баланс
@@ -2283,13 +2227,6 @@ export const GeneratePage: FC = () => {
     setSelectedStylePresetId(presetId);
     setDeepLinkStyleBoostId(presetId);
 
-    const uid = userInfo?.id ?? null;
-    if (uid != null && !preset.isGlobal && preset.ownerId === uid) {
-      setStyleCategoryFilter(STYLE_CATEGORY_FILTER_MY);
-    } else if (preset.category?.id != null) {
-      setStyleCategoryFilter(preset.category.id);
-    }
-
     if (historyUserScopeId) {
       persistGeneratePreferences({ stylePresetId: presetId });
     }
@@ -2300,7 +2237,6 @@ export const GeneratePage: FC = () => {
     stylePresets,
     tg,
     initData,
-    userInfo?.id,
     historyUserScopeId,
     persistGeneratePreferences,
   ]);
@@ -2318,7 +2254,7 @@ export const GeneratePage: FC = () => {
   }, [stylePresetShareNotice]);
 
   const deckHeadDrivesGenerationPreset =
-    deckVisibleHeadCard?.type === 'STYLE_PRESET' && deckHeadLinkedStylePresetId != null;
+    generationDeckHeadCard?.type === 'STYLE_PRESET' && deckHeadLinkedStylePresetId != null;
 
   // Метаданные UI выбранного пресета (виртуальная карточка «своего стиля»; при загрузке preset_ref черновик создаётся лениво).
   // Колоду учитываем только пока верхняя карточка — STYLE_PRESET; иначе форма следует выбору в сетке (после свайпа на бонус/историю не тянуть прошлый стиль).
@@ -2555,14 +2491,14 @@ export const GeneratePage: FC = () => {
   const deckHeadWasStylePresetRef = useRef(false);
   useEffect(() => {
     const isStyleHead =
-      deckVisibleHeadCard?.type === 'STYLE_PRESET' && deckHeadLinkedStylePresetId != null;
+      generationDeckHeadCard?.type === 'STYLE_PRESET' && deckHeadLinkedStylePresetId != null;
     const was = deckHeadWasStylePresetRef.current;
     deckHeadWasStylePresetRef.current = isStyleHead;
     if (was && !isStyleHead) {
       setReferenceAssignments({});
       setReferencePreviewById({});
     }
-  }, [deckVisibleHeadCard?.type, deckHeadLinkedStylePresetId]);
+  }, [generationDeckHeadCard?.type, deckHeadLinkedStylePresetId]);
 
   const autoAssignNewSourceFiles = useCallback(
     async (files: File[]) => {
@@ -4599,9 +4535,11 @@ export const GeneratePage: FC = () => {
     }
   };
 
-  /** Верх персональной колоды уже объявлен выше вместе с generateDeckQueue. */
+  /** Пока верх очереди — не STYLE (и без локальной intent-карточки): композиция выносится в сайд overlay. */
   const deckDeferComposeToForm = Boolean(
-    deckVisibleHeadCard && deckVisibleHeadCard.type !== 'STYLE_PRESET',
+    localOverlayDeckCard == null &&
+      deckVisibleHeadCard &&
+      deckVisibleHeadCard.type !== 'STYLE_PRESET',
   );
 
   /** Промпт+поля только в карточке-оверлее (не duplicate generate-form-layout__compose под колодой). */
@@ -4615,6 +4553,13 @@ export const GeneratePage: FC = () => {
     !deckDeferComposeToForm &&
     !ownStyleComposeInHeroOverlayFlow &&
     selectedPresetFieldDefs.length > 0;
+
+  /** Под колодой не показываем второй промпт-пакет — только сетку (и overlay при необходимости). */
+  const omitComposeUnderPageForm = !generationComposeUsesHeroOverlay
+    ? true
+    : deckDeferComposeToForm || splitHeroComposePresetFieldsToForm;
+  /** На карточках API-колоды лента вложений встроена в compose-слот героя. */
+  const hideStandaloneSourceStrip = visibleServerDeckCards.length > 0;
 
   useEffect(() => {
     if (!generationComposeUsesHeroOverlay) setComposeDeckOverlayOpen(false);
@@ -4687,6 +4632,20 @@ export const GeneratePage: FC = () => {
     [userPresetCreationBlueprints, buildOwnStyleSessionFromBlueprint, handlePresetChange, tg],
   );
 
+  const handleCreateStickerFromGrid = useCallback(() => {
+    tg?.HapticFeedback?.impactOccurred?.('light');
+    handlePresetChange(null, { skipPublishHintReset: true });
+    const uid =
+      typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function'
+        ? globalThis.crypto.randomUUID()
+        : String(Date.now());
+    setLocalOverlayDeckCard({
+      cardInstanceId: `local-intent-sticker-${uid}`,
+      type: 'CUSTOM_PROMPT',
+      payload: { title: 'Новый стикер' },
+    });
+  }, [handlePresetChange, tg]);
+
   const onDeckInteraction = useCallback(
     async (card: DeckCard, action: DeckAction) => {
       const res = await generateDeckQueue.commitDeckAction(card.cardInstanceId, action);
@@ -4706,6 +4665,9 @@ export const GeneratePage: FC = () => {
       if (card.type === 'STYLE_PRESET' && action === 'LIKE') {
         const pid = getDeckLinkedStylePresetId(card);
         if (pid != null) handlePresetChange(pid);
+        void getLikedStylePresets()
+          .then(setLikedStylePresetList)
+          .catch(() => {});
       }
       if (card.type === 'LAST_GENERATION' && action === 'OPEN') {
         const tid = typeof card.payload?.taskId === 'string' ? card.payload.taskId : null;
@@ -4726,14 +4688,12 @@ export const GeneratePage: FC = () => {
       }
       if (card.type === 'CUSTOM_PROMPT' && action === 'PRIMARY_CTA') {
         queueMicrotask(() => {
+          const sel =
+            '.ghc-card__compose-slot .generate-input, .ghc-compose-overlay .generate-input, .generate-page .generate-input';
           if (generationComposeUsesHeroOverlay) {
             setComposeDeckOverlayOpen(true);
-            document
-              .querySelector<HTMLTextAreaElement>('.ghc-compose-overlay .generate-input')
-              ?.focus();
-          } else {
-            document.querySelector<HTMLTextAreaElement>('.generate-page .generate-input')?.focus();
           }
+          document.querySelector<HTMLTextAreaElement>(sel)?.focus();
         });
       }
     },
@@ -5014,6 +4974,48 @@ export const GeneratePage: FC = () => {
     );
   };
 
+  const buildDeckAwareHeroComposeSlot = (params: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    referenceDndEnabled: boolean;
+    showPromptError: boolean;
+  }) => {
+    if (hideStandaloneSourceStrip && generationDeckHeadCard?.type === 'STYLE_PRESET') {
+      if (selectedPresetFieldDefs.length === 0) return null;
+      return renderMainInputBlock({
+        ...params,
+        withWrapperHandlers: true,
+        withActiveState: true,
+        inputVariant: 'preset-fields-only',
+        hideInputFooter: true,
+        compactPresetLayout: true,
+      });
+    }
+    if (
+      hideStandaloneSourceStrip &&
+      generationDeckHeadCard &&
+      generationDeckHeadCard.type !== 'STYLE_PRESET'
+    ) {
+      return (
+        <div
+          className="ghc-card__compose-stack"
+          key={`deck-compose-${generationDeckHeadCard.cardInstanceId}`}
+        >
+          {renderSourceImageStrip(params.textDisabled, {
+            suppressItemReveal: suppressSourceStripItemReveal,
+          })}
+          {renderMainInputBlock({
+            ...params,
+            withWrapperHandlers: true,
+            withActiveState: true,
+            inputVariant: 'full',
+          })}
+        </div>
+      );
+    }
+    return buildSplitHeroComposeSlot(params);
+  };
+
   const renderPresetGrid = (disabled: boolean) => (
     <StylePresetPackGrid
       presets={stripStylePresets}
@@ -5030,8 +5032,11 @@ export const GeneratePage: FC = () => {
           ? OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID
           : null
       }
+      onCreateSticker={() => void handleCreateStickerFromGrid()}
       onCreatePreset={() => void handleSelectOwnStylePreset()}
-      emptyStateText={myStylesEmpty ? 'У вас еще нет собственных стилей.' : null}
+      emptyStateText={
+        likedStylesStripEmpty ? 'Лайкните стили в колоде — они появятся здесь.' : null
+      }
     />
   );
 
@@ -5086,16 +5091,6 @@ export const GeneratePage: FC = () => {
         </div>
         <div className="generate-form-layout__preset-scroll">
           <div className="generate-form-layout__preset-heading">
-            {styleCategoryFilter != null && (
-              <StylePresetCategoryChips
-                categories={styleCategoryChipsList}
-                value={styleCategoryFilter}
-                onChange={setStyleCategoryFilter}
-                showMineChip
-                disabled={cfg.presetDisabled}
-                variant="gallery"
-              />
-            )}
             {deepLinkPresetMissingNotice ? (
               <Text variant="bodySmall" className="generate-form-layout__preset-deeplink-notice" align="center">
                 Стиль по ссылке недоступен или удалён.
@@ -5137,7 +5132,9 @@ export const GeneratePage: FC = () => {
     sourceImageFiles.length > 0 && sourceImageFiles.every((f) => isTelegramAvatarSourceFile(f));
   /** В потоке «Черновик» показываем аватар-слой, если нет превью стиля сверху */
   const showAvatarCenterCard =
-    (selectedStylePresetId == null || isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)) &&
+    (deckHeadDrivesGenerationPreset ||
+      selectedStylePresetId == null ||
+      isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)) &&
     stripIsOnlyTelegramAvatars &&
     Boolean(primarySourcePreview) &&
     !compositeGenerateHeroPreviewUrl;
@@ -5539,14 +5536,15 @@ export const GeneratePage: FC = () => {
       {generationComposeUsesHeroOverlay
         ? renderHeroCard()
         : renderHeroCard({
-            composeSlot: buildSplitHeroComposeSlot({
+            composeSlot: buildDeckAwareHeroComposeSlot({
               readOnly: false,
               textDisabled: false,
               referenceDndEnabled: true,
               showPromptError: true,
             }),
           })}
-      {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
+      {!hideStandaloneSourceStrip &&
+        renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
         readOnly: false,
         textDisabled: false,
@@ -5561,7 +5559,7 @@ export const GeneratePage: FC = () => {
         buttonText: generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
+        omitCompose: omitComposeUnderPageForm,
         composeInputVariant: splitHeroComposePresetFieldsToForm ? 'preset-fields-only' : 'full',
         deckSplitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
       })}
@@ -5606,14 +5604,15 @@ export const GeneratePage: FC = () => {
       {generationComposeUsesHeroOverlay
         ? renderHeroCard()
         : renderHeroCard({
-            composeSlot: buildSplitHeroComposeSlot({
+            composeSlot: buildDeckAwareHeroComposeSlot({
               readOnly: false,
               textDisabled: isGenerating,
               referenceDndEnabled: !isGenerating,
               showPromptError: false,
             }),
           })}
-      {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
+      {!hideStandaloneSourceStrip &&
+        renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
 
       {renderGenerateFormBlock({
         readOnly: false,
@@ -5629,7 +5628,7 @@ export const GeneratePage: FC = () => {
         buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
+        omitCompose: omitComposeUnderPageForm,
         composeInputVariant: splitHeroComposePresetFieldsToForm ? 'preset-fields-only' : 'full',
         deckSplitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
       })}

@@ -15,6 +15,14 @@
   box-sizing: border-box;
 }
 
+.preset-grid__create-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
 .preset-grid__create-btn {
   grid-column: 1 / -1;
   height: 36px;
@@ -32,6 +40,11 @@
 .preset-grid__create-btn:hover:not(:disabled) {
   opacity: 0.92;
   border-color: rgba(255, 255, 255, 0.22);
+}
+
+.preset-grid__create-btn--sticker:hover:not(:disabled) {
+  border-color: rgba(238, 68, 159, 0.55);
+  background: rgba(238, 68, 159, 0.18);
 }
 
 .preset-grid__create-btn--active {

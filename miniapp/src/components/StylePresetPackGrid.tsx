@@ -19,6 +19,8 @@ interface StylePresetPackGridProps {
   disabled?: boolean;
   /** Поток «свой стиль» по blueprint с бэка: подсветка «+», когда выбран пресет из этого флоу */
   creationHighlightPresetId?: number | null;
+  /** Генерация без пресета (карточка «Свой промпт» поверх колоды). */
+  onCreateSticker?: () => void;
   /** Запуск флоу «Создать свой стиль» (GET blueprints, без модалки публикации) */
   onCreatePreset?: () => void;
   emptyStateText?: string | null;
@@ -54,6 +56,7 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
   placeholderLogoSrc = null,
   disabled = false,
   creationHighlightPresetId = null,
+  onCreateSticker,
   onCreatePreset,
   emptyStateText = null,
 }) => {
@@ -85,27 +88,44 @@ export const StylePresetPackGrid: FC<StylePresetPackGridProps> = ({
       aria-label="Стиль генерации"
     >
       <div className="preset-grid__row optimized-gallery__row-grid">
-        <button
-          type="button"
-          className={[
-            'preset-grid__create-btn',
-            creationHighlightPresetId != null &&
-              selectedPresetId === creationHighlightPresetId &&
-              'preset-grid__create-btn--active',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          onClick={() => {
-            if (onCreatePreset) {
-              onCreatePreset();
-              return;
-            }
-            handleSelect(null);
-          }}
-          disabled={disabled}
-        >
-          + Создать свой стиль
-        </button>
+        {(onCreateSticker || onCreatePreset) && (
+          <div className="preset-grid__create-actions">
+            {onCreateSticker ? (
+              <button
+                type="button"
+                className="preset-grid__create-btn preset-grid__create-btn--sticker"
+                onClick={() => {
+                  if (disabled) return;
+                  onCreateSticker();
+                }}
+                disabled={disabled}
+              >
+                + Создать стикер
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={[
+                'preset-grid__create-btn',
+                creationHighlightPresetId != null &&
+                  selectedPresetId === creationHighlightPresetId &&
+                  'preset-grid__create-btn--active',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => {
+                if (onCreatePreset) {
+                  onCreatePreset();
+                  return;
+                }
+                handleSelect(null);
+              }}
+              disabled={disabled}
+            >
+              + Создать свой стиль
+            </button>
+          </div>
+        )}
         {options.length === 0 && emptyStateText ? (
           <div className="preset-grid__empty-state" role="status" aria-live="polite">
             {emptyStateText}
