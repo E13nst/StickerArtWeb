@@ -625,6 +625,8 @@ export const GeneratePage: FC = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [imageLightbox, setImageLightbox] = useState<GenerateImageLightboxState | null>(null);
   const [localOverlayDeckCard, setLocalOverlayDeckCard] = useState<DeckCard | null>(null);
+  /** Промпт+поля в выезжающей карте поверх колоды при бонусе / чекине и т.п. */
+  const [composeDeckOverlayOpen, setComposeDeckOverlayOpen] = useState(false);
   const [isPromptFocused, setIsPromptFocused] = useState(false);
   /** Последний успешный результат, показывается во время upload/generating при повторном запуске без «мерцания» макета. */
   const [duringJobPreviousResultUrl, setDuringJobPreviousResultUrl] = useState<string | null>(null);
@@ -4522,6 +4524,20 @@ export const GeneratePage: FC = () => {
     ? generateDeckQueue.cards.slice(1)
     : generateDeckQueue.cards;
 
+  /** Верх персональной колоды (как в hero), не сырая cards[0] — учитывает срез intent у API */
+  const deckVisibleHeadCard = visibleServerDeckCards[0] ?? null;
+  const deckDeferComposeToForm = Boolean(
+    deckVisibleHeadCard && deckVisibleHeadCard.type !== 'STYLE_PRESET',
+  );
+
+  useEffect(() => {
+    if (!deckDeferComposeToForm) setComposeDeckOverlayOpen(false);
+  }, [deckDeferComposeToForm]);
+
+  useEffect(() => {
+    if (pageState === 'uploading' || pageState === 'generating') setComposeDeckOverlayOpen(false);
+  }, [pageState]);
+
   useEffect(() => {
     if (!serverQueueIntentHead || localOverlayDeckCard) return;
     setLocalOverlayDeckCard(serverQueueIntentHead);
@@ -4630,11 +4646,24 @@ export const GeneratePage: FC = () => {
       }
       if (card.type === 'CUSTOM_PROMPT' && action === 'PRIMARY_CTA') {
         queueMicrotask(() => {
-          document.querySelector<HTMLTextAreaElement>('.generate-page .generate-input')?.focus();
+          if (deckDeferComposeToForm) {
+            setComposeDeckOverlayOpen(true);
+            document
+              .querySelector<HTMLTextAreaElement>('.ghc-compose-overlay .generate-input')
+              ?.focus();
+          } else {
+            document.querySelector<HTMLTextAreaElement>('.generate-page .generate-input')?.focus();
+          }
         });
       }
     },
-    [deckLinkedPresetIdFn, historyEntries, openDeckBlueprintByCode, handlePresetChange],
+    [
+      deckLinkedPresetIdFn,
+      deckDeferComposeToForm,
+      historyEntries,
+      openDeckBlueprintByCode,
+      handlePresetChange,
+    ],
   );
 
   const onOverlayCardConsumed = useCallback(
@@ -4978,17 +5007,6 @@ export const GeneratePage: FC = () => {
     </div>
   );
 
-  /** Карточки колоды не про оценку пресета: в hero только промпт, поля черновика — в форме под карточкой */
-  const deckHeadForLayout = generateDeckQueue.cards[0] ?? null;
-  const deckDeferPresetFields = Boolean(
-    deckHeadForLayout && deckHeadForLayout.type !== 'STYLE_PRESET',
-  );
-  const showDeferredPresetFieldsInForm =
-    deckDeferPresetFields && selectedPresetFieldDefs.length > 0;
-  const heroComposeInputVariant: 'full' | 'prompt-only' = deckDeferPresetFields
-    ? 'prompt-only'
-    : 'full';
-
   const primarySourcePreview = sourceImagePreviews[0] ?? null;
   const stripIsOnlyTelegramAvatars =
     sourceImageFiles.length > 0 && sourceImageFiles.every((f) => isTelegramAvatarSourceFile(f));
@@ -5092,6 +5110,22 @@ export const GeneratePage: FC = () => {
       onDeckPostSuccess={onDeckPostSuccess}
       onDeckHeadConsumed={generateDeckQueue.removeCardHeadIfMatches}
       onOverlayCardConsumed={onOverlayCardConsumed}
+      composeOverlayOpen={composeDeckOverlayOpen && deckDeferComposeToForm}
+      composeOverlaySlot={
+        deckDeferComposeToForm
+          ? renderMainInputBlock({
+              readOnly: false,
+              textDisabled: isGenerating,
+              referenceDndEnabled: !isGenerating,
+              showPromptError: shouldShowPromptError,
+              withWrapperHandlers: true,
+              withActiveState: true,
+              inputVariant: 'full',
+            })
+          : undefined
+      }
+      composeOverlaySlotRef={generateComposeStickyRef}
+      onComposeOverlayDismiss={() => setComposeDeckOverlayOpen(false)}
     />
   );
 
@@ -5376,17 +5410,19 @@ export const GeneratePage: FC = () => {
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      {renderHeroCard({
-        composeSlot: renderMainInputBlock({
-          readOnly: false,
-          textDisabled: false,
-          referenceDndEnabled: true,
-          showPromptError: true,
-          withWrapperHandlers: true,
-          withActiveState: true,
-          inputVariant: heroComposeInputVariant,
-        }),
-      })}
+      {deckDeferComposeToForm
+        ? renderHeroCard()
+        : renderHeroCard({
+            composeSlot: renderMainInputBlock({
+              readOnly: false,
+              textDisabled: false,
+              referenceDndEnabled: true,
+              showPromptError: true,
+              withWrapperHandlers: true,
+              withActiveState: true,
+              inputVariant: 'full',
+            }),
+          })}
       {renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
       {renderGenerateFormBlock({
         readOnly: false,
@@ -5402,9 +5438,9 @@ export const GeneratePage: FC = () => {
         buttonText: generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: !showDeferredPresetFieldsInForm,
-        composeInputVariant: showDeferredPresetFieldsInForm ? 'preset-fields-only' : 'full',
-        deckSplitCompose: showDeferredPresetFieldsInForm,
+        omitCompose: deckDeferComposeToForm,
+        composeInputVariant: 'full',
+        deckSplitCompose: deckDeferComposeToForm,
       })}
     </div>
   );
@@ -5444,17 +5480,19 @@ export const GeneratePage: FC = () => {
           ) : null}
         </div>
       )}
-      {renderHeroCard({
-        composeSlot: renderMainInputBlock({
-          readOnly: false,
-          textDisabled: isGenerating,
-          referenceDndEnabled: !isGenerating,
-          showPromptError: false,
-          withWrapperHandlers: true,
-          withActiveState: true,
-          inputVariant: heroComposeInputVariant,
-        }),
-      })}
+      {deckDeferComposeToForm
+        ? renderHeroCard()
+        : renderHeroCard({
+            composeSlot: renderMainInputBlock({
+              readOnly: false,
+              textDisabled: isGenerating,
+              referenceDndEnabled: !isGenerating,
+              showPromptError: false,
+              withWrapperHandlers: true,
+              withActiveState: true,
+              inputVariant: 'full',
+            }),
+          })}
       {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
 
       {renderGenerateFormBlock({
@@ -5471,9 +5509,9 @@ export const GeneratePage: FC = () => {
         buttonText: isGenerating ? 'Идет генерация...' : generateLabel,
         onButtonClick: handleGenerate,
         hideSubmit: true,
-        omitCompose: !showDeferredPresetFieldsInForm,
-        composeInputVariant: showDeferredPresetFieldsInForm ? 'preset-fields-only' : 'full',
-        deckSplitCompose: showDeferredPresetFieldsInForm,
+        omitCompose: deckDeferComposeToForm,
+        composeInputVariant: 'full',
+        deckSplitCompose: deckDeferComposeToForm,
       })}
     </>
   );
@@ -5553,8 +5591,36 @@ export const GeneratePage: FC = () => {
           <Button
             variant="primary"
             size="medium"
-            onClick={isGenerating ? undefined : handleGenerate}
-            disabled={isGenerating ? true : isDisabled}
+            onClick={
+              isGenerating
+                ? undefined
+                : () => {
+                    if (
+                      (pageState === 'idle' || pageState === 'error') &&
+                      deckDeferComposeToForm &&
+                      !composeDeckOverlayOpen
+                    ) {
+                      setComposeDeckOverlayOpen(true);
+                      tg?.HapticFeedback?.impactOccurred?.('light');
+                      queueMicrotask(() => {
+                        document
+                          .querySelector<HTMLTextAreaElement>('.ghc-compose-overlay .generate-input')
+                          ?.focus();
+                      });
+                      return;
+                    }
+                    void handleGenerate();
+                  }
+            }
+            disabled={
+              isGenerating
+                ? true
+                : (pageState === 'idle' || pageState === 'error') &&
+                    deckDeferComposeToForm &&
+                    !composeDeckOverlayOpen
+                  ? false
+                  : isDisabled
+            }
             loading={isGenerating}
             className="generate-button-submit"
             aria-label={isGenerating ? 'Идет генерация' : undefined}

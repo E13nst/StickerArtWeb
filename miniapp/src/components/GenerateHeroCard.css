@@ -1,6 +1,101 @@
 /* GenerateHeroCard — Tinder-style свайп-карточка для зоны героя на GeneratePage */
 
 /* ── Root: контейнер с пропорциями карточки Tinder (370:523 как на Figma) ── */
+/*
+ * Колода только (без compose внутри hero) + открытая панель ввода поверх —
+ * временно расширяем корень под высоту оверлея (промпт + preset stack прокручиваются внутри).
+ */
+.ghc-root--compose-overlay-open {
+  aspect-ratio: unset;
+  container-type: inline-size;
+  container-name: ghc;
+  min-height: min(74vh, 520px);
+  padding-bottom: 18px;
+}
+
+.ghc-compose-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 26;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(
+    165deg,
+    rgba(18, 20, 28, 0.97) 0%,
+    rgba(12, 14, 20, 0.96) 100%
+  );
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  touch-action: auto;
+}
+
+.ghc-compose-overlay__header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.ghc-compose-overlay__title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ghc-compose-overlay__close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: -4px -6px -4px 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ghc-compose-overlay__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.ghc-compose-overlay__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.ghc-compose-overlay__body .generate-input-wrapper {
+  width: 100%;
+  max-width: none;
+}
+
+.ghc-compose-overlay__body .generate-input-preset-stack {
+  max-height: min(42vh, 320px);
+}
+
 .ghc-root {
   position: relative;
   width: 100%;

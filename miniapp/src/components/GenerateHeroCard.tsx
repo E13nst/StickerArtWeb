@@ -10,7 +10,7 @@ import {
   type LegacyRef,
 } from 'react';
 import { flushSync } from 'react-dom';
-import { motion, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, PanInfo, AnimatePresence } from 'framer-motion';
 import type { StylePreset } from '@/api/client';
 import type { SyntheticEvent } from 'react';
 import { onApiHostedImageError } from '@/utils/apiImageFallback';
@@ -89,6 +89,11 @@ export interface GenerateHeroCardProps {
   /** Снять верхнюю карточку очереди после анимации и успешного POST */
   onDeckHeadConsumed?: (cardInstanceId: string) => void;
   onOverlayCardConsumed?: (card: DeckCard, action: DeckAction) => void;
+  /** Панель промпта/полей поверх колоды (дек бонуса и т.п.): выезд сбоку, не трогает API deck */
+  composeOverlayOpen?: boolean;
+  composeOverlaySlot?: ReactNode;
+  composeOverlaySlotRef?: Ref<HTMLDivElement | null>;
+  onComposeOverlayDismiss?: () => void;
 }
 
 // Figma: first card 370×523, aspect-ratio ≈ 370/523
@@ -164,6 +169,10 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   onDeckPostSuccess,
   onDeckHeadConsumed,
   onOverlayCardConsumed,
+  composeOverlayOpen,
+  composeOverlaySlot,
+  composeOverlaySlotRef,
+  onComposeOverlayDismiss,
 }) => {
   const onResultOrPrevImgError = onApiHostedResultImageError ?? onApiHostedImageError;
   // Индекс текущей карточки в деке
@@ -843,11 +852,14 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       ? serverNextPreview
       : nextPreview;
 
+  const showComposeOverlay = Boolean(composeOverlayOpen && composeOverlaySlot);
+
   return (
     <div
       className={
         (composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root') +
-        (deckFlowNonStyle && composeSlot ? ' ghc-root--deck-flow' : '')
+        (deckFlowNonStyle && composeSlot ? ' ghc-root--deck-flow' : '') +
+        (showComposeOverlay ? ' ghc-root--compose-overlay-open' : '')
       }
     >
       {/* Фоновая карточка — следующий пресет: тот же ритм 84/16, мягче чем верхняя */}
@@ -956,6 +968,41 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           </div>
         ) : null}
       </motion.div>
+
+      <AnimatePresence>
+        {showComposeOverlay ? (
+          <motion.div
+            key="ghc-compose-overlay"
+            className="ghc-compose-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Параметры генерации"
+            initial={{ x: 440, opacity: 0.92 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 440, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="ghc-compose-overlay__header">
+              <span className="ghc-compose-overlay__title">Параметры генерации</span>
+              <button
+                type="button"
+                className="ghc-compose-overlay__close"
+                onClick={onComposeOverlayDismiss}
+                aria-label="Закрыть"
+              >
+                ×
+              </button>
+            </div>
+            <div
+              ref={composeOverlaySlotRef as LegacyRef<HTMLDivElement>}
+              className="ghc-compose-overlay__body"
+            >
+              {composeOverlaySlot}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {/* Счётчик карточек */}
       {isInteractive && !useOverlayDeck && (useServerDeck ? deckCards && deckCards.length > 1 : presets.length > 1) && (
