@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { useTelegram } from '@/hooks/useTelegram';
+import { getStylePresetVisualPreviewUrl } from '@/utils/stylePresetVisualPreview';
 import { StylePreset } from '@/api/client';
 import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import './PackCard.css';
@@ -33,8 +34,7 @@ type PresetGridOption = {
   isGlobal?: boolean;
 };
 
-const getServerPreviewUrl = (preset: StylePreset): string | null =>
-  preset.previewWebpUrl ?? preset.previewUrl ?? preset.presetReferenceImageUrl ?? null;
+const getServerPreviewUrl = (preset: StylePreset): string | null => getStylePresetVisualPreviewUrl(preset);
 
 const stripPresetName = (name: string) =>
   name.replace(/\s*Sticker\s*/gi, ' ').replace(/\s*Style\s*/gi, ' ').replace(/\s+/g, ' ').trim();

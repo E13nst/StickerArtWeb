@@ -28,6 +28,7 @@ import { useNonFlashingVideoSrc } from '@/hooks/useNonFlashingVideoSrc';
 import { adaptStickerSetsToGalleryPacks } from '@/utils/galleryAdapter';
 import { openTelegramUrl } from '@/utils/openTelegramUrl';
 import { useAppSessionBootstrap } from '@/hooks/useAppSessionBootstrap';
+import { getStylePresetVisualPreviewUrl } from '@/utils/stylePresetVisualPreview';
 import { buildSwipePriorityDeck } from '@/utils/buildSwipePriorityDeck';
 import type {
   SessionOnboardingSlide,
@@ -169,7 +170,7 @@ const SWIPE_GLOW_THRESHOLD = 100;
 const BUTTON_GLOW_DURATION_MS = 450;
 
 const stylePresetSwipePreview = (p: StylePreset | null | undefined): string | null =>
-  p ? p.previewWebpUrl ?? p.previewUrl ?? p.presetReferenceImageUrl ?? null : null;
+  p ? getStylePresetVisualPreviewUrl(p) : null;
 
 const renderSlideBody = (slide: SessionOnboardingSlide) => {
   const raw = slide.bodyMarkdown ?? slide.termsSummaryMarkdown ?? '';

@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { StylePreset } from '@/api/client';
 import { onApiHostedImageError } from '@/utils/apiImageFallback';
+import { getStylePresetVisualPreviewUrl } from '@/utils/stylePresetVisualPreview';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import './StylePresetPickOverlay.css';
@@ -12,9 +13,7 @@ export interface StylePresetPickOverlayProps {
   onDismiss: () => void;
 }
 
-const pickPreviewUrl = (p: StylePreset): string | null =>
-  (p.previewWebpUrl ?? p.previewUrl ?? p.presetReferenceImageUrl)?.trim?.() ??
-  null;
+const pickPreviewUrl = (p: StylePreset): string | null => getStylePresetVisualPreviewUrl(p);
 
 /** Оверлей выбора стиля после тапа по сетке: slide-in справа, принять / пропустить. */
 export const StylePresetPickOverlay: FC<StylePresetPickOverlayProps> = ({ preset, onAccept, onDismiss }) => {

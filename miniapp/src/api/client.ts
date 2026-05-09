@@ -616,6 +616,12 @@ export interface StylePreset {
   removeBackgroundMode?: StylePresetRemoveBgMode | null;
   promptInput?: StylePresetPromptInput | null;
   fields?: StylePresetField[] | null;
+  /**
+   * Только view=generation: канон с бэка — показывать ли textarea свободного промпта
+   * (сервер: applyGenerationFreestyleUiContract + computeShowFreestylePromptInUi).
+   * Если поле пришло, его стоит предпочесть клиентской эвристике по uiMode/suffix.
+   */
+  showFreestylePromptInUi?: boolean | null;
   /** Если true — скрыть свободный prompt в UI потребителя витрины. */
   hideFreestylePromptAuthorSupplied?: boolean;
   /** Если true — remove_background зафиксирован значением removeBackgroundEffective. */

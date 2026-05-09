@@ -18,6 +18,7 @@ import { Pulsar } from '@/components/ui/Pulsar';
 import { DeleteIcon, ShareIcon, DownloadIcon } from '@/components/ui/Icons';
 import type { DeckAction, DeckActionResponse, DeckCard } from '@/types/deck';
 import { deckActionForGesture, deckOverlayLabels } from '@/utils/generateDeckCardVisual';
+import { getStylePresetVisualPreviewUrl } from '@/utils/stylePresetVisualPreview';
 import './GenerateHeroCard.css';
 
 export interface DeckCardPresentation {
@@ -107,13 +108,7 @@ const getPresetPreview = (
   preset: StylePreset,
   byHistory: Map<number, string>,
 ): string | null => {
-  return (
-    (preset.id != null ? byHistory.get(preset.id) : null) ??
-    preset.previewWebpUrl ??
-    preset.previewUrl ??
-    preset.presetReferenceImageUrl ??
-    null
-  );
+  return (preset.id != null ? byHistory.get(preset.id) : null) ?? getStylePresetVisualPreviewUrl(preset);
 };
 
 const stripPresetName = (name: string | null | undefined): string => {
@@ -709,8 +704,17 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
         );
       }
       return (
-        <div className="ghc-card__media ghc-card__media--deck-banner" aria-hidden>
-          <span className="ghc-card__deck-banner-mark">✨</span>
+        <div className="ghc-card__media ghc-card__media--logo" aria-hidden>
+          <div className="ghc-card__logo-stack">
+            <img
+              src={logoSrc}
+              alt=""
+              className="ghc-card__logo-img"
+              loading="eager"
+              draggable={false}
+              aria-hidden
+            />
+          </div>
         </div>
       );
     }

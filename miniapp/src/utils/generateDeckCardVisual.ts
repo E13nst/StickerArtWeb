@@ -1,4 +1,5 @@
 import type { DeckAction, DeckCard, DeckCardType } from '@/types/deck';
+import { readStyleFeedItemRecord } from '@/utils/deckCardPayload';
 
 /** Вправо (положительный swipe) vs влево */
 export function deckActionForGesture(type: DeckCardType, swipeRight: boolean): DeckAction {
@@ -59,11 +60,28 @@ export function buildGenerateDeckCardVisual(
     return typeof v === 'number' && Number.isFinite(v) ? v : null;
   };
 
-  const imageUrl = typeof p.imageUrl === 'string' && p.imageUrl.trim() ? (p.imageUrl as string) : null;
-  const linkedId = getLinkedPresetId(card);
+  let imageUrl: string | null =
+    typeof p.imageUrl === 'string' && p.imageUrl.trim() ? (p.imageUrl as string) : null;
 
   let title = str('title') ?? '';
   let subtitle = str('subtitle') ?? str('body') ?? str('promptPreview') ?? null;
+
+  if (card.type === 'STYLE_PRESET') {
+    const sfi = readStyleFeedItemRecord(p as Record<string, unknown>);
+    if (sfi) {
+      const nestedUrl = sfi.imageUrl;
+      if (typeof nestedUrl === 'string' && nestedUrl.trim()) imageUrl = nestedUrl.trim();
+      const name = sfi.stylePresetName;
+      if (typeof name === 'string' && name.trim()) title = name.trim();
+      const lc = sfi.likesCount;
+      const dc = sfi.dislikesCount;
+      if (typeof lc === 'number' || typeof dc === 'number') {
+        subtitle = `♥ ${typeof lc === 'number' ? lc : 0} · ✕ ${typeof dc === 'number' ? dc : 0}`;
+      }
+    }
+  }
+
+  const linkedId = getLinkedPresetId(card);
 
   switch (card.type) {
     case 'STYLE_PRESET':
