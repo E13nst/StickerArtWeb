@@ -90,3 +90,29 @@
   color: rgba(255, 200, 120, 0.85);
   line-height: 1.35;
 }
+
+.preset-reference-field--inline {
+  border-top: none;
+  padding-top: 0;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.preset-reference-field__inline-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.preset-reference-field--inline .preset-reference-field__grid {
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+
+.preset-reference-field--inline .preset-reference-field__cell {
+  width: clamp(64px, 22cqw, 80px);
+  height: clamp(64px, 22cqw, 80px);
+}

@@ -34,7 +34,7 @@ import {
 } from '@/utils/ownStyleBlueprint';
 import { PresetFieldsForm } from '@/components/PresetFieldsForm';
 import { hasExternalFilesDrag, setSourceStripDragData } from '@/components/referenceDnd';
-import type { PresetReferenceMovePayload } from '@/components/PresetReferenceField';
+import { PresetReferenceField, type PresetReferenceMovePayload } from '@/components/PresetReferenceField';
 import { AttachmentPointerDragProvider } from '@/components/AttachmentPointerDragContext';
 import type { DraggingPayload, DropTarget } from '@/components/AttachmentPointerDragContext';
 import { SourceImageStripItem } from '@/components/SourceImageStripItem';
@@ -64,7 +64,6 @@ import { useHorizontalScrollStrip } from '@/hooks/useHorizontalScrollStrip';
 import { useGenerateDeckQueue } from '@/hooks/useGenerateDeckQueue';
 import { OtherAccountBackground } from '@/components/OtherAccountBackground';
 import { StixlyPageContainer } from '@/components/layout/StixlyPageContainer';
-import { DownloadIcon } from '@/components/ui/Icons';
 import { buildSwitchInlineQuery, buildFallbackShareUrl, removeInvisibleChars, isValidTelegramFileId, getPlatformInfo } from '@/utils/stickerUtils';
 import { SaveToStickerSetModal } from '@/components/SaveToStickerSetModal';
 import { ModalBackdrop } from '@/components/ModalBackdrop';
@@ -158,10 +157,6 @@ const LEGACY_DEFAULT_SAVE_TARGET_STORAGE_PREFIX = 'stixly:generate-default-save-
 const PRESET_PREVIEW_FALLBACK_BY_CODE: Partial<Record<string, string>> = {};
 /** Ключ слота предустановленного референса стиля в preset_fields */
 const PRESET_REF_FIELD_KEY = 'preset_ref';
-/** Плейсхолдер prompt при «Черновик», если уже есть результат в истории — подменяем «создайте стиль» с бэка */
-const OWN_STYLE_AFTER_LAST_RESULT_PLACEHOLDER =
-  'Уточните доработку к результату последней генерации (он показан выше) или опишите новую идею…';
-
 function assertPresetRefGalleryImageIds(ids: readonly string[]): void {
   const bad = ids.find((id) => id && !String(id).startsWith('img_sagref_'));
   if (!bad) return;
@@ -1504,7 +1499,9 @@ export const GeneratePage: FC = () => {
             setErrorMessage(null);
             setErrorKind(null);
             setDuringJobPreviousResultUrl(null);
-            setSuppressSourceStripItemReveal(false);
+            if (sourceImageFiles.length > 0) {
+              setSuppressSourceStripItemReveal(true);
+            }
             showSaveNotice(
               backgroundRemoveFallbackApplied ? BACKGROUND_REMOVE_FALLBACK_NOTICE : null
             );
@@ -2351,30 +2348,17 @@ export const GeneratePage: FC = () => {
   const promptIsRequired =
     effectiveShowPromptInput && (promptInputCfg ? (promptInputCfg.required ?? true) : false);
   const effectiveMaxPromptLen = promptInputCfg?.maxLength ?? MAX_PROMPT_LENGTH;
-  /** Первая в истории готовая картинка — для черновика: подсказка в промпте (не для hero-блока) */
-  const latestCompletedGenerationPreviewUrl = useMemo(() => {
-    for (const e of historyEntries) {
-      const ready = e.generationStatus === 'COMPLETED' || e.pageState === 'success';
-      if (!ready) continue;
-      const url = e.resultImageUrl?.trim();
-      if (url) return url;
-    }
-    return null;
-  }, [historyEntries]);
   const effectivePromptPlaceholder = useMemo(() => {
     const baseDefault = 'Опишите свою идею или используйте готовые стили!';
-    const base = promptInputCfg?.placeholder ?? baseDefault;
-    const virtualOwn = isOwnStyleBlueprintVirtualPreset(selectedStylePresetId);
-    if (virtualOwn && latestCompletedGenerationPreviewUrl) {
-      return OWN_STYLE_AFTER_LAST_RESULT_PLACEHOLDER;
-    }
-    return base;
-  }, [latestCompletedGenerationPreviewUrl, promptInputCfg?.placeholder, selectedStylePresetId]);
+    return promptInputCfg?.placeholder ?? baseDefault;
+  }, [promptInputCfg?.placeholder]);
   const selectedPresetFieldDefs: StylePresetField[] = selectedPreset?.fields ?? [];
   const referenceFieldDefs = useMemo(
     () => selectedPresetFieldDefs.filter((f) => f.type === 'reference'),
     [selectedPresetFieldDefs],
   );
+  /** Пресет с ячейками reference: фото только в слотах полей, без общей кнопки «галерея». */
+  const hideHeroSourceImageStrip = referenceFieldDefs.length > 0;
   const effectiveReferenceMaxUnique = useMemo(() => {
     const raw = selectedPreset?.promptInput?.referenceImages?.maxCount;
     if (raw == null || !Number.isFinite(raw) || raw <= 0) {
@@ -3740,6 +3724,9 @@ export const GeneratePage: FC = () => {
     (promptOk || canGenerateWithoutPrompt) && presetFieldsOk && ownStylePresetRefFromGalleryOk;
   const isGenerating = pageState === 'generating' || pageState === 'uploading';
   const isDisabled = isGenerating || !isFormValid || isBlockedByOwnStylePresetRefGate;
+  const ownStyleFormComposeInHero =
+    ownStyleBlueprintSession != null &&
+    isOwnStyleBlueprintVirtualPreset(selectedStylePresetId);
   const hasPromptText = effectiveShowPromptInput && prompt.trim().length > 0;
   const hasCurrentReferenceForPublication =
     sourceImageFiles.length > 0 || collectUniqueReferenceImageIds(referenceAssignments).size > 0;
@@ -3879,6 +3866,7 @@ export const GeneratePage: FC = () => {
   );
 
   useLayoutEffect(() => {
+    if (ownStyleFormComposeInHero) return;
     const compose = generateComposeStickyRef.current;
     if (!compose || typeof window === 'undefined') return;
     const scrollParent = compose.closest('.stixly-main-scroll');
@@ -3898,7 +3886,7 @@ export const GeneratePage: FC = () => {
     }
 
     scrollParent.scrollTop = Math.max(0, scrollParent.scrollTop + delta);
-  }, [composeLayoutStabilizerKey]);
+  }, [composeLayoutStabilizerKey, ownStyleFormComposeInHero]);
 
   useEffect(() => {
     composeScrollCompensationPrimedRef.current = false;
@@ -3961,13 +3949,14 @@ export const GeneratePage: FC = () => {
 
   const presentHistoryAsLocalIntentCard = (entry: GenerateHistoryEntry) => {
     setHistoryOpen(false);
+    const styleLabel = getHistoryStyleLabel(entry);
     setLocalOverlayDeckCard({
       cardInstanceId: `local-last-generation-${entry.localId}`,
       type: 'LAST_GENERATION',
       payload: {
         localId: entry.localId,
         taskId: entry.taskId,
-        title: 'Последняя генерация',
+        title: styleLabel !== 'Без стиля' ? styleLabel : 'Ваш стикер',
         subtitle: getHistoryPromptLabel(entry),
         imageUrl: entry.resultImageUrl,
       },
@@ -4194,7 +4183,11 @@ export const GeneratePage: FC = () => {
             <div ref={sourceStripInnerRef} className="generate-source-strip__inner horiz-scroll-bleed">
               {sourceImagePreviews.map((preview, index) => (
                 <SourceImageStripItem
-                  key={`${sourceImageFiles[index]?.name ?? 'source'}-${sourceImageFiles[index]?.lastModified ?? index}-${index}`}
+                  key={
+                    sourceFingerprintByIndexRef.current[index]
+                      ? `src-fp-${sourceFingerprintByIndexRef.current[index]}`
+                      : `src-${index}-${sourceImageFiles[index]?.lastModified ?? 0}`
+                  }
                   index={index}
                   preview={preview}
                   disabled={disabled}
@@ -4450,72 +4443,111 @@ export const GeneratePage: FC = () => {
     [handlePresetChange, presetsWithVirtual],
   );
 
+  const resolveBlueprintCodeFromDeckPayload = useCallback(
+    (payload: DeckCard['payload'] | undefined): string => {
+      if (!payload) return '';
+      const raw =
+        (typeof payload.code === 'string' && payload.code) ||
+        (typeof payload.blueprintCode === 'string' && payload.blueprintCode) ||
+        '';
+      return raw.trim();
+    },
+    [],
+  );
+
   /**
-   * «Создать свой стиль»: виртуальная карточка + генерация по blueprint-коду.
+   * Активация черновика по blueprint: форма только в hero-карточке (без бокового overlay).
    * Черновик в БД создаётся только при первом upload в слот preset_ref.
    */
-  const handleSelectOwnStylePreset = async () => {
-    if (ownStyleBootstrapRef.current || bootstrappingOwnStyle) return;
-    ownStyleBootstrapRef.current = true;
-    setBootstrappingOwnStyle(true);
-    tg?.HapticFeedback?.impactOccurred?.('light');
-    try {
-      let blueprints = userPresetCreationBlueprints;
-      if (!blueprints.length) {
-        try {
-          blueprints = await apiClient.getUserPresetCreationBlueprints();
-          setUserPresetCreationBlueprints(blueprints);
-        } catch {
-          blueprints = [];
+  const activateOwnStyleBlueprintSession = useCallback(
+    async (codeRaw?: string) => {
+      if (ownStyleBootstrapRef.current || bootstrappingOwnStyle) return;
+      ownStyleBootstrapRef.current = true;
+      setBootstrappingOwnStyle(true);
+      tg?.HapticFeedback?.impactOccurred?.('light');
+      try {
+        let blueprints = userPresetCreationBlueprints;
+        if (!blueprints.length) {
+          try {
+            blueprints = await apiClient.getUserPresetCreationBlueprints();
+            setUserPresetCreationBlueprints(blueprints);
+          } catch {
+            blueprints = [];
+          }
         }
-      }
-      const bp = resolveCreationBlueprint(blueprints);
-      if (!bp) {
-        setErrorMessage('Создание своего стиля сейчас недоступно.');
+        const codeFromArg = codeRaw?.trim() ?? '';
+        const codeFromCard =
+          resolveBlueprintCodeFromDeckPayload(localOverlayDeckCard?.payload) ||
+          resolveBlueprintCodeFromDeckPayload(generationDeckHeadCard?.payload);
+        const bp =
+          (codeFromArg ? blueprints.find((b) => b.code === codeFromArg) : null) ??
+          (codeFromCard ? blueprints.find((b) => b.code === codeFromCard) : null) ??
+          resolveCreationBlueprint(blueprints);
+        if (!bp) {
+          setErrorMessage('Создание своего стиля сейчас недоступно.');
+          setErrorKind('general');
+          return;
+        }
+        setOwnStyleBlueprintSession(buildOwnStyleSessionFromBlueprint({ blueprint: bp }));
+        setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
+        setPublishUiHints(bp.uiHints ?? null);
+        handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
+        setComposeDeckOverlayOpen(false);
+        setLocalOverlayDeckCard(null);
+        const latestOwnStyleHistoryEntry = historyEntries.find((entry) => {
+          if (isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) return true;
+          const code = entry.ownStyleBlueprintCode?.trim();
+          return !!code && code === bp.code;
+        });
+        if (!latestOwnStyleHistoryEntry?.prompt?.trim()) {
+          setPrompt('');
+        }
+        queueMicrotask(() => {
+          document.querySelector<HTMLElement>('.stixly-main-scroll')?.scrollTo({ top: 0, behavior: 'auto' });
+        });
+        if (latestOwnStyleHistoryEntry?.referenceAssignmentsSnapshot) {
+          setReferenceAssignments(
+            Object.fromEntries(
+              Object.entries(latestOwnStyleHistoryEntry.referenceAssignmentsSnapshot).map(([key, ids]) => [
+                key,
+                [...ids],
+              ]),
+            ),
+          );
+          setReferencePreviewById(latestOwnStyleHistoryEntry.referencePreviewSnapshot ?? {});
+        }
+        setResultImageUrl(null);
+        setDuringJobPreviousResultUrl(null);
+        setImageId(null);
+        setTaskId(null);
+        setFileId(null);
+        setStickerSaved(false);
+        setSavedStickerSetName(null);
+        setSavedStickerSetTitle(null);
+        setCurrentStatus(null);
+        setErrorMessage(null);
+        setErrorKind(null);
+        setPageState('idle');
+      } catch (e: unknown) {
+        setErrorMessage(e instanceof Error ? e.message : 'Не удалось открыть создание своего стиля');
         setErrorKind('general');
-        return;
+      } finally {
+        ownStyleBootstrapRef.current = false;
+        setBootstrappingOwnStyle(false);
       }
-      setOwnStyleBlueprintSession(buildOwnStyleSessionFromBlueprint({ blueprint: bp }));
-      setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
-      setPublishUiHints(bp.uiHints ?? null);
-      handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
-      setComposeDeckOverlayOpen(true);
-      const latestOwnStyleHistoryEntry = historyEntries.find((entry) => {
-        if (isOwnStyleBlueprintVirtualPreset(entry.stylePresetId)) return true;
-        const code = entry.ownStyleBlueprintCode?.trim();
-        return !!code && code === bp.code;
-      });
-      if (latestOwnStyleHistoryEntry?.referenceAssignmentsSnapshot) {
-        setReferenceAssignments(
-          Object.fromEntries(
-            Object.entries(latestOwnStyleHistoryEntry.referenceAssignmentsSnapshot).map(([key, ids]) => [
-              key,
-              [...ids],
-            ]),
-          ),
-        );
-        setReferencePreviewById(latestOwnStyleHistoryEntry.referencePreviewSnapshot ?? {});
-      }
-      setResultImageUrl(null);
-      setDuringJobPreviousResultUrl(null);
-      setImageId(null);
-      setTaskId(null);
-      setFileId(null);
-      setStickerSaved(false);
-      setSavedStickerSetName(null);
-      setSavedStickerSetTitle(null);
-      setCurrentStatus(null);
-      setErrorMessage(null);
-      setErrorKind(null);
-      setPageState('idle');
-    } catch (e: unknown) {
-      setErrorMessage(e instanceof Error ? e.message : 'Не удалось открыть создание своего стиля');
-      setErrorKind('general');
-    } finally {
-      ownStyleBootstrapRef.current = false;
-      setBootstrappingOwnStyle(false);
-    }
-  };
+    },
+    [
+      bootstrappingOwnStyle,
+      buildOwnStyleSessionFromBlueprint,
+      generationDeckHeadCard?.payload,
+      handlePresetChange,
+      historyEntries,
+      localOverlayDeckCard?.payload,
+      resolveBlueprintCodeFromDeckPayload,
+      tg,
+      userPresetCreationBlueprints,
+    ],
+  );
 
   /** Пока верх очереди — не STYLE (и без локальной intent-карточки): композиция выносится в сайд overlay. */
   const deckDeferComposeToForm = Boolean(
@@ -4524,27 +4556,23 @@ export const GeneratePage: FC = () => {
       deckVisibleHeadCard.type !== 'STYLE_PRESET',
   );
 
-  /** Промпт+поля только в карточке-оверлее (не duplicate generate-form-layout__compose под колодой). */
-  const ownStyleComposeInHeroOverlayFlow =
-    isOwnStyleBlueprintVirtualPreset(selectedStylePresetId) && ownStyleBlueprintSession != null;
-  const generationComposeUsesHeroOverlay =
-    deckDeferComposeToForm || ownStyleComposeInHeroOverlayFlow;
+  const generationComposeUsesHeroOverlay = deckDeferComposeToForm;
 
   /** Промпт только внутри hero; поля пресета — в форме (без --with-preset-stack под compose-slot). */
   const splitHeroComposePresetFieldsToForm =
     !deckDeferComposeToForm &&
-    !ownStyleComposeInHeroOverlayFlow &&
+    !ownStyleFormComposeInHero &&
     selectedPresetFieldDefs.length > 0;
 
   /** Под колодой не показываем второй промпт-пакет — только сетку (и overlay при необходимости). */
   const omitComposeUnderPageForm = !generationComposeUsesHeroOverlay
     ? true
-    : deckDeferComposeToForm || splitHeroComposePresetFieldsToForm;
+    : deckDeferComposeToForm || splitHeroComposePresetFieldsToForm || ownStyleFormComposeInHero;
   /**
-   * Лента референсов под карточкой не нужна, если она уже встроена в compose-слот героя:
-   * непустая API-колода или любая верхняя карта не STYLE_PRESET (создание стикера, пустая колода, welcome и т.д.).
+   * Лента вложений только в compose-слоте hero (не под формой на странице).
+   * Для STYLE_PRESET в колоде — без общей ленты (референсы в полях пресета).
    */
-  const hideStandaloneSourceStrip =
+  const sourceStripOnlyInHeroCompose =
     visibleServerDeckCards.length > 0 ||
     (generationDeckHeadCard != null && generationDeckHeadCard.type !== 'STYLE_PRESET');
   /** INLINE compose внутри карточки даже при deckDefer: последняя карта / создать стикер без выезжающего overlay. */
@@ -4552,9 +4580,28 @@ export const GeneratePage: FC = () => {
     generationDeckHeadCard?.type === 'CUSTOM_PROMPT' ||
     generationDeckHeadCard?.type === 'DECK_EMPTY';
   const showHeroComposeSlotWhenOverlayDefer =
-    !generationComposeUsesHeroOverlay || stickerLikeHeroComposeDeckHead;
-  const hideFixedGenerateStickerCompose =
-    (pageState === 'idle' || pageState === 'error') && stickerLikeHeroComposeDeckHead;
+    !generationComposeUsesHeroOverlay ||
+    stickerLikeHeroComposeDeckHead ||
+    ownStyleFormComposeInHero;
+  /**
+   * Кнопка внутри hero-compose. Фиксированная над навбаром — только когда промпт в боковом overlay
+   * (верх колоды STYLE_PRESET, overlay закрыт).
+   */
+  const showInlineComposeGenerateButton =
+    !isGenerating &&
+    !isPromptFocused &&
+    (pageState === 'success' ||
+      stickerLikeHeroComposeDeckHead ||
+      !generationComposeUsesHeroOverlay ||
+      (generationComposeUsesHeroOverlay && composeDeckOverlayOpen));
+  const showFixedGenerateStickerCompose =
+    !isGenerating && !isPromptFocused && !showInlineComposeGenerateButton;
+
+  useEffect(() => {
+    if (pageState === 'success' && sourceImageFiles.length > 0) {
+      setSuppressSourceStripItemReveal(true);
+    }
+  }, [pageState, sourceImageFiles.length]);
 
   useEffect(() => {
     if (!generationComposeUsesHeroOverlay) setComposeDeckOverlayOpen(false);
@@ -4566,8 +4613,16 @@ export const GeneratePage: FC = () => {
 
   useEffect(() => {
     if (!serverQueueIntentHead || localOverlayDeckCard) return;
+    if (ownStyleFormComposeInHero || isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)) {
+      if (serverQueueIntentHead.type === 'LAST_GENERATION') return;
+    }
     setLocalOverlayDeckCard(serverQueueIntentHead);
-  }, [serverQueueIntentHead, localOverlayDeckCard]);
+  }, [
+    serverQueueIntentHead,
+    localOverlayDeckCard,
+    ownStyleFormComposeInHero,
+    selectedStylePresetId,
+  ]);
 
   useEffect(() => {
     if (pageState === 'idle' || !localOverlayDeckCard) return;
@@ -4606,25 +4661,9 @@ export const GeneratePage: FC = () => {
     async (codeRaw: string) => {
       const code = codeRaw.trim();
       if (!code) return;
-      let blueprints = userPresetCreationBlueprints;
-      if (!blueprints.length) {
-        try {
-          blueprints = await apiClient.getUserPresetCreationBlueprints();
-          setUserPresetCreationBlueprints(blueprints);
-        } catch {
-          return;
-        }
-      }
-      const bp = blueprints.find((b) => b.code === code);
-      if (!bp) return;
-      tg?.HapticFeedback?.impactOccurred?.('light');
-      setOwnStyleBlueprintSession(buildOwnStyleSessionFromBlueprint({ blueprint: bp }));
-      setPublishCostHint(bp.estimatedPublicationCostArt ?? null);
-      setPublishUiHints(bp.uiHints ?? null);
-      handlePresetChange(OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID, { skipPublishHintReset: true });
-      setComposeDeckOverlayOpen(true);
+      await activateOwnStyleBlueprintSession(code);
     },
-    [userPresetCreationBlueprints, buildOwnStyleSessionFromBlueprint, handlePresetChange, tg],
+    [activateOwnStyleBlueprintSession],
   );
 
   const handleCreateStickerFromGrid = useCallback(() => {
@@ -4869,6 +4908,9 @@ export const GeneratePage: FC = () => {
     const inputVariant = cfg.inputVariant ?? 'full';
     const showPrompt = effectiveShowPromptInput && inputVariant !== 'preset-fields-only';
     const showPresetStack = selectedPresetFieldDefs.length > 0 && inputVariant !== 'prompt-only';
+    const presetNonRefFields = selectedPresetFieldDefs.filter((f) => f.type !== 'reference');
+    const showPresetRefRow =
+      referenceFieldDefs.length > 0 && inputVariant !== 'prompt-only';
     const hideFooter = cfg.hideInputFooter === true;
     return (
     <div
@@ -4905,33 +4947,28 @@ export const GeneratePage: FC = () => {
         <div
           className={cn(
             'generate-input-preset-stack',
+            showPresetRefRow && 'generate-input-preset-stack--ref-row',
             showPrompt && 'generate-input-preset-stack--after-prompt',
             cfg.compactPresetLayout && 'generate-input-preset-stack--hero-card',
           )}
         >
-          <PresetFieldsForm
-            fields={selectedPresetFieldDefs}
-            values={presetFields}
-            onChange={handlePresetFieldChange}
-            disabled={cfg.readOnly || cfg.textDisabled || !cfg.referenceDndEnabled}
-            emojiOptions={POPULAR_EMOJIS}
-            referenceAssignments={referenceAssignments}
-            referencePreviewById={referencePreviewById}
-            referenceUploadingKey={referenceUploadingKey}
-            effectiveReferenceMaxUnique={effectiveReferenceMaxUnique}
-            onReferenceRemove={handleReferenceRemove}
-            onReferenceAddFiles={(key, files) => {
-              void handleReferenceAddFiles(key, files);
-            }}
-            onReferenceAddFromSource={(key, toIndex, sourceIndex) => {
-              void handleReferenceAddFromSource(key, toIndex, sourceIndex);
-            }}
-            onReferenceAddExternalAt={(key, toIndex, files) => {
-              void handleReferenceAddFilesAtSlot(key, toIndex, files);
-            }}
-            onReferenceMove={applyReferenceMove}
-            lockedReferenceFieldKeys={lockedPresetRefFieldKeys}
-          />
+          {showPresetRefRow
+            ? renderPresetReferenceRow({
+                readOnly: cfg.readOnly,
+                textDisabled: cfg.textDisabled,
+                referenceDndEnabled: cfg.referenceDndEnabled,
+              })
+            : null}
+          {presetNonRefFields.length > 0 ? (
+            <PresetFieldsForm
+              fields={presetNonRefFields}
+              values={presetFields}
+              onChange={handlePresetFieldChange}
+              disabled={cfg.readOnly || cfg.textDisabled || !cfg.referenceDndEnabled}
+              emojiOptions={POPULAR_EMOJIS}
+              fieldErrors={{}}
+            />
+          ) : null}
         </div>
       )}
       {!hideFooter && renderInputFooter(cfg.readOnly || cfg.textDisabled)}
@@ -4939,23 +4976,210 @@ export const GeneratePage: FC = () => {
     );
   };
 
-  /** Промпт + поля пресета в одном compose-слоте карточки (компактные поля под превью); иначе один блок full. */
-  const buildSplitHeroComposeSlot = (params: {
+  const renderPresetReferenceRow = (
+    params: {
+      readOnly: boolean;
+      textDisabled: boolean;
+      referenceDndEnabled: boolean;
+    },
+    labelOverrides?: { presetRef?: string; userRef?: string },
+  ) => {
+    const presetRefField = referenceFieldDefs.find(
+      (f) => f.type === 'reference' && f.key === PRESET_REF_FIELD_KEY,
+    );
+    /** Одно пользовательское reference-поле (аватар попадает сюда через autoAssign, без дубля ленты). */
+    const userRefFieldDef = referenceFieldDefs.find(
+      (f) => f.type === 'reference' && f.key !== PRESET_REF_FIELD_KEY,
+    );
+    const extraRefFields = referenceFieldDefs.filter(
+      (f) =>
+        f.type === 'reference' &&
+        f.key !== PRESET_REF_FIELD_KEY &&
+        f.key !== userRefFieldDef?.key,
+    );
+    const disabled = params.readOnly || params.textDisabled || !params.referenceDndEnabled;
+
+    const templateField = presetRefField
+      ? { ...presetRefField, label: labelOverrides?.presetRef ?? 'Шаблон стиля' }
+      : null;
+    const userField = userRefFieldDef
+      ? { ...userRefFieldDef, label: labelOverrides?.userRef ?? 'Пользовательское фото' }
+      : null;
+
+    const renderRefSlot = (field: StylePresetField, slotClass: string) => (
+      <div className={slotClass} key={field.key}>
+        <PresetReferenceField
+          field={field}
+          isFirst
+          disabled={disabled}
+          locked={Boolean(lockedPresetRefFieldKeys.has(field.key))}
+          assignedIds={referenceAssignments[field.key] ?? []}
+          previewById={referencePreviewById}
+          uploading={referenceUploadingKey === field.key}
+          effectiveMaxUnique={effectiveReferenceMaxUnique}
+          allAssignments={referenceAssignments}
+          layout="inline"
+          onRemoveAt={handleReferenceRemove}
+          onAddFiles={(key, files) => {
+            void handleReferenceAddFiles(key, files);
+          }}
+          onMoveImage={applyReferenceMove}
+          onAddFromSourceIndex={(toIndex, sourceIndex) => {
+            void handleReferenceAddFromSource(field.key, toIndex, sourceIndex);
+          }}
+          onAddExternalFilesAt={(toIndex, files) => {
+            void handleReferenceAddFilesAtSlot(field.key, toIndex, files);
+          }}
+        />
+      </div>
+    );
+
+    return (
+      <div className="generate-preset-ref-row">
+        {templateField ? renderRefSlot(templateField, 'generate-preset-ref-row__template') : null}
+        {userField ? renderRefSlot(userField, 'generate-preset-ref-row__user') : null}
+        {extraRefFields.map((field) =>
+          renderRefSlot(field, 'generate-preset-ref-row__extra'),
+        )}
+      </div>
+    );
+  };
+
+  const renderOwnStyleNonReferenceFields = (params: {
     readOnly: boolean;
     textDisabled: boolean;
     referenceDndEnabled: boolean;
     showPromptError: boolean;
   }) => {
+    const nonRefFields = selectedPresetFieldDefs.filter((f) => f.type !== 'reference');
+    if (!nonRefFields.length) return null;
+    return (
+      <PresetFieldsForm
+        fields={nonRefFields}
+        values={presetFields}
+        onChange={handlePresetFieldChange}
+        disabled={params.readOnly || params.textDisabled || !params.referenceDndEnabled}
+        emojiOptions={POPULAR_EMOJIS}
+        referenceAssignments={referenceAssignments}
+        referencePreviewById={referencePreviewById}
+        referenceUploadingKey={referenceUploadingKey}
+        effectiveReferenceMaxUnique={effectiveReferenceMaxUnique}
+        onReferenceRemove={handleReferenceRemove}
+        onReferenceAddFiles={(key, files) => {
+          void handleReferenceAddFiles(key, files);
+        }}
+        onReferenceAddFromSource={(key, toIndex, sourceIndex) => {
+          void handleReferenceAddFromSource(key, toIndex, sourceIndex);
+        }}
+        onReferenceAddExternalAt={(key, toIndex, files) => {
+          void handleReferenceAddFilesAtSlot(key, toIndex, files);
+        }}
+        onReferenceMove={applyReferenceMove}
+        lockedReferenceFieldKeys={lockedPresetRefFieldKeys}
+      />
+    );
+  };
+
+  const buildOwnStyleFormComposeSlot = (params: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    referenceDndEnabled: boolean;
+    showPromptError: boolean;
+  }) => (
+    <div
+      className={cn(
+        'ghc-card__compose-stack',
+        'ghc-card__compose-stack--deck-compose',
+        'ghc-card__compose-stack--own-style-form',
+        showInlineComposeGenerateButton && 'ghc-card__compose-stack--with-generate-btn',
+      )}
+      key="hero-compose-own-style-form"
+    >
+      {effectiveShowPromptInput ? (
+        <div className="generate-input-wrapper generate-input-wrapper--own-style-prompt">
+          <textarea
+            className={cn(
+              'generate-input',
+              params.showPromptError && 'generate-input--error',
+              params.readOnly && 'generate-input--readonly',
+            )}
+            rows={PROMPT_ROWS}
+            readOnly={params.readOnly}
+            placeholder={effectivePromptPlaceholder}
+            value={prompt}
+            onChange={(e) => handlePromptChange(e.target.value)}
+            maxLength={effectiveMaxPromptLen}
+            disabled={params.textDisabled}
+            onFocus={handlePromptFocusIn}
+            onBlur={handlePromptFocusOut}
+          />
+        </div>
+      ) : null}
+      {referenceFieldDefs.length > 0 ? renderPresetReferenceRow(params) : null}
+      {renderOwnStyleNonReferenceFields(params)}
+      {showInlineComposeGenerateButton ? renderComposeGenerateButton() : null}
+    </div>
+  );
+
+  const renderComposeGenerateButton = () => (
+    <div className="ghc-card__compose-generate-wrap">
+      <Button
+        variant="primary"
+        size="medium"
+        type="button"
+        onClick={() => void handleGenerate()}
+        disabled={isDisabled}
+        loading={isGenerating}
+        className={cn('ghc-card__compose-generate-btn', 'generate-button-submit')}
+        aria-label={isGenerating ? 'Идёт генерация' : undefined}
+      >
+        {isGenerating ? 'Подождите...' : generateLabel}
+      </Button>
+    </div>
+  );
+
+  /** Стабильный compose на success: лента не пересобирается при смене головы колоды. */
+  const buildSuccessHeroComposeSlot = (params: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    referenceDndEnabled: boolean;
+    showPromptError: boolean;
+  }) => {
+    const sourceStrip = hideHeroSourceImageStrip
+      ? null
+      : renderSourceImageStrip(params.textDisabled, { suppressItemReveal: true });
+    const withGenerateBtn = showInlineComposeGenerateButton;
     if (!splitHeroComposePresetFieldsToForm) {
-      return renderMainInputBlock({
-        ...params,
-        withWrapperHandlers: true,
-        withActiveState: true,
-        inputVariant: 'full',
-      });
+      return (
+        <div
+          className={cn(
+            'ghc-card__compose-stack',
+            'ghc-card__compose-stack--deck-compose',
+            withGenerateBtn && 'ghc-card__compose-stack--with-generate-btn',
+          )}
+          key="hero-compose-success"
+        >
+          {sourceStrip}
+          {renderMainInputBlock({
+            ...params,
+            withWrapperHandlers: true,
+            withActiveState: true,
+            inputVariant: 'full',
+          })}
+          {withGenerateBtn ? renderComposeGenerateButton() : null}
+        </div>
+      );
     }
     return (
-      <div className="ghc-card__compose-stack" key={`hero-compose-${selectedPreset?.id ?? 'x'}`}>
+      <div
+        className={cn(
+          'ghc-card__compose-stack',
+          'ghc-card__compose-stack--deck-compose',
+          withGenerateBtn && 'ghc-card__compose-stack--with-generate-btn',
+        )}
+        key="hero-compose-success"
+      >
+        {sourceStrip}
         {effectiveShowPromptInput
           ? renderMainInputBlock({
               ...params,
@@ -4972,6 +5196,70 @@ export const GeneratePage: FC = () => {
           hideInputFooter: true,
           compactPresetLayout: true,
         })}
+        {withGenerateBtn ? renderComposeGenerateButton() : null}
+      </div>
+    );
+  };
+
+  /** Промпт + поля пресета в одном compose-слоте карточки (компактные поля под превью); иначе один блок full. */
+  const buildSplitHeroComposeSlot = (params: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    referenceDndEnabled: boolean;
+    showPromptError: boolean;
+  }) => {
+    const sourceStrip = hideHeroSourceImageStrip
+      ? null
+      : renderSourceImageStrip(params.textDisabled, {
+          suppressItemReveal: suppressSourceStripItemReveal,
+        });
+    const withGenerateBtn = showInlineComposeGenerateButton;
+    if (!splitHeroComposePresetFieldsToForm) {
+      return (
+        <div
+          className={cn(
+            'ghc-card__compose-stack',
+            withGenerateBtn && 'ghc-card__compose-stack--with-generate-btn',
+          )}
+          key={`hero-compose-${selectedPreset?.id ?? 'x'}`}
+        >
+          {sourceStrip}
+          {renderMainInputBlock({
+            ...params,
+            withWrapperHandlers: true,
+            withActiveState: true,
+            inputVariant: 'full',
+          })}
+          {withGenerateBtn ? renderComposeGenerateButton() : null}
+        </div>
+      );
+    }
+    return (
+      <div
+        className={cn(
+          'ghc-card__compose-stack',
+          withGenerateBtn && 'ghc-card__compose-stack--with-generate-btn',
+        )}
+        key={`hero-compose-${selectedPreset?.id ?? 'x'}`}
+      >
+        {sourceStrip}
+        {effectiveShowPromptInput
+          ? renderMainInputBlock({
+              ...params,
+              withWrapperHandlers: true,
+              withActiveState: true,
+              inputVariant: 'prompt-only',
+            })
+          : null}
+        {renderMainInputBlock({
+          ...params,
+          withWrapperHandlers: true,
+          withActiveState: true,
+          inputVariant: 'preset-fields-only',
+          hideInputFooter: true,
+          compactPresetLayout: true,
+        })}
+        {withGenerateBtn ? renderComposeGenerateButton() : null}
       </div>
     );
   };
@@ -4982,7 +5270,7 @@ export const GeneratePage: FC = () => {
     referenceDndEnabled: boolean;
     showPromptError: boolean;
   }) => {
-    if (hideStandaloneSourceStrip && generationDeckHeadCard?.type === 'STYLE_PRESET') {
+    if (sourceStripOnlyInHeroCompose && generationDeckHeadCard?.type === 'STYLE_PRESET') {
       if (selectedPresetFieldDefs.length === 0) return null;
       return renderMainInputBlock({
         ...params,
@@ -4994,51 +5282,68 @@ export const GeneratePage: FC = () => {
       });
     }
     if (
-      hideStandaloneSourceStrip &&
+      sourceStripOnlyInHeroCompose &&
       generationDeckHeadCard &&
       generationDeckHeadCard.type !== 'STYLE_PRESET'
     ) {
-      const inlineGenerateInCompose =
-        generationDeckHeadCard.type === 'CUSTOM_PROMPT' ||
-        generationDeckHeadCard.type === 'DECK_EMPTY';
+      const deckComposeWithGenerateBtn = showInlineComposeGenerateButton;
       return (
         <div
           className={cn(
             'ghc-card__compose-stack',
             'ghc-card__compose-stack--deck-compose',
-            inlineGenerateInCompose && 'ghc-card__compose-stack--with-generate-btn',
+            deckComposeWithGenerateBtn && 'ghc-card__compose-stack--with-generate-btn',
           )}
           key={`deck-compose-${generationDeckHeadCard.cardInstanceId}`}
         >
-          {renderSourceImageStrip(params.textDisabled, {
-            suppressItemReveal: suppressSourceStripItemReveal,
-          })}
+          {hideHeroSourceImageStrip
+            ? null
+            : renderSourceImageStrip(params.textDisabled, {
+                suppressItemReveal: suppressSourceStripItemReveal,
+              })}
           {renderMainInputBlock({
             ...params,
             withWrapperHandlers: true,
             withActiveState: true,
             inputVariant: 'full',
           })}
-          {inlineGenerateInCompose ? (
-            <div className="ghc-card__compose-generate-wrap">
-              <Button
-                variant="primary"
-                size="medium"
-                type="button"
-                onClick={() => void handleGenerate()}
-                disabled={isDisabled}
-                loading={isGenerating}
-                className={cn('ghc-card__compose-generate-btn', 'generate-button-submit')}
-                aria-label={isGenerating ? 'Идёт генерация' : undefined}
-              >
-                {isGenerating ? 'Подождите...' : generateLabel}
-              </Button>
-            </div>
-          ) : null}
+          {deckComposeWithGenerateBtn ? renderComposeGenerateButton() : null}
         </div>
       );
     }
     return buildSplitHeroComposeSlot(params);
+  };
+
+  /** Compose в hero: лента вложений всегда внутри карточки (.ghc-root--with-compose). */
+  const buildHeroComposeSlotForPage = (params: {
+    readOnly: boolean;
+    textDisabled: boolean;
+    referenceDndEnabled: boolean;
+    showPromptError: boolean;
+  }) => {
+    if (pageState === 'success') {
+      return buildSuccessHeroComposeSlot(params);
+    }
+    if (ownStyleFormComposeInHero) {
+      return buildOwnStyleFormComposeSlot(params);
+    }
+    if (generationComposeUsesHeroOverlay && !showHeroComposeSlotWhenOverlayDefer) {
+      if (hideHeroSourceImageStrip) return null;
+      return (
+        <div
+          className={cn(
+            'ghc-card__compose-stack',
+            'ghc-card__compose-stack--deck-compose',
+          )}
+          key="hero-compose-source-strip"
+        >
+          {renderSourceImageStrip(params.textDisabled, {
+            suppressItemReveal: suppressSourceStripItemReveal,
+          })}
+        </div>
+      );
+    }
+    return buildDeckAwareHeroComposeSlot(params);
   };
 
   const renderPresetGrid = (disabled: boolean) => (
@@ -5058,7 +5363,7 @@ export const GeneratePage: FC = () => {
           : null
       }
       onCreateSticker={() => void handleCreateStickerFromGrid()}
-      onCreatePreset={() => void handleSelectOwnStylePreset()}
+      onCreatePreset={() => void activateOwnStyleBlueprintSession()}
       emptyStateText={
         likedStylesStripEmpty ? 'Лайкните стили в колоде — они появятся здесь.' : null
       }
@@ -5127,9 +5432,8 @@ export const GeneratePage: FC = () => {
         {isBlockedByOwnStylePresetRefGate ? (
           <div className="generate-form-layout__preset-ref-hint">
             <Text variant="bodySmall" align="center">
-              Загрузите опорное изображение стиля в слот preset_ref с устройства (Drag-and-drop или «Добавить
-              фото»). Нужен идентификатор вида img_sagref_… из галереи — так результат можно будет отправить на
-              модерацию после генерации.
+              Загрузите шаблон стиля в левый слот (перетаскивание или «+» в ячейке). Нужен идентификатор вида
+              img_sagref_… — так результат можно будет отправить на модерацию после генерации.
             </Text>
           </div>
         ) : null}
@@ -5157,6 +5461,7 @@ export const GeneratePage: FC = () => {
     sourceImageFiles.length > 0 && sourceImageFiles.every((f) => isTelegramAvatarSourceFile(f));
   /** В потоке «Черновик» показываем аватар-слой, если нет превью стиля сверху */
   const showAvatarCenterCard =
+    !ownStyleFormComposeInHero &&
     (deckHeadDrivesGenerationPreset ||
       selectedStylePresetId == null ||
       isOwnStyleBlueprintVirtualPreset(selectedStylePresetId)) &&
@@ -5164,7 +5469,63 @@ export const GeneratePage: FC = () => {
     Boolean(primarySourcePreview) &&
     !compositeGenerateHeroPreviewUrl;
 
-  const renderHeroCard = (opts?: { composeSlot?: React.ReactNode }) => (
+  const renderSuccessActionsSlot = () => (
+    <>
+      {saveError ? (
+        <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
+          {saveError}
+        </Text>
+      ) : null}
+      <div className="generate-actions">
+        <div className="generate-actions__pair">
+          {(taskId || imageId) && (
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={handleOpenSaveModal}
+              className="generate-action-button save"
+            >
+              {stickerSaved ? 'Сохранено' : 'Сохранить'}
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={handleShareSticker}
+            disabled={isSavingAndSharing}
+            loading={isSavingAndSharing}
+            className="generate-action-button share"
+            aria-label="Поделиться"
+          >
+            {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
+          </Button>
+        </div>
+        {canOpenPublishStyleModal && (
+          <Button
+            variant="secondary"
+            size="medium"
+            type="button"
+            className="generate-action-button publish-style"
+            onClick={() => setPublishPresetModalOpen(true)}
+          >
+            Опубликовать стиль
+          </Button>
+        )}
+        {!canOpenPublishStyleModal && isOwnedSelectedStyle && publicationStateLabel && (
+          <div className="generate-style-publication-state" role="status" aria-live="polite">
+            Статус стиля: {publicationStateLabel}
+          </div>
+        )}
+      </div>
+      {saveNoticeText ? (
+        <Text variant="bodySmall" className="generate-save-notice" align="center">
+          {saveNoticeText}
+        </Text>
+      ) : null}
+    </>
+  );
+
+  const renderHeroCard = (opts?: { composeSlot?: React.ReactNode; successActionsSlot?: React.ReactNode }) => (
     <GenerateHeroCard
       presets={stripStylePresets}
       selectedPresetId={selectedPreset?.id ?? selectedStylePresetId}
@@ -5173,6 +5534,8 @@ export const GeneratePage: FC = () => {
       duringJobPreviousResultUrl={duringJobPreviousResultUrl}
       generatingMessage={getGeneratingSpinnerMessage(pageState, currentStatus)}
       logoSrc={STIXLY_LOGO_ORANGE}
+      logoPlaceholderPresetId={OWN_STYLE_BLUEPRINT_VIRTUAL_PRESET_ID}
+      placeholderLogoSrc={STIXLY_LOGO_ORANGE}
       presetPreviewById={presetPreviewById}
       showAvatarCard={showAvatarCenterCard}
       avatarPreviewUrl={primarySourcePreview}
@@ -5181,36 +5544,8 @@ export const GeneratePage: FC = () => {
       canDownloadResult={Boolean(resultImageUrl) && pageState === 'success'}
       isDownloadingResult={isDownloadingResult}
       composeSlot={opts?.composeSlot}
+      successActionsSlot={opts?.successActionsSlot}
       composeSlotRef={opts?.composeSlot ? generateComposeStickyRef : undefined}
-      generatingInlineSlot={
-        hasActiveGeneration && selectedPresetFieldDefs.length > 0 ? (
-          <div className="ghc-inline-preset-fields">
-            <PresetFieldsForm
-              fields={selectedPresetFieldDefs}
-              values={presetFields}
-              onChange={handlePresetFieldChange}
-              disabled
-              emojiOptions={POPULAR_EMOJIS}
-              referenceAssignments={referenceAssignments}
-              referencePreviewById={referencePreviewById}
-              referenceUploadingKey={referenceUploadingKey}
-              effectiveReferenceMaxUnique={effectiveReferenceMaxUnique}
-              onReferenceRemove={handleReferenceRemove}
-              onReferenceAddFiles={(key, files) => {
-                void handleReferenceAddFiles(key, files);
-              }}
-              onReferenceAddFromSource={(key, toIndex, sourceIndex) => {
-                void handleReferenceAddFromSource(key, toIndex, sourceIndex);
-              }}
-              onReferenceAddExternalAt={(key, toIndex, files) => {
-                void handleReferenceAddFilesAtSlot(key, toIndex, files);
-              }}
-              onReferenceMove={applyReferenceMove}
-              lockedReferenceFieldKeys={lockedPresetRefFieldKeys}
-            />
-          </div>
-        ) : undefined
-      }
       onDuringJobPreviousResultTap={
         duringJobPreviousResultUrl
           ? () =>
@@ -5261,15 +5596,20 @@ export const GeneratePage: FC = () => {
       composeOverlayOpen={composeDeckOverlayOpen && generationComposeUsesHeroOverlay}
       composeOverlaySlot={
         generationComposeUsesHeroOverlay
-          ? renderMainInputBlock({
-              readOnly: false,
-              textDisabled: isGenerating,
-              referenceDndEnabled: !isGenerating,
-              showPromptError: shouldShowPromptError,
-              withWrapperHandlers: true,
-              withActiveState: true,
-              inputVariant: 'full',
-            })
+          ? (
+            <div className="ghc-compose-overlay__flow">
+              {renderMainInputBlock({
+                readOnly: false,
+                textDisabled: isGenerating,
+                referenceDndEnabled: !isGenerating,
+                showPromptError: shouldShowPromptError,
+                withWrapperHandlers: true,
+                withActiveState: true,
+                inputVariant: 'full',
+              })}
+              {renderComposeGenerateButton()}
+            </div>
+          )
           : undefined
       }
       composeOverlaySlotRef={generateComposeStickyRef}
@@ -5441,135 +5781,50 @@ export const GeneratePage: FC = () => {
     </>
   );
 
-  // Рендер результата (Figma: image → Save → форма readonly → GENERATE 10 ART)
+  // Рендер результата: превью + действия в hero-карточке, ниже — форма новой генерации
   const renderSuccessState = () => (
     <div className="generate-result-container">
-      <div className="generate-success-section">
-        {resultImageUrl && (
-          <div className={cn('generate-result-image-wrapper', 'generate-hero-slot', 'generate-hero-slot--result')}>
-            <button
-              type="button"
-              className="generate-result-image-tap"
-              aria-label="Открыть стикер на весь экран"
-              onClick={() =>
-                setImageLightbox({
-                  viewerUrl: resultImageUrl,
-                  downloadUrl: resultImageUrl,
-                  alt: 'Сгенерированный стикер',
-                })
-              }
-            >
-              <img
-                src={resultImageUrl}
-                alt="Сгенерированный стикер"
-                className="generate-result-image"
-                draggable={false}
-                onError={purgeHistoryEntryForExpiredApiImage}
-              />
-            </button>
-            <button
-              type="button"
-              className="generate-result-download-btn generate-result-download-btn--icon-only"
-              onClick={handleDownloadResult}
-              disabled={isDownloadingResult}
-              aria-label="Скачать стикер на устройство"
-              title="Скачать"
-            >
-              <DownloadIcon size={20} />
-            </button>
-          </div>
-        )}
-
-        {saveError && (
-          <Text variant="bodySmall" style={{ color: 'var(--color-error)' }} align="center">
-            {saveError}
-          </Text>
-        )}
-
-        <div className="generate-actions">
-          <div className="generate-actions__pair">
-            {(taskId || imageId) && (
-              <Button
-                variant="primary"
-                size="medium"
-                onClick={handleOpenSaveModal}
-                className="generate-action-button save"
-              >
-                {stickerSaved ? 'Сохранено' : 'Сохранить'}
-              </Button>
-            )}
-            <Button
-              variant="primary"
-              size="medium"
-              onClick={handleShareSticker}
-              disabled={isSavingAndSharing}
-              loading={isSavingAndSharing}
-              className="generate-action-button share"
-              aria-label="Поделиться"
-            >
-              {isSavingAndSharing ? 'Сохраняем...' : 'Отправить'}
-            </Button>
-          </div>
-          {canOpenPublishStyleModal && (
-            <Button
-              variant="secondary"
-              size="medium"
-              type="button"
-              className="generate-action-button publish-style"
-              onClick={() => setPublishPresetModalOpen(true)}
-            >
-              Опубликовать стиль
-            </Button>
-          )}
-          {!canOpenPublishStyleModal && isOwnedSelectedStyle && publicationStateLabel && (
-            <div className="generate-style-publication-state" role="status" aria-live="polite">
-              Статус стиля: {publicationStateLabel}
-            </div>
-          )}
-        </div>
-        {saveNoticeText && (
-          <Text variant="bodySmall" className="generate-save-notice" align="center">
-            {saveNoticeText}
-          </Text>
-        )}
-      </div>
-
-      <div className="generate-success-section generate-new-request">
-        {renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
-        {renderGenerateFormBlock({
+      {renderHeroCard({
+        successActionsSlot: renderSuccessActionsSlot(),
+        composeSlot: buildHeroComposeSlotForPage({
           readOnly: false,
           textDisabled: isGenerating,
-          dropEnabled: !isGenerating,
           referenceDndEnabled: !isGenerating,
-          presetDisabled: isGenerating,
           showPromptError: shouldShowPromptError,
-          withWrapperHandlers: true,
-          withActiveState: true,
-          buttonDisabled: isDisabled,
-          buttonLoading: isGenerating,
-          buttonText: generateLabel,
-          onButtonClick: handleGenerate,
-          hideSubmit: true,
-        })}
-      </div>
+        }),
+      })}
+      {renderGenerateFormBlock({
+        readOnly: false,
+        textDisabled: isGenerating,
+        dropEnabled: !isGenerating,
+        referenceDndEnabled: !isGenerating,
+        presetDisabled: isGenerating,
+        showPromptError: shouldShowPromptError,
+        withWrapperHandlers: true,
+        withActiveState: true,
+        buttonDisabled: isDisabled,
+        buttonLoading: isGenerating,
+        buttonText: generateLabel,
+        onButtonClick: handleGenerate,
+        hideSubmit: true,
+        omitCompose: omitComposeUnderPageForm,
+        composeInputVariant: splitHeroComposePresetFieldsToForm ? 'preset-fields-only' : 'full',
+        deckSplitCompose: deckDeferComposeToForm || splitHeroComposePresetFieldsToForm,
+      })}
     </div>
   );
 
   // Рендер ошибки (Figma: same layout as idle, red message inside input block + GENERATE 10 ART)
   const renderErrorState = () => (
     <div className="generate-error-container">
-      {showHeroComposeSlotWhenOverlayDefer
-        ? renderHeroCard({
-            composeSlot: buildDeckAwareHeroComposeSlot({
-              readOnly: false,
-              textDisabled: false,
-              referenceDndEnabled: true,
-              showPromptError: true,
-            }),
-          })
-        : renderHeroCard()}
-      {!hideStandaloneSourceStrip &&
-        renderSourceImageStrip(false, { suppressItemReveal: suppressSourceStripItemReveal })}
+      {renderHeroCard({
+        composeSlot: buildHeroComposeSlotForPage({
+          readOnly: false,
+          textDisabled: false,
+          referenceDndEnabled: true,
+          showPromptError: true,
+        }),
+      })}
       {renderGenerateFormBlock({
         readOnly: false,
         textDisabled: false,
@@ -5601,18 +5856,14 @@ export const GeneratePage: FC = () => {
           </Text>
         </div>
       ) : null}
-      {showHeroComposeSlotWhenOverlayDefer
-        ? renderHeroCard({
-            composeSlot: buildDeckAwareHeroComposeSlot({
-              readOnly: false,
-              textDisabled: isGenerating,
-              referenceDndEnabled: !isGenerating,
-              showPromptError: false,
-            }),
-          })
-        : renderHeroCard()}
-      {!hideStandaloneSourceStrip &&
-        renderSourceImageStrip(isGenerating, { suppressItemReveal: suppressSourceStripItemReveal })}
+      {renderHeroCard({
+        composeSlot: buildHeroComposeSlotForPage({
+          readOnly: false,
+          textDisabled: isGenerating,
+          referenceDndEnabled: !isGenerating,
+          showPromptError: false,
+        }),
+      })}
 
       {renderGenerateFormBlock({
         readOnly: false,
@@ -5694,6 +5945,7 @@ export const GeneratePage: FC = () => {
               'generate-inner',
               isCompactState && 'generate-inner--compact',
               isPromptFocused && 'generate-inner--prompt-focused',
+              showFixedGenerateStickerCompose && 'generate-inner--fixed-submit',
             )}
           >
             {pageState === 'idle' && renderIdleState()}
@@ -5705,7 +5957,7 @@ export const GeneratePage: FC = () => {
         </AttachmentPointerDragProvider>
       </div>
       {/* ── Фиксированная кнопка генерации: всегда над навбаром, скрывается при клавиатуре ── */}
-      {!isPromptFocused && !hideFixedGenerateStickerCompose && (
+      {showFixedGenerateStickerCompose && (
         <div className="generate-fixed-submit">
           <Button
             variant="primary"

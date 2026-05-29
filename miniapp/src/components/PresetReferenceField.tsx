@@ -44,6 +44,8 @@ interface PresetReferenceFieldProps {
   onAddFromSourceIndex?: (toIndex: number, sourceIndex: number) => void;
   /** Файлы с диска / проводника в слот(ы), начиная с toIndex */
   onAddExternalFilesAt?: (toIndex: number, files: File[]) => void;
+  /** Компактная ячейка в горизонтальном ряду (свой стиль) */
+  layout?: 'stack' | 'inline';
 }
 
 export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
@@ -61,6 +63,7 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
   onMoveImage,
   onAddFromSourceIndex,
   onAddExternalFilesAt,
+  layout = 'stack',
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const ptrDnd = useOptionalAttachmentPointerDrag();
@@ -152,20 +155,34 @@ export const PresetReferenceField: FC<PresetReferenceFieldProps> = ({
 
   return (
     <div
-      className={cn('preset-reference-field', 'preset-fields-form__field', isFirst && 'preset-fields-form__field--first')}
+      className={cn(
+        'preset-reference-field',
+        'preset-fields-form__field',
+        isFirst && 'preset-fields-form__field--first',
+        layout === 'inline' && 'preset-reference-field--inline',
+      )}
       role="group"
       aria-label={field.label}
     >
-      <span className="preset-fields-form__label">
-        {field.label}
-        {field.required && <span className="preset-fields-form__required"> *</span>}
-        <span className="preset-reference-field__limits" aria-hidden="true">
-          {' '}
-          ({minSlot > 0 ? `${minSlot}–` : ''}
-          {maxSlot})
+      {layout === 'stack' ? (
+        <span className="preset-fields-form__label">
+          {field.label}
+          {field.required && <span className="preset-fields-form__required"> *</span>}
+          <span className="preset-reference-field__limits" aria-hidden="true">
+            {' '}
+            ({minSlot > 0 ? `${minSlot}–` : ''}
+            {maxSlot})
+          </span>
         </span>
-      </span>
-      {field.description && <p className="preset-fields-form__description">{field.description}</p>}
+      ) : (
+        <span className="preset-reference-field__inline-label">
+          {field.label}
+          {field.required && <span className="preset-fields-form__required"> *</span>}
+        </span>
+      )}
+      {layout === 'stack' && field.description ? (
+        <p className="preset-fields-form__description">{field.description}</p>
+      ) : null}
       <input
         ref={inputRef}
         type="file"

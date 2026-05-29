@@ -96,6 +96,18 @@
   max-height: min(42vh, 320px);
 }
 
+.ghc-compose-overlay__flow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ghc-compose-overlay__flow .ghc-card__compose-generate-wrap {
+  margin-top: 2px;
+}
+
 .ghc-root {
   position: relative;
   width: 100%;
@@ -151,7 +163,7 @@
     );
 }
 
-.ghc-card--custom-prompt-compact.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose)::before {
+.ghc-card--custom-prompt-compact.ghc-card--compose-slot::before {
   box-shadow:
     0 14px 40px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -375,28 +387,40 @@
 }
 
 /*
- * Тень колоды «создать стикер»: отдельный слой на весь bbox карточки (z-index: 0),
- * контент — превью, лента, .generate-input-wrapper с собственным оформлением, кнопка — выше.
+ * Градиент и тень на весь bbox .ghc-card--compose-slot (не только .ghc-card__visual).
+ * Раньше визуально «сидели» на .ghc-card__meta внутри visual — снизу не доходили до compose.
  */
-.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose)::before {
+.ghc-card.ghc-card--compose-slot::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   z-index: 0;
   pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.12) 38%,
+    rgba(0, 0, 0, 0.38) 62%,
+    rgba(0, 0, 0, 0.55) 82%,
+    rgba(0, 0, 0, 0.68) 100%
+  );
   box-shadow:
     0 10px 38px rgba(0, 0, 0, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
-.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose) {
-  /* Тень только на слое ::before, без дубля на корне */
+.ghc-card.ghc-card--compose-slot {
+  /* Тень и затемнение только на ::before, без дубля на корне */
   box-shadow: none;
 }
 
-/* Визуал и compose-слой над слоем тени (compose уже z-index 20 ниже задаётся) */
-.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose) > .ghc-card__visual {
+.ghc-card--compose-slot .ghc-card__meta {
+  background: none;
+}
+
+/* Визуал и compose-слой над слоем градиента/тени (compose уже z-index 20 ниже задаётся) */
+.ghc-card.ghc-card--compose-slot > .ghc-card__visual {
   position: relative;
   z-index: 1;
 }
@@ -431,6 +455,29 @@
 .ghc-card__compose-stack--deck-compose .ghc-card__compose-generate-btn {
   width: auto;
   min-width: min(260px, 100%);
+  max-width: min(320px, 100%);
+}
+
+/* CTA «Создать стиль» по центру карточки (до открытия формы черновика) */
+.ghc-card__compose-stack--own-style-cta {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  padding: 12px var(--ghc-media-pad-x) 16px;
+  box-sizing: border-box;
+}
+
+.ghc-card__own-style-cta-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.ghc-card__own-style-cta-btn {
+  min-width: min(240px, 100%);
   max-width: min(320px, 100%);
 }
 
@@ -648,6 +695,23 @@
   pointer-events: none;
 }
 
+/* Save / Share под превью результата (слот с GeneratePage) */
+.ghc-card__success-actions {
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px var(--ghc-media-pad-x) 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ghc-card__visual:has(.ghc-card__success-actions) .ghc-card__media--result {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 /* Generating media: фон + компактные поля без спиннера и без затемняющего оверлея */
 .ghc-card__media--generating {
   flex-direction: column;
@@ -678,7 +742,7 @@
   filter: saturate(0.92);
 }
 
-.ghc-card__generating-fields-wrap {
+.ghc-card__generating-pulsar {
   position: relative;
   z-index: 4;
   flex: 1;
@@ -686,8 +750,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .ghc-card__avatar-ref {
@@ -820,6 +883,24 @@
   width: 64%;
   height: 64%;
   filter: drop-shadow(0 0 14px rgba(238, 68, 159, 0.5));
+}
+
+.ghc-card__media--logo-placeholder .ghc-card__logo-stack {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(8px, 4cqw, 20px);
+  box-sizing: border-box;
+}
+
+.ghc-card__media--logo-placeholder .ghc-card__logo-img {
+  width: clamp(72px, 32cqw, 132px);
+  height: auto;
+  max-height: min(42%, 148px);
+  object-fit: contain;
+  opacity: 0.92;
 }
 
 .ghc-card__logo-img {

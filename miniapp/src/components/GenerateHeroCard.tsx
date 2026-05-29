@@ -18,7 +18,10 @@ import { Pulsar } from '@/components/ui/Pulsar';
 import { DeleteIcon, ShareIcon, DownloadIcon } from '@/components/ui/Icons';
 import type { DeckAction, DeckActionResponse, DeckCard } from '@/types/deck';
 import { deckActionForGesture, deckCardSwipeHasDistinctSides, deckOverlayLabels } from '@/utils/generateDeckCardVisual';
-import { getStylePresetVisualPreviewUrl } from '@/utils/stylePresetVisualPreview';
+import {
+  getStylePresetCatalogPreviewUrl,
+  getStylePresetVisualPreviewUrl,
+} from '@/utils/stylePresetVisualPreview';
 import './GenerateHeroCard.css';
 
 export interface DeckCardPresentation {
@@ -43,6 +46,9 @@ export interface GenerateHeroCardProps {
   generatingMessage: string;
   /** URL логотипа */
   logoSrc: string;
+  /** Пресет без превью: показать logoSrc в медиа-слоте (черновик «свой стиль»). */
+  logoPlaceholderPresetId?: number | null;
+  placeholderLogoSrc?: string | null;
   /** Превью пресетов из истории (presetId → url) */
   presetPreviewById: Map<number, string>;
   /** Telegram аватар как референс */
@@ -69,8 +75,8 @@ export interface GenerateHeroCardProps {
   onPresetPreviewError?: (presetId: number) => void;
   /** Ошибка загрузки результата с `/api/images/*` (родитель может удалить запись истории вместо заглушки) */
   onApiHostedResultImageError?: (event: SyntheticEvent<HTMLImageElement>) => void;
-  /** Компактные поля пресета (фото слота, эмодзи) поверх карточки во время генерации */
-  generatingInlineSlot?: ReactNode;
+  /** Кнопки «Сохранить» / «Отправить» и статусы — под превью результата в success */
+  successActionsSlot?: ReactNode;
   /** Промпт, тулбар (эмодзи, удалить фон) и поля пресета — под превью внутри той же свайп-карточки */
   composeSlot?: ReactNode;
   composeSlotRef?: Ref<HTMLDivElement | null>;
@@ -135,6 +141,8 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   duringJobPreviousResultUrl,
   generatingMessage,
   logoSrc,
+  logoPlaceholderPresetId = null,
+  placeholderLogoSrc = null,
   presetPreviewById,
   showAvatarCard,
   avatarPreviewUrl,
@@ -152,7 +160,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   onHapticLight,
   onPresetPreviewError,
   onApiHostedResultImageError,
-  generatingInlineSlot,
+  successActionsSlot,
   composeSlot,
   composeSlotRef,
   onDuringJobPreviousResultTap,
@@ -392,9 +400,23 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     return null;
   }, [activeDeckPresentation, presetPreviewById]);
 
-  /** «Создать стикер» из сетки / CUSTOM_PROMPT без картинки: без логотипа и меты, форма с самого верха карточки */
-  const compactCustomPromptHero = Boolean(
+  /** CUSTOM_PROMPT без превью: форма с верха; CREATE_STYLE/свой стиль — с логотипом в media. */
+  const compactDeckIntentHero = Boolean(
     composeSlot && activeDeckCard?.type === 'CUSTOM_PROMPT' && !activeDeckPreview,
+  );
+
+  const renderLogoPlaceholderMedia = (alt: string) => (
+    <div className="ghc-card__media ghc-card__media--logo ghc-card__media--logo-placeholder">
+      <div className="ghc-card__logo-stack">
+        <img
+          src={placeholderLogoSrc ?? logoSrc}
+          alt={alt}
+          className="ghc-card__logo-img"
+          loading="eager"
+          draggable={false}
+        />
+      </div>
+    </div>
   );
 
   /** Пресеты впереди по кругу для префетча и плавной колоды */
@@ -635,13 +657,15 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
 
     if (isGenerating) {
       const showPrevBg = Boolean(duringJobPreviousResultUrl);
-      const showStyleBg = !showPrevBg && Boolean(currentPreview);
+      const generatingBgUrl = currentPreset
+        ? (currentPreset.id != null ? presetPreviewById.get(currentPreset.id) : null) ??
+          getStylePresetCatalogPreviewUrl(currentPreset)
+        : null;
+      const showStyleBg = !showPrevBg && Boolean(generatingBgUrl);
+      const showGeneratingPulsar = !showPrevBg && !showStyleBg;
       return (
         <div
-          className={
-            'ghc-card__media ghc-card__media--generating' +
-            (generatingInlineSlot ? ' ghc-card__media--generating-inline' : '')
-          }
+          className="ghc-card__media ghc-card__media--generating"
           role="status"
           aria-live="polite"
           aria-label={generatingMessage}
@@ -662,10 +686,10 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
               />
             </button>
           ) : null}
-          {showStyleBg && currentPreview ? (
+          {showStyleBg && generatingBgUrl ? (
             <div className="ghc-card__generating-bg-preset" aria-hidden>
               <img
-                src={currentPreview}
+                src={generatingBgUrl}
                 alt=""
                 className="ghc-card__preset-img ghc-card__preset-img--generating-bg"
                 draggable={false}
@@ -676,14 +700,23 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
               />
             </div>
           ) : null}
-          {generatingInlineSlot ? (
-            <div className="ghc-card__generating-fields-wrap">{generatingInlineSlot}</div>
+          {showGeneratingPulsar ? (
+            <div className="ghc-card__generating-pulsar" aria-hidden>
+              <Pulsar size={40} colorScheme="warm" />
+            </div>
           ) : null}
         </div>
       );
     }
 
     if (activeDeckCard && activeDeckPresentation) {
+      if (
+        activeDeckCard.type === 'CREATE_STYLE_BLUEPRINT' &&
+        !activeDeckPreview &&
+        placeholderLogoSrc
+      ) {
+        return renderLogoPlaceholderMedia(activeDeckPresentation.title);
+      }
       if (activeDeckPreview) {
         return (
           <div className="ghc-card__media ghc-card__media--preset">
@@ -747,6 +780,16 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       );
     }
 
+    if (
+      currentPreset &&
+      !currentPreview &&
+      logoPlaceholderPresetId != null &&
+      currentPreset.id === logoPlaceholderPresetId &&
+      placeholderLogoSrc
+    ) {
+      return renderLogoPlaceholderMedia(stripPresetName(currentPreset.name) || 'Создать стиль');
+    }
+
     if (currentPreset && !currentPreview) {
       return (
         <div className="ghc-card__media ghc-card__media--preset ghc-card__media--preset-wait">
@@ -780,8 +823,15 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   const renderPresetMeta = () => {
     if (!isInteractive) return null;
     if (activeDeckCard && activeDeckPresentation) {
+      if (activeDeckCard.type === 'LAST_GENERATION') {
+        return null;
+      }
       const sub = activeDeckPresentation.subtitle?.trim();
       const deckEmpty = activeDeckCard.type === 'DECK_EMPTY';
+      const hideBlueprintMeta = activeDeckCard.type === 'CREATE_STYLE_BLUEPRINT';
+      if (hideBlueprintMeta) {
+        return null;
+      }
       return (
         <div className="ghc-card__meta">
           <span className="ghc-card__meta-name">{activeDeckPresentation.title}</span>
@@ -882,7 +932,7 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
         (composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root') +
         (deckFlowNonStyle && composeSlot ? ' ghc-root--deck-flow' : '') +
         (showComposeOverlay ? ' ghc-root--compose-overlay-open' : '') +
-        (compactCustomPromptHero ? ' ghc-root--custom-prompt-compact' : '')
+        (compactDeckIntentHero ? ' ghc-root--custom-prompt-compact' : '')
       }
     >
       {/* Фоновая карточка — следующий пресет: тот же ритм 84/16, мягче чем верхняя */}
@@ -927,10 +977,9 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       <motion.div
         className={
           'ghc-card' +
-          (isGenerating && generatingInlineSlot ? ' ghc-card--generating-inline' : '') +
           (composeSlot ? ' ghc-card--compose-slot' : '') +
           (useOverlayDeck ? ' ghc-card--overlay-intent' : '') +
-          (compactCustomPromptHero ? ' ghc-card--custom-prompt-compact' : '')
+          (compactDeckIntentHero ? ' ghc-card--custom-prompt-compact' : '')
         }
         key={useOverlayDeck && overlayCard ? overlayCard.cardInstanceId : 'main'}
         style={{
@@ -984,6 +1033,9 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           }
         >
           {renderCardContent()}
+          {isSuccess && successActionsSlot ? (
+            <div className="ghc-card__success-actions">{successActionsSlot}</div>
+          ) : null}
           {renderPresetMeta()}
         </div>
         {composeSlot ? (

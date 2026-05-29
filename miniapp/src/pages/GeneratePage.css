@@ -644,6 +644,13 @@
 }
 
 /* Header — "Создайте Стикер с" + селектор модели (Stixly) */
+/* Лента вложений — только внутри hero с compose (страховка от дубля под формой) */
+.generate-page .generate-form-block .generate-source-strip,
+.generate-page .generate-error-container > .generate-source-strip,
+.generate-page .generate-new-request > .generate-source-strip {
+  display: none !important;
+}
+
 .generate-source-strip {
   position: relative;
   width: 100%;
@@ -1111,7 +1118,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 12px 14px 12px;
+  padding: 12px 14px 0;
   gap: 8px;
   width: 100%;
   max-width: 370px;
@@ -1156,8 +1163,9 @@
   justify-content: flex-start;
   gap: 10px 10px;
   width: 100%;
+  flex: 0 0 auto;
   margin-top: auto;
-  padding-bottom: 6px;
+  padding: 0 0 12px;
   position: relative;
 }
 
@@ -1169,7 +1177,7 @@
   width: 100%;
   flex: 0 0 auto;
   min-width: 0;
-  padding-bottom: 4px;
+  padding-bottom: 0;
 }
 
 /* Компактная ширина «Удалить фон» рядом с эмодзи (без margin-left: auto / width:100% из общих правил) */
@@ -1277,7 +1285,7 @@
 
 .generate-input {
   width: 100%;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   height: auto;
   min-height: 0;
   padding: 0;
@@ -1708,7 +1716,11 @@
 @media (max-width: 420px) {
   .generate-input-wrapper {
     min-height: 124px;
-    padding: 12px 12px 10px;
+    padding: 12px 12px 0;
+  }
+
+  .generate-input-footer {
+    padding-bottom: 10px;
   }
 
   .generate-input {
@@ -2236,6 +2248,20 @@ body.generate-prompt-focused .navbar {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.generate-input-preset-stack--ref-row.generate-input-preset-stack--after-prompt {
+  padding-top: 6px;
+}
+
+.generate-input-wrapper--with-preset-stack .generate-preset-ref-row {
+  margin-top: 0;
+}
+
+/* Свободная высота wrapper — между полями и toolbar, не в textarea */
+.generate-input-wrapper > .generate-input-preset-stack {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .generate-input-wrapper--with-preset-stack {
   min-height: auto;
 }
@@ -2265,8 +2291,96 @@ body.generate-prompt-focused .navbar {
   padding-top: 2px;
 }
 
-.generate-page .ghc-card__compose-slot .generate-input-wrapper--hero-card-preset .preset-reference-field__grid {
+/* Reference-поля пресета: два слота в один ряд (compose и свой стиль) */
+.generate-preset-ref-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.generate-preset-ref-row__template,
+.generate-preset-ref-row__user,
+.generate-preset-ref-row__extra {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.generate-preset-ref-row .preset-reference-field.preset-fields-form__field {
+  border-top: none;
+  padding-top: 0;
+}
+
+.generate-own-style-user-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.generate-own-style-user-slot__empty,
+.generate-own-style-user-slot .generate-source-strip__item {
+  width: clamp(64px, 22cqw, 80px);
+  height: clamp(64px, 22cqw, 80px);
+  margin: 0;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.generate-own-style-user-slot .generate-source-strip__item {
+  animation: none;
+}
+
+.generate-own-style-user-slot__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.generate-own-style-user-slot__empty:hover:not(:disabled) {
+  border-color: rgba(238, 68, 159, 0.45);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.generate-own-style-user-slot__empty:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.generate-input-wrapper--own-style-prompt {
+  width: 100%;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.generate-input-wrapper--own-style-prompt .generate-input {
+  width: 100%;
+  min-height: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.generate-page .ghc-card__compose-slot .generate-input-wrapper--hero-card-preset .preset-reference-field__grid,
+.generate-page .generate-input-wrapper--with-preset-stack .preset-reference-field__grid {
   gap: 6px;
+}
+
+.generate-page .generate-input-preset-stack--ref-row .preset-fields-form__field--first {
+  border-top: none;
+  padding-top: 8px;
 }
 
 @keyframes fieldsFadeIn {
@@ -2334,58 +2448,12 @@ body.generate-prompt-focused .navbar {
   overflow: visible;
 }
 
-/* Компактные поля пресета (реф + эмодзи) на карточке во время генерации */
-.generate-page .ghc-inline-preset-fields {
-  width: 100%;
-  max-width: 340px;
-  max-height: 100%;
-  overflow: visible;
-  transform: scale(0.7);
-  transform-origin: center center;
-  border-radius: 14px;
-  padding: 6px 8px 8px;
-  background: rgba(12, 14, 20, 0.58);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-sizing: border-box;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__field {
-  padding-top: 6px;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__field--first {
-  padding-top: 0;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__label {
-  font-size: 11px;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__description,
-.generate-page .ghc-inline-preset-fields .preset-fields-form__emoji-prompt {
-  display: none;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__emoji-value {
-  min-height: 34px;
-  font-size: 18px;
-  border-radius: 10px;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__emoji-dropdown {
-  max-height: 160px;
-}
-
-.generate-page .ghc-inline-preset-fields .preset-fields-form__select,
-.generate-page .ghc-inline-preset-fields .preset-fields-form__input {
-  font-size: 12px;
-  padding: 6px 8px;
-}
-
-/* generate-inner: отступ снизу под фиксированную кнопку + навбар */
+/* generate-inner: отступ снизу под навбар; с фиксированной кнопкой — доп. высота */
 .generate-page .generate-inner {
+  padding-bottom: calc(var(--stixly-taskbar-height, 96px) + 8px);
+}
+
+.generate-page .generate-inner.generate-inner--fixed-submit {
   padding-bottom: calc(
     var(--gp-fixed-btn-height, 72px)
     + var(--stixly-taskbar-height, 96px)
