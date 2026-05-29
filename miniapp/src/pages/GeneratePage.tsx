@@ -9,6 +9,7 @@ import {
   ClipboardEvent,
   DragEvent as ReactDragEvent,
   useMemo,
+  useId,
   CSSProperties,
   type SyntheticEvent,
 } from 'react';
@@ -640,10 +641,6 @@ export const GeneratePage: FC = () => {
   /** Лайкнутые стили (нижняя сетка только из этого списка, без категорий). */
   const [likedStylePresetList, setLikedStylePresetList] = useState<StylePreset[]>([]);
 
-  // Тарифы
-  const [generateCost, setGenerateCost] = useState<number | null>(null);
-  const [, setIsLoadingTariffs] = useState(true);
-  
   // Баланс пользователя
   const userInfo = useProfileStore((state) => state.userInfo);
   const setUserInfo = useProfileStore((state) => state.setUserInfo);
@@ -694,6 +691,8 @@ export const GeneratePage: FC = () => {
   sourceImageFilesRef.current = sourceImageFiles;
   const clearSourceImageRef = useRef<((options?: { markAvatarDismissed?: boolean }) => void) | null>(null);
   const autoAssignNewSourceFilesRef = useRef<(files: File[]) => Promise<void>>(async () => {});
+  const removeBgToggleId = useId();
+  const presetCatalogScrollRef = useRef<HTMLDivElement | null>(null);
 
   const scrollPromptIntoView = useCallback((element: HTMLElement, behavior: ScrollBehavior = 'smooth') => {
     const getKeyboardInset = (): number => {
@@ -908,23 +907,6 @@ export const GeneratePage: FC = () => {
       setUserId(uid);
       console.log('✅ Получен user_id из URL:', uid);
     }
-  }, []);
-
-  // Загрузка тарифов при монтировании
-  useEffect(() => {
-    const loadTariffs = async () => {
-      try {
-        const tariffs = await apiClient.getArtTariffs();
-        const generateTariff = tariffs.debits?.find(d => d.code === 'GENERATE_STICKER');
-        setGenerateCost(generateTariff?.amount ?? null);
-      } catch (error) {
-        console.error('Ошибка загрузки тарифов:', error);
-      } finally {
-        setIsLoadingTariffs(false);
-      }
-    };
-    
-    loadTariffs();
   }, []);
 
   // Загрузка пресетов стилей, категорий и blueprint — все три запроса параллельно.
@@ -2649,8 +2631,9 @@ export const GeneratePage: FC = () => {
     }
 
     return (
-      <label className="generate-checkbox-label generate-checkbox-label--inline">
+      <label htmlFor={removeBgToggleId} className="generate-checkbox-label generate-checkbox-label--inline">
         <input
+          id={removeBgToggleId}
           type="checkbox"
           className="generate-checkbox"
           checked={removeBackground}
@@ -3926,8 +3909,7 @@ export const GeneratePage: FC = () => {
     return () => window.clearTimeout(id);
   }, [landingReleased]);
 
-  const generateLabel =
-    generateCost != null ? `Создать стикер • ${generateCost} ART` : 'Создать стикер • 10 ART';
+  const generateLabel = 'Создать стикер';
   const shouldShowPromptError = errorKind === 'prompt' && !!errorMessage;
   const isCompactState = pageState !== 'success';
   const formatHistoryStatus = (entry: GenerateHistoryEntry): string => {
@@ -4655,7 +4637,7 @@ export const GeneratePage: FC = () => {
     setLocalOverlayDeckCard({
       cardInstanceId: `local-intent-sticker-${uid}`,
       type: 'CUSTOM_PROMPT',
-      payload: { title: 'Новый стикер' },
+      payload: {},
     });
   }, [handlePresetChange, tg]);
 
@@ -5132,7 +5114,7 @@ export const GeneratePage: FC = () => {
               hideInputFooter: cfg.composeInputVariant === 'preset-fields-only',
             })}
         </div>
-        <div className="generate-form-layout__preset-scroll">
+        <div className="generate-form-layout__preset-scroll" ref={presetCatalogScrollRef}>
           <div className="generate-form-layout__preset-heading">
             {deepLinkPresetMissingNotice ? (
               <Text variant="bodySmall" className="generate-form-layout__preset-deeplink-notice" align="center">

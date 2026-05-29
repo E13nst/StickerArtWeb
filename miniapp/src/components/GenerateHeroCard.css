@@ -130,6 +130,33 @@
   padding-bottom: 26px;
 }
 
+/* CUSTOM_PROMPT без превью: только форма и кнопка — без блока лого/меты */
+.ghc-root--custom-prompt-compact {
+  padding-bottom: 22px;
+}
+
+.ghc-card--custom-prompt-compact .ghc-card__visual {
+  display: none;
+}
+
+/* Перебиваем padding compose у deck-compose: сверху отступ под скругление карточки без зоны лого */
+.ghc-card.ghc-card--compose-slot.ghc-card--custom-prompt-compact:has(
+    .ghc-card__compose-stack--deck-compose
+  )
+  .ghc-card__compose-slot {
+  flex: 1 1 auto;
+  padding: max(12px, var(--ghc-media-pad-y-top)) var(--ghc-media-pad-x) max(
+      14px,
+      calc(var(--ghc-media-pad-y-top) + 4px)
+    );
+}
+
+.ghc-card--custom-prompt-compact.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose)::before {
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 /*
  * Карта целиком не ниже прежней «рамки» 370×523 (пишущая зона добавляется снизу и увеличивает высоту).
  * 523/370 совпадает с прошлым aspect-ratio корня без композа.
@@ -142,6 +169,11 @@
   /* Минимум прежней высоты рамки 370×523 по ширине слота */
   min-height: calc(523 / 370 * min(100vw - 40px, 370px));
   min-height: calc(523 / 370 * 100cqw);
+}
+
+/* Компактный CUSTOM_PROMPT: не тянуть карточку под минимум 370×523 */
+.ghc-root--with-compose.ghc-root--custom-prompt-compact .ghc-card.ghc-card--compose-slot {
+  min-height: 0;
 }
 
 /* ── Фоновая карточка — та же сетка 84/16, мягче и спокойнее верхней ── */
@@ -337,13 +369,69 @@
 .ghc-card__compose-stack--deck-compose {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   box-sizing: border-box;
 }
 
+/*
+ * Тень колоды «создать стикер»: отдельный слой на весь bbox карточки (z-index: 0),
+ * контент — превью, лента, .generate-input-wrapper с собственным оформлением, кнопка — выше.
+ */
+.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  pointer-events: none;
+  box-shadow:
+    0 10px 38px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose) {
+  /* Тень только на слое ::before, без дубля на корне */
+  box-shadow: none;
+}
+
+/* Визуал и compose-слой над слоем тени (compose уже z-index 20 ниже задаётся) */
+.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose) > .ghc-card__visual {
+  position: relative;
+  z-index: 1;
+}
+
+/* Compose-слой и элементы стека над слоем тени (::before); блок ввода — ещё выше элементов строки над ним при перекрытиях */
+.ghc-card__compose-slot .ghc-card__compose-stack--deck-compose > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ghc-card__compose-slot .ghc-card__compose-stack--deck-compose .generate-input-wrapper {
+  z-index: 2;
+}
+
+/* Горизонталь тех же inset’ов что у .ghc-card__media */
+.ghc-card.ghc-card--compose-slot:has(.ghc-card__compose-stack--deck-compose) .ghc-card__compose-slot {
+  padding: 2px var(--ghc-media-pad-x) max(14px, calc(var(--ghc-media-pad-y-top) + 4px));
+}
+
 .ghc-card__compose-stack--with-generate-btn {
-  padding-bottom: 2px;
+  padding-bottom: 4px;
+}
+
+.ghc-card__compose-stack--deck-compose .ghc-card__compose-generate-wrap {
+  margin-top: 2px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ghc-card__compose-stack--deck-compose .ghc-card__compose-generate-btn {
+  width: auto;
+  min-width: min(260px, 100%);
+  max-width: min(320px, 100%);
 }
 
 .ghc-card__compose-generate-wrap {
@@ -353,7 +441,10 @@
 
 .ghc-card__compose-generate-btn {
   width: 100%;
+  max-width: none;
   box-sizing: border-box;
+  border-radius: 14px;
+  min-height: 44px;
 }
 
 /* ── Like / Nope overlays ── */
@@ -431,8 +522,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(0, 0, 0, 0.16);
@@ -816,6 +907,30 @@
 /* Резерв строки под ник, когда сервер ничего не прислал */
 .ghc-card__meta-author--empty {
   visibility: hidden;
+}
+
+.ghc-card__meta-author--wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  hyphens: auto;
+  transform: translateY(-6px);
+}
+
+.ghc-card__meta-hint {
+  display: block;
+  margin-top: 6px;
+  max-width: 100%;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  white-space: normal;
+  pointer-events: none;
 }
 
 /* ── Deck counter ── */

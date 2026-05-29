@@ -17,7 +17,7 @@ import { onApiHostedImageError } from '@/utils/apiImageFallback';
 import { Pulsar } from '@/components/ui/Pulsar';
 import { DeleteIcon, ShareIcon, DownloadIcon } from '@/components/ui/Icons';
 import type { DeckAction, DeckActionResponse, DeckCard } from '@/types/deck';
-import { deckActionForGesture, deckOverlayLabels } from '@/utils/generateDeckCardVisual';
+import { deckActionForGesture, deckCardSwipeHasDistinctSides, deckOverlayLabels } from '@/utils/generateDeckCardVisual';
 import { getStylePresetVisualPreviewUrl } from '@/utils/stylePresetVisualPreview';
 import './GenerateHeroCard.css';
 
@@ -347,6 +347,9 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
   const deckFlowNonStyle = Boolean(activeDeckCard && !activeDeckCardIsStyle);
   const overlayLabels =
     activeDeckCard ? deckOverlayLabels(activeDeckCard.type) : { like: '♥ НРАВИТСЯ', nope: '✕ ДАЛЬШЕ' };
+  const showSwipeDirectionOverlays =
+    isInteractive &&
+    (!activeDeckCard || deckCardSwipeHasDistinctSides(activeDeckCard.type));
 
   useEffect(() => {
     if (!useOverlayDeck || !overlayCard) return;
@@ -388,6 +391,11 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     }
     return null;
   }, [activeDeckPresentation, presetPreviewById]);
+
+  /** «Создать стикер» из сетки / CUSTOM_PROMPT без картинки: без логотипа и меты, форма с самого верха карточки */
+  const compactCustomPromptHero = Boolean(
+    composeSlot && activeDeckCard?.type === 'CUSTOM_PROMPT' && !activeDeckPreview,
+  );
 
   /** Пресеты впереди по кругу для префетча и плавной колоды */
   const lookaheadUrls = useMemo(() => {
@@ -773,17 +781,25 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
     if (!isInteractive) return null;
     if (activeDeckCard && activeDeckPresentation) {
       const sub = activeDeckPresentation.subtitle?.trim();
+      const deckEmpty = activeDeckCard.type === 'DECK_EMPTY';
       return (
         <div className="ghc-card__meta">
           <span className="ghc-card__meta-name">{activeDeckPresentation.title}</span>
           <span
             className={
-              'ghc-card__meta-author' + (sub ? '' : ' ghc-card__meta-author--empty')
+              'ghc-card__meta-author' +
+              (sub ? '' : ' ghc-card__meta-author--empty') +
+              (deckEmpty && sub ? ' ghc-card__meta-author--wrap' : '')
             }
             aria-hidden={sub ? undefined : true}
           >
             {sub ?? ''}
           </span>
+          {activeDeckCardIsStyle ? (
+            <span className="ghc-card__meta-hint">
+              Свайп — оценка стиля. Стикер собирается в блоке ниже.
+            </span>
+          ) : null}
         </div>
       );
     }
@@ -865,7 +881,8 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       className={
         (composeSlot ? 'ghc-root ghc-root--with-compose' : 'ghc-root') +
         (deckFlowNonStyle && composeSlot ? ' ghc-root--deck-flow' : '') +
-        (showComposeOverlay ? ' ghc-root--compose-overlay-open' : '')
+        (showComposeOverlay ? ' ghc-root--compose-overlay-open' : '') +
+        (compactCustomPromptHero ? ' ghc-root--custom-prompt-compact' : '')
       }
     >
       {/* Фоновая карточка — следующий пресет: тот же ритм 84/16, мягче чем верхняя */}
@@ -912,7 +929,8 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
           'ghc-card' +
           (isGenerating && generatingInlineSlot ? ' ghc-card--generating-inline' : '') +
           (composeSlot ? ' ghc-card--compose-slot' : '') +
-          (useOverlayDeck ? ' ghc-card--overlay-intent' : '')
+          (useOverlayDeck ? ' ghc-card--overlay-intent' : '') +
+          (compactCustomPromptHero ? ' ghc-card--custom-prompt-compact' : '')
         }
         key={useOverlayDeck && overlayCard ? overlayCard.cardInstanceId : 'main'}
         style={{
@@ -938,23 +956,27 @@ export const GenerateHeroCard: FC<GenerateHeroCardProps> = ({
       >
         {renderActions()}
 
-        {/* Like overlay */}
-        <motion.div
-          className="ghc-card__like-overlay"
-          style={{ opacity: likeOpacity }}
-          aria-hidden
-        >
-          <span className="ghc-card__like-label">{overlayLabels.like}</span>
-        </motion.div>
+        {showSwipeDirectionOverlays ? (
+          <>
+            {/* Like overlay */}
+            <motion.div
+              className="ghc-card__like-overlay"
+              style={{ opacity: likeOpacity }}
+              aria-hidden
+            >
+              <span className="ghc-card__like-label">{overlayLabels.like}</span>
+            </motion.div>
 
-        {/* Nope overlay */}
-        <motion.div
-          className="ghc-card__nope-overlay"
-          style={{ opacity: nopeOpacity }}
-          aria-hidden
-        >
-          <span className="ghc-card__nope-label">{overlayLabels.nope}</span>
-        </motion.div>
+            {/* Nope overlay */}
+            <motion.div
+              className="ghc-card__nope-overlay"
+              style={{ opacity: nopeOpacity }}
+              aria-hidden
+            >
+              <span className="ghc-card__nope-label">{overlayLabels.nope}</span>
+            </motion.div>
+          </>
+        ) : null}
 
         <div
           className={

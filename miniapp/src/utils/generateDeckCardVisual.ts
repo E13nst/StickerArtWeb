@@ -24,6 +24,11 @@ export function deckActionForGesture(type: DeckCardType, swipeRight: boolean): D
   }
 }
 
+/** Показывать ли оверлеи LIKE/PASS: смысл только если жесты влево/вправо дают разные действия */
+export function deckCardSwipeHasDistinctSides(type: DeckCardType): boolean {
+  return deckActionForGesture(type, true) !== deckActionForGesture(type, false);
+}
+
 export function deckOverlayLabels(type: DeckCardType): { like: string; nope: string } {
   switch (type) {
     case 'STYLE_PRESET':
@@ -112,7 +117,7 @@ export function buildGenerateDeckCardVisual(
       if (!title) title = 'Лимит свайпов';
       break;
     case 'DECK_EMPTY':
-      if (!title) title = 'Пока нечего оценивать';
+      if (!title) title = 'Лента для оценки стилей пуста';
       break;
     default:
       if (!title) title = 'Карточка';
@@ -120,6 +125,10 @@ export function buildGenerateDeckCardVisual(
 
   if (num('referrerUserId') != null && card.type === 'REFERRAL_INFO' && !subtitle) {
     subtitle = `Пригласивший: id ${num('referrerUserId')}`;
+  }
+
+  if (card.type === 'DECK_EMPTY' && !subtitle?.trim()) {
+    subtitle = 'Стикер создаётся в блоке ниже — выберите стиль или опишите промпт.';
   }
 
   return { title, subtitle, imageUrl, linkedPresetId: linkedId };

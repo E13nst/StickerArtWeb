@@ -842,17 +842,17 @@
 
 .generate-source-strip__remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 18px;
-  height: 18px;
+  top: 2px;
+  right: 2px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: none;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
-  font-size: 14px;
-  line-height: 18px;
+  font-size: 20px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1111,7 +1111,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 12px 14px 10px;
+  padding: 12px 14px 12px;
   gap: 8px;
   width: 100%;
   max-width: 370px;
@@ -1154,20 +1154,22 @@
   flex-wrap: wrap;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 10px 8px;
+  gap: 10px 10px;
   width: 100%;
   margin-top: auto;
+  padding-bottom: 6px;
   position: relative;
 }
 
 .generate-input-toolbar {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   flex: 0 0 auto;
   min-width: 0;
+  padding-bottom: 4px;
 }
 
 /* Компактная ширина «Удалить фон» рядом с эмодзи (без margin-left: auto / width:100% из общих правил) */
@@ -1184,7 +1186,7 @@
   display: inline-flex;
   align-items: center;
   margin: 0;
-  min-height: 42px;
+  min-height: 44px;
   padding: 8px 12px;
   box-sizing: border-box;
   border-radius: 16px;
@@ -1231,7 +1233,7 @@
 
 .generate-page .generate-checkbox-label--inline {
   margin: 0;
-  min-height: 42px;
+  min-height: 44px;
   padding: 8px 12px;
   box-sizing: border-box;
   align-items: center;
@@ -1360,7 +1362,7 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   padding: 10px 12px;
   color: var(--color-text-secondary);
   font-family: var(--font-family-base);
@@ -1377,6 +1379,7 @@
 .generate-model-select-trigger--emoji {
   justify-content: center;
   min-width: 60px;
+  min-height: 44px;
   padding: 10px 12px;
 }
 
@@ -1731,7 +1734,7 @@
 @media (max-width: 360px) {
   .generate-model-select-trigger,
   .generate-checkbox-label--inline {
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .generate-input-footer {
@@ -2321,6 +2324,14 @@ body.generate-prompt-focused .navbar {
   width: 100%;
   /* Не даём scroll anchoring при подгрузке превью героя «подтаскивать» вьюпорт к полю ниже */
   overflow-anchor: none;
+}
+
+/*
+ * Карточка с промптом/кнопкой внутри выше «голого» hero — общий max-height обрезал низ и тень ::before.
+ */
+.generate-page .generate-inner > .ghc-root.ghc-root--with-compose {
+  max-height: none;
+  overflow: visible;
 }
 
 /* Компактные поля пресета (реф + эмодзи) на карточке во время генерации */
